@@ -25,6 +25,7 @@
 
 import PropTypes from "prop-types";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Accessibility,
   BarChart3,
@@ -605,6 +606,13 @@ export default function CardEventoAdministrador({
   classNomeEventoMultiLinha,
   classorganizadoresMultiLinha,
 }) {
+
+   const navigate = useNavigate();
+
+  const irParaGestaoEvento = () => {
+    navigate(`/admin/evento/${evento.id}/gestao`);
+  };
+
   const tituloEvento = evento?.titulo || "Evento sem título";
 
   const folderUrl = useMemo(() => getEventoFolderUrl(evento), [evento]);
@@ -795,29 +803,18 @@ export default function CardEventoAdministrador({
           </div>
 
           <button
-            type="button"
-            onClick={() => toggleExpandir(evento.id)}
-            aria-expanded={!!expandido}
-            aria-controls={turmasId}
-            className={[
-              "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-sm transition",
-              "bg-gradient-to-br from-zinc-950 via-emerald-950 to-emerald-800 hover:brightness-[1.06]",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
-            ].join(" ")}
-            title={expandido ? "Recolher detalhes do evento" : "Ver turmas do evento"}
-          >
-            {expandido ? (
-              <>
-                Recolher
-                <ChevronUp className="h-4 w-4" aria-hidden="true" />
-              </>
-            ) : (
-              <>
-                Ver turmas
-                <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              </>
-            )}
-          </button>
+  type="button"
+  onClick={irParaGestaoEvento}
+  className={[
+    "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-sm transition",
+    "bg-gradient-to-br from-zinc-950 via-emerald-950 to-emerald-800 hover:brightness-[1.06]",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
+  ].join(" ")}
+  title="Abrir central de gestão deste evento"
+>
+  Gerenciar evento
+  <Sparkles className="h-4 w-4" aria-hidden="true" />
+</button>
         </div>
       </div>
 

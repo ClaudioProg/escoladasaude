@@ -674,9 +674,20 @@ function criarSecoes() {
         },
                  { label: "Criar Informativos", path: ROTA.gestaoInformacao, icon: Megaphone },
                          {
+          label: "Criar Eventos",
+          path: ROTA.gestaoEvento,
+          icon: CalendarDays,
+          resumo_chave: "evento_disponivel",
+        },
+                         {
           label: "Certificados avulsos",
           path: ROTA.certificadoAvulso,
           icon: FileText,
+        },
+                {
+          label: "Agenda geral",
+          path: ROTA.administradorAgenda,
+          icon: ListChecks,
         },
                          {
           label: "Caixa de mensagens",
@@ -691,7 +702,7 @@ function criarSecoes() {
       perfil: PERFIL.administrador,
       items: [
          {
-          label: "Painel do administrador",
+          label: "Painel do gestor",
           path: ROTA.administrador,
           icon: LayoutDashboard,
         },
@@ -705,17 +716,6 @@ function criarSecoes() {
           label: "Dashboard analítico",
           path: ROTA.dashboardAnalitico,
           icon: BarChart3,
-        },
-        {
-          label: "Agenda geral",
-          path: ROTA.administradorAgenda,
-          icon: ListChecks,
-        },
-        {
-          label: "Eventos",
-          path: ROTA.gestaoEvento,
-          icon: CalendarDays,
-          resumo_chave: "evento_disponivel",
         },
         {
           label: "Presenças",
@@ -740,11 +740,6 @@ function criarSecoes() {
           label: "Cancelar inscrição",
           path: ROTA.gestaoCancelamentoInscricao,
           icon: X,
-        },
-        {
-          label: "Bloqueios de calendário",
-          path: ROTA.gestaoCalendarioBloqueio,
-          icon: CalendarX2,
         },
         {
           label: "Calendário Anual de EPS",
@@ -774,11 +769,6 @@ function criarSecoes() {
           label: "Criar chamada de trabalhos",
           path: ROTA.chamadaNova,
           icon: PlusCircle,
-        },
-        {
-          label: "Lista de presença por turma",
-          path: ROTA.gestaoListaPresencaTurma,
-          icon: ListChecks,
         },
         {
           label: "Submissões",

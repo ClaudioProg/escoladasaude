@@ -1,8 +1,9 @@
 /* eslint-disable no-console */
-// ✅ frontend/src/components/usuarios/ModalEditarUsuario.jsx — v2.0
+// ✅ frontend/src/components/usuarios/ModalEditarUsuario.jsx — v2.1
+// Atualizado em: 01/06/2026
 // Plataforma Escola da Saúde
-// Modal premium para edição administrativa de dados básicos do usuário.
-// Contrato oficial: nome, email e celular via apiUsuarioAtualizarBasico.
+// Modal premium para edição administrativa de dados do usuário.
+// Contrato oficial: nome, email, celular, unidade_id e perfil via onSalvar.
 // CPF é somente leitura até existir contrato oficial revisado para alteração.
 
 import {
@@ -13,26 +14,54 @@ import {
   useState,
   useId,
 } from "react";
+import { createPortal } from "react-dom";
 import PropTypes from "prop-types";
 import { toast } from "react-toastify";
 import {
   AlertTriangle,
   BadgeCheck,
+  Building2,
+  CheckCircle2,
+  GraduationCap,
   IdCard,
   Mail,
   Phone,
   Save,
+  ShieldCheck,
   User,
+  Users,
   X,
 } from "lucide-react";
 
-import { apiUsuarioAtualizarBasico } from "../../services/api";
+/* ─────────────────────────────────────────────────────────────
+   Contratos oficiais
+────────────────────────────────────────────────────────────── */
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const PERFIS_OFICIAIS = [
+  {
+    label: "Usuário",
+    value: "usuario",
+    description: "Acesso padrão aos recursos disponíveis para participantes.",
+  },
+  {
+    label: "Organizador",
+    value: "organizador",
+    description: "Acesso aos recursos vinculados à organização de eventos.",
+  },
+  {
+    label: "Administrador",
+    value: "administrador",
+    description: "Acesso administrativo aos módulos de gestão.",
+  },
+];
+
+const PERFIS_VALIDOS = new Set(PERFIS_OFICIAIS.map((perfil) => perfil.value));
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
 ────────────────────────────────────────────────────────────── */
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -75,6 +104,7 @@ function aplicarMascaraCelular(value) {
 
   if (digits.length <= 2) return digits;
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+
   if (digits.length <= 10) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
@@ -90,11 +120,26 @@ function validarCelularOpcional(value) {
   return /^\d{10,11}$/.test(digits);
 }
 
-function montarSnapshot({ nome, email, celular }) {
+function perfilOficial(value) {
+  const perfil = String(value || "").trim();
+
+  return PERFIS_VALIDOS.has(perfil) ? perfil : "";
+}
+
+function iconByPerfil(value) {
+  if (value === "administrador") return ShieldCheck;
+  if (value === "organizador") return GraduationCap;
+
+  return Users;
+}
+
+function montarSnapshot({ nome, email, celular, unidade_id, perfil }) {
   return {
     nome: normText(nome),
     email: normEmail(email),
     celular: onlyDigits(celular),
+    unidade_id: Number(unidade_id) || "",
+    perfil: perfilOficial(perfil),
   };
 }
 
@@ -127,7 +172,11 @@ function FieldError({ id, children }) {
   if (!children) return null;
 
   return (
-    <p id={id} className="mt-1 text-xs text-rose-600 dark:text-rose-300" role="alert">
+    <p
+      id={id}
+      className="mt-1 text-xs text-rose-600 dark:text-rose-300"
+      role="alert"
+    >
       {children}
     </p>
   );
@@ -151,7 +200,8 @@ export default function ModalEditarUsuario({
   isOpen,
   onClose,
   usuario,
-  onAtualizar,
+  unidades = [],
+  onSalvar,
 }) {
   const uid = useId();
 
@@ -164,11 +214,14 @@ export default function ModalEditarUsuario({
   const refNome = useRef(null);
   const refEmail = useRef(null);
   const refCelular = useRef(null);
+  const refUnidade = useRef(null);
   const refSalvar = useRef(null);
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [celular, setCelular] = useState("");
+  const [unidadeId, setUnidadeId] = useState("");
+  const [perfil, setPerfil] = useState("");
 
   const [salvando, setSalvando] = useState(false);
   const [errors, setErrors] = useState({});
@@ -179,22 +232,38 @@ export default function ModalEditarUsuario({
 
   const cpfOriginal = usuario?.cpf || "";
 
+  const unidadesOrdenadas = useMemo(() => {
+    return [...(Array.isArray(unidades) ? unidades : [])].sort((a, b) =>
+      String(a?.sigla || a?.nome || "").localeCompare(
+        String(b?.sigla || b?.nome || ""),
+        "pt-BR",
+        { sensitivity: "base" }
+      )
+    );
+  }, [unidades]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const nomeInicial = usuario?.nome || "";
     const emailInicial = usuario?.email || "";
     const celularInicial = usuario?.celular || "";
+    const unidadeInicial = usuario?.unidade_id || "";
+    const perfilInicial = perfilOficial(usuario?.perfil) || "usuario";
 
     setNome(nomeInicial);
     setEmail(emailInicial);
     setCelular(aplicarMascaraCelular(celularInicial));
+    setUnidadeId(String(unidadeInicial || ""));
+    setPerfil(perfilInicial);
 
     setBaseline(
       montarSnapshot({
         nome: nomeInicial,
         email: emailInicial,
         celular: celularInicial,
+        unidade_id: unidadeInicial,
+        perfil: perfilInicial,
       })
     );
 
@@ -211,8 +280,10 @@ export default function ModalEditarUsuario({
         nome,
         email,
         celular,
+        unidade_id: unidadeId,
+        perfil,
       }),
-    [celular, email, nome]
+    [celular, email, nome, perfil, unidadeId]
   );
 
   const dirty = useMemo(() => {
@@ -244,7 +315,9 @@ export default function ModalEditarUsuario({
     function onKeyDown(event) {
       if (event.key === "Escape") {
         event.preventDefault();
+
         if (!salvando) onClose?.();
+
         return;
       }
 
@@ -289,6 +362,7 @@ export default function ModalEditarUsuario({
       ["nome", refNome],
       ["email", refEmail],
       ["celular", refCelular],
+      ["unidade_id", refUnidade],
     ];
 
     const item = ordem.find(([field]) => fields[field]);
@@ -316,6 +390,14 @@ export default function ModalEditarUsuario({
       fields.celular = "Celular inválido. Informe DDD + número.";
     }
 
+    if (!snapshotAtual.unidade_id) {
+      fields.unidade_id = "Selecione a unidade do usuário.";
+    }
+
+    if (!snapshotAtual.perfil) {
+      fields.perfil = "Selecione um perfil oficial.";
+    }
+
     return fields;
   }
 
@@ -341,20 +423,31 @@ export default function ModalEditarUsuario({
       return;
     }
 
+    if (typeof onSalvar !== "function") {
+      const message =
+        "Fluxo de salvamento não configurado. Informe a função onSalvar no componente pai.";
+
+      setErroGeral(message);
+      setMsgA11y(message);
+      toast.error(message);
+      return;
+    }
+
     try {
       setSalvando(true);
       setMsgA11y("Salvando alterações do usuário...");
 
-      await apiUsuarioAtualizarBasico(usuario.id, {
+      await onSalvar(usuario.id, {
         nome: snapshotAtual.nome,
         email: snapshotAtual.email,
         celular: snapshotAtual.celular,
+        unidade_id: snapshotAtual.unidade_id,
+        perfil: snapshotAtual.perfil,
       });
 
       toast.success("Usuário atualizado com sucesso.");
       setMsgA11y("Usuário atualizado com sucesso.");
 
-      await onAtualizar?.();
       onClose?.();
     } catch (error) {
       console.error("[ModalEditarUsuario] erro ao salvar usuário", {
@@ -381,33 +474,31 @@ export default function ModalEditarUsuario({
     } finally {
       setSalvando(false);
     }
-  }, [dirty, salvando, snapshotAtual, usuario?.id, onAtualizar, onClose]);
+  }, [dirty, salvando, snapshotAtual, usuario?.id, onSalvar, onClose]);
 
   if (!isOpen) return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6"
-      role="presentation"
-    >
+return createPortal(
+  <div
+    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto px-4 py-6 sm:items-center"
+    role="presentation"
+  >
       <div
-        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-        aria-hidden="true"
-        onClick={() => {
-          if (!salvando) onClose?.();
-        }}
-      />
+  className="fixed inset-0 bg-black/55 backdrop-blur-sm"
+  aria-hidden="true"
+  onClick={() => {
+    if (!salvando) onClose?.();
+  }}
+/>
 
       <section
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={
-          erroGeral ? `${descId} ${errorId}` : descId
-        }
-        className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-white/10 bg-white text-slate-900 shadow-2xl dark:bg-zinc-950 dark:text-zinc-100"
-      >
+  ref={dialogRef}
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby={titleId}
+  aria-describedby={erroGeral ? `${descId} ${errorId}` : descId}
+  className="relative my-auto flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white text-slate-900 shadow-2xl dark:bg-zinc-950 dark:text-zinc-100"
+>
         <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-teal-900 to-emerald-900 px-5 py-5 text-white sm:px-6">
           <div
             className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl"
@@ -427,15 +518,18 @@ export default function ModalEditarUsuario({
           <div className="relative pr-10">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white">
               <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-              Dados básicos
+              Dados administrativos
             </div>
 
-            <h2 id={titleId} className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            <h2
+              id={titleId}
+              className="text-xl font-extrabold tracking-tight sm:text-2xl"
+            >
               Editar usuário
             </h2>
 
             <p id={descId} className="mt-1 text-sm leading-relaxed text-white/90">
-              Atualize nome, e-mail e celular de{" "}
+              Atualize dados cadastrais, unidade e perfil de{" "}
               <strong>{usuario?.nome || "usuário"}</strong>.
             </p>
           </div>
@@ -620,6 +714,156 @@ export default function ModalEditarUsuario({
 
             <div>
               <label
+                htmlFor={`edt-unidade-${uid}`}
+                className="block text-sm font-semibold"
+              >
+                Unidade <span className="text-rose-600">*</span>
+              </label>
+
+              <div className="relative mt-1">
+                <Building2
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-zinc-400"
+                  aria-hidden="true"
+                />
+
+                <select
+                  ref={refUnidade}
+                  id={`edt-unidade-${uid}`}
+                  value={unidadeId}
+                  onChange={(event) => {
+                    setUnidadeId(event.target.value);
+                    setErrors((old) => ({ ...old, unidade_id: "" }));
+                  }}
+                  disabled={salvando}
+                  aria-invalid={!!errors.unidade_id}
+                  aria-describedby={
+                    errors.unidade_id
+                      ? `erro-unidade-${uid}`
+                      : `dica-unidade-${uid}`
+                  }
+                  className={cx(
+                    "w-full appearance-none rounded-2xl border px-4 py-3 pl-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/70",
+                    "bg-white text-slate-900 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100",
+                    errors.unidade_id
+                      ? "border-rose-400 ring-2 ring-rose-500/60"
+                      : "border-slate-300"
+                  )}
+                >
+                  <option value="">Selecione a unidade</option>
+
+                  {unidadesOrdenadas.map((unidade) => (
+                    <option key={unidade.id} value={String(unidade.id)}>
+                      {unidade.sigla
+                        ? `${unidade.sigla} — ${unidade.nome || "Sem nome"}`
+                        : unidade.nome || `Unidade ${unidade.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {errors.unidade_id ? (
+                <FieldError id={`erro-unidade-${uid}`}>
+                  {errors.unidade_id}
+                </FieldError>
+              ) : (
+                <FieldHint id={`dica-unidade-${uid}`}>
+                  Unidade institucional vinculada ao usuário.
+                </FieldHint>
+              )}
+            </div>
+
+            <div>
+              <fieldset>
+                <legend className="block text-sm font-semibold">
+                  Perfil <span className="text-rose-600">*</span>
+                </legend>
+
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {PERFIS_OFICIAIS.map((item) => {
+                    const selected = perfil === item.value;
+                    const Icon = iconByPerfil(item.value);
+
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        disabled={salvando}
+                        onClick={() => {
+                          setPerfil(item.value);
+                          setErrors((old) => ({ ...old, perfil: "" }));
+                        }}
+                        className={cx(
+                          "flex min-h-[92px] flex-col items-start justify-between rounded-2xl border px-3 py-3 text-left text-sm transition",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70",
+                          selected
+                            ? "border-emerald-400 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/35 dark:text-emerald-100"
+                            : "border-slate-200 bg-white text-slate-800 hover:border-emerald-300 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-emerald-700",
+                          salvando
+                            ? "cursor-not-allowed opacity-70"
+                            : "cursor-pointer"
+                        )}
+                        aria-pressed={selected ? "true" : "false"}
+                      >
+                        <span className="flex w-full items-center justify-between gap-2">
+                          <span
+                            className={cx(
+                              "inline-flex h-9 w-9 items-center justify-center rounded-2xl border",
+                              selected
+                                ? "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                                : "border-slate-200 bg-slate-100 text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                            )}
+                            aria-hidden="true"
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+
+                          {selected ? (
+                            <CheckCircle2
+                              className="h-4 w-4 text-emerald-700 dark:text-emerald-300"
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                        </span>
+
+                        <span className="mt-3 font-extrabold">{item.label}</span>
+                        <span className="mt-1 text-[11px] leading-snug opacity-80">
+                          {item.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {errors.perfil ? (
+                  <FieldError id={`erro-perfil-${uid}`}>
+                    {errors.perfil}
+                  </FieldError>
+                ) : (
+                  <FieldHint id={`dica-perfil-${uid}`}>
+                    O sistema aceita apenas um perfil oficial por usuário.
+                  </FieldHint>
+                )}
+              </fieldset>
+
+              {perfil === "administrador" &&
+              baseline?.perfil !== "administrador" ? (
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
+                  <div className="flex gap-2">
+                    <AlertTriangle
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <p>
+                      Você está concedendo acesso administrativo. Confirme se
+                      essa alteração é necessária e autorizada.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <label
                 htmlFor={`edt-cpf-${uid}`}
                 className="block text-sm font-semibold"
               >
@@ -635,7 +879,11 @@ export default function ModalEditarUsuario({
                 <input
                   id={`edt-cpf-${uid}`}
                   type="text"
-                  value={cpfRevelado ? aplicarMascaraCPF(cpfOriginal) : mascararCPF(cpfOriginal)}
+                  value={
+                    cpfRevelado
+                      ? aplicarMascaraCPF(cpfOriginal)
+                      : mascararCPF(cpfOriginal)
+                  }
                   readOnly
                   aria-readonly="true"
                   className="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 pl-10 text-sm text-slate-600 dark:border-white/10 dark:bg-zinc-900/60 dark:text-zinc-400"
@@ -666,9 +914,8 @@ export default function ModalEditarUsuario({
                   aria-hidden="true"
                 />
                 <p>
-                  Este modal atualiza apenas dados básicos confirmados no
-                  contrato atual. Perfil, CPF e dados institucionais pertencem a
-                  fluxos próprios.
+                  CPF permanece somente leitura. Nome, e-mail, celular, unidade
+                  e perfil podem ser atualizados neste fluxo administrativo.
                 </p>
               </div>
             </div>
@@ -712,9 +959,24 @@ export default function ModalEditarUsuario({
           </button>
         </footer>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
+
+/* ─────────────────────────────────────────────────────────────
+   PropTypes
+────────────────────────────────────────────────────────────── */
+
+FieldError.propTypes = {
+  id: PropTypes.string.isRequired,
+  children: PropTypes.node,
+};
+
+FieldHint.propTypes = {
+  id: PropTypes.string.isRequired,
+  children: PropTypes.node,
+};
 
 ModalEditarUsuario.propTypes = {
   isOpen: PropTypes.bool.isRequired,
@@ -723,8 +985,17 @@ ModalEditarUsuario.propTypes = {
     id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
     nome: PropTypes.string,
     email: PropTypes.string,
-    celular: PropTypes.string,
-    cpf: PropTypes.string,
+    celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    unidade_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    perfil: PropTypes.string,
   }).isRequired,
-  onAtualizar: PropTypes.func,
+  unidades: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      sigla: PropTypes.string,
+      nome: PropTypes.string,
+    })
+  ),
+  onSalvar: PropTypes.func,
 };

@@ -1,4 +1,5 @@
-// ✅ frontend/src/pages/GestaoUsuarios.jsx — v2.0
+// ✅ frontend/src/pages/GestaoUsuarios.jsx — v2.1
+// Atualizado em: 01/06/2026
 // Plataforma Escola da Saúde
 // Gestão premium de usuários com paginação server-side, contrato único, filtros oficiais e UX mobile-first.
 
@@ -28,18 +29,21 @@ import {
 } from "lucide-react";
 
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import TabelaUsuarios from "../components/usuarios/TabelaUsuarios";
 
 import {
   apiPerfilOpcao,
+  apiUsuarioAtualizarBasico,
   apiUsuarioAtualizarPerfil,
+  apiUsuarioAtualizarPerfilInstitucional,
   apiUsuarioEstatisticaDetalhada,
   apiUsuarioListar,
   apiUsuarioResumo,
 } from "../services/api";
 
-const ModalEditarPerfil = lazy(() =>
-  import("../components/usuarios/ModalEditarPerfil")
+const ModalEditarUsuario = lazy(() =>
+  import("../components/usuarios/ModalEditarUsuario")
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -51,7 +55,7 @@ const PERFIS_OFICIAIS = ["usuario", "organizador", "administrador"];
 const PERFIL_LABEL = {
   todos: "Todos os perfis",
   usuario: "Usuários",
-  organizador: "organizadores",
+  organizador: "Organizadores",
   administrador: "Administradores",
 };
 
@@ -114,7 +118,11 @@ function idadeFromYmd(value) {
   const mes = Number(mesRaw);
   const dia = Number(diaRaw);
 
-  if (!Number.isSafeInteger(ano) || !Number.isSafeInteger(mes) || !Number.isSafeInteger(dia)) {
+  if (
+    !Number.isSafeInteger(ano) ||
+    !Number.isSafeInteger(mes) ||
+    !Number.isSafeInteger(dia)
+  ) {
     return null;
   }
 
@@ -173,14 +181,22 @@ function normalizeUsuario(row = {}, lookup = {}) {
     perfil: perfilOficial(row.perfil),
     idade: idadeFromYmd(row.data_nascimento),
     cpf_masked: maskCpf(row.cpf),
+
+    unidade_id: unidadeId,
     unidade_sigla: row.unidade_sigla || unidadeLookup?.sigla || null,
     unidade_nome: row.unidade_nome || unidadeLookup?.nome || null,
+
     cargo_nome: row.cargo_nome || cargoLookup?.nome || null,
+
+    email: String(row.email || "").trim(),
+    celular: String(row.celular || "").trim(),
   };
 }
 
 function getMensagemErro(error, fallback) {
   return (
+    error?.response?.data?.message ||
+    error?.response?.data?.erro ||
     error?.data?.message ||
     error?.data?.erro ||
     error?.message ||
@@ -191,30 +207,6 @@ function getMensagemErro(error, fallback) {
 /* ─────────────────────────────────────────────────────────────
    Componentes locais
 ────────────────────────────────────────────────────────────── */
-
-function MiniStat({ label, value = "—", accent = "indigo" }) {
-  const map = {
-    indigo: "from-indigo-500 to-indigo-300",
-    emerald: "from-emerald-500 to-emerald-300",
-    amber: "from-amber-500 to-amber-300",
-    violet: "from-violet-500 to-violet-300",
-    fuchsia: "from-fuchsia-500 to-fuchsia-300",
-  };
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur">
-      <div
-        className={cx(
-          "inline-block rounded-lg bg-gradient-to-br px-2 py-1 text-xs font-semibold text-white",
-          map[accent] || map.indigo
-        )}
-      >
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-extrabold">{value}</div>
-    </div>
-  );
-}
 
 function PerfilChip({ active, value, onClick }) {
   return (
@@ -236,95 +228,122 @@ function PerfilChip({ active, value, onClick }) {
   );
 }
 
-function HeaderHero({ onAtualizar, atualizando, total, kpis }) {
+function KpiCard({ label, value = "—", icon: Icon, tone = "violet" }) {
+  const tones = {
+    violet:
+      "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/30 dark:text-violet-100",
+    emerald:
+      "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100",
+    amber:
+      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100",
+    indigo:
+      "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-900/40 dark:bg-indigo-950/30 dark:text-indigo-100",
+  };
+
   return (
-    <header
-      className="relative isolate overflow-hidden bg-gradient-to-br from-indigo-900 via-violet-800 to-fuchsia-700 text-white"
-      role="banner"
+    <div className={cx("rounded-2xl border p-4 shadow-sm", tones[tone] || tones.violet)}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-extrabold">{value}</p>
+        </div>
+
+        {Icon ? (
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/60 dark:bg-white/10">
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PainelOperacionalUsuarios({
+  atualizando,
+  total,
+  kpis,
+  onAtualizar,
+  onExportCsv,
+  exportando,
+}) {
+  return (
+    <section
+      aria-label="Resumo e ações da gestão de usuários"
+      className="mb-5 rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
     >
-      <a
-        href="#conteudo"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 rounded-xl bg-white/20 px-4 py-2 text-sm font-semibold text-white shadow"
-      >
-        Ir para o conteúdo
-      </a>
-
-      <div
-        className="pointer-events-none absolute inset-0 opacity-80"
-        style={{
-          background:
-            "radial-gradient(55% 55% at 50% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 34%, rgba(255,255,255,0) 60%)",
-        }}
-        aria-hidden="true"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 h-[320px] w-[900px] -translate-x-1/2 rounded-full bg-fuchsia-300 opacity-25 blur-3xl"
-      />
-
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 md:py-12">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="inline-flex items-center justify-center gap-2">
-              <Users className="h-6 w-6" aria-hidden="true" />
-              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                Gestão de Usuários
-              </h1>
-            </div>
-
-            <p className="max-w-2xl text-sm text-white/90 sm:text-base">
-              Busque, visualize e atualize perfis com segurança, rastreabilidade
-              operacional e contrato único.
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+              Painel operacional
             </p>
-
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={onAtualizar}
-                disabled={atualizando}
-                className={cx(
-                  "inline-flex min-h-[40px] items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                  atualizando
-                    ? "cursor-not-allowed bg-white/20 opacity-60"
-                    : "bg-white/15 hover:bg-white/25"
-                )}
-                aria-label="Atualizar lista de usuários"
-                aria-busy={atualizando ? "true" : "false"}
-              >
-                <RefreshCcw
-                  className={cx("h-4 w-4", atualizando ? "animate-spin" : "")}
-                  aria-hidden="true"
-                />
-                {atualizando ? "Atualizando…" : "Atualizar"}
-              </button>
-
-              {typeof total === "number" ? (
-                <span className="inline-flex min-h-[40px] items-center rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs">
-                  {total} usuário{total === 1 ? "" : "s"}
-                </span>
-              ) : null}
-            </div>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              {typeof total === "number"
+                ? `${total} usuário${total === 1 ? "" : "s"} encontrado${
+                    total === 1 ? "" : "s"
+                  } nos filtros atuais.`
+                : "Acompanhe os usuários cadastrados e suas vinculações."}
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MiniStat label="Totais" value={kpis.total} accent="indigo" />
-            <MiniStat label="Usuários" value={kpis.usuario} accent="emerald" />
-            <MiniStat label="organizadores" value={kpis.organizador} accent="amber" />
-            <MiniStat
-              label="Administradores"
-              value={kpis.administrador}
-              accent="violet"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onAtualizar}
+              disabled={atualizando}
+              className={cx(
+                "inline-flex min-h-[40px] items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600",
+                atualizando
+                  ? "cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                  : "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+              )}
+              aria-label="Atualizar lista de usuários"
+              aria-busy={atualizando ? "true" : "false"}
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", atualizando ? "animate-spin" : "")}
+                aria-hidden="true"
+              />
+              {atualizando ? "Atualizando…" : "Atualizar"}
+            </button>
+
+            <button
+              type="button"
+              onClick={onExportCsv}
+              disabled={exportando || Number(total || 0) === 0}
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+              title="Exportar CSV do resultado filtrado"
+            >
+              <Download
+                className={cx("h-4 w-4", exportando ? "animate-pulse" : "")}
+                aria-hidden="true"
+              />
+              {exportando ? "Exportando…" : "Exportar CSV"}
+            </button>
           </div>
         </div>
-      </div>
 
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px bg-white/25"
-        aria-hidden="true"
-      />
-    </header>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Total" value={kpis.total} icon={Users} tone="indigo" />
+          <KpiCard label="Usuários" value={kpis.usuario} icon={Users} tone="emerald" />
+          <KpiCard
+            label="Organizadores"
+            value={kpis.organizador}
+            icon={Sparkles}
+            tone="amber"
+          />
+          <KpiCard
+            label="Administradores"
+            value={kpis.administrador}
+            icon={ShieldCheck}
+            tone="violet"
+          />
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -341,7 +360,7 @@ export default function GestaoUsuarios() {
     pages: 1,
   });
 
-  const [lookup, setlookup] = useState({
+  const [lookup, setLookup] = useState({
     unidades: [],
     cargos: [],
     unidadesMap: new Map(),
@@ -351,12 +370,13 @@ export default function GestaoUsuarios() {
   const [estatistica, setEstatistica] = useState(null);
 
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
-  const [carregandolookup, setCarregandolookup] = useState(true);
+  const [carregandoLookup, setCarregandoLookup] = useState(true);
   const [erro, setErro] = useState("");
 
   const [busca, setBusca] = useState(() => getStorage(STORAGE_KEYS.busca, ""));
   const [perfilFiltro, setPerfilFiltro] = useState(() => {
     const stored = getStorage(STORAGE_KEYS.perfil, "todos");
+
     return stored === "todos" || PERFIS_OFICIAIS.includes(stored)
       ? stored
       : "todos";
@@ -435,9 +455,9 @@ export default function GestaoUsuarios() {
     setPage(1);
   }, [debouncedQ, perfilFiltro, unidadeFiltro, cargoFiltro, pageSize]);
 
-  const carregarlookup = useCallback(async () => {
+  const carregarLookup = useCallback(async () => {
     try {
-      setCarregandolookup(true);
+      setCarregandoLookup(true);
 
       const data = await apiPerfilOpcao();
 
@@ -478,7 +498,7 @@ export default function GestaoUsuarios() {
 
       if (!mountedRef.current) return;
 
-      setlookup({
+      setLookup({
         unidades: unidadesOrdenadas,
         cargos: cargosOrdenados,
         unidadesMap,
@@ -493,14 +513,14 @@ export default function GestaoUsuarios() {
         "Não foi possível carregar os filtros de unidade e cargo. Tente atualizar a página."
       );
 
-      setlookup({
+      setLookup({
         unidades: [],
         cargos: [],
         unidadesMap: new Map(),
         cargosMap: new Map(),
       });
     } finally {
-      if (mountedRef.current) setCarregandolookup(false);
+      if (mountedRef.current) setCarregandoLookup(false);
     }
   }, []);
 
@@ -592,15 +612,15 @@ export default function GestaoUsuarios() {
   }, [lookup, page, pageSize, paramsUsuarios, setLive]);
 
   useEffect(() => {
-    carregarlookup();
+    carregarLookup();
     carregarEstatisticas();
-  }, [carregarEstatisticas, carregarlookup]);
+  }, [carregarEstatisticas, carregarLookup]);
 
   useEffect(() => {
-    if (carregandolookup) return;
+    if (carregandoLookup) return;
 
     carregarUsuarios();
-  }, [carregandolookup, carregarUsuarios]);
+  }, [carregandoLookup, carregarUsuarios]);
 
   const kpis = useMemo(() => {
     const porPerfil = Array.isArray(estatistica?.por_perfil)
@@ -608,7 +628,10 @@ export default function GestaoUsuarios() {
       : [];
 
     const map = new Map(
-      porPerfil.map((item) => [String(item.label || "").trim(), Number(item.value || 0)])
+      porPerfil.map((item) => [
+        String(item.label || "").trim(),
+        Number(item.value || 0),
+      ])
     );
 
     return {
@@ -671,35 +694,65 @@ export default function GestaoUsuarios() {
     }
   }
 
-  async function salvarPerfil(id, perfil) {
-    const perfilNovo = perfilOficial(perfil);
+  async function salvarUsuarioEditado(id, payload = {}) {
+  const perfilNovo = perfilOficial(payload.perfil);
+  const nomeNovo = String(payload.nome || "").trim();
+  const emailNovo = String(payload.email || "").trim();
+  const celularNovo = onlyDigits(payload.celular);
+  const unidadeIdNovo = Number(payload.unidade_id) || null;
 
-    if (!perfilNovo) {
-      toast.error("Perfil inválido. Use apenas usuário, organizador ou administrador.");
-      return;
-    }
-
-    try {
-      await apiUsuarioAtualizarPerfil(id, { perfil: perfilNovo });
-
-      toast.success("Perfil atualizado com sucesso.");
-      fecharEdicao();
-      await carregarUsuarios();
-      await carregarEstatisticas();
-    } catch (error) {
-      console.error("[GestaoUsuarios] falha ao atualizar perfil", {
-        usuarioId: id,
-        message: error?.message,
-      });
-
-      toast.error(
-        getMensagemErro(
-          error,
-          "Não foi possível atualizar o perfil. Verifique as permissões e tente novamente."
-        )
-      );
-    }
+  if (!nomeNovo) {
+    toast.error("Informe o nome completo do usuário.");
+    throw new Error("Nome obrigatório.");
   }
+
+  if (!emailNovo) {
+    toast.error("Informe um e-mail válido para o usuário.");
+    throw new Error("E-mail obrigatório.");
+  }
+
+  if (!unidadeIdNovo) {
+    toast.error("Selecione a unidade do usuário.");
+    throw new Error("Unidade obrigatória.");
+  }
+
+  if (!perfilNovo) {
+    toast.error("Perfil inválido. Use apenas usuário, organizador ou administrador.");
+    throw new Error("Perfil inválido.");
+  }
+
+  try {
+    await apiUsuarioAtualizarBasico(id, {
+      nome: nomeNovo,
+      email: emailNovo,
+      celular: celularNovo,
+    });
+
+    await apiUsuarioAtualizarPerfilInstitucional(id, {
+      unidade_id: unidadeIdNovo,
+    });
+
+    await apiUsuarioAtualizarPerfil(id, {
+      perfil: perfilNovo,
+    });
+
+    await carregarUsuarios();
+    await carregarEstatisticas();
+  } catch (error) {
+    console.error("[GestaoUsuarios] falha ao atualizar usuário", {
+      usuarioId: id,
+      message: error?.message,
+    });
+
+    const message = getMensagemErro(
+      error,
+      "Não foi possível atualizar os dados do usuário. Verifique as permissões e tente novamente."
+    );
+
+    toast.error(message);
+    throw error;
+  }
+}
 
   function onToggleCpf(id) {
     setRevealCpfIds((prev) => {
@@ -735,6 +788,7 @@ export default function GestaoUsuarios() {
         "id",
         "nome",
         "email",
+        "celular",
         "perfil",
         "unidade_sigla",
         "cargo",
@@ -761,6 +815,7 @@ export default function GestaoUsuarios() {
             normalizado.id ?? "",
             normalizado.nome ?? "",
             normalizado.email ?? "",
+            normalizado.celular ?? "",
             normalizado.perfil ?? "",
             normalizado.unidade_sigla ?? "",
             normalizado.cargo_nome ?? "",
@@ -786,7 +841,7 @@ export default function GestaoUsuarios() {
     }
   }
 
-  const anyLoading = carregandoUsuarios || carregandolookup;
+  const anyLoading = carregandoUsuarios || carregandoLookup;
   const totalItems = Number(meta.total || 0);
   const totalPages = Math.max(1, Number(meta.pages || 1));
   const pageClamped = Math.min(Math.max(1, Number(meta.page || page)), totalPages);
@@ -796,13 +851,9 @@ export default function GestaoUsuarios() {
       <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
 
       <HeaderHero
-        onAtualizar={() => {
-          carregarUsuarios();
-          carregarEstatisticas();
-        }}
-        atualizando={anyLoading}
-        total={totalItems}
-        kpis={kpis}
+        titulo="Gestão de Usuários"
+        subtitulo="Busque, visualize e atualize usuários com segurança, rastreabilidade operacional e contrato único."
+        icone={Users}
       />
 
       {anyLoading ? (
@@ -818,6 +869,18 @@ export default function GestaoUsuarios() {
       ) : null}
 
       <main id="conteudo" className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4">
+        <PainelOperacionalUsuarios
+          atualizando={anyLoading}
+          total={totalItems}
+          kpis={kpis}
+          onAtualizar={() => {
+            carregarUsuarios();
+            carregarEstatisticas();
+          }}
+          onExportCsv={onExportCsv}
+          exportando={exportando}
+        />
+
         {erro && !anyLoading ? (
           <div
             ref={erroRef}
@@ -923,20 +986,6 @@ export default function GestaoUsuarios() {
                     </option>
                   ))}
                 </select>
-
-                <button
-                  type="button"
-                  onClick={onExportCsv}
-                  disabled={exportando || totalItems === 0}
-                  className="inline-flex min-h-[36px] items-center gap-2 rounded-xl bg-violet-700 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  title="Exportar CSV do resultado filtrado"
-                >
-                  <Download
-                    className={cx("h-4 w-4", exportando ? "animate-pulse" : "")}
-                    aria-hidden="true"
-                  />
-                  {exportando ? "Exportando…" : "Exportar CSV"}
-                </button>
               </div>
             </div>
           </div>
@@ -1025,11 +1074,12 @@ export default function GestaoUsuarios() {
           }
         >
           {usuarioSelecionado ? (
-            <ModalEditarPerfil
+            <ModalEditarUsuario
               usuario={usuarioSelecionado}
               isOpen={modalEditOpen}
-              onFechar={fecharEdicao}
-              onSalvar={salvarPerfil}
+              unidades={lookup.unidades}
+              onClose={fecharEdicao}
+              onSalvar={salvarUsuarioEditado}
             />
           ) : null}
         </Suspense>

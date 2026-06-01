@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/CalendarioAnualEPSAdmin.jsx — v2.0
-// Atualizado em: 18/05/2026
+// ✅ frontend/src/pages/CalendarioAnualEPSAdmin.jsx — v2.1
+// Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -21,14 +21,16 @@
 // - DELETE /api/calendario-eps/:id
 // - GET    /api/unidade
 //
-// Diretrizes v2.0:
+// Diretrizes v2.1:
+// - HeaderHero oficial e limpo;
+// - botões, stats, filtros, badges e navegação abaixo do HeaderHero;
 // - sem toast direto;
 // - sem Modal antigo;
 // - sem rota antiga /solicitacao-curso;
 // - sem status "confirmado";
 // - sem /api duplicado dentro do service;
 // - status oficial alinhado ao controller:
-//   planejado | solicitado | em_analise | aprovado | rejeitado | cancelado | convertido_em_evento
+//   planejado | solicitado | em_analise | aprovado | rejeitado | cancelado | convertido_em_evento;
 // - UX/UI premium real;
 // - mobile-first;
 // - acessível;
@@ -65,6 +67,7 @@ import Skeleton from "react-loading-skeleton";
 import api from "../services/api";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import ModalCalendarioAnualEPS from "../components/calendarioAnual/ModalCalendarioAnualEPS";
 
 /* =========================================================================
@@ -126,6 +129,7 @@ function unwrapArray(response) {
 function getErrorMessage(error, fallback) {
   return (
     error?.response?.data?.message ||
+    error?.response?.data?.erro ||
     error?.data?.message ||
     error?.message ||
     fallback
@@ -666,15 +670,21 @@ export default function CalendarioAnualEPSAdmin() {
       />
 
       <HeaderHero
-        mes={monthLabel(currentMonthYear)}
-        totalVisiveisMes={programacoesFiltradas.length}
-        carregando={carregando}
-        onRefresh={carregarDados}
-        onCriar={handleCriar}
-        kpis={kpis}
+        titulo="Calendário Anual de EPS"
+        subtitulo="Gerencie programações internas de Educação Permanente em Saúde, datas, departamentos, unidades, palestrantes, público-alvo e status institucional."
+        icone={GraduationCap}
       />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PainelOperacionalEPS
+          mes={monthLabel(currentMonthYear)}
+          totalVisiveisMes={programacoesFiltradas.length}
+          carregando={carregando}
+          onRefresh={carregarDados}
+          onCriar={handleCriar}
+          kpis={kpis}
+        />
+
         <ResumoDepartamentos
           resumoMensal={resumoMensal}
           resumoAnual={resumoAnual}
@@ -883,7 +893,7 @@ export default function CalendarioAnualEPSAdmin() {
    Componentes locais
 =========================================================================== */
 
-function HeaderHero({
+function PainelOperacionalEPS({
   mes,
   totalVisiveisMes,
   carregando,
@@ -892,74 +902,125 @@ function HeaderHero({
   kpis,
 }) {
   return (
-    <header className="relative overflow-hidden bg-slate-950 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(14,165,233,.32),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(99,102,241,.28),transparent_35%),radial-gradient(circle_at_70%_95%,rgba(217,70,239,.22),transparent_36%)]" />
-
-      <div className="relative mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
+    <section
+      aria-label="Painel operacional do Calendário Anual de EPS"
+      className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <ShieldCheck className="h-3.5 w-3.5 text-sky-200" />
-              Painel administrativo — Calendário Anual de EPS
-            </div>
-
-            <h1 className="max-w-4xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Gestão das programações anuais de EPS
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72 sm:text-base">
-              Acompanhe programações, datas, departamentos, unidades,
-              palestrantes, público-alvo e status de análise institucional.
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <Sparkles className="h-4 w-4 text-sky-700 dark:text-sky-300" />
+              Painel operacional
             </p>
 
-            <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur">
-              <Sparkles className="h-4 w-4 text-fuchsia-200" />
-              Mês: <strong>{mes}</strong> · {totalVisiveisMes} visíveis
-            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Mês visível:{" "}
+              <strong className="text-slate-800 dark:text-slate-100">
+                {mes}
+              </strong>{" "}
+              • {totalVisiveisMes} programação(ões) visível(is)
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-              <button
-                type="button"
-                onClick={onCriar}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-sky-900 shadow-lg shadow-black/10 transition hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-white/70"
-              >
-                <Plus className="h-4 w-4" />
-                Nova programação
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onCriar}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl bg-sky-700 px-4 py-2 text-sm font-black text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <Plus className="h-4 w-4" />
+              Nova programação
+            </button>
 
-              <button
-                type="button"
-                onClick={onRefresh}
-                disabled={carregando}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70 disabled:pointer-events-none disabled:opacity-60"
-              >
-                <RefreshCcw
-                  className={cx("h-4 w-4", carregando && "animate-spin")}
-                />
-                {carregando ? "Atualizando..." : "Atualizar"}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <MiniStat label="Total" value={kpis.total} icon={CalendarDays} />
-              <MiniStat label="Em análise" value={kpis.em_analise} icon={Clock} />
-              <MiniStat
-                label="Aprovadas"
-                value={kpis.aprovado}
-                icon={CheckCircle2}
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={carregando}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:pointer-events-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
               />
-              <MiniStat
-                label="Convertidas"
-                value={kpis.convertido_em_evento}
-                icon={GraduationCap}
-              />
-            </div>
+              {carregando ? "Atualizando..." : "Atualizar"}
+            </button>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <KpiCard
+            label="Total"
+            value={kpis.total}
+            icon={CalendarDays}
+            tone="sky"
+          />
+          <KpiCard
+            label="Em análise"
+            value={kpis.em_analise}
+            icon={Clock}
+            tone="amber"
+          />
+          <KpiCard
+            label="Aprovadas"
+            value={kpis.aprovado}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <KpiCard
+            label="Convertidas"
+            value={kpis.convertido_em_evento}
+            icon={GraduationCap}
+            tone="violet"
+          />
+        </div>
       </div>
-    </header>
+    </section>
+  );
+}
+
+function KpiCard({ label, value, icon: Icon, tone = "sky" }) {
+  const tones = {
+    sky: {
+      wrap:
+        "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-sky-100",
+      gradient: "from-sky-600 via-cyan-500 to-blue-500",
+    },
+    amber: {
+      wrap:
+        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      gradient: "from-amber-500 via-orange-400 to-yellow-500",
+    },
+    emerald: {
+      wrap:
+        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+    },
+    violet: {
+      wrap:
+        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
+    },
+  };
+
+  const cfg = tones[tone] || tones.sky;
+
+  return (
+    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+      <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-black">{value}</p>
+        </div>
+
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -1062,20 +1123,6 @@ function DepartamentoResumoLista({ itens = [] }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function MiniStat({ label, value, icon: Icon }) {
-  return (
-    <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
-          {label}
-        </span>
-        <Icon className="h-4 w-4 text-white/70" />
-      </div>
-      <div className="mt-2 text-3xl font-black">{value}</div>
     </div>
   );
 }

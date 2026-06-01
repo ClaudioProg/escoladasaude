@@ -1,7 +1,7 @@
-// 📁 src/pages/AdminChamadaForm.jsx
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/pages/AdminChamadaForm.jsx — v2.1
+// Atualizado em: 01/06/2026
 //
-// Plataforma Escola da Saúde — v2.0
+// Plataforma Escola da Saúde — v2.1
 //
 // Página administrativa exclusiva de CHAMADAS DE TRABALHOS.
 //
@@ -70,6 +70,7 @@ import {
 } from "lucide-react";
 
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import * as apiSvc from "../services/api";
 
 /* =========================================================================
@@ -767,6 +768,117 @@ function Metric({ label, value, icon: Icon, tone = "violet" }) {
   );
 }
 
+
+function PainelOperacionalChamadas({ counts, onNova, onAtualizar }) {
+  return (
+    <section
+      aria-label="Painel operacional de chamadas de trabalhos"
+      className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <Sparkles className="h-4 w-4 text-cyan-700 dark:text-cyan-300" />
+              Painel operacional
+            </p>
+
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {counts.total} chamada(s) cadastrada(s) • {counts.publicadas} publicada(s)
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button tone="primary" icon={Plus} onClick={onNova}>
+              Nova chamada
+            </Button>
+
+            <Button tone="slate" icon={RefreshCw} onClick={onAtualizar}>
+              Atualizar
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <PainelKpiCard
+            label="Chamadas"
+            value={counts.total}
+            icon={ClipboardList}
+            tone="cyan"
+          />
+
+          <PainelKpiCard
+            label="Abertas"
+            value={counts.abertas}
+            icon={Eye}
+            tone="emerald"
+          />
+
+          <PainelKpiCard
+            label="Encerradas"
+            value={counts.encerradas}
+            icon={EyeOff}
+            tone="amber"
+          />
+
+          <PainelKpiCard
+            label="Publicadas"
+            value={counts.publicadas}
+            icon={CheckCircle2}
+            tone="violet"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PainelKpiCard({ label, value, icon: Icon, tone = "cyan" }) {
+  const tones = {
+    cyan: {
+      wrap:
+        "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
+      gradient: "from-cyan-600 via-sky-500 to-blue-500",
+    },
+    emerald: {
+      wrap:
+        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+    },
+    amber: {
+      wrap:
+        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      gradient: "from-amber-500 via-orange-400 to-yellow-500",
+    },
+    violet: {
+      wrap:
+        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
+    },
+  };
+
+  const cfg = tones[tone] || tones.cyan;
+
+  return (
+    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+      <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-black">{value ?? 0}</p>
+        </div>
+
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /* =========================================================================
    Cards/listagem
 =========================================================================== */
@@ -1023,89 +1135,113 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
     }
   }
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-      <section className="space-y-4">
-        <GlassCard className="p-4 sm:p-5">
-          {loading ? (
-            <div className="mb-4 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div
-                className={cx(
-                  "h-full w-1/3 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500",
-                  reduceMotion ? "" : "animate-pulse"
-                )}
-              />
-            </div>
-          ) : null}
+return (
+  <div className="space-y-5">
+    <section className="space-y-5">
+        <GlassCard className="overflow-hidden p-0">
+  {loading ? (
+    <div className="h-1 overflow-hidden bg-slate-100 dark:bg-slate-800">
+      <div
+        className={cx(
+          "h-full w-1/3 rounded-full bg-gradient-to-r from-cyan-500 via-violet-500 to-emerald-500",
+          reduceMotion ? "" : "animate-pulse"
+        )}
+      />
+    </div>
+  ) : (
+    <div className="h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-emerald-500" />
+  )}
 
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">
-                <Layers3 className="h-5 w-5 text-cyan-600" />
-                Chamadas cadastradas
-              </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Filtre, publique e edite chamadas com contrato único da v2.0.
-              </p>
-            </div>
+  <div className="p-4 sm:p-5">
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="min-w-0">
+        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-cyan-800 dark:border-cyan-900/50 dark:bg-cyan-950/30 dark:text-cyan-200">
+          <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
+          Chamadas de trabalhos
+        </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button tone="slate" icon={RefreshCw} onClick={carregar} loading={loading}>
-                Recarregar
-              </Button>
-              <Button tone="primary" icon={Plus} onClick={onNova}>
-                Nova chamada
-              </Button>
-            </div>
-          </div>
+        <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-white">
+          Chamadas cadastradas
+        </h2>
 
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={busca}
-                onChange={(event) => setBusca(event.target.value)}
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950"
-                placeholder="Buscar por título ou descrição..."
-              />
-            </div>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+          Filtre, publique, edite e acompanhe chamadas institucionais com contrato único da v2.0.
+        </p>
+      </div>
 
-            <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950">
-              {[
-                ["ativas", "Ativas"],
-                ["publicadas", "Publicadas"],
-                ["rascunho", "Rascunhos"],
-                ["encerradas", "Encerradas"],
-                ["todas", "Todas"],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFiltro(key)}
-                  className={cx(
-                    "rounded-xl px-3 py-2 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                    filtro === key
-                      ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                      : "text-slate-500 hover:bg-white dark:text-slate-400 dark:hover:bg-slate-900"
-                  )}
-                  aria-pressed={filtro === key}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Button
+          tone="slate"
+          icon={RefreshCw}
+          onClick={carregar}
+          loading={loading}
+          className="w-full sm:w-auto"
+        >
+          Recarregar
+        </Button>
 
-          <LiveRegion message={erro} type="assertive" />
-          {erro ? (
-            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
-              <div className="flex gap-2">
-                <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
-                <p>{erro}</p>
-              </div>
-            </div>
-          ) : null}
-        </GlassCard>
+        <Button
+          tone="primary"
+          icon={Plus}
+          onClick={onNova}
+          className="w-full sm:w-auto"
+        >
+          Nova chamada
+        </Button>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto] xl:items-center">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+        <input
+          value={busca}
+          onChange={(event) => setBusca(event.target.value)}
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-cyan-950/40"
+          placeholder="Buscar por título ou descrição..."
+          aria-label="Buscar chamada por título ou descrição"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 rounded-[1.35rem] border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-800 dark:bg-slate-950 sm:flex sm:flex-wrap">
+        {[
+          ["ativas", "Ativas"],
+          ["publicadas", "Publicadas"],
+          ["rascunho", "Rascunhos"],
+          ["encerradas", "Encerradas"],
+          ["todas", "Todas"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFiltro(key)}
+            className={cx(
+              "min-h-[38px] rounded-2xl px-3 py-2 text-xs font-black transition focus:outline-none focus:ring-2 focus:ring-cyan-500",
+              filtro === key
+                ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                : "text-slate-500 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+            )}
+            aria-pressed={filtro === key}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <LiveRegion message={erro} type="assertive" />
+
+    {erro ? (
+      <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
+        <div className="flex gap-2">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+          <p>{erro}</p>
+        </div>
+      </div>
+    ) : null}
+  </div>
+</GlassCard>
 
         {loading ? (
           <SkeletonList />
@@ -1144,41 +1280,7 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
         )}
       </section>
 
-      <aside className="space-y-4">
-        <GlassCard className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-cyan-50 p-3 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-200">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-black text-slate-900 dark:text-white">Contrato v2.0</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Chamada, trabalho e submissão agora são módulos separados.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <ChecklistItem ok>Esta tela usa apenas `/api/chamada`.</ChecklistItem>
-            <ChecklistItem ok>Modelos usam campo multipart `arquivo`.</ChecklistItem>
-            <ChecklistItem ok>Publicação usa endpoint de publicação.</ChecklistItem>
-            <ChecklistItem ok>Submissões e avaliações ficam fora desta página.</ChecklistItem>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-5">
-          <h3 className="flex items-center gap-2 font-black text-slate-900 dark:text-white">
-            <FileText className="h-5 w-5 text-violet-500" />
-            Antes de publicar
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            A chamada precisa ter, no mínimo, uma linha temática e um critério de avaliação escrita.
-            O backend v2.0 bloqueia publicação incompleta.
-          </p>
-        </GlassCard>
-      </aside>
-
-      <ConfirmDialog
+     <ConfirmDialog
         open={confirmId != null}
         title="Excluir chamada?"
         description="A exclusão física só é permitida quando não há submissões vinculadas."
@@ -2032,9 +2134,19 @@ export default function AdminChamadaForm() {
 
   return (
     <PageShell>
-      <Hero counts={counts} onNova={abrirNova} />
+      <HeaderHero
+        titulo="Chamadas de Trabalhos"
+        subtitulo="Gerencie chamadas, prazos, linhas temáticas, critérios de avaliação e modelos oficiais de banner e apresentação."
+        icone={ClipboardList}
+      />
 
-      <main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PainelOperacionalChamadas
+          counts={counts}
+          onNova={abrirNova}
+          onAtualizar={() => setRefreshSignal((current) => current + 1)}
+        />
+
         <ChamadasPainel
           onNova={abrirNova}
           onEditar={abrirEdicao}

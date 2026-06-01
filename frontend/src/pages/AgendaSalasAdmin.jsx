@@ -1507,7 +1507,7 @@ function AgendaSalasAdmin() {
 
     <button
       type="button"
-      onClick={() => navigate("/admin/calendario-bloqueios")}
+      onClick={() => navigate("/gestao/calendario-bloqueio")}
       className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-slate-900 px-5 py-4 text-sm font-black text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
     >
       <Lock className="h-4 w-4" />
@@ -1611,7 +1611,7 @@ function AgendaSalasAdmin() {
 
           <button
             type="button"
-            onClick={() => navigate("/admin/calendario-bloqueios")}
+            onClick={() => navigate("/gestao/calendario-bloqueio")}
             className="inline-flex rounded-full border border-slate-300 px-3 py-1.5 text-[11px] font-extrabold text-slate-800 transition hover:bg-slate-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800/70"
           >
             Gerenciar feriados

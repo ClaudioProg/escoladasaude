@@ -1,7 +1,7 @@
 // 📁 src/components/trabalhos/ModalDetalhesSubmissao.jsx
-// Atualizado em: 15/05/2026
+// Atualizado em: 01/06/2026
 //
-// Plataforma Escola da Saúde — v2.0
+// Plataforma Escola da Saúde — v2.1
 //
 // Modal administrativo de detalhes de submissão.
 //
@@ -26,6 +26,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -609,7 +610,7 @@ export default function ModalDetalhesSubmissao({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
@@ -626,7 +627,8 @@ export default function ModalDetalhesSubmissao({
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={descId}
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 30, scale: 0.98 }}
           transition={{ duration: 0.18 }}
@@ -951,6 +953,8 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  ,
+    document.body
   );
 }
 

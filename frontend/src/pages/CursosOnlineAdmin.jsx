@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/CursosOnlineAdmin.jsx — v2.0
-// Atualizado em: 18/05/2026
+// ✅ frontend/src/pages/CursosOnlineAdmin.jsx — v2.1
+// Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -11,13 +11,16 @@
 // - Filtrar por status, plataforma, categoria e busca textual.
 //
 // Contratos oficiais usados:
-// - GET    /api/curso-online/admin
-// - POST   /api/curso-online/admin
-// - PUT    /api/curso-online/admin/:id
-// - PATCH  /api/curso-online/admin/:id/status
-// - DELETE /api/curso-online/admin/:id
+// - api.cursoOnline.listarAdmin()
+// - api.cursoOnline.criar(payload)
+// - api.cursoOnline.atualizar(id, payload)
+// - api.cursoOnline.alterarStatus(id, status)
+// - api.cursoOnline.excluir(id)
 //
-// Diretrizes v2.0:
+// Diretrizes v2.1:
+// - HeaderHero oficial e limpo;
+// - botões, stats, filtros, badges e ações abaixo do HeaderHero;
+// - Footer no final;
 // - sem legado;
 // - sem aliases;
 // - sem rota plural;
@@ -30,9 +33,11 @@
 // - acessível;
 // - dark mode;
 // - estados loading/vazio/erro;
-// - confirmação para exclusão.
+// - confirmação para exclusão;
+// - modal via portal para não ficar preso ao fluxo da página.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -63,6 +68,7 @@ import Skeleton from "react-loading-skeleton";
 import api from "../services/api";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 
 /* =========================================================================
    Constantes
@@ -114,9 +120,26 @@ function unwrapArray(response) {
   return [];
 }
 
+function unwrapObject(response) {
+  if (response?.data?.data && typeof response.data.data === "object") {
+    return response.data.data;
+  }
+
+  if (response?.data && typeof response.data === "object") {
+    return response.data;
+  }
+
+  if (response && typeof response === "object") {
+    return response;
+  }
+
+  return null;
+}
+
 function getErrorMessage(error, fallback) {
   return (
     error?.response?.data?.message ||
+    error?.response?.data?.erro ||
     error?.data?.message ||
     error?.message ||
     fallback
@@ -155,6 +178,7 @@ function brDateTime(value) {
 function isHttpUrl(value) {
   try {
     const parsed = new URL(String(value || "").trim());
+
     return parsed.protocol === "http:" || parsed.protocol === "https:";
   } catch {
     return false;
@@ -234,6 +258,7 @@ function plataformaInfo(plataforma) {
 function readPersistedFilters() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -319,7 +344,7 @@ export default function CursosOnlineAdmin() {
         })
       );
     } catch {
-      // localStorage indisponível não deve quebrar a página
+      // localStorage indisponível não deve quebrar a página.
     }
   }, [filtroStatus, filtroPlataforma, filtroCategoria, busca]);
 
@@ -338,11 +363,16 @@ export default function CursosOnlineAdmin() {
     setLive("Carregando cursos online.");
 
     try {
+      if (typeof api?.cursoOnline?.listarAdmin !== "function") {
+        throw new Error(
+          "Facade api.cursoOnline.listarAdmin não encontrada em frontend/src/services/api.js."
+        );
+      }
+
       const response = await api.cursoOnline.listarAdmin();
-
       const data = unwrapArray(response);
-      setCursos(data);
 
+      setCursos(data);
       setLive(`Cursos online carregados: ${data.length}.`);
     } catch (error) {
       const message = getErrorMessage(
@@ -535,7 +565,7 @@ export default function CursosOnlineAdmin() {
 
     try {
       const response = await api.cursoOnline.alterarStatus(curso.id, status);
-      const atualizado = response?.data || response?.data?.data || response;
+      const atualizado = unwrapObject(response);
 
       setCursos((current) =>
         current.map((item) =>
@@ -580,14 +610,20 @@ export default function CursosOnlineAdmin() {
       />
 
       <HeaderHero
-        totalVisiveis={cursosFiltrados.length}
-        carregando={carregando}
-        onRefresh={carregarDados}
-        onCriar={handleCriar}
-        kpis={kpis}
+        titulo="Cursos Online"
+        subtitulo="Cadastre, publique e organize cursos, aulas e trilhas de capacitação em plataformas oficiais."
+        icone={BookOpen}
       />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PainelOperacionalCursos
+          totalVisiveis={cursosFiltrados.length}
+          carregando={carregando}
+          onRefresh={carregarDados}
+          onCriar={handleCriar}
+          kpis={kpis}
+        />
+
         {erro ? (
           <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
         ) : null}
@@ -608,6 +644,7 @@ export default function CursosOnlineAdmin() {
                 <Filter className="h-5 w-5 text-emerald-600" />
                 Gestão dos cursos online
               </h2>
+
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Filtre, revise, publique e organize links de cursos oficiais
                 disponibilizados para os usuários.
@@ -753,90 +790,118 @@ export default function CursosOnlineAdmin() {
    Componentes locais
 =========================================================================== */
 
-function HeaderHero({ totalVisiveis, carregando, onRefresh, onCriar, kpis }) {
+function PainelOperacionalCursos({
+  totalVisiveis,
+  carregando,
+  onRefresh,
+  onCriar,
+  kpis,
+}) {
   return (
-    <header className="relative overflow-hidden bg-slate-950 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(16,185,129,.34),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.28),transparent_35%),radial-gradient(circle_at_70%_95%,rgba(6,182,212,.22),transparent_36%)]" />
-
-      <div className="relative mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
+    <section
+      aria-label="Painel operacional de cursos online"
+      className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-200" />
-              Administração — Cursos Online
-            </div>
-
-            <h1 className="max-w-4xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Curadoria de cursos online
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72 sm:text-base">
-              Cadastre links de cursos, aulas e trilhas de capacitação em
-              plataformas oficiais como YouTube, Gov.br, universidades e Escola
-              da Saúde.
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <Sparkles className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+              Painel operacional
             </p>
 
-            <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur">
-              <Sparkles className="h-4 w-4 text-emerald-200" />
-              {totalVisiveis} curso(s) visível(is) nos filtros atuais
-            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {totalVisiveis} curso(s) visível(is) nos filtros atuais.
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-              <button
-                type="button"
-                onClick={onCriar}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-emerald-900 shadow-lg shadow-black/10 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-white/70"
-              >
-                <Plus className="h-4 w-4" />
-                Novo curso
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onCriar}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <Plus className="h-4 w-4" />
+              Novo curso
+            </button>
 
-              <button
-                type="button"
-                onClick={onRefresh}
-                disabled={carregando}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70 disabled:pointer-events-none disabled:opacity-60"
-              >
-                <RefreshCcw
-                  className={cx("h-4 w-4", carregando && "animate-spin")}
-                />
-                {carregando ? "Atualizando..." : "Atualizar"}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <MiniStat label="Total" value={kpis.total} icon={BookOpen} />
-              <MiniStat
-                label="Publicados"
-                value={kpis.publicado}
-                icon={CheckCircle2}
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={carregando}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
               />
-              <MiniStat label="Rascunhos" value={kpis.rascunho} icon={Clock} />
-              <MiniStat
-                label="Arquivados"
-                value={kpis.arquivado}
-                icon={Archive}
-              />
-            </div>
+              {carregando ? "Atualizando..." : "Atualizar"}
+            </button>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <KpiCard label="Total" value={kpis.total} icon={BookOpen} tone="emerald" />
+          <KpiCard
+            label="Publicados"
+            value={kpis.publicado}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <KpiCard
+            label="Rascunhos"
+            value={kpis.rascunho}
+            icon={Clock}
+            tone="amber"
+          />
+          <KpiCard
+            label="Arquivados"
+            value={kpis.arquivado}
+            icon={Archive}
+            tone="slate"
+          />
+        </div>
       </div>
-    </header>
+    </section>
   );
 }
 
-function MiniStat({ label, value, icon: Icon }) {
+function KpiCard({ label, value, icon: Icon, tone = "emerald" }) {
+  const tones = {
+    emerald: {
+      wrap:
+        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+    },
+    amber: {
+      wrap:
+        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      gradient: "from-amber-500 via-orange-400 to-yellow-500",
+    },
+    slate: {
+      wrap:
+        "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+      gradient: "from-slate-600 via-zinc-500 to-slate-400",
+    },
+  };
+
+  const cfg = tones[tone] || tones.emerald;
+
   return (
-    <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
-          {label}
+    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+      <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-black">{value}</p>
+        </div>
+
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" />
         </span>
-        <Icon className="h-4 w-4 text-white/70" />
       </div>
-      <div className="mt-2 text-3xl font-black">{value}</div>
     </div>
   );
 }
@@ -876,6 +941,7 @@ function FilterSelect({ label, value, onChange, options, placeholder }) {
         aria-label={`Filtrar por ${label}`}
       >
         <option value="">{placeholder}</option>
+
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -895,6 +961,7 @@ function SearchInput({ value, onChange, onClear }) {
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -922,6 +989,7 @@ function Chip({ text, onClear }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
       {text}
+
       <button
         type="button"
         onClick={onClear}
@@ -996,11 +1064,13 @@ function CursoOnlineCard({
               value={curso.url}
               truncate={false}
             />
+
             <InfoBox
               icon={Layers3}
               title="Instituição"
               value={curso.canal_ou_instituicao || "Não informada"}
             />
+
             <InfoBox
               icon={BookOpen}
               title="Carga"
@@ -1010,6 +1080,7 @@ function CursoOnlineCard({
                   : "Não informada"
               }
             />
+
             <InfoBox
               icon={Clock}
               title="Atualizado"
@@ -1158,6 +1229,7 @@ function InfoBox({ icon: Icon, title, value, truncate = true }) {
         <p className="text-xs font-black uppercase tracking-wide text-slate-400">
           {title}
         </p>
+
         <p
           className={cx(
             "mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200",
@@ -1195,7 +1267,7 @@ function LoadingList() {
 function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
@@ -1275,7 +1347,8 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1378,8 +1451,7 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
       canal_ou_instituicao: cleanStr(form.canal_ou_instituicao) || null,
       gratuito: Boolean(form.gratuito),
       certificado_externo: Boolean(form.certificado_externo),
-      ordem:
-        form.ordem === "" || form.ordem == null ? 0 : Number(form.ordem),
+      ordem: form.ordem === "" || form.ordem == null ? 0 : Number(form.ordem),
     };
   }
 
@@ -1429,9 +1501,9 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
 
   if (!aberto) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (salvando) return;
@@ -1443,7 +1515,8 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
         aria-modal="true"
         aria-labelledby="modal-curso-online-title"
         aria-describedby="modal-curso-online-desc"
-className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950"      >
+        className="my-auto flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:rounded-[2rem]"
+      >
         <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
 
@@ -1489,7 +1562,8 @@ className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[
 
         <form
           onSubmit={salvar}
-className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"        >
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"
+        >
           {erro ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
               <div className="flex gap-2">
@@ -1627,7 +1701,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                 <Field label="Descrição">
                   <textarea
                     value={form.descricao}
-                    onChange={(event) => setCampo("descricao", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("descricao", event.target.value)
+                    }
                     rows={4}
                     className={textareaClass()}
                     placeholder="Descreva o curso, objetivo e público recomendado."
@@ -1667,7 +1743,8 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
           </section>
         </form>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             Campos com <span className="font-bold text-rose-500">*</span> são
             obrigatórios.
           </p>
@@ -1703,7 +1780,8 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1714,6 +1792,7 @@ function Field({ label, required, children }) {
         {label}
         {required ? <span className="text-rose-500"> *</span> : null}
       </span>
+
       {children}
     </label>
   );

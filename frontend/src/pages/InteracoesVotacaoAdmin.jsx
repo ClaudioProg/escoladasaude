@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/InteracoesVotacaoAdmin.jsx — v2.0
-// Atualizado em: 19/05/2026
+// ✅ frontend/src/pages/InteracoesVotacaoAdmin.jsx — v2.1
+// Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -17,7 +17,7 @@
 // - DELETE /api/interacao/admin/:id
 // - GET    /api/interacao/admin/:id/resultado
 //
-// Diretrizes v2.0:
+// Diretrizes v2.1:
 // - sem legado;
 // - sem aliases;
 // - sem rota /votacao antiga;
@@ -36,6 +36,7 @@
 // - estados loading/vazio/erro.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -69,6 +70,7 @@ import Skeleton from "react-loading-skeleton";
 import api from "../services/api";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 
 /* =========================================================================
    Constantes
@@ -676,14 +678,20 @@ export default function InteracoesVotacaoAdmin() {
       />
 
       <HeaderHero
-        totalVisiveis={interacoesFiltradas.length}
-        carregando={carregando}
-        onRefresh={carregarDados}
-        onCriar={abrirCriacao}
-        kpis={kpis}
+        titulo="Votações"
+        subtitulo="Crie, publique e acompanhe votações vinculadas a eventos ou turmas, com janelas de disponibilidade, QR Code e ranking administrativo."
+        icone={Vote}
       />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PainelOperacionalVotacoes
+          totalVisiveis={interacoesFiltradas.length}
+          carregando={carregando}
+          onRefresh={carregarDados}
+          onCriar={abrirCriacao}
+          kpis={kpis}
+        />
+
         {erro ? (
           <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
         ) : null}
@@ -850,6 +858,361 @@ function AlertBox({ tone, icon: Icon, title, message }) {
     </div>
   );
 }
+
+function PainelOperacionalVotacoes({
+  totalVisiveis,
+  carregando,
+  onRefresh,
+  onCriar,
+  kpis,
+}) {
+  return (
+    <section
+      aria-label="Painel operacional de votações"
+      className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <Sparkles className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+              Painel operacional
+            </p>
+
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {totalVisiveis} votação(ões) visível(is) nos filtros atuais.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onCriar}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <Plus className="h-4 w-4" />
+              Nova votação
+            </button>
+
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={carregando}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
+              />
+              {carregando ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <MiniStat
+            label="Total"
+            value={kpis.total}
+            icon={Vote}
+            tone="emerald"
+          />
+
+          <MiniStat
+            label="Publicadas"
+            value={kpis.publicada}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+
+          <MiniStat
+            label="Rascunhos"
+            value={kpis.rascunho}
+            icon={Clock}
+            tone="amber"
+          />
+
+          <MiniStat
+            label="Votos"
+            value={kpis.respostas}
+            icon={Trophy}
+            tone="violet"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
+  const tones = {
+    emerald: {
+      wrap:
+        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+    },
+    amber: {
+      wrap:
+        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      gradient: "from-amber-500 via-orange-400 to-yellow-500",
+    },
+    violet: {
+      wrap:
+        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
+    },
+    slate: {
+      wrap:
+        "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+      gradient: "from-slate-600 via-zinc-500 to-slate-400",
+    },
+  };
+
+  const cfg = tones[tone] || tones.emerald;
+
+  return (
+    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+      <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-black">{value}</p>
+        </div>
+
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (loading) return;
+        if (event.target === event.currentTarget) onCancel?.();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirmar-exclusao-votacao-title"
+        aria-describedby="confirmar-exclusao-votacao-desc"
+        className="w-full max-w-lg overflow-hidden rounded-t-[2rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:rounded-[2rem]"
+      >
+        <div className="relative overflow-hidden bg-gradient-to-br from-rose-900 via-red-800 to-amber-700 p-5 text-white sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3
+                id="confirmar-exclusao-votacao-title"
+                className="flex items-center gap-2 text-xl font-black tracking-tight"
+              >
+                <AlertCircle className="h-5 w-5" />
+                Excluir votação?
+              </h3>
+
+              <p
+                id="confirmar-exclusao-votacao-desc"
+                className="mt-2 text-sm leading-relaxed text-white/90"
+              >
+                Tem certeza que deseja excluir{" "}
+                {titulo ? <strong>“{titulo}”</strong> : "esta votação"}?
+                Esta ação não pode ser desfeita.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={loading}
+              className="rounded-2xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70 disabled:opacity-60"
+              aria-label="Fechar confirmação"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 bg-white p-4 dark:bg-slate-950 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-60"
+            aria-busy={loading ? "true" : "false"}
+          >
+            {loading ? (
+              <>
+                <RefreshCcw className="h-4 w-4 animate-spin" />
+                Excluindo...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                Sim, excluir
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ResultadoDrawer({ painel, loading, onClose }) {
+  if (!painel) return null;
+
+  const resultado = painel.resultado || {};
+  const ranking =
+    resultado.ranking ||
+    resultado.opcoes ||
+    resultado.resultado ||
+    resultado.itens ||
+    [];
+
+  const total =
+    Number(resultado.total_respostas ?? resultado.total ?? painel.interacao?.total_respostas ?? 0) || 0;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-sm"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (loading) return;
+        if (event.target === event.currentTarget) onClose?.();
+      }}
+    >
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resultado-votacao-title"
+        className="flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950"
+      >
+        <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%)]" />
+
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
+                <Trophy className="h-3.5 w-3.5 text-emerald-200" />
+                Ranking administrativo
+              </div>
+
+              <h2
+                id="resultado-votacao-title"
+                className="text-xl font-black tracking-tight sm:text-2xl"
+              >
+                {painel.interacao?.titulo || "Resultado da votação"}
+              </h2>
+
+              <p className="mt-2 text-sm text-white/75">
+                Total de votos registrados: <strong>{total}</strong>
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="rounded-2xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:opacity-60"
+              aria-label="Fechar resultado"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton height={22} width="60%" />
+              <Skeleton height={72} count={4} />
+            </div>
+          ) : painel.erro ? (
+            <AlertBox
+              tone="rose"
+              icon={AlertCircle}
+              title="Erro ao carregar resultado"
+              message={painel.erro}
+            />
+          ) : Array.isArray(ranking) && ranking.length > 0 ? (
+            <div className="space-y-3">
+              {ranking.map((item, index) => {
+                const label =
+                  item.texto ||
+                  item.opcao_texto ||
+                  item.label ||
+                  item.titulo ||
+                  `Opção ${index + 1}`;
+                const votos =
+                  Number(item.votos ?? item.total ?? item.quantidade ?? item.count ?? 0) || 0;
+                const percentual =
+                  total > 0 ? Math.round((votos / total) * 100) : 0;
+
+                return (
+                  <div
+                    key={`${label}-${index}`}
+                    className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                          #{index + 1}
+                        </p>
+                        <p className="mt-1 break-words text-sm font-black text-slate-900 dark:text-white">
+                          {label}
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-800 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-200 dark:ring-emerald-900">
+                        {votos} voto(s)
+                      </span>
+                    </div>
+
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-emerald-600"
+                        style={{ width: `${percentual}%` }}
+                      />
+                    </div>
+
+                    <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      {percentual}% do total
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <NadaEncontrado
+              titulo="Nenhum voto encontrado"
+              descricao="Ainda não há votos registrados para esta votação."
+            />
+          )}
+        </div>
+      </aside>
+    </div>,
+    document.body
+  );
+}
+
 
 function StatusBadge({ status }) {
   const info = statusInfo(status);
@@ -1425,7 +1788,8 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
         aria-modal="true"
         aria-labelledby="modal-votacao-title"
         aria-describedby="modal-votacao-desc"
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"      >
+        className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
+      >
         <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
 
@@ -1470,7 +1834,8 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
 
         <form
           onSubmit={salvar}
-className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"        >
+className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"
+        >
           {erro ? (
             <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
           ) : null}

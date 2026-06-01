@@ -1,12 +1,12 @@
-// ✅ frontend/src/pages/Gestaoorganizador.jsx — v2.0
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/pages/GestaoOrganizador.jsx — v2.1
+// Atualizado em: 01/06/2026
 // Plataforma Escola da Saúde
+// Gestão premium de organizadores com HeaderHero limpo, painel operacional, busca, ordenação, histórico e exportação CSV.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
-  Award,
   BarChart3,
   CalendarDays,
   CheckCircle2,
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import Botao from "../components/ui/Botao";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
@@ -35,7 +36,7 @@ import Modal from "../components/ui/Modal";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import { notifyError, notifySuccess } from "../components/ui/AppToast";
 import { api } from "../services/api";
-import { formatDateBr, extractYmd } from "../utils/dateTime";
+import { extractYmd, formatDateBr } from "../utils/dateTime";
 
 /* ─────────────────────────────────────────────
  * Contratos oficiais esperados no api.js
@@ -48,15 +49,9 @@ import { formatDateBr, extractYmd } from "../utils/dateTime";
  * GET /api/organizador
  * GET /api/organizador/:id/eventos-avaliacao
  *
- * Diretrizes v2.0:
- * - Sem apiGet direto.
- * - Sem react-toastify direto.
- * - Sem react-modal.
- * - Sem react-loading-skeleton direto.
- * - Sem import antigo de Footer.
- * - Sem Tabelaorganizador em caminho incerto.
- * - Sem aliases de assinatura.
- * - Sem payload legado.
+ * Observação:
+ * - O erro HTTP 500 em /api/organizador não nasce deste JSX.
+ * - Para corrigir o 500, é necessário o log do terminal backend.
  */
 
 /* ─────────────────────────────────────────────
@@ -109,23 +104,13 @@ function toPositiveInt(value) {
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
-function nomeArquivoSeguro(value) {
-  const nome = String(value || "organizadores")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "_")
-    .slice(0, 120);
-
-  return nome || "organizadores";
-}
-
 function hojeYMD() {
   const date = new Date();
   const pad = (number) => String(number).padStart(2, "0");
 
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}`;
 }
 
 function dataBR(value) {
@@ -166,15 +151,22 @@ function downloadCsv(filename, linhas) {
   URL.revokeObjectURL(url);
 }
 
-function getorganizadorId(organizador) {
+/*
+ * Mantidos os campos já usados pela página atual para não alterar o contrato
+ * sem confirmação do backend. Depois do log/SQL da rota /api/organizador,
+ * podemos fechar os nomes oficiais e remover qualquer compatibilidade antiga.
+ */
+function getOrganizadorId(organizador) {
   return toPositiveInt(organizador?.id || organizador?.organizador_id);
 }
 
-function getNomeorganizador(organizador) {
-  return safeText(organizador?.nome || organizador?.usuario_nome || organizador?.nome_organizador);
+function getNomeOrganizador(organizador) {
+  return safeText(
+    organizador?.nome || organizador?.usuario_nome || organizador?.nome_organizador
+  );
 }
 
-function getEmailorganizador(organizador) {
+function getEmailOrganizador(organizador) {
   return safeText(organizador?.email || organizador?.email_organizador);
 }
 
@@ -250,33 +242,45 @@ function Badge({ tone = "slate", children }) {
   );
 }
 
-function MiniStat({ icon: Icon, label, value, tone = "violet" }) {
+function KpiCard({ icon: Icon, label, value, tone = "violet" }) {
   const tones = {
-    violet: "bg-violet-400/15 text-violet-50 ring-violet-300/20",
-    emerald: "bg-emerald-400/15 text-emerald-50 ring-emerald-300/20",
-    amber: "bg-amber-400/15 text-amber-50 ring-amber-300/20",
-    cyan: "bg-cyan-400/15 text-cyan-50 ring-cyan-300/20",
+    violet:
+      "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/40 dark:bg-violet-950/30 dark:text-violet-100",
+    emerald:
+      "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100",
+    amber:
+      "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100",
+    cyan:
+      "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100",
   };
 
   return (
-    <div className={cx("rounded-3xl p-4 ring-1 backdrop-blur", tones[tone])}>
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </div>
-
+    <div className={cx("rounded-3xl border p-4 shadow-sm", tones[tone] || tones.violet)}>
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-wide opacity-80">
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-70">
             {label}
           </p>
-          <p className="text-2xl font-black leading-none">{value}</p>
+          <p className="mt-1 text-2xl font-black leading-none">{value}</p>
         </div>
+
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
       </div>
     </div>
   );
 }
 
-function Hero({ kpis, carregando, busca, setBusca, onRefresh }) {
+function PainelOperacionalOrganizadores({
+  kpis,
+  loading,
+  busca,
+  setBusca,
+  onRefresh,
+  onExportCsv,
+  totalExportavel,
+}) {
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -298,72 +302,63 @@ function Hero({ kpis, carregando, busca, setBusca, onRefresh }) {
   }, []);
 
   return (
-    <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-800 text-white">
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-400 blur-3xl" />
-        <div className="absolute right-0 top-8 h-72 w-72 rounded-full bg-fuchsia-500 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-500 blur-3xl" />
-      </div>
+    <section
+      aria-label="Painel operacional de organizadores"
+      className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <UserRoundCheck className="h-4 w-4 text-violet-700 dark:text-violet-300" />
+              Painel operacional
+            </p>
 
-      <a
-        href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-950"
-      >
-        Ir para o conteúdo
-      </a>
-
-      <div className="relative mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-9">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black ring-1 ring-white/20 backdrop-blur">
-              <GraduationCap className="h-4 w-4" aria-hidden="true" />
-              Gestão administrativa
-            </div>
-
-            <h1 className="mt-4 text-2xl font-black tracking-tight sm:text-4xl">
-              Gestão de organizadores
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm text-white/85 sm:text-base">
-              Pesquise organizadores, acompanhe vínculos com turmas, assinatura
-              cadastrada, histórico de eventos e médias de avaliação.
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+              Pesquise, atualize, exporte e acompanhe indicadores dos organizadores cadastrados.
             </p>
           </div>
 
-          <div className="flex shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <Botao
               type="button"
-              variant="secondary"
+              variant="contorno"
               onClick={onRefresh}
-              disabled={carregando}
-              className="bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15"
+              disabled={loading}
             >
               <span className="inline-flex items-center gap-2">
                 <RefreshCcw
-                  className={cx("h-4 w-4", carregando && "animate-spin")}
+                  className={cx("h-4 w-4", loading && "animate-spin")}
                   aria-hidden="true"
                 />
-                {carregando ? "Atualizando..." : "Atualizar"}
+                {loading ? "Atualizando..." : "Atualizar"}
+              </span>
+            </Botao>
+
+            <Botao
+              type="button"
+              variant="contraste"
+              onClick={onExportCsv}
+              disabled={loading || totalExportavel <= 0}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Exportar CSV
               </span>
             </Botao>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MiniStat icon={UsersRound} label="Total" value={kpis.total} tone="violet" />
-          <MiniStat
-            icon={Search}
-            label="Encontrados"
-            value={kpis.encontrados}
-            tone="cyan"
-          />
-          <MiniStat
-            icon={PenLine}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard icon={UsersRound} label="Total" value={kpis.total} tone="violet" />
+          <KpiCard icon={Search} label="Encontrados" value={kpis.encontrados} tone="cyan" />
+          <KpiCard
+            icon={ShieldCheck}
             label="Com assinatura"
             value={kpis.comAssinatura}
             tone="emerald"
           />
-          <MiniStat
+          <KpiCard
             icon={AlertTriangle}
             label="Sem assinatura"
             value={kpis.semAssinatura}
@@ -371,39 +366,45 @@ function Hero({ kpis, carregando, busca, setBusca, onRefresh }) {
           />
         </div>
 
-        <div className="mt-5 rounded-3xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-                aria-hidden="true"
-              />
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/60">
+          <label
+            htmlFor="busca-organizadores"
+            className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400"
+          >
+            Busca rápida
+          </label>
 
-              <input
-                ref={inputRef}
-                type="search"
-                value={busca}
-                onChange={(event) => setBusca(event.target.value)}
-                placeholder="Buscar por nome ou e-mail... (/)"
-                className="w-full rounded-2xl border border-white/20 bg-white px-10 py-2.5 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-500 focus:ring-4 focus:ring-white/25"
-                aria-label="Buscar organizador por nome ou e-mail"
-              />
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-zinc-400"
+              aria-hidden="true"
+            />
 
-              {busca ? (
-                <button
-                  type="button"
-                  onClick={() => setBusca("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-1.5 text-slate-500 hover:bg-slate-100"
-                  aria-label="Limpar busca"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </button>
-              ) : null}
-            </div>
+            <input
+              ref={inputRef}
+              id="busca-organizadores"
+              type="search"
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              placeholder="Buscar por nome ou e-mail... (/)"
+              className="w-full rounded-2xl border border-slate-300 bg-white px-10 py-2.5 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-500 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500 dark:focus:ring-violet-950"
+              aria-label="Buscar organizador por nome ou e-mail"
+            />
+
+            {busca ? (
+              <button
+                type="button"
+                onClick={() => setBusca("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-1.5 text-slate-500 transition hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                aria-label="Limpar busca"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
-    </header>
+    </section>
   );
 }
 
@@ -414,13 +415,11 @@ function Toolbar({
   setBusca,
   total,
   loading,
-  onExportCsv,
-  onRefresh,
 }) {
   return (
     <section
       aria-label="Ferramentas da lista de organizadores"
-      className="rounded-[1.5rem] bg-white/85 p-3 shadow-sm ring-1 ring-slate-200 backdrop-blur dark:bg-zinc-900/85 dark:ring-zinc-800"
+      className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-3 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -437,7 +436,8 @@ function Toolbar({
             id="ordenar-organizadores"
             value={ordenarPor}
             onChange={(event) => setOrdenarPor(event.target.value)}
-            className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
+            disabled={loading}
+            className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
           >
             <option value="nome_asc">Nome A-Z</option>
             <option value="nome_desc">Nome Z-A</option>
@@ -457,47 +457,18 @@ function Toolbar({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Botao
-            type="button"
-            variant="secondary"
-            onClick={onRefresh}
-            disabled={loading}
-          >
-            <span className="inline-flex items-center gap-2">
-              <RefreshCcw
-                className={cx("h-4 w-4", loading && "animate-spin")}
-                aria-hidden="true"
-              />
-              Recarregar
-            </span>
-          </Botao>
-
-          <Botao
-            type="button"
-            variant="primary"
-            onClick={onExportCsv}
-            disabled={loading || total <= 0}
-          >
-            <span className="inline-flex items-center gap-2">
-              <Download className="h-4 w-4" aria-hidden="true" />
-              Exportar CSV
-            </span>
-          </Botao>
-
-          <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-            {total} item(ns)
-          </span>
-        </div>
+        <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+          {total} item(ns)
+        </span>
       </div>
     </section>
   );
 }
 
-function organizadorCard({ organizador, onVisualizar, reduceMotion }) {
-  const id = getorganizadorId(organizador);
-  const nome = getNomeorganizador(organizador);
-  const email = getEmailorganizador(organizador);
+function OrganizadorCard({ organizador, onVisualizar, reduceMotion }) {
+  const id = getOrganizadorId(organizador);
+  const nome = getNomeOrganizador(organizador);
+  const email = getEmailOrganizador(organizador);
   const eventos = getEventosMinistrados(organizador);
   const turmas = getTurmasVinculadas(organizador);
   const respostas = getTotalRespostas(organizador);
@@ -528,9 +499,9 @@ function organizadorCard({ organizador, onVisualizar, reduceMotion }) {
 
           <Badge tone={assinatura ? "emerald" : "amber"}>
             {assinatura ? (
-              <CheckCircle2 className="h-3.5 w-3.5" />
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
             ) : (
-              <AlertTriangle className="h-3.5 w-3.5" />
+              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
             )}
             {assinatura ? "Com assinatura" : "Sem assinatura"}
           </Badge>
@@ -577,7 +548,7 @@ function organizadorCard({ organizador, onVisualizar, reduceMotion }) {
         <div className="mt-4">
           <Botao
             type="button"
-            variant="primary"
+            variant="contraste"
             onClick={() => onVisualizar(organizador)}
             disabled={!id}
           >
@@ -592,13 +563,13 @@ function organizadorCard({ organizador, onVisualizar, reduceMotion }) {
   );
 }
 
-function Tabelaorganizadores({ organizadores, onVisualizar }) {
+function TabelaOrganizadores({ organizadores, onVisualizar }) {
   return (
     <div className="hidden overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 lg:block">
       <table className="min-w-full text-left text-sm" aria-label="Tabela de organizadores">
         <thead className="bg-slate-950 text-white">
           <tr>
-            <th className="px-4 py-3 font-black">organizador</th>
+            <th className="px-4 py-3 font-black">Organizador</th>
             <th className="px-4 py-3 font-black">Assinatura</th>
             <th className="px-4 py-3 font-black">Eventos</th>
             <th className="px-4 py-3 font-black">Turmas</th>
@@ -610,21 +581,26 @@ function Tabelaorganizadores({ organizadores, onVisualizar }) {
 
         <tbody>
           {organizadores.map((organizador) => {
-            const id = getorganizadorId(organizador);
+            const id = getOrganizadorId(organizador);
             const assinatura = possuiAssinaturaOficial(organizador);
             const media = getMediaAvaliacao(organizador);
 
             return (
               <tr
-                key={id || `${getNomeorganizador(organizador)}-${getEmailorganizador(organizador)}`}
+                key={
+                  id ||
+                  `${getNomeOrganizador(organizador)}-${getEmailOrganizador(
+                    organizador
+                  )}`
+                }
                 className="border-t border-slate-200 transition hover:bg-slate-50 dark:border-zinc-800 dark:hover:bg-zinc-950"
               >
                 <td className="px-4 py-3">
                   <p className="font-black text-slate-950 dark:text-white">
-                    {getNomeorganizador(organizador)}
+                    {getNomeOrganizador(organizador)}
                   </p>
                   <p className="mt-0.5 break-all text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                    {getEmailorganizador(organizador)}
+                    {getEmailOrganizador(organizador)}
                   </p>
                 </td>
 
@@ -653,7 +629,7 @@ function Tabelaorganizadores({ organizadores, onVisualizar }) {
                 <td className="px-4 py-3 text-right">
                   <Botao
                     type="button"
-                    variant="secondary"
+                    variant="contorno"
                     onClick={() => onVisualizar(organizador)}
                     disabled={!id}
                   >
@@ -700,11 +676,11 @@ function HistoricoModal({
             </div>
 
             <h2 id={titleId} className="mt-3 text-xl font-black tracking-tight">
-              {getNomeorganizador(organizador)}
+              {getNomeOrganizador(organizador)}
             </h2>
 
             <p id={descId} className="mt-1 break-all text-sm text-white/80">
-              {getEmailorganizador(organizador)}
+              {getEmailOrganizador(organizador)}
             </p>
           </div>
 
@@ -783,9 +759,9 @@ function HistoricoModal({
       <footer className="flex flex-col gap-2 border-t border-slate-200 bg-white/90 px-5 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:flex-row sm:justify-end">
         <Botao
           type="button"
-          variant="secondary"
+          variant="contorno"
           onClick={onRecarregar}
-          disabled={loading || !getorganizadorId(organizador)}
+          disabled={loading || !getOrganizadorId(organizador)}
         >
           <span className="inline-flex items-center gap-2">
             {loading ? (
@@ -797,7 +773,7 @@ function HistoricoModal({
           </span>
         </Botao>
 
-        <Botao type="button" variant="primary" onClick={onClose}>
+        <Botao type="button" variant="contraste" onClick={onClose}>
           Fechar
         </Botao>
       </footer>
@@ -809,10 +785,10 @@ function HistoricoModal({
  * Página principal
  * ───────────────────────────────────────────── */
 
-export default function Gestaoorganizador() {
+export default function GestaoOrganizador() {
   const reduceMotion = useReducedMotion();
 
-  const [organizadores, setorganizadores] = useState([]);
+  const [organizadores, setOrganizadores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -821,7 +797,7 @@ export default function Gestaoorganizador() {
   const [ordenarPor, setOrdenarPor] = useState("nome_asc");
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [organizadorSelecionado, setorganizadorSelecionado] = useState(null);
+  const [organizadorSelecionado, setOrganizadorSelecionado] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
 
@@ -832,7 +808,7 @@ export default function Gestaoorganizador() {
     if (liveRef.current) liveRef.current.textContent = message;
   }, []);
 
-  const carregarorganizadores = useCallback(async () => {
+  const carregarOrganizadores = useCallback(async () => {
     try {
       validarFacade("api.organizador.listar", api?.organizador?.listar);
 
@@ -846,10 +822,10 @@ export default function Gestaoorganizador() {
 
       if (!mountedRef.current) return;
 
-      setorganizadores(lista);
+      setOrganizadores(lista);
       setLive(`${lista.length} organizador(es) carregado(s).`);
     } catch (error) {
-      console.error("[Gestaoorganizador] erro ao carregar organizadores:", error);
+      console.error("[GestaoOrganizador] erro ao carregar organizadores:", error);
 
       if (!mountedRef.current) return;
 
@@ -859,7 +835,7 @@ export default function Gestaoorganizador() {
       );
 
       setErro(message);
-      setorganizadores([]);
+      setOrganizadores([]);
       notifyError(message);
       setLive("Erro ao carregar organizadores.");
     } finally {
@@ -869,14 +845,14 @@ export default function Gestaoorganizador() {
 
   useEffect(() => {
     mountedRef.current = true;
-    document.title = "Gestão de organizadores | Escola da Saúde";
+    document.title = "Gestão de Organizadores | Escola da Saúde";
 
-    carregarorganizadores();
+    carregarOrganizadores();
 
     return () => {
       mountedRef.current = false;
     };
-  }, [carregarorganizadores]);
+  }, [carregarOrganizadores]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -891,17 +867,17 @@ export default function Gestaoorganizador() {
       if (!buscaAplicada) return true;
 
       const texto = normalizarBusca(
-        [getNomeorganizador(organizador), getEmailorganizador(organizador)].join(" ")
+        [getNomeOrganizador(organizador), getEmailOrganizador(organizador)].join(" ")
       );
 
       return texto.includes(buscaAplicada);
     });
 
     return filtrados.slice().sort((a, b) => {
-      const nomeA = normalizarBusca(getNomeorganizador(a));
-      const nomeB = normalizarBusca(getNomeorganizador(b));
-      const emailA = normalizarBusca(getEmailorganizador(a));
-      const emailB = normalizarBusca(getEmailorganizador(b));
+      const nomeA = normalizarBusca(getNomeOrganizador(a));
+      const nomeB = normalizarBusca(getNomeOrganizador(b));
+      const emailA = normalizarBusca(getEmailOrganizador(a));
+      const emailB = normalizarBusca(getEmailOrganizador(b));
       const mediaA = getMediaAvaliacao(a) ?? -1;
       const mediaB = getMediaAvaliacao(b) ?? -1;
       const turmasA = getTurmasVinculadas(a);
@@ -931,10 +907,10 @@ export default function Gestaoorganizador() {
 
   const carregarHistorico = useCallback(
     async (organizador) => {
-      const organizadorId = getorganizadorId(organizador);
+      const organizadorId = getOrganizadorId(organizador);
 
       if (!organizadorId) {
-        notifyError("organizador inválido para consulta de histórico.");
+        notifyError("Organizador inválido para consulta de histórico.");
         return;
       }
 
@@ -971,7 +947,7 @@ export default function Gestaoorganizador() {
         setHistorico(eventos);
         setLive("Histórico do organizador carregado.");
       } catch (error) {
-        console.error("[Gestaoorganizador] erro ao carregar histórico:", error);
+        console.error("[GestaoOrganizador] erro ao carregar histórico:", error);
 
         if (!mountedRef.current) return;
 
@@ -993,7 +969,7 @@ export default function Gestaoorganizador() {
 
   const abrirHistorico = useCallback(
     async (organizador) => {
-      setorganizadorSelecionado(organizador);
+      setOrganizadorSelecionado(organizador);
       setHistorico([]);
       setModalOpen(true);
       await carregarHistorico(organizador);
@@ -1003,7 +979,7 @@ export default function Gestaoorganizador() {
 
   const fecharHistorico = useCallback(() => {
     setModalOpen(false);
-    setorganizadorSelecionado(null);
+    setOrganizadorSelecionado(null);
     setHistorico([]);
     setLoadingHistorico(false);
   }, []);
@@ -1021,9 +997,9 @@ export default function Gestaoorganizador() {
     ];
 
     const rows = organizadoresFiltrados.map((organizador) => [
-      getorganizadorId(organizador) || "",
-      getNomeorganizador(organizador),
-      getEmailorganizador(organizador),
+      getOrganizadorId(organizador) || "",
+      getNomeOrganizador(organizador),
+      getEmailOrganizador(organizador),
       getEventosMinistrados(organizador),
       getTurmasVinculadas(organizador),
       getTotalRespostas(organizador),
@@ -1037,12 +1013,10 @@ export default function Gestaoorganizador() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
-      <Hero
-        kpis={kpis}
-        carregando={loading}
-        busca={busca}
-        setBusca={setBusca}
-        onRefresh={carregarorganizadores}
+      <HeaderHero
+        titulo="Gestão de Organizadores"
+        subtitulo="Acompanhe organizadores, vínculos com turmas, assinatura cadastrada, histórico de eventos e médias de avaliação."
+        icone={GraduationCap}
       />
 
       <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
@@ -1066,6 +1040,16 @@ export default function Gestaoorganizador() {
         id="conteudo"
         className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6"
       >
+        <PainelOperacionalOrganizadores
+          kpis={kpis}
+          loading={loading}
+          busca={busca}
+          setBusca={setBusca}
+          onRefresh={carregarOrganizadores}
+          onExportCsv={exportarCsv}
+          totalExportavel={organizadoresFiltrados.length}
+        />
+
         <Toolbar
           ordenarPor={ordenarPor}
           setOrdenarPor={setOrdenarPor}
@@ -1073,8 +1057,6 @@ export default function Gestaoorganizador() {
           setBusca={setBusca}
           total={organizadoresFiltrados.length}
           loading={loading}
-          onExportCsv={exportarCsv}
-          onRefresh={carregarorganizadores}
         />
 
         {loading ? (
@@ -1084,7 +1066,7 @@ export default function Gestaoorganizador() {
             <CarregandoSkeleton height={140} />
           </section>
         ) : erro ? (
-          <ErroCarregamento mensagem={erro} onRetry={carregarorganizadores} />
+          <ErroCarregamento mensagem={erro} onRetry={carregarOrganizadores} />
         ) : organizadores.length === 0 ? (
           <NadaEncontrado
             titulo="Nenhum organizador encontrado"
@@ -1103,31 +1085,34 @@ export default function Gestaoorganizador() {
                   id="titulo-lista-organizadores"
                   className="text-lg font-black text-slate-950 dark:text-white"
                 >
-                  organizadores cadastrados
+                  Organizadores cadastrados
                 </h2>
 
                 <p className="text-sm text-slate-500 dark:text-zinc-400">
-                  Exibindo {organizadoresFiltrados.length} de {organizadores.length} organizador(es).
+                  Exibindo {organizadoresFiltrados.length} de{" "}
+                  {organizadores.length} organizador(es).
                 </p>
               </div>
 
               <Badge tone="violet">
-                <Sparkles className="h-3.5 w-3.5" />
-                Gestão v2.0
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                Gestão v2.1
               </Badge>
             </div>
 
-            <Tabelaorganizadores
+            <TabelaOrganizadores
               organizadores={organizadoresFiltrados}
               onVisualizar={abrirHistorico}
             />
 
             <div className="grid gap-4 lg:hidden">
               {organizadoresFiltrados.map((organizador) => (
-                <organizadorCard
+                <OrganizadorCard
                   key={
-                    getorganizadorId(organizador) ||
-                    `${getNomeorganizador(organizador)}-${getEmailorganizador(organizador)}`
+                    getOrganizadorId(organizador) ||
+                    `${getNomeOrganizador(organizador)}-${getEmailOrganizador(
+                      organizador
+                    )}`
                   }
                   organizador={organizador}
                   onVisualizar={abrirHistorico}

@@ -193,7 +193,7 @@ const SQL_STATUS_TURMA = `
 `;
 
 const SQL_NOTA_DESEMPENHO_ORGANIZADOR = `
-  CASE a.desempenho_organizadorr::text
+  CASE a.desempenho_organizador::text
     WHEN 'Ótimo' THEN 10
     WHEN 'Bom' THEN 8
     WHEN 'Regular' THEN 6

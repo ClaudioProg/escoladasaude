@@ -1,4 +1,5 @@
-// ✅ frontend/src/pages/DashboardAnalitico.jsx — v2.0
+// ✅ frontend/src/pages/DashboardAnalitico.jsx — v2.1
+// Atualizado em: 01/06/2026
 /* eslint-disable no-console */
 /**
  * Plataforma Escola da Saúde
@@ -18,10 +19,10 @@
  * - Sem apiGet direto no componente.
  * - Sem "/api" nas chamadas do frontend.
  * - Sem rota antiga /dashboard-analitico no componente.
- * - Sem campos camelCase legados como fonte principal.
  * - Mobile-first.
  * - Acessível.
  * - Visual premium real.
+ * - HeaderHero limpo: sem botões, stats, filtros, trilhas ou badges.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +56,7 @@ import {
   ArcElement,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 
 import Footer from "../components/layout/Footer";
@@ -72,8 +74,59 @@ ChartJS.register(
   LinearScale,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
+
+/* ─────────────────────────────────────────────────────────────
+   Paletas oficiais da página
+────────────────────────────────────────────────────────────── */
+
+const CHART_PALETTE = [
+  "#2563eb",
+  "#7c3aed",
+  "#db2777",
+  "#ea580c",
+  "#ca8a04",
+  "#16a34a",
+  "#0891b2",
+  "#4f46e5",
+  "#be123c",
+  "#0d9488",
+  "#9333ea",
+  "#0284c7",
+  "#65a30d",
+  "#f97316",
+  "#14b8a6",
+  "#a855f7",
+  "#e11d48",
+  "#0369a1",
+  "#059669",
+  "#c026d3",
+];
+
+const CHART_PALETTE_DARK = [
+  "#60a5fa",
+  "#a78bfa",
+  "#f472b6",
+  "#fb923c",
+  "#facc15",
+  "#4ade80",
+  "#22d3ee",
+  "#818cf8",
+  "#fb7185",
+  "#2dd4bf",
+  "#c084fc",
+  "#38bdf8",
+  "#a3e635",
+  "#fdba74",
+  "#5eead4",
+  "#d8b4fe",
+  "#fda4af",
+  "#7dd3fc",
+  "#86efac",
+  "#f0abfc",
+];
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
@@ -90,7 +143,33 @@ function unwrap(response) {
 function getErrorMessage(error, fallback) {
   const data = error?.response?.data || error?.data || {};
 
-  return data?.message || data?.erro || error?.message || fallback;
+  if (data?.message) return data.message;
+  if (data?.erro) return data.erro;
+  if (error?.message) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+
+  return fallback;
+}
+
+function isAbortLike(error) {
+  if (!error) return false;
+
+  if (error === "unmount") return true;
+  if (error === "nova-requisicao") return true;
+
+  if (error?.name === "AbortError") return true;
+  if (error?.code === "ERR_CANCELED") return true;
+
+  const message = String(error?.message || error || "").toLowerCase();
+
+  return (
+    message === "unmount" ||
+    message === "nova-requisicao" ||
+    message.includes("aborted") ||
+    message.includes("abort") ||
+    message.includes("canceled") ||
+    message.includes("cancelled")
+  );
 }
 
 function toNumber(value, fallback = 0) {
@@ -116,6 +195,7 @@ function normalizeChartPayload(value) {
     return {
       labels: [],
       datasets: [],
+      meta: [],
     };
   }
 
@@ -170,7 +250,61 @@ function sanitizePieArray(value) {
     .filter((item) => item.value > 0);
 }
 
-function toPieDataset(value) {
+function colorAt(index, isDark = false) {
+  const palette = isDark ? CHART_PALETTE_DARK : CHART_PALETTE;
+  return palette[index % palette.length];
+}
+
+function colorizeChartData(chartData, { isDark = false, type = "bar" } = {}) {
+  if (!chartData?.labels?.length || !Array.isArray(chartData.datasets)) {
+    return {
+      labels: [],
+      datasets: [],
+      meta: [],
+    };
+  }
+
+  return {
+    ...chartData,
+    datasets: chartData.datasets.map((dataset, datasetIndex) => {
+      const baseColor = colorAt(datasetIndex, isDark);
+      const labelsCount = chartData.labels.length;
+
+      const perItemColors = Array.from({ length: labelsCount }).map((_, index) =>
+        colorAt(index, isDark)
+      );
+
+      if (type === "pie") {
+        return {
+          ...dataset,
+          backgroundColor: perItemColors,
+          borderColor: isDark ? "#18181b" : "#ffffff",
+          borderWidth: 2,
+          hoverOffset: 6,
+          fill: false,
+        };
+      }
+
+      return {
+        ...dataset,
+        backgroundColor:
+          dataset.backgroundColor && dataset.backgroundColor !== "#ccc"
+            ? dataset.backgroundColor
+            : baseColor,
+        borderColor:
+          dataset.borderColor && dataset.borderColor !== "#ccc"
+            ? dataset.borderColor
+            : baseColor,
+        borderWidth: dataset.borderWidth ?? 2,
+        borderRadius: dataset.borderRadius ?? 10,
+        maxBarThickness: dataset.maxBarThickness ?? 48,
+        fill: false,
+      };
+    }),
+  };
+}
+
+function toPieDataset(value, isDark = false) {
   const clean = sanitizePieArray(value);
   const labels = clean.map((item) => item.label);
   const data = clean.map((item) => item.value);
@@ -180,9 +314,12 @@ function toPieDataset(value) {
     datasets: [
       {
         data,
+        backgroundColor: labels.map((_, index) => colorAt(index, isDark)),
+        borderColor: isDark ? "#18181b" : "#ffffff",
         borderWidth: 2,
-        hoverOffset: 4,
+        hoverOffset: 6,
         cutout: "62%",
+        fill: false,
       },
     ],
     _total: data.reduce((sum, item) => sum + item, 0),
@@ -307,7 +444,13 @@ function InfoRibbon() {
   );
 }
 
-function GhostAction({ icon: Icon, children, onClick, loading = false, disabled = false }) {
+function GhostAction({
+  icon: Icon,
+  children,
+  onClick,
+  loading = false,
+  disabled = false,
+}) {
   return (
     <button
       type="button"
@@ -502,11 +645,12 @@ function PieCard({ title, data }) {
 
               return (chart.data.labels || []).map((raw, index) => {
                 const label = String(raw ?? "—");
+                const color = dataset.backgroundColor?.[index] || colorAt(index);
 
                 return {
                   text: label.length > 22 ? `${label.slice(0, 21)}…` : label,
-                  fillStyle: dataset.backgroundColor?.[index],
-                  strokeStyle: dataset.backgroundColor?.[index],
+                  fillStyle: color,
+                  strokeStyle: color,
                   hidden: false,
                   index,
                 };
@@ -541,7 +685,7 @@ function PieCard({ title, data }) {
       role="group"
       aria-label={`Gráfico de rosca: ${title}`}
     >
-      <div className="h-1.5 w-full bg-gradient-to-r from-slate-500 via-slate-600 to-zinc-700" />
+      <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
       <div className="p-4 sm:p-5">
         <figcaption className="mb-3 text-center font-extrabold text-slate-900 dark:text-zinc-100">
@@ -621,7 +765,7 @@ export default function DashboardAnalitico() {
         tipo: tipo || undefined,
       };
 
-      const [dashboardResponse, estatisticaResponse] = await Promise.all([
+      const [dashboardResult, estatisticaResult] = await Promise.allSettled([
         apiDashboardAnalitico(params, {
           signal: controller.signal,
         }),
@@ -633,14 +777,67 @@ export default function DashboardAnalitico() {
 
       if (!mountedRef.current) return;
 
-      setDados(normalizeMetricPayload(unwrap(dashboardResponse) || {}));
-      setStats(normalizeStatsPayload(unwrap(estatisticaResponse) || {}));
-      setLive("Dashboard analítico atualizado.");
+      if (dashboardResult.status === "fulfilled") {
+  setDados(normalizeMetricPayload(unwrap(dashboardResult.value) || {}));
+} else if (!isAbortLike(dashboardResult.reason)) {
+  const message = getErrorMessage(
+    dashboardResult.reason,
+    "Erro ao carregar os indicadores de eventos."
+  );
+
+  console.error("[DashboardAnalitico] erro nos indicadores de eventos", {
+    error: dashboardResult.reason,
+  });
+
+  setDados(normalizeMetricPayload({}));
+  setErro(message);
+  toast.error(message);
+}
+
+      if (estatisticaResult.status === "fulfilled") {
+  setStats(normalizeStatsPayload(unwrap(estatisticaResult.value) || {}));
+} else if (!isAbortLike(estatisticaResult.reason)) {
+  console.warn("[DashboardAnalitico] erro nas estatísticas de usuários", {
+    error: estatisticaResult.reason,
+  });
+
+  setStats(normalizeStatsPayload({}));
+
+  if (dashboardResult.status === "fulfilled") {
+    const message = getErrorMessage(
+      estatisticaResult.reason,
+      "Não foi possível carregar a população cadastrada."
+    );
+
+    setErro(message);
+    toast.error(message);
+  }
+}
+
+      const dashboardAbortado =
+  dashboardResult.status === "rejected" && isAbortLike(dashboardResult.reason);
+
+const estatisticaAbortada =
+  estatisticaResult.status === "rejected" && isAbortLike(estatisticaResult.reason);
+
+if (dashboardAbortado || estatisticaAbortada) {
+  return;
+}
+
+if (
+  dashboardResult.status === "fulfilled" &&
+  estatisticaResult.status === "fulfilled"
+) {
+  setErro("");
+  setLive("Dashboard analítico atualizado.");
+} else {
+  setLive("Dashboard analítico carregado parcialmente.");
+}
     } catch (error) {
       if (error?.name === "AbortError") return;
 
-      console.error("[DashboardAnalitico] erro ao carregar dados", {
-        message: error?.message,
+      console.error("[DashboardAnalitico] erro inesperado ao carregar dados", {
+        error,
       });
 
       const message = getErrorMessage(
@@ -673,13 +870,21 @@ export default function DashboardAnalitico() {
   const filtrosAtivos = Boolean(ano || mes || tipo);
 
   const eventoPorMesData = useMemo(
-    () => dados.evento_por_mes,
-    [dados.evento_por_mes]
+    () =>
+      colorizeChartData(dados.evento_por_mes, {
+        isDark,
+        type: "bar",
+      }),
+    [dados.evento_por_mes, isDark]
   );
 
   const eventoPorTipoData = useMemo(
-    () => dados.evento_por_tipo,
-    [dados.evento_por_tipo]
+    () =>
+      colorizeChartData(dados.evento_por_tipo, {
+        isDark,
+        type: "pie",
+      }),
+    [dados.evento_por_tipo, isDark]
   );
 
   const presencaPorEventoData = useMemo(() => {
@@ -716,16 +921,22 @@ export default function DashboardAnalitico() {
       indices = indices.slice(-5);
     }
 
-    return {
+    const limitado = {
       labels: indices.map((index) => labels[index]),
       datasets: datasets.map((dataset) => ({
         ...dataset,
         data: indices.map((index) =>
           Number(clampPercent(dataset.data?.[index]).toFixed(1))
         ),
+        fill: false,
       })),
     };
-  }, [dados.presenca_por_evento]);
+
+    return colorizeChartData(limitado, {
+      isDark,
+      type: "bar",
+    });
+  }, [dados.presenca_por_evento, isDark]);
 
   const barPercentOptions = useMemo(
     () => ({
@@ -739,23 +950,75 @@ export default function DashboardAnalitico() {
       },
       animation: reduceMotion ? false : undefined,
       scales: {
+        x: {
+          grid: {
+            display: false,
+          },
+          ticks: {
+            color: isDark ? "#d4d4d8" : "#475569",
+          },
+        },
         y: {
           beginAtZero: true,
           max: 100,
           ticks: {
+            color: isDark ? "#d4d4d8" : "#475569",
             callback: (value) => `${value}%`,
+          },
+          grid: {
+            color: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
           },
         },
       },
       maintainAspectRatio: false,
     }),
-    [reduceMotion]
+    [isDark, reduceMotion]
   );
 
   const chartOptions = useMemo(
     () => ({
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: false,
+        },
+      },
+      animation: reduceMotion ? false : undefined,
+      scales: {
+        x: {
+          grid: {
+            display: false,
+          },
+          ticks: {
+            color: isDark ? "#d4d4d8" : "#475569",
+          },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: isDark ? "#d4d4d8" : "#475569",
+          },
+          grid: {
+            color: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+          },
+        },
+      },
+      maintainAspectRatio: false,
+    }),
+    [isDark, reduceMotion]
+  );
+
+  const pieOptions = useMemo(
+    () => ({
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 10,
+            usePointStyle: true,
+            pointStyle: "circle",
+            font: { size: 12 },
+          },
+        },
       },
       animation: reduceMotion ? false : undefined,
       maintainAspectRatio: false,
@@ -763,41 +1026,60 @@ export default function DashboardAnalitico() {
     [reduceMotion]
   );
 
-  const pieFaixa = useMemo(() => toPieDataset(stats.faixa_etaria), [stats]);
-  const pieUnidade = useMemo(() => toPieDataset(stats.por_unidade), [stats]);
+  const pieFaixa = useMemo(
+    () => toPieDataset(stats.faixa_etaria, isDark),
+    [isDark, stats.faixa_etaria]
+  );
+
+  const pieUnidade = useMemo(
+    () => toPieDataset(stats.por_unidade, isDark),
+    [isDark, stats.por_unidade]
+  );
+
   const pieEscolaridade = useMemo(
-    () => toPieDataset(stats.por_escolaridade),
-    [stats]
+    () => toPieDataset(stats.por_escolaridade, isDark),
+    [isDark, stats.por_escolaridade]
   );
-  const pieCargo = useMemo(() => toPieDataset(stats.por_cargo), [stats]);
+
+  const pieCargo = useMemo(
+    () => toPieDataset(stats.por_cargo, isDark),
+    [isDark, stats.por_cargo]
+  );
+
   const pieOrientacaoSexual = useMemo(
-    () => toPieDataset(stats.por_orientacao_sexual),
-    [stats]
+    () => toPieDataset(stats.por_orientacao_sexual, isDark),
+    [isDark, stats.por_orientacao_sexual]
   );
-  const pieGenero = useMemo(() => toPieDataset(stats.por_genero), [stats]);
+
+  const pieGenero = useMemo(
+    () => toPieDataset(stats.por_genero, isDark),
+    [isDark, stats.por_genero]
+  );
+
   const pieDeficiencia = useMemo(
-    () => toPieDataset(stats.por_deficiencia),
-    [stats]
+    () => toPieDataset(stats.por_deficiencia, isDark),
+    [isDark, stats.por_deficiencia]
   );
-  const pieCorRaca = useMemo(() => toPieDataset(stats.por_cor_raca), [stats]);
+
+  const pieCorRaca = useMemo(
+    () => toPieDataset(stats.por_cor_raca, isDark),
+    [isDark, stats.por_cor_raca]
+  );
 
   return (
-    <>
-      <main className="mx-auto max-w-7xl p-4 md:p-6">
-        <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+    <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
+      <HeaderHero
+        titulo="Dashboard Analítico"
+        subtitulo="Visão estratégica dos eventos, inscrições, presenças e população cadastrada."
+        icone={BarChart3}
+      />
 
-        <HeaderHero
-          title="Dashboard Analítico"
-          subtitle="Visão estratégica dos eventos, inscrições, presenças e população cadastrada."
-          badge="Indicadores • Gestão • Escola da Saúde"
-          icon={BarChart3}
-          gradient="from-indigo-900 via-fuchsia-800 to-rose-700"
-          isDark={isDark}
-        />
+      <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+        <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
 
         {carregando ? (
           <div
-            className="sticky top-0 z-40 mt-4 h-1 w-full overflow-hidden rounded-full bg-fuchsia-100 dark:bg-fuchsia-950/30"
+            className="sticky top-0 z-40 h-1 w-full overflow-hidden rounded-full bg-fuchsia-100 dark:bg-fuchsia-950/30"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
@@ -882,8 +1164,8 @@ export default function DashboardAnalitico() {
 
         {erro ? (
           <SectionShell
-            title="Erro no carregamento"
-            subtitle="Houve falha ao carregar os dados analíticos."
+            title="Atenção no carregamento"
+            subtitle="Alguma parte do painel não foi carregada corretamente."
             icon={AlertTriangle}
             gradient="from-rose-600 via-red-600 to-orange-600"
           >
@@ -944,7 +1226,7 @@ export default function DashboardAnalitico() {
           title="Eventos e presença"
           subtitle="Distribuição dos eventos e presença média consolidada."
           icon={BarChart3}
-          gradient="from-slate-600 via-slate-700 to-zinc-800"
+          gradient="from-indigo-600 via-violet-600 to-fuchsia-600"
         >
           {carregando ? (
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -978,7 +1260,7 @@ export default function DashboardAnalitico() {
                 >
                   <div style={{ height: 320 }}>
                     {eventoPorTipoData.labels.length ? (
-                      <Pie data={eventoPorTipoData} />
+                      <Pie data={eventoPorTipoData} options={pieOptions} />
                     ) : (
                       <NoData />
                     )}
@@ -1043,6 +1325,6 @@ export default function DashboardAnalitico() {
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }

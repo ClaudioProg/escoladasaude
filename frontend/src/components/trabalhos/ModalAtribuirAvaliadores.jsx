@@ -1,7 +1,7 @@
 // 📁 src/components/trabalhos/ModalAtribuirAvaliadores.jsx
-// Atualizado em: 15/05/2026
+// Atualizado em: 01/06/2026
 //
-// Plataforma Escola da Saúde — v2.0
+// Plataforma Escola da Saúde — v2.1
 //
 // Modal administrativo para atribuir avaliadores a uma submissão.
 //
@@ -27,6 +27,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -105,16 +106,24 @@ function normalizarAvaliador(row) {
   };
 }
 
-function normalizarAtribuicao(row, avaliadoresMap = new Map()) {
+function normalizarAtribuicao(row, avaliadoresMap = new Map(), origem = "lista", index = 0) {
   const avaliadorId = Number(row?.avaliador_id ?? row?.id);
   const avaliador = avaliadoresMap.get(avaliadorId);
+  const tipo = normalizarTipo(row?.tipo);
+  const idBase =
+    row?.atribuicao_id ??
+    row?.vinculo_id ??
+    row?.submissao_avaliador_id ??
+    row?.id ??
+    `${tipo}-${avaliadorId}`;
 
   return {
-    id: row?.id ?? `${normalizarTipo(row?.tipo)}-${avaliadorId}`,
+    id: idBase,
+    chave: `${tipo}-${avaliadorId}-${String(idBase)}-${origem}-${index}`,
     avaliador_id: avaliadorId,
     nome: row?.avaliador_nome || row?.nome || avaliador?.nome || `Avaliador #${avaliadorId}`,
     email: row?.avaliador_email || row?.email || avaliador?.email || "",
-    tipo: normalizarTipo(row?.tipo),
+    tipo,
     revogado: Boolean(row?.revogado),
     criado_em: row?.criado_em || null,
     revogado_em: row?.revogado_em || null,
@@ -140,7 +149,7 @@ function normalizarListaElegiveis(payload) {
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
 }
 
-function normalizarListaAtribuicao(payload, avaliadoresMap) {
+function normalizarListaAtribuicao(payload, avaliadoresMap, origem = "lista") {
   const data = unwrap(payload, payload);
 
   const rows = Array.isArray(data)
@@ -154,7 +163,7 @@ function normalizarListaAtribuicao(payload, avaliadoresMap) {
           : [];
 
   return rows
-    .map((item) => normalizarAtribuicao(item, avaliadoresMap))
+    .map((item, index) => normalizarAtribuicao(item, avaliadoresMap, origem, index))
     .filter((item) => Number.isInteger(item.avaliador_id) && item.avaliador_id > 0);
 }
 
@@ -176,10 +185,22 @@ async function listarAtribuicao(submissaoId, avaliadoresMap) {
     }),
   ]);
 
-  return [
-    ...normalizarListaAtribuicao(escrita, avaliadoresMap),
-    ...normalizarListaAtribuicao(oral, avaliadoresMap),
+  const merged = [
+    ...normalizarListaAtribuicao(escrita, avaliadoresMap, "escrita"),
+    ...normalizarListaAtribuicao(oral, avaliadoresMap, "oral"),
   ];
+
+  const deduplicadas = new Map();
+
+  for (const item of merged) {
+    const chaveLogica = `${item.tipo}-${item.avaliador_id}-${item.revogado ? "revogado" : "ativo"}`;
+
+    if (!deduplicadas.has(chaveLogica)) {
+      deduplicadas.set(chaveLogica, item);
+    }
+  }
+
+  return Array.from(deduplicadas.values());
 }
 
 async function incluirAvaliador(submissaoId, avaliadorId, tipo) {
@@ -600,7 +621,7 @@ export default function ModalAtribuirAvaliadores({
 
   if (!modalOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
@@ -617,7 +638,9 @@ export default function ModalAtribuirAvaliadores({
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={descId}
-className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 30, scale: 0.98 }}
           transition={{ duration: 0.18 }}
         >
@@ -822,14 +845,14 @@ className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white sh
                       </div>
                     ) : (
                       <ul className="space-y-3">
-                        {atribuicoesDoTipo.map((item) => {
+                        {atribuicoesDoTipo.map((item, index) => {
                           const keyRevogar = `revogar-${item.tipo}-${item.avaliador_id}`;
                           const keyRestaurar = `restaurar-${item.tipo}-${item.avaliador_id}`;
                           const busy = actionKey === keyRevogar || actionKey === keyRestaurar;
 
                           return (
                             <AvaliadorRow
-                              key={`${item.tipo}-${item.avaliador_id}`}
+                              key={item.chave || `${item.tipo}-${item.avaliador_id}-${index}`}
                               item={item}
                               busy={busy}
                               onRevogar={revogar}
@@ -856,6 +879,8 @@ className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white sh
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  ,
+    document.body
   );
 }
 

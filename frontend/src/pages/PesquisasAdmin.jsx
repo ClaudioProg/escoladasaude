@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/PesquisasAdmin.jsx — v2.0
-// Atualizado em: 19/05/2026
+// ✅ frontend/src/pages/PesquisasAdmin.jsx — v2.1
+// Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -41,6 +41,7 @@
 // - confirmação para exclusão.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -76,6 +77,7 @@ import Skeleton from "react-loading-skeleton";
 import api from "../services/api";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 
 /* =========================================================================
    Constantes
@@ -752,14 +754,19 @@ export default function PesquisasAdmin() {
       />
 
       <HeaderHero
-        totalVisiveis={pesquisasFiltradas.length}
-        carregando={carregando}
-        onRefresh={carregarDados}
-        onCriar={handleCriar}
-        kpis={kpis}
+        titulo="Pesquisas"
+        subtitulo="Crie, publique e acompanhe pesquisas internas e externas para apoiar decisões institucionais da Escola da Saúde."
+        icone={FileQuestion}
       />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PainelOperacionalPesquisas
+          totalVisiveis={pesquisasFiltradas.length}
+          carregando={carregando}
+          onRefresh={carregarDados}
+          onCriar={handleCriar}
+          kpis={kpis}
+        />
         {erro ? (
           <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
         ) : null}
@@ -921,93 +928,128 @@ export default function PesquisasAdmin() {
    Componentes locais — topo/listagem
 =========================================================================== */
 
-function HeaderHero({ totalVisiveis, carregando, onRefresh, onCriar, kpis }) {
+function PainelOperacionalPesquisas({
+  totalVisiveis,
+  carregando,
+  onRefresh,
+  onCriar,
+  kpis,
+}) {
   return (
-    <header className="relative overflow-hidden bg-slate-950 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(16,185,129,.34),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.28),transparent_35%),radial-gradient(circle_at_70%_95%,rgba(6,182,212,.22),transparent_36%)]" />
-
-      <div className="relative mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
+    <section
+      aria-label="Painel operacional de pesquisas"
+      className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-200" />
-              Administração — Pesquisas
-            </div>
-
-            <h1 className="max-w-4xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Gestão de pesquisas institucionais
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72 sm:text-base">
-              Crie pesquisas internas, divulgue formulários externos e acompanhe
-              respostas para tomada de decisão institucional.
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <Sparkles className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+              Painel operacional
             </p>
 
-            <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur">
-              <Sparkles className="h-4 w-4 text-emerald-200" />
-              {totalVisiveis} pesquisa(s) visível(is) nos filtros atuais
-            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {totalVisiveis} pesquisa(s) visível(is) nos filtros atuais.
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-              <button
-                type="button"
-                onClick={onCriar}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-emerald-900 shadow-lg shadow-black/10 transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-white/70"
-              >
-                <Plus className="h-4 w-4" />
-                Nova pesquisa
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onCriar}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <Plus className="h-4 w-4" />
+              Nova pesquisa
+            </button>
 
-              <button
-                type="button"
-                onClick={onRefresh}
-                disabled={carregando}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70 disabled:pointer-events-none disabled:opacity-60"
-              >
-                <RefreshCcw
-                  className={cx("h-4 w-4", carregando && "animate-spin")}
-                />
-                {carregando ? "Atualizando..." : "Atualizar"}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <MiniStat label="Total" value={kpis.total} icon={FileQuestion} />
-              <MiniStat
-                label="Publicadas"
-                value={kpis.publicada}
-                icon={CheckCircle2}
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={carregando}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
               />
-              <MiniStat
-                label="Internas"
-                value={kpis.interna}
-                icon={ClipboardList}
-              />
-              <MiniStat
-                label="Respostas"
-                value={kpis.respostas}
-                icon={MessageSquareText}
-              />
-            </div>
+              {carregando ? "Atualizando..." : "Atualizar"}
+            </button>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <MiniStat
+            label="Total"
+            value={kpis.total}
+            icon={FileQuestion}
+            tone="emerald"
+          />
+          <MiniStat
+            label="Publicadas"
+            value={kpis.publicada}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <MiniStat
+            label="Internas"
+            value={kpis.interna}
+            icon={ClipboardList}
+            tone="blue"
+          />
+          <MiniStat
+            label="Respostas"
+            value={kpis.respostas}
+            icon={MessageSquareText}
+            tone="violet"
+          />
+        </div>
       </div>
-    </header>
+    </section>
   );
 }
 
-function MiniStat({ label, value, icon: Icon }) {
+function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
+  const tones = {
+    emerald: {
+      wrap:
+        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+    },
+    blue: {
+      wrap:
+        "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/25 dark:text-blue-100",
+      gradient: "from-blue-600 via-sky-500 to-cyan-500",
+    },
+    violet: {
+      wrap:
+        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
+    },
+    slate: {
+      wrap:
+        "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+      gradient: "from-slate-600 via-zinc-500 to-slate-400",
+    },
+  };
+
+  const cfg = tones[tone] || tones.emerald;
+
   return (
-    <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
-          {label}
+    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+      <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-black">{value}</p>
+        </div>
+
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" />
         </span>
-        <Icon className="h-4 w-4 text-white/70" />
       </div>
-      <div className="mt-2 text-3xl font-black">{value}</div>
     </div>
   );
 }
@@ -1426,10 +1468,10 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      window.clearTimeout(timer);
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKeyDown);
-    };
+  window.clearTimeout(timer);
+  document.body.style.overflow = "";
+  window.removeEventListener("keydown", onKeyDown);
+};
   }, [aberto, pesquisa, onClose, salvando]);
 
   function setCampo(campo, valor) {
@@ -1766,13 +1808,13 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
 
   if (!aberto) return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (salvando) return;
-        if (event.target === event.currentTarget) onClose?.();
+  return createPortal(
+  <div
+    className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+    role="presentation"
+    onMouseDown={(event) => {
+      if (salvando) return;
+      if (event.target === event.currentTarget) onClose?.();
       }}
     >
       <div
@@ -2113,7 +2155,8 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -2265,7 +2308,7 @@ function ResultadoDrawer({ painel, loading, onClose }) {
   const resultado = painel.resultado || null;
   const respostas = painel.respostas || [];
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-sm"
       role="presentation"
@@ -2503,7 +2546,8 @@ function RespostaItem({ resposta }) {
           </div>
         ))}
       </div>
-    </details>
+    </details>,
+    document.body
   );
 }
 
@@ -2514,7 +2558,7 @@ function RespostaItem({ resposta }) {
 function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
@@ -2594,7 +2638,8 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

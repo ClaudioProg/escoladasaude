@@ -1,7 +1,7 @@
 // 📁 src/pages/AdminSubmissao.jsx
-// Atualizado em: 15/05/2026
+// Atualizado em: 01/06/2026
 //
-// Plataforma Escola da Saúde — v2.0
+// Plataforma Escola da Saúde — v2.2
 //
 // Página administrativa de SUBMISSÕES DE TRABALHOS.
 //
@@ -15,9 +15,11 @@
 // - criação/edição autoral de trabalho;
 // - endpoints antigos /admin/submissao, /chamadas/ativas, /trabalhos/*.
 //
-// Observação:
-// Os modais importados abaixo ainda devem ser revisados em seguida para garantir
-// que também usem exclusivamente os contratos v2.0.
+// Diretrizes v2.2:
+// - cards em todos os tamanhos de tela;
+// - HeaderHero oficial e limpo;
+// - modais renderizados via portal para não ficarem presos na rolagem da página;
+// - contratos oficiais preservados.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -51,9 +53,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 
 import api from "../services/api";
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import RankingModal from "../components/trabalhos/RankingModal";
 import RankingOralModal from "../components/trabalhos/RankingOralModal";
 import ModalAvaliadores from "../components/trabalhos/ModalAvaliadores";
@@ -471,61 +475,124 @@ function Aprovacoes({ item }) {
 }
 
 /* =========================================================================
-   Header
+   Painel operacional
 =========================================================================== */
 
-function HeaderHero({ stats }) {
+function PainelOperacionalSubmissoes({
+  stats,
+  totalVisiveis,
+  loading,
+  onReload,
+  onRanking,
+  onRankingOral,
+  onAvaliadores,
+  onExport,
+}) {
   return (
-    <header className="relative overflow-hidden bg-slate-950 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(245,158,11,.28),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(139,92,246,.28),transparent_30%),radial-gradient(circle_at_55%_90%,rgba(16,185,129,.22),transparent_30%)]" />
+    <GlassCard className="overflow-hidden p-0">
+      <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-violet-600" />
 
-      <div className="relative mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr] lg:items-end">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-200" />
-              Submissões de trabalhos — painel administrativo v2.0
-            </div>
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <p className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+              <Sparkles className="h-4 w-4 text-amber-600" aria-hidden="true" />
+              Painel operacional
+            </p>
 
-            <h1 className="max-w-4xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Auditoria, acompanhamento e decisão sobre trabalhos submetidos.
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72 sm:text-base">
-              Visualize submissões, acompanhe status, notas, anexos, avaliadores,
-              rankings e classificações com rastreabilidade institucional.
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+              Acompanhe submissões, rankings, avaliadores, anexos, notas e decisões institucionais.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Metric label="Total" value={stats.total} icon={ClipboardList} tone="amber" />
-            <Metric label="Em avaliação" value={stats.emAvaliacao} icon={Loader2} tone="cyan" />
-            <Metric label="Aprovadas" value={stats.aprovadas} icon={CheckCircle2} tone="emerald" />
-            <Metric label="Reprovadas" value={stats.reprovadas} icon={XCircle} tone="rose" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
+            <Button tone="warning" icon={Award} onClick={onRanking} className="w-full sm:w-auto">
+              Ranking escrita
+            </Button>
+
+            <Button tone="slate" icon={Mic} onClick={onRankingOral} className="w-full sm:w-auto">
+              Ranking oral
+            </Button>
+
+            <Button tone="success" icon={Users} onClick={onAvaliadores} className="w-full sm:w-auto">
+              Avaliadores
+            </Button>
+
+            <Button tone="slate" icon={Download} onClick={onExport} className="w-full sm:w-auto">
+              Exportar CSV
+            </Button>
+
+            <Button
+              tone="ghost"
+              icon={RefreshCw}
+              onClick={onReload}
+              loading={loading}
+              className="w-full sm:w-auto"
+            >
+              Recarregar
+            </Button>
           </div>
         </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-5">
+          <MetricCard label="Total" value={stats.total} icon={ClipboardList} tone="amber" />
+          <MetricCard label="Visíveis" value={totalVisiveis} icon={Filter} tone="violet" />
+          <MetricCard label="Em avaliação" value={stats.emAvaliacao} icon={Loader2} tone="cyan" />
+          <MetricCard label="Aprovadas" value={stats.aprovadas} icon={CheckCircle2} tone="emerald" />
+          <MetricCard label="Reprovadas" value={stats.reprovadas} icon={XCircle} tone="rose" />
+        </div>
       </div>
-    </header>
+    </GlassCard>
   );
 }
 
-function Metric({ label, value, icon: Icon, tone = "amber" }) {
+function MetricCard({ label, value, icon: Icon, tone = "amber" }) {
   const tones = {
-    amber: "from-amber-400/25 to-white/5",
-    cyan: "from-cyan-400/25 to-white/5",
-    emerald: "from-emerald-400/25 to-white/5",
-    rose: "from-rose-400/25 to-white/5",
+    amber: {
+      wrap:
+        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      gradient: "from-amber-500 via-orange-400 to-yellow-500",
+    },
+    violet: {
+      wrap:
+        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
+    },
+    cyan: {
+      wrap:
+        "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
+      gradient: "from-cyan-600 via-sky-500 to-blue-500",
+    },
+    emerald: {
+      wrap:
+        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+    },
+    rose: {
+      wrap:
+        "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
+      gradient: "from-rose-600 via-red-500 to-orange-500",
+    },
   };
 
+  const cfg = tones[tone] || tones.amber;
+
   return (
-    <div className={cx("rounded-3xl border border-white/15 bg-gradient-to-br p-4 backdrop-blur", tones[tone])}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
-          {label}
+    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+      <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide opacity-75">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-black">{fmt(value)}</p>
+        </div>
+
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
+          <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
-        <Icon className="h-4 w-4 text-white/70" aria-hidden="true" />
       </div>
-      <div className="mt-2 text-3xl font-black">{fmt(value)}</div>
     </div>
   );
 }
@@ -810,9 +877,24 @@ export default function AdminSubmissao() {
 
   return (
     <PageShell>
-      <HeaderHero stats={stats} />
+      <HeaderHero
+        titulo="Submissões de Trabalhos"
+        subtitulo="Audite, acompanhe e decida sobre trabalhos submetidos, rankings, anexos, avaliadores, notas e classificações."
+        icone={ClipboardList}
+      />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <PainelOperacionalSubmissoes
+          stats={stats}
+          totalVisiveis={total}
+          loading={loading}
+          onReload={carregar}
+          onRanking={() => setRankingOpen(true)}
+          onRankingOral={() => setOralOpen(true)}
+          onAvaliadores={() => setAvaliadoresOpen(true)}
+          onExport={() => exportarCSV(sorted)}
+        />
+
         <Toolbar
           chamadas={chamadas}
           linhasTematicas={linhasTematicas}
@@ -838,20 +920,6 @@ export default function AdminSubmissao() {
           erro={erro}
         />
 
-        <SubmissaoTable
-          items={pageItems}
-          sortKey={sortKey}
-          sortDir={sortDir}
-          setSort={setSort}
-          onDetalhe={(item) => {
-            setSelecionada(item);
-            setDetalheOpen(true);
-          }}
-          onAtribuir={(id) => {
-            setSubmissaoIdAtrib(id);
-            setAtribOpen(true);
-          }}
-        />
 
         <SubmissaoCards
           items={pageItems}
@@ -877,56 +945,72 @@ export default function AdminSubmissao() {
 
       <Footer />
 
-      <AnimatePresence>
-        {detalheOpen ? (
-          <ModalDetalhesSubmissao
-            open={detalheOpen}
-            onClose={() => setDetalheOpen(false)}
-            submissao={selecionada}
-            onDetectAnexo={(id, has) => {
-              if (!has) return;
-              setSubmissoes((current) =>
-                current.map((item) => (item.id === id ? { ...item, _hasAnexo: true } : item))
-              );
-            }}
-          />
-        ) : null}
+      {typeof document !== "undefined"
+        ? createPortal(
+            <AnimatePresence>
+              {detalheOpen ? (
+                <ModalDetalhesSubmissao
+                  key="detalhe-submissao-modal"
+                  open={detalheOpen}
+                  onClose={() => {
+                    setDetalheOpen(false);
+                    setSelecionada(null);
+                  }}
+                  submissao={selecionada}
+                  onDetectAnexo={(id, has) => {
+                    if (!has) return;
+                    setSubmissoes((current) =>
+                      current.map((item) =>
+                        item.id === id ? { ...item, _hasAnexo: true } : item
+                      )
+                    );
+                  }}
+                />
+              ) : null}
 
-        {atribOpen ? (
-          <ModalAtribuirAvaliadores
-            isOpen={atribOpen}
-            submissaoId={submissaoIdAtrib}
-            onClose={() => setAtribOpen(false)}
-            onChanged={carregar}
-          />
-        ) : null}
+              {atribOpen ? (
+                <ModalAtribuirAvaliadores
+                  key="atribuir-avaliadores-modal"
+                  isOpen={atribOpen}
+                  submissaoId={submissaoIdAtrib}
+                  onClose={() => {
+                    setAtribOpen(false);
+                    setSubmissaoIdAtrib(null);
+                  }}
+                  onChanged={carregar}
+                />
+              ) : null}
 
-        {rankingOpen ? (
-          <RankingModal
-            key="ranking-modal"
-            open={rankingOpen}
-            onClose={() => setRankingOpen(false)}
-            itens={sorted}
-            onStatusChange={atualizarStatusLocal}
-          />
-        ) : null}
+              {rankingOpen ? (
+                <RankingModal
+                  key="ranking-modal"
+                  open={rankingOpen}
+                  onClose={() => setRankingOpen(false)}
+                  itens={sorted}
+                  onStatusChange={atualizarStatusLocal}
+                />
+              ) : null}
 
-        {oralOpen ? (
-          <RankingOralModal
-            open={oralOpen}
-            onClose={() => setOralOpen(false)}
-            itens={sorted}
-          />
-        ) : null}
+              {oralOpen ? (
+                <RankingOralModal
+                  key="ranking-oral-modal"
+                  open={oralOpen}
+                  onClose={() => setOralOpen(false)}
+                  itens={sorted}
+                />
+              ) : null}
 
-        {avaliadoresOpen ? (
-          <ModalAvaliadores
-            key="avaliadores-modal"
-            isOpen={avaliadoresOpen}
-            onClose={() => setAvaliadoresOpen(false)}
-          />
-        ) : null}
-      </AnimatePresence>
+              {avaliadoresOpen ? (
+                <ModalAvaliadores
+                  key="avaliadores-modal"
+                  isOpen={avaliadoresOpen}
+                  onClose={() => setAvaliadoresOpen(false)}
+                />
+              ) : null}
+            </AnimatePresence>,
+            document.body
+          )
+        : null}
     </PageShell>
   );
 }
@@ -959,34 +1043,20 @@ function Toolbar({
 }) {
   return (
     <GlassCard className="p-4 sm:p-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-black text-slate-900 dark:text-white">
             <SlidersHorizontal className="h-5 w-5 text-amber-600" />
-            Painel de controle
+            Filtros e busca
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Filtre, audite, exporte e encaminhe submissões para avaliação.
+            Refine por chamada, status, linha temática ou busca textual. A listagem abaixo aparece em cards para facilitar leitura.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button tone="warning" icon={Award} onClick={onRanking}>
-            Ranking escrita
-          </Button>
-          <Button tone="slate" icon={Mic} onClick={onRankingOral}>
-            Ranking oral
-          </Button>
-          <Button tone="success" icon={Users} onClick={onAvaliadores}>
-            Avaliadores
-          </Button>
-          <Button tone="slate" icon={Download} onClick={onExport}>
-            Exportar CSV
-          </Button>
-          <Button tone="ghost" icon={RefreshCw} onClick={onReload}>
-            Recarregar
-          </Button>
-        </div>
+        <Badge tone={hasFilters ? "amber" : "slate"} icon={Filter}>
+          {hasFilters ? "Filtros ativos" : "Sem filtros"}
+        </Badge>
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto]">
@@ -1273,83 +1343,147 @@ function AnexoBadge({ item }) {
 
 function SubmissaoCards({ items, onDetalhe, onAtribuir }) {
   return (
-    <section className="grid gap-3 lg:hidden" aria-label="Cards de submissões">
+    <section
+      className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3"
+      aria-label="Cards de submissões"
+    >
       {items.length === 0 ? (
-        <GlassCard className="p-8 text-center">
+        <GlassCard className="p-8 text-center xl:col-span-2 2xl:col-span-3">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 dark:bg-slate-800">
             <Filter className="h-7 w-7 text-slate-400" />
           </div>
+
           <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">
             Nenhuma submissão encontrada
           </h3>
+
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Ajuste os filtros ou atualize a listagem.
           </p>
         </GlassCard>
       ) : null}
 
-      {items.map((item) => (
-        <motion.article
-          key={item.id}
-          layout
-          className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
-        >
-          <div
+      {items.map((item) => {
+        const status = normalizarStatusPrincipal(item.status);
+        const temAnexo = hasAnexo(item);
+        const submetido =
+          status === "rascunho"
+            ? "—"
+            : fmtDateTimeBR(item.submetido_em || item.criado_em);
+
+        return (
+          <motion.article
+            key={item.id}
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
             className={cx(
-              "h-1.5 bg-gradient-to-r",
-              hasAnexo(item)
-                ? "from-emerald-500 via-cyan-400 to-sky-500"
-                : "from-slate-300 via-slate-400 to-slate-500"
+              "overflow-hidden rounded-[1.75rem] border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl dark:bg-slate-900",
+              temAnexo
+                ? "border-emerald-200 dark:border-emerald-900/50"
+                : "border-slate-200 dark:border-slate-800"
             )}
-          />
+          >
+            <div
+              className={cx(
+                "h-1.5 bg-gradient-to-r",
+                temAnexo
+                  ? "from-emerald-500 via-cyan-400 to-sky-500"
+                  : "from-slate-300 via-slate-400 to-slate-500"
+              )}
+            />
 
-          <div className="space-y-4 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="line-clamp-3 font-black text-slate-900 dark:text-white">
-                  {item.titulo || "—"}
-                </h3>
-                <p className="mt-1 text-xs text-slate-500">{item.chamada_titulo || "—"}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {item.linha_tematica_nome || item.linha_tematica_codigo || "—"}
-                </p>
+            <div className="space-y-4 p-4 sm:p-5">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge status={item.status} />
+                  <AnexoBadge item={item} />
+                  <Aprovacoes item={item} />
+                </div>
+
+                <div>
+                  <h3 className="line-clamp-3 text-lg font-black leading-snug text-slate-900 dark:text-white">
+                    {item.titulo || "—"}
+                  </h3>
+
+                  <p className="mt-2 line-clamp-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    {item.chamada_titulo || "Chamada não informada"}
+                  </p>
+
+                  <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Linha temática:{" "}
+                    <span className="font-bold">
+                      {item.linha_tematica_nome ||
+                        item.linha_tematica_codigo ||
+                        "—"}
+                    </span>
+                  </p>
+                </div>
               </div>
 
-              <div className="flex flex-col items-end gap-1">
-                <StatusBadge status={item.status} />
-                <AnexoBadge item={item} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/50">
+                  <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Autor
+                  </p>
+
+                  <p className="mt-1 truncate text-sm font-black text-slate-900 dark:text-white">
+                    {item.autor_nome || "—"}
+                  </p>
+
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {item.autor_email || "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/50">
+                  <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Submissão
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">
+                    {submetido}
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    ID: {fmt(item.id)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <NotaBox label="Escrita" value={fmtNota(item.nota_escrita)} />
+                <NotaBox label="Oral" value={fmtNota(item.nota_oral)} />
+                <NotaBox label="Final" value={fmtNota(item.nota_final)} />
+              </div>
+
+              <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 dark:border-slate-800 sm:flex-row sm:justify-end">
+                <Button
+                  tone="warning"
+                  size="sm"
+                  icon={Eye}
+                  onClick={() => onDetalhe(item)}
+                  className="w-full sm:w-auto"
+                >
+                  Ver detalhes
+                </Button>
+
+                <Button
+                  tone="success"
+                  size="sm"
+                  icon={Users}
+                  onClick={() => onAtribuir(item.id)}
+                  className="w-full sm:w-auto"
+                >
+                  Avaliadores
+                </Button>
               </div>
             </div>
-
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/50">
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
-                {item.autor_nome || "—"}
-              </p>
-              <p className="text-xs text-slate-500">{item.autor_email || "—"}</p>
-              {normalizarStatusPrincipal(item.status) !== "rascunho" ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  Submetido em: {fmtDateTimeBR(item.submetido_em || item.criado_em)}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <NotaBox label="Escrita" value={fmtNota(item.nota_escrita)} />
-              <NotaBox label="Oral" value={fmtNota(item.nota_oral)} />
-              <NotaBox label="Final" value={fmtNota(item.nota_final)} />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button tone="warning" size="sm" icon={Eye} onClick={() => onDetalhe(item)}>
-                Ver
-              </Button>
-              <Button tone="success" size="sm" icon={Users} onClick={() => onAtribuir(item.id)}>
-                Avaliadores
-              </Button>
-            </div>
-          </div>
-        </motion.article>
-      ))}
+          </motion.article>
+        );
+      })}
     </section>
   );
 }

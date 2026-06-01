@@ -38,6 +38,7 @@ import {
   Loader2,
   Mail,
   Pencil,
+  Phone,
   Shield,
   UserRound,
 } from "lucide-react";
@@ -68,6 +69,22 @@ function onlyDigits(value) {
 
 function formatValue(value) {
   return value === null || value === undefined || value === "" ? "—" : String(value);
+}
+
+function formatCelular(value) {
+  const digits = onlyDigits(value);
+
+  if (!digits) return "—";
+
+  if (digits.length === 11) {
+    return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+  }
+
+  if (digits.length === 10) {
+    return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+  }
+
+  return String(value || "").trim() || "—";
 }
 
 function initials(name = "") {
@@ -261,9 +278,10 @@ function UsuarioItem({
   const id = usuario?.id;
   const key = String(usuario?.id ?? usuario?.email ?? usuario?.cpf ?? "usuario");
   const nome = usuario?.nome || "—";
-  const email = usuario?.email || "—";
+const email = usuario?.email || "—";
+const celular = formatCelular(usuario?.celular);
 
-  const perfil = perfilOficial(usuario?.perfil);
+const perfil = perfilOficial(usuario?.perfil);
   const perfilText = perfilLabel(perfil);
 
   const revealed =
@@ -378,24 +396,42 @@ function UsuarioItem({
                   </h2>
 
                   <div className="mt-1 flex items-center gap-2 text-sm">
-                    <Mail
-                      className="h-4 w-4 text-zinc-500 dark:text-zinc-300"
-                      aria-hidden="true"
-                    />
-                    {email && email !== "—" ? (
-                      <a
-                        href={`mailto:${email}`}
-                        className="break-all text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
-                        title={`Enviar e-mail para ${nome}`}
-                      >
-                        {email}
-                      </a>
-                    ) : (
-                      <span className="text-zinc-500 dark:text-zinc-400">—</span>
-                    )}
-                  </div>
+  <Mail
+    className="h-4 w-4 text-zinc-500 dark:text-zinc-300"
+    aria-hidden="true"
+  />
+  {email && email !== "—" ? (
+    <a
+      href={`mailto:${email}`}
+      className="break-all text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
+      title={`Enviar e-mail para ${nome}`}
+    >
+      {email}
+    </a>
+  ) : (
+    <span className="text-zinc-500 dark:text-zinc-400">—</span>
+  )}
+</div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+<div className="mt-1 flex items-center gap-2 text-sm">
+  <Phone
+    className="h-4 w-4 text-zinc-500 dark:text-zinc-300"
+    aria-hidden="true"
+  />
+  {celular && celular !== "—" ? (
+    <a
+      href={`tel:${onlyDigits(celular)}`}
+      className="text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
+      title={`Ligar para ${nome}`}
+    >
+      {celular}
+    </a>
+  ) : (
+    <span className="text-zinc-500 dark:text-zinc-400">Celular não informado</span>
+  )}
+</div>
+
+<div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="sr-only">Perfil:</span>
                     <span
                       className={cx(
@@ -452,9 +488,25 @@ function UsuarioItem({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-            <IconMeta Icon={IdCard} label="CPF" value={cpfRender}>
+       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+    <IconMeta Icon={Phone} label="Celular" value={celular}>
+  {celular && celular !== "—" ? (
+    <a
+      href={`tel:${onlyDigits(celular)}`}
+      className="underline-offset-2 hover:underline"
+      title={`Ligar para ${nome}`}
+    >
+      {celular}
+    </a>
+  ) : (
+    "—"
+  )}
+</IconMeta>
+  </div>
+
+  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+    <IconMeta Icon={IdCard} label="CPF" value={cpfRender}>
               <div className="flex items-center gap-2">
                 <span className="font-mono tabular-nums">{cpfRender}</span>
                 {typeof onToggleCpf === "function" &&
@@ -637,10 +689,11 @@ Pill.propTypes = {
 
 UsuarioItem.propTypes = {
   usuario: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    nome: PropTypes.string,
-    email: PropTypes.string,
-    cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  nome: PropTypes.string,
+  email: PropTypes.string,
+  celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     registro: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     data_nascimento: PropTypes.string,
     idade: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
