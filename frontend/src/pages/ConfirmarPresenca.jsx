@@ -41,7 +41,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { apiPresencaConfirmarQr } from "../services/api";
+import { apiPresencaConfirmarQr, clearAuthSession } from "../services/api";
 
 /* ─────────────────────────────────────────────────────────────
  * Helpers
@@ -342,6 +342,7 @@ export default function ConfirmarPresenca() {
   const [detail, setDetail] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [requiresLogin, setRequiresLogin] = useState(false);
+  const [wrongAccount, setWrongAccount] = useState(false);
   const [subtitle, setSubtitle] = useState("");
 
   const liveRef = useRef(null);
@@ -401,6 +402,16 @@ export default function ConfirmarPresenca() {
     });
   }, [buildNext, navigate]);
 
+  const goToLoginWithAnotherAccount = useCallback(() => {
+  clearAuthSession({ emitEvent: true });
+
+  const next = buildNext();
+
+  navigate(`/login?next=${encodeURIComponent(next)}`, {
+    replace: true,
+  });
+}, [buildNext, navigate]);
+
   const focusTitleSoon = useCallback(() => {
     requestAnimationFrame(() => titleRef.current?.focus?.());
   }, []);
@@ -422,18 +433,10 @@ export default function ConfirmarPresenca() {
 
       const tokenOk = getValidToken();
 
-      if (!tokenOk) {
-        setStatus("err");
-        setMsg("Você precisa estar logado para registrar presença.");
-        setDetail(
-          "Entre na sua conta para confirmar a presença nesta turma. Após o login, retornaremos automaticamente para esta tela."
-        );
-        setRequiresLogin(true);
-        setSubtitle("A confirmação é autenticada.");
-        setLive("Login necessário para confirmar presença.");
-        focusTitleSoon();
-        return;
-      }
+if (!tokenOk) {
+  goToLogin();
+  return;
+}
 
       try {
         abortRef.current?.abort?.("new-attempt");
@@ -459,8 +462,9 @@ export default function ConfirmarPresenca() {
 
       try {
         await apiPresencaConfirmarQr(turmaIdSeguro, {
-          signal: controller.signal,
-        });
+  signal: controller.signal,
+  on401: "silent",
+});
 
         if (!mountedRef.current || myFlight !== inFlightRef.current) return;
 
@@ -483,12 +487,13 @@ export default function ConfirmarPresenca() {
         }
 
         setStatus("err");
-        setMsg(info.titulo);
-        setDetail(info.detalhe);
-        setRequiresLogin(info.requiresLogin);
-        setSubtitle(info.subtitulo);
-        setLive("Falha na confirmação de presença.");
-        focusTitleSoon();
+setMsg(info.titulo);
+setDetail(info.detalhe);
+setRequiresLogin(info.requiresLogin);
+setWrongAccount(info.status === 403);
+setSubtitle(info.subtitulo);
+setLive("Falha na confirmação de presença.");
+focusTitleSoon();
       }
     },
     [focusTitleSoon, goToLogin, setLive, turma_id]
@@ -618,15 +623,15 @@ export default function ConfirmarPresenca() {
                     Ir para a Home
                   </button>
                 </>
-              ) : requiresLogin ? (
+              ) : requiresLogin || wrongAccount ? (
                 <>
                   <button
                     type="button"
-                    onClick={goToLogin}
+                    onClick={wrongAccount ? goToLoginWithAnotherAccount : goToLogin}
                     className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     <LogIn className="h-4 w-4" aria-hidden="true" />
-                    Entrar e confirmar
+                    {wrongAccount ? "Entrar com outra conta" : "Entrar e confirmar"}
                   </button>
 
                   <button
