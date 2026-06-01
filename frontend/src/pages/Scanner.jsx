@@ -524,14 +524,25 @@ navigate("/minha-presenca", {
           : { facingMode: "environment" };
 
         await html5QrCode.start(
-          configArg,
-          {
-            fps: 10,
-            qrbox: computeQrbox(),
-          },
-          onSuccess,
-          onError
-        );
+  configArg,
+  {
+    fps: 15,
+    qrbox: computeQrbox(),
+    aspectRatio: 1.0,
+    disableFlip: false,
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true,
+    },
+    videoConstraints: {
+      facingMode: "environment",
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      focusMode: "continuous",
+    },
+  },
+  onSuccess,
+  onError
+);
 
         setStatus("Aponte para o QR...");
         setLive("Leitor pronto.");
