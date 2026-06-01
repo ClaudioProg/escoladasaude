@@ -1098,7 +1098,7 @@ useEffect(() => {
               value={loadingResumo ? "…" : stats.inscricao}
               hint="Cursos que você ainda vai realizar"
               tone="emerald"
-              onClick={() => go("/eventos")}
+              onClick={() => go("/evento")}
             />
 
             <MiniStat
@@ -1107,7 +1107,7 @@ useEffect(() => {
               value={loadingResumo ? "…" : stats.certificadoEmitido}
               hint="Documentos já disponíveis"
               tone="violet"
-              onClick={() => go("/certificados")}
+              onClick={() => go("/certificado")}
             />
 
             <MiniStat
@@ -1134,7 +1134,7 @@ useEffect(() => {
               value={loadingResumo ? "…" : stats.avaliacaoPendente}
               hint="Cursos encerrados aguardando avaliação"
               tone="sky"
-              onClick={() => go("/avaliacoes")}
+              onClick={() => go("/certificado")}
             />
 
             <NotaUsuarioCard nota={stats.notaUsuario} loading={loadingResumo} />

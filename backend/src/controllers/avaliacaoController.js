@@ -1205,7 +1205,7 @@ async function avaliacaoPorTurma(req, res) {
       `
       SELECT
         u.nome,
-        a.desempenho_instrutor,
+        a.desempenho_organizador,
         a.divulgacao_evento,
         a.recepcao,
         a.credenciamento,
@@ -1397,7 +1397,7 @@ async function avaliacaoPorEvento(req, res) {
       `
       SELECT
         u.nome,
-        a.desempenho_instrutor,
+        a.desempenho_organizador,
         a.divulgacao_evento,
         a.recepcao,
         a.credenciamento,

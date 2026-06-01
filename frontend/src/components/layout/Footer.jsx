@@ -60,7 +60,8 @@ export default function Footer() {
   const ano = agora.getFullYear();
 
   const campanha = getCampanhaSaudeVisual();
-  const claro = campanha.textoContraste === "escuro";
+  const fundoClaroFooter = true;
+const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
   const periodoCampanha = formatarPeriodoMes(agora);
 
   return (

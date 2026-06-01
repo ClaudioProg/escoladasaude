@@ -296,6 +296,40 @@ const WORD_CLOUD_COLORS = [
   "#a16207", // dourado discreto
 ];
 
+const WORD_CLOUD_POSITIONS = [
+  { top: 50, left: 50, rotate: 0 },
+
+  { top: 36, left: 50, rotate: 0 },
+  { top: 63, left: 50, rotate: 0 },
+  { top: 50, left: 34, rotate: 0 },
+  { top: 50, left: 66, rotate: 0 },
+
+  { top: 29, left: 35, rotate: -5 },
+  { top: 29, left: 65, rotate: 5 },
+  { top: 71, left: 35, rotate: 5 },
+  { top: 71, left: 65, rotate: -5 },
+
+  { top: 20, left: 50, rotate: 0 },
+  { top: 80, left: 50, rotate: 0 },
+  { top: 50, left: 20, rotate: 0 },
+  { top: 50, left: 80, rotate: 0 },
+
+  { top: 19, left: 25, rotate: -7 },
+  { top: 19, left: 75, rotate: 7 },
+  { top: 81, left: 25, rotate: 7 },
+  { top: 81, left: 75, rotate: -7 },
+
+  { top: 12, left: 50, rotate: 0 },
+  { top: 88, left: 50, rotate: 0 },
+  { top: 50, left: 10, rotate: -5 },
+  { top: 50, left: 90, rotate: 5 },
+
+  { top: 12, left: 18, rotate: 6 },
+  { top: 12, left: 82, rotate: -6 },
+  { top: 88, left: 18, rotate: -6 },
+  { top: 88, left: 82, rotate: 6 },
+];
+
 function normalizarPalavrasNuvem(palavras) {
   if (!Array.isArray(palavras)) return [];
 
@@ -306,17 +340,21 @@ function normalizarPalavrasNuvem(palavras) {
     }))
     .filter((item) => item.palavra && item.total > 0)
     .sort((a, b) => b.total - a.total || a.palavra.localeCompare(b.palavra))
-    .slice(0, 28);
+    .slice(0, WORD_CLOUD_POSITIONS.length);
 }
 
-function calcularTamanhoPalavra(total, maiorTotal) {
-  const min = 18;
-  const max = 64;
+function calcularTamanhoPalavra(total, maiorTotal, index = 0) {
+  const min = 16;
+  const max = 84;
 
   if (!maiorTotal || maiorTotal <= 0) return min;
 
   const ratio = Math.sqrt(Number(total || 0) / maiorTotal);
-  return Math.round(min + (max - min) * Math.max(0.14, ratio));
+  const destaque = index === 0 ? 1.25 : index === 1 ? 1.1 : 1;
+
+  return Math.round(
+    Math.min(max, Math.max(min, min + (max - min) * ratio * destaque))
+  );
 }
 
 function obterCorPalavra(index, total, maiorTotal) {
@@ -1892,33 +1930,33 @@ const maiorTotal = Math.max(...palavras.map((item) => Number(item.total || 0)), 
                   </div>
                 ) : (
                   <div className="rounded-3xl border border-amber-100 bg-[radial-gradient(circle_at_center,#fffdf8_0%,#fff9ef_46%,#ffffff_100%)] p-4 shadow-inner dark:border-slate-800 dark:bg-[radial-gradient(circle_at_center,rgba(30,41,59,.92)_0%,rgba(15,23,42,1)_100%)] sm:p-6">
-  <div className="flex min-h-[320px] flex-wrap content-center items-center justify-center gap-x-6 gap-y-5 overflow-hidden rounded-[2rem] border border-dashed border-amber-200/70 p-6 dark:border-slate-700 sm:min-h-[380px]">
-    {palavras.map((item, index) => {
-      const totalItem = Number(item.total || 0);
-      const fontSize = calcularTamanhoPalavra(totalItem, maiorTotal);
-      const cor = obterCorPalavra(index, totalItem, maiorTotal);
-      const rotacao = obterRotacaoPalavra(index, totalItem, maiorTotal);
+  <div className="relative min-h-[360px] overflow-hidden rounded-[2rem] border border-dashed border-amber-200/70 p-6 dark:border-slate-700 sm:min-h-[440px]">
+  {palavras.map((item, index) => {
+    const totalItem = Number(item.total || 0);
+    const posicao = WORD_CLOUD_POSITIONS[index];
+    const fontSize = calcularTamanhoPalavra(totalItem, maiorTotal, index);
+    const cor = obterCorPalavra(index, totalItem, maiorTotal);
 
-      return (
-        <span
-          key={`${item.palavra}-${index}`}
-          className="inline-block max-w-full select-none whitespace-nowrap font-black leading-none tracking-tight transition-transform duration-200 hover:scale-105"
-          style={{
-            fontSize: `${fontSize}px`,
-            color: cor,
-            transform: `rotate(${rotacao}deg)`,
-            opacity: index <= 2 ? 1 : 0.9,
-          }}
-          title={`${item.palavra}: ${totalItem} ocorrência(s)`}
-        >
-          {item.palavra}
-          <span className="ml-1 align-top text-[10px] font-bold opacity-70">
-            {totalItem}
-          </span>
-        </span>
-      );
-    })}
-  </div>
+    return (
+      <span
+        key={`${item.palavra}-${index}`}
+        className="absolute select-none whitespace-nowrap font-black leading-none tracking-tight transition-transform duration-200 hover:scale-105"
+        style={{
+          top: `${posicao.top}%`,
+          left: `${posicao.left}%`,
+          fontSize: `${fontSize}px`,
+          color: cor,
+          transform: `translate(-50%, -50%) rotate(${posicao.rotate}deg)`,
+          opacity: index <= 4 ? 1 : 0.86,
+          zIndex: WORD_CLOUD_POSITIONS.length - index,
+        }}
+        title={item.palavra}
+      >
+        {item.palavra}
+      </span>
+    );
+  })}
+</div>
 
   <div className="mt-3 flex justify-end">
     <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-bold text-amber-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">

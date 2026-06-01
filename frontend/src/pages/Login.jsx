@@ -948,7 +948,7 @@ async function handleLoginGoogle(credentialResponse) {
         </div>
 
         <h1 className="max-w-6xl whitespace-nowrap text-2xl font-black tracking-[-0.035em] text-white md:text-4xl">
-          Escola Municipal de Saúde Pública de Santos
+          Escola da Saúde
         </h1>
 
         <p className="max-w-3xl text-sm leading-relaxed text-white/90 md:text-base">

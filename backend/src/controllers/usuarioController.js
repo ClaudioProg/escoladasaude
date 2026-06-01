@@ -1493,7 +1493,7 @@ async function listarorganizador(_req, res) {
       notas_por_organizador AS (
         SELECT
           v.usuario_id,
-          CASE a.desempenho_instrutor::text
+          CASE a.desempenho_organizador::text
             WHEN 'Péssimo' THEN 2
             WHEN 'Ruim' THEN 4
             WHEN 'Regular' THEN 6

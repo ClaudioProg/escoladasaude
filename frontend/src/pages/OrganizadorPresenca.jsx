@@ -707,108 +707,207 @@ export default function organizadorPresenca() {
     [inscritosPorTurma, obterDatasReais, turmas]
   );
 
-  const gerarQrCodePresencaPDF = useCallback(
-    async (turmaIdRaw, nomeEvento = "Evento") => {
-      const turmaId = toPositiveInt(turmaIdRaw);
+const gerarQrCodePresencaPDF = useCallback(
+  async (turmaIdRaw, nomeEvento = "Evento") => {
+    const turmaId = toPositiveInt(turmaIdRaw);
 
-      if (!turmaId) {
-        notifyError("Turma inválida para QR Code.");
+    if (!turmaId) {
+      notifyError("Turma inválida para QR Code.");
+      return;
+    }
+
+    try {
+      const [{ default: jsPDF }, { QRCodeCanvas }] = await Promise.all([
+        import("jspdf"),
+        import("qrcode.react"),
+      ]);
+
+      const { createRoot } = await import("react-dom/client");
+      const turma = turmas.find((item) => Number(item.id) === turmaId);
+
+      if (!turma) {
+        notifyError("Turma não encontrada.");
         return;
       }
 
-      try {
-        const [{ default: jsPDF }, { QRCodeCanvas }] = await Promise.all([
-          import("jspdf"),
-          import("qrcode.react"),
-        ]);
+      const base =
+        typeof window !== "undefined" && window.location?.origin
+          ? window.location.origin
+          : "https://escoladasaude.vercel.app";
 
-        const { createRoot } = await import("react-dom/client");
-        const turma = turmas.find((item) => Number(item.id) === turmaId);
+      const url = `${base.replace(/\/+$/, "")}/presenca?turma=${encodeURIComponent(
+        turmaId
+      )}`;
 
-        if (!turma) {
-          notifyError("Turma não encontrada.");
-          return;
-        }
+      const container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-99999px";
+      container.style.top = "-99999px";
+      container.style.width = "460px";
+      container.style.height = "460px";
+      container.style.background = "#ffffff";
+      document.body.appendChild(container);
 
-        const base =
-          typeof window !== "undefined" && window.location?.origin
-            ? window.location.origin
-            : "https://escoladasaude.vercel.app";
+      const root = createRoot(container);
 
-        const url = `${base.replace(/\/+$/, "")}/presenca?turma=${encodeURIComponent(turmaId)}`;
+      root.render(
+        <QRCodeCanvas
+          value={url}
+          size={420}
+          level="H"
+          includeMargin
+          bgColor="#ffffff"
+          fgColor="#000000"
+        />
+      );
 
-        const container = document.createElement("div");
-        container.style.position = "fixed";
-        container.style.left = "-99999px";
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
 
-        document.body.appendChild(container);
+      const canvas = container.querySelector("canvas");
+      const dataUrl = canvas?.toDataURL?.("image/png");
 
-        const root = createRoot(container);
+      root.unmount();
+      container.remove();
 
-        root.render(<QRCodeCanvas value={url} size={300} includeMargin />);
-
-        await new Promise((resolve) => window.setTimeout(resolve, 80));
-
-        const canvas = container.querySelector("canvas");
-        const dataUrl = canvas?.toDataURL?.("image/png");
-
-        root.unmount();
-        container.remove();
-
-        if (!dataUrl) {
-          notifyError("Erro ao gerar imagem do QR Code.");
-          return;
-        }
-
-        const doc = new jsPDF({
-          orientation: "landscape",
-        });
-
-        const pageW = doc.internal.pageSize.getWidth();
-        const centerX = pageW / 2;
-
-        doc.setFontSize(24);
-        doc.setFont("helvetica", "bold");
-        doc.text(String(nomeEvento || turma?.evento?.nome || "Evento"), centerX, 30, {
-          align: "center",
-        });
-
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "normal");
-        doc.text(`organizador: ${nome || "organizador"}`, centerX, 42, {
-          align: "center",
-        });
-
-        const qrW = 110;
-
-        doc.addImage(dataUrl, "PNG", centerX - qrW / 2, 54, qrW, qrW);
-
-        doc.setFontSize(12);
-        doc.setTextColor(60);
-        doc.text(
-          "Faça login na plataforma e escaneie este QR Code para confirmar presença.",
-          centerX,
-          54 + qrW + 14,
-          {
-            align: "center",
-          }
-        );
-
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(url, centerX, 54 + qrW + 22, {
-          align: "center",
-        });
-
-        doc.save(`qr_presenca_turma_${turmaId}.pdf`);
-        notifySuccess("QR Code gerado.");
-      } catch (error) {
-        console.error("[organizadorPresenca] erro ao gerar QR Code:", error);
-        notifyError("Erro ao gerar QR Code.");
+      if (!dataUrl) {
+        notifyError("Erro ao gerar imagem do QR Code.");
+        return;
       }
-    },
-    [nome, turmas]
-  );
+
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+
+      const eventoTitulo = String(
+        nomeEvento || turma?.evento?.nome || turma?.evento_nome || "Evento"
+      ).trim();
+
+      const turmaNome = String(turma?.nome || `Turma ${turmaId}`).trim();
+
+      const local = String(
+        turma?.evento?.local || turma?.evento_local || turma?.local || ""
+      ).trim();
+
+      const dataInicio = turma?.data_inicio ? formatDateBr(turma.data_inicio) : "";
+      const dataFim = turma?.data_fim ? formatDateBr(turma.data_fim) : "";
+
+      const periodo =
+        dataInicio && dataFim && dataInicio !== dataFim
+          ? `${dataInicio} a ${dataFim}`
+          : dataInicio || dataFim || "Data a confirmar";
+
+      const horario =
+        turma?.horario_inicio && turma?.horario_fim
+          ? `${turma.horario_inicio} às ${turma.horario_fim}`
+          : "Horário a confirmar";
+
+      const organizadorNome = String(nome || "Organizador").trim();
+
+      doc.setFillColor(248, 250, 252);
+      doc.rect(0, 0, pageW, pageH, "F");
+
+      doc.setFillColor(15, 23, 42);
+      doc.roundedRect(10, 10, pageW - 20, pageH - 20, 8, 8, "F");
+
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(14, 14, pageW - 28, pageH - 28, 7, 7, "F");
+
+      doc.setFillColor(234, 88, 12);
+      doc.rect(14, 14, pageW - 28, 7, "F");
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("ESCOLA MUNICIPAL DE SAÚDE PÚBLICA", 24, 33);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Secretaria Municipal de Saúde — Prefeitura de Santos", 24, 39);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(31);
+      doc.setTextColor(15, 23, 42);
+
+      const tituloLinhas = doc.splitTextToSize(eventoTitulo, 160);
+      doc.text(tituloLinhas, 24, 64);
+
+      let y = 64 + tituloLinhas.length * 12 + 8;
+
+      doc.setFontSize(16);
+      doc.setTextColor(51, 65, 85);
+      doc.text(turmaNome, 24, y);
+
+      y += 9;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(13);
+      doc.text(`${periodo} • ${horario}`, 24, y);
+
+      if (local) {
+        y += 8;
+        const localLinhas = doc.splitTextToSize(local, 155);
+        doc.text(localLinhas, 24, y);
+      }
+
+      doc.setFillColor(234, 88, 12);
+      doc.roundedRect(24, 137, 150, 18, 4, 4, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text("REGISTRE SUA PRESENÇA PELO QR CODE", 99, 148.5, {
+        align: "center",
+      });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Abra a câmera do celular, escaneie o código e faça login.", 24, 165);
+      doc.text("A presença será vinculada automaticamente a esta turma.", 24, 171);
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.6);
+      doc.roundedRect(190, 41, 78, 78, 5, 5, "FD");
+
+      const qrW = 62;
+      doc.addImage(dataUrl, "PNG", 198, 49, qrW, qrW);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.setTextColor(15, 23, 42);
+      doc.text("ESCANEIE AQUI", 229, 133, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Confirmação de presença", 229, 140, { align: "center" });
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(24, 184, pageW - 24, 184);
+
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Organizador: ${organizadorNome}`, 24, 193);
+      doc.text(`Plataforma Escola da Saúde 2.0 • Turma ${turmaId}`, pageW - 24, 193, {
+        align: "right",
+      });
+
+      doc.save(`qr_presenca_turma_${turmaId}.pdf`);
+      notifySuccess("QR Code de presença gerado.");
+    } catch (error) {
+      console.error("[organizadorPresenca] erro ao gerar QR Code:", error);
+      notifyError("Erro ao gerar QR Code.");
+    }
+  },
+  [nome, turmas]
+);
 
   const hoje = useMemo(() => todayYMD(), []);
 

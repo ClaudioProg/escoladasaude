@@ -230,9 +230,9 @@ function labelPeriodo(periodo) {
 function montarLinkInternoReserva(reservaId) {
   const id = asPositiveBigIntString(reservaId);
 
-  if (!id) return "/agenda-salas";
+  if (!id) return "/reserva";
 
-  return `/agenda-salas?reserva_id=${encodeURIComponent(id)}`;
+  return `/reserva?reserva_id=${encodeURIComponent(id)}`;
 }
 
 function montarUrlPlataforma(path = "") {

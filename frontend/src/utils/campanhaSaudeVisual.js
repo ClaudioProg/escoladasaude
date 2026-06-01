@@ -144,7 +144,7 @@ const CAMPANHAS_SAUDE_MENSAL = {
     mes: 6,
     nome: "Junho Vermelho/Laranja",
     referencia: "Doação, prevenção e cuidado",
-    textoContraste: "claro",
+    textoContraste: "escuro",
     gradienteHero:
       "from-red-800 via-orange-700 to-amber-700",
     overlayHero: "bg-slate-950/16",

@@ -1399,35 +1399,37 @@ async function listarInscritosPorTurma(req, res) {
         u.cpf,
         u.registro,
         u.data_nascimento,
-        u.deficiencia::text AS deficiencia_descricao,
+u.deficiencia_id,
+d.nome AS deficiencia_descricao,
 
-        CASE
-          WHEN u.data_nascimento IS NULL THEN NULL
-          ELSE EXTRACT(YEAR FROM age(CURRENT_DATE, u.data_nascimento))::int
-        END AS idade,
+CASE
+  WHEN u.data_nascimento IS NULL THEN NULL
+  ELSE EXTRACT(YEAR FROM age(CURRENT_DATE, u.data_nascimento))::int
+END AS idade,
 
-        CASE WHEN COALESCE(u.deficiencia::text, '') ILIKE '%visual%' THEN TRUE ELSE FALSE END AS pcd_visual,
-        CASE WHEN COALESCE(u.deficiencia::text, '') ILIKE '%auditiva%'
-               OR COALESCE(u.deficiencia::text, '') ILIKE '%surdez%'
-               OR COALESCE(u.deficiencia::text, '') ILIKE '%surdo%'
-             THEN TRUE ELSE FALSE END AS pcd_auditiva,
-        CASE WHEN COALESCE(u.deficiencia::text, '') ILIKE '%fisic%'
-               OR COALESCE(u.deficiencia::text, '') ILIKE '%locomot%'
-             THEN TRUE ELSE FALSE END AS pcd_fisica,
-        CASE WHEN COALESCE(u.deficiencia::text, '') ILIKE '%intelectual%'
-               OR COALESCE(u.deficiencia::text, '') ILIKE '%mental%'
-             THEN TRUE ELSE FALSE END AS pcd_intelectual,
-        CASE WHEN COALESCE(u.deficiencia::text, '') ILIKE '%múltipla%'
-               OR COALESCE(u.deficiencia::text, '') ILIKE '%multipla%'
-             THEN TRUE ELSE FALSE END AS pcd_multipla,
-        CASE WHEN COALESCE(u.deficiencia::text, '') ILIKE '%tea%'
-               OR COALESCE(u.deficiencia::text, '') ILIKE '%autis%'
-             THEN TRUE ELSE FALSE END AS pcd_autismo
+CASE WHEN COALESCE(d.nome, '') ILIKE '%visual%' THEN TRUE ELSE FALSE END AS pcd_visual,
+CASE WHEN COALESCE(d.nome, '') ILIKE '%auditiva%'
+       OR COALESCE(d.nome, '') ILIKE '%surdez%'
+       OR COALESCE(d.nome, '') ILIKE '%surdo%'
+     THEN TRUE ELSE FALSE END AS pcd_auditiva,
+CASE WHEN COALESCE(d.nome, '') ILIKE '%fisic%'
+       OR COALESCE(d.nome, '') ILIKE '%locomot%'
+     THEN TRUE ELSE FALSE END AS pcd_fisica,
+CASE WHEN COALESCE(d.nome, '') ILIKE '%intelectual%'
+       OR COALESCE(d.nome, '') ILIKE '%mental%'
+     THEN TRUE ELSE FALSE END AS pcd_intelectual,
+CASE WHEN COALESCE(d.nome, '') ILIKE '%múltipla%'
+       OR COALESCE(d.nome, '') ILIKE '%multipla%'
+     THEN TRUE ELSE FALSE END AS pcd_multipla,
+CASE WHEN COALESCE(d.nome, '') ILIKE '%tea%'
+       OR COALESCE(d.nome, '') ILIKE '%autis%'
+     THEN TRUE ELSE FALSE END AS pcd_autismo
 
-      FROM inscricoes i
-      JOIN usuarios u ON u.id = i.usuario_id
-      WHERE i.turma_id = $1
-      ORDER BY u.nome ASC, i.id ASC
+FROM inscricoes i
+JOIN usuarios u ON u.id = i.usuario_id
+LEFT JOIN deficiencias d ON d.id = u.deficiencia_id
+WHERE i.turma_id = $1
+ORDER BY u.nome ASC, i.id ASC
       `,
       [turmaId]
     );

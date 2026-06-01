@@ -2134,7 +2134,7 @@ export async function apiPresencaTurmaDetalhe(turmaId, opts = {}) {
 export async function apiPresencaDetalhesTurma(turmaId, opts = {}) {
   if (!turmaId) throw new Error("turma_id é obrigatório.");
 
-  return apiGet(`/presenca/turma/${turmaId}/detalhes`, {
+  return apiGet(`/presenca/turma/${turmaId}`, {
     auth: true,
     on401: "redirect",
     on403: "silent",

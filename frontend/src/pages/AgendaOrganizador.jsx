@@ -38,8 +38,6 @@ import { api } from "../services/api";
  * Constantes
  * ───────────────────────────────────────────── */
 
-const STORAGE_VIEW_DATE_KEY = "agendaorganizador:viewDate";
-
 const STATUS_AGENDA = {
   PROGRAMADO: "programado",
   ANDAMENTO: "andamento",
@@ -617,16 +615,7 @@ export default function Agendaorganizador() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  const [viewDate, setViewDate] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_VIEW_DATE_KEY);
-    const parsed = saved ? toLocalDate(saved) : null;
-
-    return parsed || new Date();
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_VIEW_DATE_KEY, viewDate.toISOString());
-  }, [viewDate]);
+const [viewDate, setViewDate] = useState(() => new Date());
 
   function setLive(message) {
     if (liveRef.current) {
@@ -978,13 +967,12 @@ const response = await api.organizador.minhasTurmas();
                   STATUS_CONFIG[status] || STATUS_CONFIG.programado;
 
                 return (
-                  <button
-                    key={`${evento.id}-${index}`}
-                    type="button"
-                    onClick={() => setSelecionado(evento)}
-                    className={`h-2.5 w-2.5 rounded-full ${config.dot} hover:scale-125 transition-transform`}
-                    title={evento.titulo}
-                  />
+                  <span
+  key={`${evento.id}-${index}`}
+  className={`h-2.5 w-2.5 rounded-full ${config.dot}`}
+  title={evento.titulo}
+  aria-hidden="true"
+/>
                 );
               })}
 

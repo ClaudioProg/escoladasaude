@@ -692,7 +692,7 @@ async function relatorioAvaliacoes(req, res) {
         ROUND(AVG(${getNotaCampoSql("a.divulgacao_evento")})::numeric, 2) AS media_divulgacao_evento,
         ROUND(AVG(${getNotaCampoSql("a.pontualidade")})::numeric, 2) AS media_pontualidade,
         ROUND(AVG(${getNotaCampoSql("a.conteudo_temas")})::numeric, 2) AS media_conteudo_temas,
-        ROUND(AVG(${getNotaCampoSql("a.desempenho_instrutor")})::numeric, 2) AS media_desempenho_organizador,
+        ROUND(AVG(${getNotaCampoSql("a.desempenho_organizador")})::numeric, 2) AS media_desempenho_organizador,
         ROUND(AVG(${getNotaCampoSql("a.inscricao_online")})::numeric, 2) AS media_inscricao_online,
         COUNT(NULLIF(BTRIM(a.gostou_mais), ''))::int AS comentarios_positivos,
         COUNT(NULLIF(BTRIM(a.sugestoes_melhoria), ''))::int AS sugestoes_melhoria,

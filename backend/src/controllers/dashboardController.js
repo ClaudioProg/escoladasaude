@@ -299,7 +299,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
         t.id AS turma_id,
         t.nome AS turma_nome,
         to_char(t.data_inicio::date, 'DD/MM/YYYY') AS data_inicio,
-        ROUND(AVG(${sqlScore10("a.desempenho_instrutor")})::numeric, 2) AS nota_media_10
+        ROUND(AVG(${sqlScore10("a.desempenho_organizador")})::numeric, 2) AS nota_media_10
       FROM turmas t
       INNER JOIN eventos e ON e.id = t.evento_id
       LEFT JOIN avaliacoes a ON a.turma_id = t.id
@@ -314,7 +314,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
       `
       SELECT
         a.turma_id,
-        a.desempenho_instrutor,
+        a.desempenho_organizador,
         a.gostou_mais,
         a.sugestoes_melhoria,
         a.comentarios_finais,
@@ -592,7 +592,7 @@ async function getResumoDashboard(req, res) {
     const mediaOrganizadorResult = await db.query(
       `
       SELECT
-        ROUND(AVG(${sqlScore10("a.desempenho_instrutor")})::numeric, 2) AS media_10
+        ROUND(AVG(${sqlScore10("a.desempenho_organizador")})::numeric, 2) AS media_10
       FROM turma_responsavel tr
       INNER JOIN avaliacoes a ON a.turma_id = tr.turma_id
       WHERE tr.usuario_id = $1
@@ -653,7 +653,7 @@ async function getAvaliacaoRecenteorganizador(req, res) {
       `
       SELECT
         e.titulo AS evento,
-        ROUND(${sqlScore10("a.desempenho_instrutor")}::numeric, 2) AS nota_10,
+        ROUND(${sqlScore10("a.desempenho_organizador")}::numeric, 2) AS nota_10,
         a.data_avaliacao
       FROM turma_responsavel tr
       INNER JOIN turmas t ON t.id = tr.turma_id
@@ -761,7 +761,7 @@ async function obterDashboard(req, res) {
     const mediaOrganizadorResult = await db.query(
       `
       SELECT
-        ROUND(AVG(${sqlScore10("a.desempenho_instrutor")})::numeric, 2) AS media_organizador
+        ROUND(AVG(${sqlScore10("a.desempenho_organizador")})::numeric, 2) AS media_organizador
       FROM avaliacoes a
       INNER JOIN turmas t ON a.turma_id = t.id
       INNER JOIN eventos e ON t.evento_id = e.id

@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/Ajuda.jsx — v2.3
-// Atualizado em: 26/05/2026
+// ✅ frontend/src/pages/Ajuda.jsx — v2.4
+// Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde
 // Central única de ajuda ao usuário.
@@ -16,10 +16,10 @@ import {
   MailQuestion,
   Search,
   ShieldCheck,
-  Sparkles,
   X,
 } from "lucide-react";
 
+import HeaderHero from "../components/layout/HeaderHero";
 import Footer from "../components/layout/Footer";
 
 const CHIPS_BUSCA = [
@@ -203,14 +203,14 @@ function InfoCard({ icon: Icon, title, children, tone = "amber" }) {
       "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/25 dark:text-amber-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-100",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/60 dark:bg-cyan-950/25 dark:text-cyan-100",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/60 dark:bg-cyan-950/25 dark:text-cyan-100",
   };
 
   return (
     <div className={cx("rounded-2xl border p-4", tones[tone])}>
       <div className="flex gap-3">
         <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+
         <div>
           <p className="font-black">{title}</p>
           <div className="mt-1 text-sm leading-6">{children}</div>
@@ -228,13 +228,38 @@ function FaqItem({ item }) {
           {item.pergunta}
         </span>
 
-        <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 transition group-open:rotate-180 dark:text-zinc-400" />
+        <ChevronDown
+          className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 transition group-open:rotate-180 dark:text-zinc-400"
+          aria-hidden="true"
+        />
       </summary>
 
       <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-zinc-300">
         {item.resposta}
       </p>
     </details>
+  );
+}
+
+function ActionButton({ to, icon: Icon, children, variant = "primary" }) {
+  const variants = {
+    primary:
+      "bg-emerald-700 text-white shadow-lg hover:bg-emerald-800 focus-visible:ring-emerald-200 dark:focus-visible:ring-emerald-900/60",
+    secondary:
+      "border border-slate-200 bg-white text-slate-900 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-200 dark:border-white/10 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 dark:focus-visible:ring-zinc-700",
+  };
+
+  return (
+    <Link
+      to={to}
+      className={cx(
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4",
+        variants[variant]
+      )}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      {children}
+    </Link>
   );
 }
 
@@ -326,59 +351,38 @@ export default function Ajuda() {
       />
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="rounded-[2rem] border border-amber-200 bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-200 p-8 shadow-sm dark:border-amber-900/60 dark:from-amber-950 dark:via-zinc-900 dark:to-emerald-950">
-          <div className="flex items-start gap-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/45 ring-1 ring-white/70">
-              <HelpCircle className="h-7 w-7 text-slate-950 dark:text-white" />
-            </span>
-
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/35 px-3 py-1 text-xs font-black text-slate-800 ring-1 ring-white/60 dark:text-zinc-100">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                Central oficial
-              </div>
-
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-                Ajuda
-              </h1>
-
-              <p className="mt-2 max-w-3xl text-base font-medium text-slate-800 dark:text-zinc-200">
-                Consulte respostas rápidas, orientações de uso e caminhos seguros
-                para resolver dúvidas na Plataforma Escola da Saúde.
-              </p>
-            </div>
-          </div>
-        </section>
+        <HeaderHero
+          titulo="Ajuda"
+          subtitulo="Consulte respostas rápidas, orientações de uso e caminhos seguros para resolver dúvidas na Plataforma Escola da Saúde."
+          icone={HelpCircle}
+          tamanho="lg"
+          raio="xl"
+        />
 
         <section className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <Link
-            to="/manual"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:bg-emerald-800"
-          >
-            <BookOpen className="h-4 w-4" aria-hidden="true" />
+          <ActionButton to="/manual" icon={BookOpen}>
             Ver manual
-          </Link>
+          </ActionButton>
 
-          <Link
-            to="/mensagem"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
-          >
-            <MailQuestion className="h-4 w-4" aria-hidden="true" />
+          <ActionButton to="/mensagem" icon={MailQuestion} variant="secondary">
             Enviar dúvida
-          </Link>
+          </ActionButton>
         </section>
 
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/70">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <label className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                aria-hidden="true"
+              />
 
               <input
                 ref={inputRef}
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
                 placeholder="Buscar dúvida, tema ou palavra-chave..."
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-20 text-sm font-semibold outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950/40"
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-20 text-sm font-semibold outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:focus:ring-emerald-950/40"
                 autoComplete="off"
                 inputMode="search"
                 aria-describedby="ajuda-dica"
@@ -401,26 +405,32 @@ export default function Ajuda() {
             </label>
 
             <div className="flex max-w-full gap-2 overflow-x-auto">
-              {CHIPS_BUSCA.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => setQ(chip)}
-                  className={cx(
-                    "whitespace-nowrap rounded-full border px-3 py-2 text-xs font-black transition",
-                    normalizarTexto(termoBusca) === normalizarTexto(chip)
-                      ? "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  )}
-                >
-                  {chip}
-                </button>
-              ))}
+              {CHIPS_BUSCA.map((chip) => {
+                const ativo =
+                  normalizarTexto(termoBusca) === normalizarTexto(chip);
+
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setQ(chip)}
+                    className={cx(
+                      "whitespace-nowrap rounded-full border px-3 py-2 text-xs font-black transition",
+                      ativo
+                        ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    )}
+                  >
+                    {chip}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
             <Keyboard className="h-4 w-4" aria-hidden="true" />
+
             <span id="ajuda-dica">
               {dicaBusca} Pressione{" "}
               <kbd className="rounded border border-slate-300 px-1 dark:border-zinc-700">
@@ -441,10 +451,11 @@ export default function Ajuda() {
 
                 <div>
                   <h2 className="text-lg font-black">Como usar esta página</h2>
+
                   <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-zinc-300">
-                    Primeiro pesquise no FAQ. Se precisar de orientação completa,
-                    acesse o Manual. Para dúvida específica, use a caixa de
-                    mensagens.
+                    Primeiro pesquise no FAQ. Se precisar de orientação
+                    completa, acesse o Manual. Para dúvida específica, use a
+                    caixa de mensagens.
                   </p>
                 </div>
               </div>
@@ -469,12 +480,13 @@ export default function Ajuda() {
 
           <Card className="shadow-xl">
             <div className="mb-5 flex items-start gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
                 <HelpCircle className="h-5 w-5" aria-hidden="true" />
               </span>
 
               <div>
                 <h2 className="text-xl font-black">Perguntas frequentes</h2>
+
                 <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
                   Respostas rápidas para os principais fluxos da Plataforma
                   Escola da Saúde.
@@ -493,6 +505,7 @@ export default function Ajuda() {
                 <p className="font-black text-slate-900 dark:text-white">
                   Nada encontrado para “{termoBusca}”.
                 </p>
+
                 <p className="mt-1 text-slate-600 dark:text-zinc-300">
                   Tente termos como certificado, presença, inscrição, login,
                   senha ou avaliação.
@@ -503,7 +516,9 @@ export default function Ajuda() {
         </div>
       </div>
 
-      <Footer className="print:hidden" />
+      <div className="print:hidden">
+        <Footer />
+      </div>
     </main>
   );
 }

@@ -1101,13 +1101,19 @@ async function verificarInscricaoOuPresenca(client, interacao, usuarioId) {
 async function verificarJanelaDisponivel(client, interacaoId) {
   const result = await client.query(
     `
+      WITH agora_sp AS (
+        SELECT
+          (NOW() AT TIME ZONE 'America/Sao_Paulo')::date AS data_atual,
+          (NOW() AT TIME ZONE 'America/Sao_Paulo')::time AS hora_atual
+      )
       SELECT EXISTS (
         SELECT 1
-        FROM ${TABELA_JANELA}
-        WHERE interacao_id = $1
-          AND data = CURRENT_DATE
-          AND CURRENT_TIME >= horario_inicio
-          AND CURRENT_TIME <= horario_fim
+        FROM ${TABELA_JANELA} ij
+        CROSS JOIN agora_sp asp
+        WHERE ij.interacao_id = $1
+          AND ij.data::date = asp.data_atual
+          AND asp.hora_atual >= ij.horario_inicio::time
+          AND asp.hora_atual <= ij.horario_fim::time
       ) AS disponivel
     `,
     [interacaoId]
