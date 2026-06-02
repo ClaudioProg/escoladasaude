@@ -972,7 +972,7 @@ export default function ListaTurmasPresenca({
                                     !modoContextualEvento && (
                                       <Botao
                                         type="button"
-                                        variant="primario"
+                                        variant="mensal"
                                         size="sm"
                                         onClick={() => toggleTurma(turma)}
                                         aria-expanded={estaExpandida}
@@ -1038,17 +1038,19 @@ export default function ListaTurmasPresenca({
                                           />
                                         ) : (
                                           <ControlePresencaInscritos
-                                            inscritos={inscritos}
-                                            turma={{
-                                              ...turma,
-                                              turma_id,
-                                            }}
-                                            presencas={presencas}
-                                            datas={datas}
-                                            carregarPresencas={() =>
-                                              carregarPresencas(turma)
-                                            }
-                                          />
+  inscritos={inscritos}
+  turma={{
+    ...turma,
+    turma_id,
+  }}
+  presencas={presencas}
+  datas={datas}
+  carregarPresencas={() => carregarPresencas(turma)}
+  modoAdministrador={modoadministradorPresencas}
+  prazoConfirmacaoOrganizadorHoras={48}
+  prazoConfirmacaoAdministradorDias={90}
+  modoTabelaCompacta={modoContextualEvento || abrirTudo}
+/>
                                         )}
                                       </div>
                                     )}

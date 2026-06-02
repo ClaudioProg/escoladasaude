@@ -643,83 +643,87 @@ export default function PaginaGestaoPresencas() {
     };
   }, []);
 
-  const carregarEventos = useCallback(async () => {
-    try {
-      abortRef.current?.abort?.("nova-requisicao");
-    } catch {
-      // noop
-    }
+ const carregarEventos = useCallback(async () => {
+  try {
+    abortRef.current?.abort?.("nova-requisicao");
+  } catch {
+    // noop
+  }
 
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const controller = new AbortController();
+  abortRef.current = controller;
 
-    dadosAutomaticosRef.current = new Set();
+  dadosAutomaticosRef.current = new Set();
 
-    setCarregando(true);
-    setErro("");
-    setEvento(null);
-    setEventosProcessados([]);
-    setInscritosPorTurma({});
-    setAvaliacaoPorTurma({});
-    setDetalhesPresencaPorTurma({});
-    setLive("Carregando gestão de presenças do evento.");
+  setCarregando(true);
+  setErro("");
+  setEvento(null);
+  setEventosProcessados([]);
+  setInscritosPorTurma({});
+  setAvaliacaoPorTurma({});
+  setDetalhesPresencaPorTurma({});
+  setLive("Carregando gestão de presenças do evento.");
 
-    if (!eventoIdParam) {
-      setCarregando(false);
-      setLive("Contexto ausente.");
+  if (!eventoIdParam) {
+    setCarregando(false);
+    setLive("Contexto ausente.");
+    return;
+  }
+
+  try {
+    const response = await api.presenca.administrador({
+      signal: controller.signal,
+    });
+
+    if (!mountedRef.current || controller.signal.aborted) return;
+
+    const listaEventos = unwrapEventosAdministrativos(response)
+      .map(normalizarEventoPresenca)
+      .filter(Boolean);
+
+    const eventoEncontrado =
+      listaEventos.find(
+        (item) => Number(item?.evento_id || item?.id) === eventoIdParam
+      ) || null;
+
+    if (!eventoEncontrado) {
+      setErro(
+        "O evento informado no link não foi encontrado na gestão de presenças."
+      );
+      setLive("Evento não encontrado.");
       return;
     }
 
-    try {
-      const response = await api.presenca.administrador({
-        signal: controller.signal,
-      });
+    const eventoFinal = {
+      ...eventoEncontrado,
+      turmas: sortTurmasAsc(eventoEncontrado.turmas || []),
+    };
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+    setEvento(eventoFinal);
+    setEventosProcessados([eventoFinal]);
+    setLive(
+      `Evento carregado com ${eventoFinal.turmas.length} turma(s) para gestão de presenças.`
+    );
+  } catch (error) {
+    if (isAbortLike(error)) return;
+    if (!mountedRef.current || controller.signal.aborted) return;
 
-      const listaEventos = unwrapEventosAdministrativos(response)
-        .map(normalizarEventoPresenca)
-        .filter(Boolean);
+    const message = getErrorMessage(
+      error,
+      "Erro ao carregar gestão de presenças do evento."
+    );
 
-      const eventoEncontrado =
-        listaEventos.find(
-          (item) => Number(item?.evento_id || item?.id) === eventoIdParam
-        ) || null;
-
-      if (!eventoEncontrado) {
-        setErro("O evento informado no link não foi encontrado na gestão de presenças.");
-        setLive("Evento não encontrado.");
-        return;
-      }
-
-      const eventoFinal = {
-        ...eventoEncontrado,
-        turmas: sortTurmasAsc(eventoEncontrado.turmas || []),
-      };
-
-      setEvento(eventoFinal);
-      setEventosProcessados([eventoFinal]);
-      setLive(
-        `Evento carregado com ${eventoFinal.turmas.length} turma(s) para gestão de presenças.`
-      );
-      if (!mountedRef.current) return;
-
-      const message = getErrorMessage(
-        error,
-        "Erro ao carregar gestão de presenças do evento."
-      );
-
-      setErro(message);
-      setEvento(null);
-      setEventosProcessados([]);
-      notifyError(message);
-      setLive("Falha ao carregar gestão de presenças.");
-    } finally {
-      if (mountedRef.current && !controller.signal.aborted) {
-        setCarregando(false);
-      }
+    setErro(message);
+    setEvento(null);
+    setEventosProcessados([]);
+    notifyError(message);
+    setLive("Falha ao carregar gestão de presenças.");
+  } finally {
+    if (mountedRef.current && !controller.signal.aborted) {
+      setCarregando(false);
     }
-  }, [eventoIdParam, setLive]);
+  }
+}, [eventoIdParam, setLive]);
 
   useEffect(() => {
     carregarEventos();

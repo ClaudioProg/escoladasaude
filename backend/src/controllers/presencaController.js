@@ -2,7 +2,7 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/presencaController.js — v2.1
+ * ✅ backend/src/controllers/presencaController.js — v2.2
  * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
@@ -66,6 +66,11 @@ const pool = db.pool || null;
 const IS_DEV = process.env.NODE_ENV !== "production";
 const TZ = "America/Sao_Paulo";
 const PRESENCA_TOKEN_SECRET = process.env.PRESENCA_TOKEN_SECRET || "";
+
+const PRAZO_CONFIRMACAO_ORGANIZADOR_HORAS = 48;
+const PRAZO_CONFIRMACAO_ADMINISTRADOR_DIAS = 90;
+const MILISSEGUNDOS_POR_HORA = 60 * 60 * 1000;
+const MILISSEGUNDOS_POR_DIA = 24 * MILISSEGUNDOS_POR_HORA;
 
 if (!PRESENCA_TOKEN_SECRET && !IS_DEV) {
   console.warn(
@@ -279,6 +284,47 @@ function formatarDataHoraBR(value) {
   } catch {
     return "—";
   }
+}
+
+function obterRegraPrazoConfirmacaoManual(req) {
+  if (isAdministrador(req)) {
+    return {
+      perfil: "administrador",
+      prazoMs: PRAZO_CONFIRMACAO_ADMINISTRADOR_DIAS * MILISSEGUNDOS_POR_DIA,
+      descricao: `${PRAZO_CONFIRMACAO_ADMINISTRADOR_DIAS} dias`,
+      limiteTexto:
+        "O administrador pode confirmar presença até 90 dias após o fim da aula.",
+      expiradoTexto:
+        "O prazo de 90 dias para confirmação administrativa de presença já expirou.",
+    };
+  }
+
+  return {
+    perfil: "organizador",
+    prazoMs: PRAZO_CONFIRMACAO_ORGANIZADOR_HORAS * MILISSEGUNDOS_POR_HORA,
+    descricao: `${PRAZO_CONFIRMACAO_ORGANIZADOR_HORAS} horas`,
+    limiteTexto:
+      "O organizador pode confirmar presença até 48 horas após o fim da aula.",
+    expiradoTexto: "O prazo de 48h para confirmação já expirou.",
+  };
+}
+
+function calcularLimiteConfirmacaoManual(req, fimAula) {
+  if (!(fimAula instanceof Date) || Number.isNaN(fimAula.getTime())) {
+    return {
+      ok: false,
+      message: "Horário de fim da aula inválido para confirmação de presença.",
+    };
+  }
+
+  const regra = obterRegraPrazoConfirmacaoManual(req);
+  const limite = new Date(fimAula.getTime() + regra.prazoMs);
+
+  return {
+    ok: true,
+    regra,
+    limite,
+  };
 }
 
 function cpfProtegido(value) {
@@ -1263,14 +1309,34 @@ async function confirmarPresencaorganizador(req, res) {
         };
       }
 
-      const fimAula = dateTimeLocal(dataPresenca, dataTurma.horario_fim);
-      const limite = new Date(fimAula.getTime() + 48 * 60 * 60 * 1000);
+            const fimAula = dateTimeLocal(
+        dataPresenca,
+        dataTurma.horario_fim || "23:59"
+      );
 
-      if (new Date() > limite) {
+      const regraPrazo = calcularLimiteConfirmacaoManual(req, fimAula);
+
+      if (!regraPrazo.ok) {
+        return {
+          status: 409,
+          error: true,
+          message: regraPrazo.message,
+        };
+      }
+
+      if (new Date() > regraPrazo.limite) {
         return {
           status: 403,
           error: true,
-          message: "O prazo de 48h para confirmação já expirou.",
+          message: regraPrazo.regra.expiradoTexto,
+          details: {
+            perfil: regraPrazo.regra.perfil,
+            prazo: regraPrazo.regra.descricao,
+            data_presenca: dataPresenca,
+            horario_fim: dataTurma.horario_fim || "23:59",
+            limite_confirmacao: regraPrazo.limite.toISOString(),
+            regra: regraPrazo.regra.limiteTexto,
+          },
         };
       }
 

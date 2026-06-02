@@ -512,7 +512,7 @@ export default function ModalEditarPresenca({
           <footer className="flex items-center justify-end gap-2 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 sm:px-5">
             <Botao
               type="button"
-              variant="secundario"
+              variant="contorno"
               onClick={handleClose}
               disabled={salvando}
               className="rounded-2xl"
@@ -522,7 +522,7 @@ export default function ModalEditarPresenca({
 
             <Botao
               type="submit"
-              variant="primario"
+              variant="mensal"
               disabled={salvando || faltaInvalida}
               loading={salvando}
               aria-busy={salvando ? "true" : "false"}

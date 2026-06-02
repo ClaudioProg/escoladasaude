@@ -1,5 +1,5 @@
-// ✅ src/components/presencas/ControlePresencaInscritos.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ src/components/presencas/ControlePresencaInscritos.jsx — v2.2
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
 // Componente de controle de presença por inscrito e por data.
@@ -18,6 +18,23 @@
 // - Sem token depreciado;
 // - Sem data ISO artificial T00:00:00;
 // - Mobile-first, dark mode, acessível e date-only safe.
+//
+// Revisão v2.1:
+// - mantém backend como fonte final da regra;
+// - organizador mantém janela de 48h;
+// - administrador passa a ter janela visual de 90 dias;
+// - remove janela fixa única de 48h para todos;
+// - recebe modoAdministrador por prop;
+// - recebe prazos oficiais por prop com fallback seguro;
+// - ajusta labels, hints, title e bloqueio visual conforme perfil.
+//
+// Revisão v2.2:
+// - adiciona modoTabelaCompacta para a Gestão de Presenças;
+// - no modo compacto, exibe Nome, Status e Ação;
+// - reduz drasticamente a altura da página;
+// - preserva o modo detalhado antigo para outros usos;
+// - mantém janela 90 dias para administrador e 48h para organizador;
+// - usa variant oficial "contorno" no Botao.
 
 import PropTypes from "prop-types";
 import { motion } from "framer-motion";
@@ -35,20 +52,20 @@ import {
 
 import { api } from "../../services/api";
 import Botao from "../ui/Botao";
-import {
-  notifyError,
-  notifySuccess,
-} from "../ui/AppToast";
+import { notifyError, notifySuccess } from "../ui/AppToast";
 
 /* ─────────────────────────────────────────────────────────────
  * Configuração
  * ───────────────────────────────────────────────────────────── */
 
 const UNLOCK_MINUTES_AFTER_START = 60;
-const CONFIRM_WINDOW_HOURS = 48;
+
+const CONFIRM_WINDOW_ORGANIZADOR_HOURS = 48;
+const CONFIRM_WINDOW_ADMINISTRADOR_DAYS = 90;
 
 const MS_MIN = 60 * 1000;
 const MS_HOUR = 60 * MS_MIN;
+const MS_DAY = 24 * MS_HOUR;
 
 /* ─────────────────────────────────────────────────────────────
  * Helpers
@@ -183,6 +200,52 @@ function getTurmaId(turma) {
   return toPositiveInt(turma?.turma_id || turma?.id);
 }
 
+function normalizarPrazoHoras(value, fallback) {
+  const number = Number(value);
+
+  return Number.isInteger(number) && number > 0 ? number : fallback;
+}
+
+function normalizarPrazoDias(value, fallback) {
+  const number = Number(value);
+
+  return Number.isInteger(number) && number > 0 ? number : fallback;
+}
+
+function obterRegraPrazoConfirmacao({
+  modoAdministrador,
+  prazoConfirmacaoOrganizadorHoras,
+  prazoConfirmacaoAdministradorDias,
+}) {
+  const horasOrganizador = normalizarPrazoHoras(
+    prazoConfirmacaoOrganizadorHoras,
+    CONFIRM_WINDOW_ORGANIZADOR_HOURS
+  );
+
+  const diasAdministrador = normalizarPrazoDias(
+    prazoConfirmacaoAdministradorDias,
+    CONFIRM_WINDOW_ADMINISTRADOR_DAYS
+  );
+
+  if (modoAdministrador) {
+    return {
+      perfil: "administrador",
+      label: `${diasAdministrador} dias`,
+      prazoMs: diasAdministrador * MS_DAY,
+      hintForaPrazo: `Fora do prazo de ${diasAdministrador} dias após o fim do encontro.`,
+      hintExpirou: `Prazo expirou (${diasAdministrador} dias após o fim do encontro).`,
+    };
+  }
+
+  return {
+    perfil: "organizador",
+    label: `${horasOrganizador}h`,
+    prazoMs: horasOrganizador * MS_HOUR,
+    hintForaPrazo: `Fora do prazo de ${horasOrganizador}h após o fim do encontro.`,
+    hintExpirou: `Prazo expirou (${horasOrganizador}h após o fim do encontro).`,
+  };
+}
+
 /* ─────────────────────────────────────────────────────────────
  * UI local
  * ───────────────────────────────────────────────────────────── */
@@ -230,11 +293,29 @@ export default function ControlePresencaInscritos({
   presencas = [],
   carregarPresencas,
   datas = [],
+  modoAdministrador = false,
+  prazoConfirmacaoOrganizadorHoras = CONFIRM_WINDOW_ORGANIZADOR_HOURS,
+  prazoConfirmacaoAdministradorDias = CONFIRM_WINDOW_ADMINISTRADOR_DAYS,
+  modoTabelaCompacta = false,
 }) {
   const [confirmandoKey, setConfirmandoKey] = useState(null);
   const [now, setNow] = useState(() => new Date());
 
   const turma_id = getTurmaId(turma);
+
+  const regraPrazoConfirmacao = useMemo(
+    () =>
+      obterRegraPrazoConfirmacao({
+        modoAdministrador,
+        prazoConfirmacaoOrganizadorHoras,
+        prazoConfirmacaoAdministradorDias,
+      }),
+    [
+      modoAdministrador,
+      prazoConfirmacaoAdministradorDias,
+      prazoConfirmacaoOrganizadorHoras,
+    ]
+  );
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), MS_MIN);
@@ -294,11 +375,13 @@ export default function ControlePresencaInscritos({
 
       if (!fimDia) return false;
 
-      const limite = new Date(fimDia.getTime() + CONFIRM_WINDOW_HOURS * MS_HOUR);
+      const limite = new Date(
+        fimDia.getTime() + regraPrazoConfirmacao.prazoMs
+      );
 
       return now <= limite;
     },
-    [now]
+    [now, regraPrazoConfirmacao]
   );
 
   const liberouPosInicio = useCallback(
@@ -355,6 +438,84 @@ export default function ControlePresencaInscritos({
     [carregarPresencas, turma_id]
   );
 
+  const getLinhaPresenca = useCallback(
+    (usuario_id, data, horario_inicio, horario_fim) => {
+      const presente = !!presencasMap.get(`${usuario_id}#${data}`);
+
+      const liberado = liberouPosInicio(data, horario_inicio);
+
+      const noPrazo = dentroDoPrazoDeConfirmacao(
+        data,
+        horario_fim,
+        turma?.horario_fim
+      );
+
+      const podeConfirmar = Boolean(
+        usuario_id && !presente && liberado && noPrazo
+      );
+
+      const foraPrazo = liberado && !noPrazo;
+      const aguardando = !liberado;
+      const isLoading = confirmandoKey === `${usuario_id}#${data}`;
+
+      const statusNode = presente ? (
+        <Pill tone="emerald" icon={BadgeCheck}>
+          Presente
+        </Pill>
+      ) : aguardando ? (
+        <Pill tone="amber" icon={Clock3}>
+          Aguardando
+        </Pill>
+      ) : foraPrazo ? (
+        <Pill tone="rose" icon={ShieldAlert}>
+          Fora do prazo
+        </Pill>
+      ) : (
+        <Pill tone="rose" icon={XCircle}>
+          Faltou
+        </Pill>
+      );
+
+      const titleButton = presente
+        ? "Presença já confirmada."
+        : aguardando
+          ? `Libera ${UNLOCK_MINUTES_AFTER_START} min após o início.`
+          : foraPrazo
+            ? regraPrazoConfirmacao.hintForaPrazo
+            : "Confirmar presença deste dia";
+
+      const hint = presente
+        ? "Presença já confirmada."
+        : aguardando
+          ? `Libera ${UNLOCK_MINUTES_AFTER_START} min após o início.`
+          : foraPrazo
+            ? regraPrazoConfirmacao.hintExpirou
+            : "Pode confirmar agora.";
+
+      return {
+        presente,
+        liberado,
+        noPrazo,
+        podeConfirmar,
+        foraPrazo,
+        aguardando,
+        isLoading,
+        statusNode,
+        titleButton,
+        hint,
+      };
+    },
+    [
+      confirmandoKey,
+      dentroDoPrazoDeConfirmacao,
+      liberouPosInicio,
+      presencasMap,
+      regraPrazoConfirmacao.hintExpirou,
+      regraPrazoConfirmacao.hintForaPrazo,
+      turma?.horario_fim,
+    ]
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -382,6 +543,120 @@ export default function ControlePresencaInscritos({
             Quando houver inscrições, elas aparecerão aqui com o controle por
             data.
           </p>
+        </div>
+      ) : modoTabelaCompacta ? (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/45">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex flex-wrap items-center gap-2">
+              <Pill tone="indigo" icon={Timer}>
+                Libera em {UNLOCK_MINUTES_AFTER_START}min
+              </Pill>
+
+              <Pill tone="amber" icon={Clock3}>
+                Janela {regraPrazoConfirmacao.label}
+              </Pill>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <caption className="sr-only">
+                Controle compacto de presenças por inscrito
+              </caption>
+
+              <thead className="bg-slate-50 text-slate-600 dark:bg-slate-900/40 dark:text-slate-200">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left font-black">
+                    Nome
+                  </th>
+
+                  <th scope="col" className="px-4 py-3 text-center font-black">
+                    Status
+                  </th>
+
+                  <th scope="col" className="px-4 py-3 text-right font-black">
+                    Ação
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {inscritos.flatMap((inscrito) => {
+                  const usuario_id = getUsuarioId(inscrito);
+                  const nome = inscrito?.nome || "Participante";
+                  const email = inscrito?.email || "—";
+                  const cpf = cpfProtegido(inscrito?.cpf);
+
+                  return linhasDatas.map(
+                    ({ data, horario_inicio, horario_fim }) => {
+                      const linha = getLinhaPresenca(
+                        usuario_id,
+                        data,
+                        horario_inicio,
+                        horario_fim
+                      );
+
+                      const key = `${usuario_id || email || cpf}#${data}`;
+
+                      return (
+                        <tr
+                          key={key}
+                          className="bg-white transition hover:bg-slate-50 dark:bg-transparent dark:hover:bg-slate-900/50"
+                        >
+                          <td className="px-4 py-3 align-middle">
+                            <div className="min-w-0">
+                              <p className="break-words font-black text-slate-950 dark:text-white">
+                                {nome}
+                              </p>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                                <span>{email}</span>
+                                <span>CPF: {cpf}</span>
+
+                                {linhasDatas.length > 1 ? (
+                                  <span>{formatBRDateOnly(data)}</span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3 text-center align-middle">
+                            {linha.statusNode}
+                          </td>
+
+                          <td className="px-4 py-3 text-right align-middle">
+                            {linha.podeConfirmar ? (
+                              <Botao
+                                type="button"
+                                variant="contorno"
+                                size="sm"
+                                onClick={() =>
+                                  confirmarPresenca(usuario_id, data)
+                                }
+                                disabled={linha.isLoading}
+                                loading={linha.isLoading}
+                                aria-label={`Confirmar presença em ${formatBRDateOnly(
+                                  data
+                                )} para ${nome}`}
+                                title={linha.titleButton}
+                                className="rounded-xl"
+                              >
+                                Confirmar
+                              </Botao>
+                            ) : (
+                              <span className="text-xs text-slate-500 dark:text-slate-400">
+                                {linha.titleButton}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    }
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <ul className="space-y-4">
@@ -443,7 +718,7 @@ export default function ControlePresencaInscritos({
                       </Pill>
 
                       <Pill tone="amber" icon={Clock3}>
-                        Janela {CONFIRM_WINDOW_HOURS}h
+                        Janela {regraPrazoConfirmacao.label}
                       </Pill>
                     </div>
                   </div>
@@ -453,21 +728,12 @@ export default function ControlePresencaInscritos({
                     aria-label={`Datas e presenças de ${nome}`}
                   >
                     {linhasDatas.map(({ data, horario_inicio, horario_fim }) => {
-                      const presente = !!presencasMap.get(`${usuario_id}#${data}`);
-                      const liberado = liberouPosInicio(data, horario_inicio);
-                      const noPrazo = dentroDoPrazoDeConfirmacao(
+                      const linha = getLinhaPresenca(
+                        usuario_id,
                         data,
-                        horario_fim,
-                        turma?.horario_fim
+                        horario_inicio,
+                        horario_fim
                       );
-
-                      const podeConfirmar = Boolean(
-                        usuario_id && !presente && liberado && noPrazo
-                      );
-
-                      const foraPrazo = liberado && !noPrazo;
-                      const aguardando = !liberado;
-                      const isLoading = confirmandoKey === `${usuario_id}#${data}`;
 
                       const horarioStr =
                         horario_inicio || horario_fim
@@ -475,32 +741,6 @@ export default function ControlePresencaInscritos({
                               horario_inicio && horario_fim ? " – " : ""
                             }${horario_fim || ""}`
                           : "—";
-
-                      const statusNode = presente ? (
-                        <Pill tone="emerald" icon={BadgeCheck}>
-                          Presente
-                        </Pill>
-                      ) : aguardando ? (
-                        <Pill tone="amber" icon={Clock3}>
-                          Aguardando
-                        </Pill>
-                      ) : foraPrazo ? (
-                        <Pill tone="rose" icon={ShieldAlert}>
-                          Fora do prazo
-                        </Pill>
-                      ) : (
-                        <Pill tone="rose" icon={XCircle}>
-                          Faltou
-                        </Pill>
-                      );
-
-                      const hint = presente
-                        ? "Presença já confirmada."
-                        : aguardando
-                          ? `Libera ${UNLOCK_MINUTES_AFTER_START} min após o início.`
-                          : foraPrazo
-                            ? `Prazo expirou (${CONFIRM_WINDOW_HOURS}h após o fim do encontro).`
-                            : "Pode confirmar agora.";
 
                       return (
                         <div
@@ -521,22 +761,24 @@ export default function ControlePresencaInscritos({
                               </p>
                             </div>
 
-                            <div aria-live="polite">{statusNode}</div>
+                            <div aria-live="polite">{linha.statusNode}</div>
                           </div>
 
                           <div className="mt-2 flex items-center justify-between gap-2">
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {hint}
+                              {linha.hint}
                             </p>
 
-                            {podeConfirmar ? (
+                            {linha.podeConfirmar ? (
                               <Botao
                                 type="button"
-                                variant="secundario"
+                                variant="contorno"
                                 size="sm"
-                                onClick={() => confirmarPresenca(usuario_id, data)}
-                                disabled={isLoading}
-                                loading={isLoading}
+                                onClick={() =>
+                                  confirmarPresenca(usuario_id, data)
+                                }
+                                disabled={linha.isLoading}
+                                loading={linha.isLoading}
                                 aria-label={`Confirmar presença em ${formatBRDateOnly(
                                   data
                                 )} para ${nome}`}
@@ -585,41 +827,11 @@ export default function ControlePresencaInscritos({
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                           {linhasDatas.map(
                             ({ data, horario_inicio, horario_fim }) => {
-                              const presente = !!presencasMap.get(
-                                `${usuario_id}#${data}`
-                              );
-
-                              const liberado = liberouPosInicio(
+                              const linha = getLinhaPresenca(
+                                usuario_id,
                                 data,
-                                horario_inicio
-                              );
-
-                              const noPrazo = dentroDoPrazoDeConfirmacao(
-                                data,
-                                horario_fim,
-                                turma?.horario_fim
-                              );
-
-                              const podeConfirmar = Boolean(
-                                usuario_id && !presente && liberado && noPrazo
-                              );
-
-                              const statusNode = presente ? (
-                                <Pill tone="emerald" icon={BadgeCheck}>
-                                  Presente
-                                </Pill>
-                              ) : !liberado ? (
-                                <Pill tone="amber" icon={Clock3}>
-                                  Aguardando
-                                </Pill>
-                              ) : !noPrazo ? (
-                                <Pill tone="rose" icon={ShieldAlert}>
-                                  Fora do prazo
-                                </Pill>
-                              ) : (
-                                <Pill tone="rose" icon={XCircle}>
-                                  Faltou
-                                </Pill>
+                                horario_inicio,
+                                horario_fim
                               );
 
                               const horarioStr =
@@ -629,19 +841,11 @@ export default function ControlePresencaInscritos({
                                     }${horario_fim || ""}`
                                   : "—";
 
-                              const isLoading =
-                                confirmandoKey === `${usuario_id}#${data}`;
-
-                              const titleButton = presente
-                                ? "Presença já confirmada."
-                                : !liberado
-                                  ? `Libera ${UNLOCK_MINUTES_AFTER_START} min após o início.`
-                                  : !noPrazo
-                                    ? `Fora do prazo de ${CONFIRM_WINDOW_HOURS}h após o fim do encontro.`
-                                    : "Confirmar presença deste dia";
-
                               return (
-                                <tr key={data} className="bg-white dark:bg-transparent">
+                                <tr
+                                  key={data}
+                                  className="bg-white dark:bg-transparent"
+                                >
                                   <td className="p-3 text-left font-medium text-slate-900 dark:text-white">
                                     {formatBRDateOnly(data)}
                                   </td>
@@ -650,31 +854,33 @@ export default function ControlePresencaInscritos({
                                     {horarioStr}
                                   </td>
 
-                                  <td className="p-3 text-center">{statusNode}</td>
+                                  <td className="p-3 text-center">
+                                    {linha.statusNode}
+                                  </td>
 
                                   <td className="p-3">
                                     <div className="flex justify-end">
-                                      {podeConfirmar ? (
+                                      {linha.podeConfirmar ? (
                                         <Botao
                                           type="button"
-                                          variant="secundario"
+                                          variant="contorno"
                                           size="sm"
                                           onClick={() =>
                                             confirmarPresenca(usuario_id, data)
                                           }
-                                          disabled={isLoading}
-                                          loading={isLoading}
+                                          disabled={linha.isLoading}
+                                          loading={linha.isLoading}
                                           aria-label={`Confirmar presença em ${formatBRDateOnly(
                                             data
                                           )} para ${nome}`}
-                                          title={titleButton}
+                                          title={linha.titleButton}
                                           className="rounded-xl"
                                         >
                                           Confirmar presença
                                         </Botao>
                                       ) : (
                                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                                          {titleButton}
+                                          {linha.titleButton}
                                         </span>
                                       )}
                                     </div>
@@ -741,4 +947,8 @@ ControlePresencaInscritos.propTypes = {
       horario_fim: PropTypes.string,
     })
   ),
+  modoAdministrador: PropTypes.bool,
+  prazoConfirmacaoOrganizadorHoras: PropTypes.number,
+  prazoConfirmacaoAdministradorDias: PropTypes.number,
+  modoTabelaCompacta: PropTypes.bool,
 };
