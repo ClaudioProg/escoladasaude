@@ -78,6 +78,8 @@ const PERFIL_ADMINISTRADOR = "administrador";
 
 const MODO_TODOS = "todos_servidores";
 const MODO_LISTA = "lista_registros";
+const MODO_CARGOS = "cargos";
+const MODO_UNIDADES = "unidades";
 
 const MOTIVOS = Object.freeze({
   DADOS_INVALIDOS: "DADOS_INVALIDOS",
@@ -244,15 +246,17 @@ async function carregarEventoAcesso(id, conn = null) {
   const eventoResult = await executar(
     conn,
     `
-    SELECT
-      id,
-      titulo,
-      COALESCE(publicado, false) AS publicado,
-      COALESCE(restrito, false) AS restrito,
-      restrito_modo
-    FROM eventos
-    WHERE id = $1
-    LIMIT 1
+  SELECT
+  id,
+  titulo,
+  COALESCE(publicado, false) AS publicado,
+  COALESCE(restrito, false) AS restrito,
+  restrito_modo,
+  COALESCE(cargos_permitidos_ids, ARRAY[]::integer[]) AS cargos_permitidos_ids,
+  COALESCE(unidades_permitidas_ids, ARRAY[]::integer[]) AS unidades_permitidas_ids
+FROM eventos
+WHERE id = $1
+LIMIT 1
     `,
     [eventoId]
   );
@@ -292,13 +296,9 @@ async function carregarEventoAcesso(id, conn = null) {
     restrito: row.restrito === true,
     restrito_modo: normalizeModo(row.restrito_modo),
 
-    cargo_ids_permitidos: uniqNumbers(
-      (cargosResult.rows || []).map((item) => item.cargo)
-    ),
+    cargo_ids_permitidos: uniqNumbers(row.cargos_permitidos_ids || []),
 
-    unidade_ids_permitidas: uniqNumbers(
-      (unidadesResult.rows || []).map((item) => item.unidade_id)
-    ),
+unidade_ids_permitidas: uniqNumbers(row.unidades_permitidas_ids || []),
   };
 }
 
@@ -459,6 +459,42 @@ async function checarAcessoEvento(
         usuario,
       });
     }
+
+    if (modo === MODO_CARGOS) {
+  const temCargoPermitido =
+    cargoId != null && cargosPermitidosIds.includes(cargoId);
+
+  return buildResultado({
+    ok: temCargoPermitido,
+    motivo: temCargoPermitido
+      ? MOTIVOS.ACESSO_LIBERADO
+      : MOTIVOS.EVENTO_RESTRITO,
+    evento,
+    usuario,
+    details: {
+      cargo_id: cargoId,
+      cargos_permitidos_ids: cargosPermitidosIds,
+    },
+  });
+}
+
+if (modo === MODO_UNIDADES) {
+  const temUnidadePermitida =
+    unidadeId != null && unidadesPermitidasIds.includes(unidadeId);
+
+  return buildResultado({
+    ok: temUnidadePermitida,
+    motivo: temUnidadePermitida
+      ? MOTIVOS.ACESSO_LIBERADO
+      : MOTIVOS.EVENTO_RESTRITO,
+    evento,
+    usuario,
+    details: {
+      unidade_id: unidadeId,
+      unidades_permitidas_ids: unidadesPermitidasIds,
+    },
+  });
+}
 
     const autorizado = await registroEstaAutorizado(
       {
@@ -641,6 +677,8 @@ async function podeAcessarEvento(
 module.exports = {
   MODO_TODOS,
   MODO_LISTA,
+  MODO_CARGOS,
+  MODO_UNIDADES,
   MOTIVOS,
 
   normRegistro,

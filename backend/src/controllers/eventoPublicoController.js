@@ -59,6 +59,8 @@ const PAPEL_ORGANIZADOR = "organizador";
 
 const MODO_TODOS = "todos_servidores";
 const MODO_LISTA = "lista_registros";
+const MODO_CARGOS = "cargos";
+const MODO_UNIDADES = "unidades";
 
 /* ───────────────────────────────────────────────────────────────
    Logger
@@ -469,6 +471,48 @@ function avaliarElegibilidadeInscricaoComContexto({ usuario, evento }) {
     };
   }
 
+  if (evento.restrito_modo === MODO_CARGOS) {
+  if (
+    usuario.cargo_id &&
+    cargosIdsPermitidos.includes(Number(usuario.cargo_id))
+  ) {
+    return {
+      pode_se_inscrever: true,
+      motivo_bloqueio: "",
+      publico_alvo_label: montarPublicoAlvoLabel(evento),
+    };
+  }
+
+  return {
+    pode_se_inscrever: false,
+    motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
+      evento
+    )}.`,
+    publico_alvo_label: montarPublicoAlvoLabel(evento),
+  };
+}
+
+if (evento.restrito_modo === MODO_UNIDADES) {
+  if (
+    usuario.unidade_id != null &&
+    unidadesIdsPermitidas.includes(Number(usuario.unidade_id))
+  ) {
+    return {
+      pode_se_inscrever: true,
+      motivo_bloqueio: "",
+      publico_alvo_label: montarPublicoAlvoLabel(evento),
+    };
+  }
+
+  return {
+    pode_se_inscrever: false,
+    motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
+      evento
+    )}.`,
+    publico_alvo_label: montarPublicoAlvoLabel(evento),
+  };
+}
+
   if (usuario.cargo_id && cargosIdsPermitidos.includes(Number(usuario.cargo_id))) {
     return {
       pode_se_inscrever: true,
@@ -558,13 +602,14 @@ async function enriquecerEventosLista(client, usuarioId, eventosBase, rid) {
     client.query(
       `
       SELECT
-        ec.evento_id,
-        c.id,
-        c.nome
-      FROM evento_cargos ec
-      JOIN cargos c ON c.id::text = ec.cargo
-      WHERE ec.evento_id = ANY($1::int[])
-      ORDER BY ec.evento_id, c.nome
+  e.id AS evento_id,
+  c.id,
+  c.nome
+FROM eventos e
+JOIN cargos c
+  ON c.id = ANY(COALESCE(e.cargos_permitidos_ids, ARRAY[]::integer[]))
+WHERE e.id = ANY($1::int[])
+ORDER BY e.id, c.nome
       `,
       [eventoIds]
     ),
@@ -572,13 +617,14 @@ async function enriquecerEventosLista(client, usuarioId, eventosBase, rid) {
     client.query(
       `
       SELECT
-        eu.evento_id,
-        u.id,
-        u.nome
-      FROM evento_unidades eu
-      JOIN unidades u ON u.id = eu.unidade_id
-      WHERE eu.evento_id = ANY($1::int[])
-      ORDER BY eu.evento_id, u.nome
+  e.id AS evento_id,
+  u.id,
+  u.nome
+FROM eventos e
+JOIN unidades u
+  ON u.id = ANY(COALESCE(e.unidades_permitidas_ids, ARRAY[]::integer[]))
+WHERE e.id = ANY($1::int[])
+ORDER BY e.id, u.nome
       `,
       [eventoIds]
     ),
@@ -767,10 +813,12 @@ function montarSqlListaEventos({ somentePublicados, incluirEventosDoorganizador 
       e.unidade_id,
       e.publico_alvo,
       e.publicado,
-      e.restrito,
-      e.restrito_modo,
-      e.visibilidade,
-      e.criado_em,
+e.restrito,
+e.restrito_modo,
+COALESCE(e.cargos_permitidos_ids, ARRAY[]::integer[]) AS cargos_permitidos_ids,
+COALESCE(e.unidades_permitidas_ids, ARRAY[]::integer[]) AS unidades_permitidas_ids,
+e.visibilidade,
+e.criado_em,
 
       CASE
         WHEN e.folder_blob IS NOT NULL THEN 'blob'
@@ -1303,8 +1351,10 @@ async function buscarEventoPorId(req, res) {
         unidade_id,
         publico_alvo,
         restrito,
-        restrito_modo,
-        publicado,
+restrito_modo,
+COALESCE(cargos_permitidos_ids, ARRAY[]::integer[]) AS cargos_permitidos_ids,
+COALESCE(unidades_permitidas_ids, ARRAY[]::integer[]) AS unidades_permitidas_ids,
+publicado,
         visibilidade,
         folder_mime,
         folder_size,
@@ -1380,10 +1430,11 @@ async function buscarEventoPorId(req, res) {
         client.query(
           `
           SELECT c.id, c.nome, c.codigo
-          FROM evento_cargos ec
-          JOIN cargos c ON c.id::text = ec.cargo
-          WHERE ec.evento_id = $1
-          ORDER BY c.nome
+FROM eventos e
+JOIN cargos c
+  ON c.id = ANY(COALESCE(e.cargos_permitidos_ids, ARRAY[]::integer[]))
+WHERE e.id = $1
+ORDER BY c.nome
           `,
           [id]
         ),
@@ -1391,10 +1442,11 @@ async function buscarEventoPorId(req, res) {
         client.query(
           `
           SELECT u.id, u.nome
-          FROM evento_unidades eu
-          JOIN unidades u ON u.id = eu.unidade_id
-          WHERE eu.evento_id = $1
-          ORDER BY u.nome
+FROM eventos e
+JOIN unidades u
+  ON u.id = ANY(COALESCE(e.unidades_permitidas_ids, ARRAY[]::integer[]))
+WHERE e.id = $1
+ORDER BY u.nome
           `,
           [id]
         ),
