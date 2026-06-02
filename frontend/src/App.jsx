@@ -188,7 +188,6 @@ const CancelarInscricaoAdmin = lazy(() =>
 );
 const CertificadoAvulso = lazy(() => import("./pages/CertificadoAvulso"));
 const QRCodesEventosAdmin = lazy(() => import("./pages/QRCodesEventosAdmin"));
-const GestaoEvento = lazy(() => import("./pages/GestaoEvento"));
 
 /* ─────────────────────────────────────────────────────────────
    Constantes
@@ -897,17 +896,6 @@ function AdministradorRoutes() {
           />
         }
       />
-
-      <Route
-  path="admin/evento/:eventoId/gestao"
-  element={
-    <ProtectedPage
-      permitido={PERFIL_PERMITIDO.administrador}
-      element={<GestaoEvento />}
-    />
-  }
-/>
-
       <Route
         path="gestao/presenca"
         element={
