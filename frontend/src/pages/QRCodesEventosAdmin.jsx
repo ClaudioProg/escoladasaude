@@ -1,71 +1,77 @@
-// ✅ frontend/src/pages/QRCodesEventosAdmin.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/pages/QRCodesEventosAdmin.jsx — v2.1
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
-// Página administrativa para geração de QR Codes de presença por turma.
+// Tela operacional contextual para geração de QR Codes de presença.
+//
+// Revisão premium v2.1:
+// - tela acessada somente pelo Painel do Gestor;
+// - evento_id obrigatório via URL;
+// - sem modo geral;
+// - sem busca/listagem geral;
+// - sem conteúdo minimizado;
+// - carrega somente o evento informado;
+// - carrega automaticamente as turmas do evento;
+// - carrega automaticamente as datas reais de cada turma quando necessário;
+// - gera QR Code oficial por turma_id + data_presenca;
+// - turma com mais de um dia gera QR diferente para cada data;
+// - botão para gerar QR individual por data;
+// - botão para gerar todos os QRs da turma;
+// - botão para gerar todos os QRs do evento;
+// - usa HeaderHero global oficial, limpo;
+// - botões, contexto, badges e stats ficam abaixo do HeaderHero;
+// - usa Footer oficial;
+// - visual institucional premium;
+// - mobile-first, acessível, moderno e operacional;
+// - sem /api manual no frontend;
+// - sem rota plural /presencas;
+// - sem query antiga "turma";
+// - sem QR apenas por turma_id.
 //
 // Contratos aplicados:
-// - Sem toast direto;
-// - Sem apiGet direto;
-// - Sem /eventos;
-// - Sem /turmas/evento/:id;
-// - Sem /api manual no frontend;
+// - parâmetro contextual oficial: evento_id;
+// - QR oficial: /presenca?turma_id=:turma_id&data_presenca=:data_presenca;
 // - Eventos administrativos via listarEventosAdmin();
 // - Turmas do evento via listarTurmasDoEvento(evento_id);
-// - QR oficial baseado em turma_id;
-// - Footer em src/components/layout/Footer.jsx;
-// - CarregandoSkeleton e NadaEncontrado em src/components/ui/;
-// - Sem bg-gelo;
-// - Sem style inline;
-// - Cache curto em sessionStorage;
-// - AbortController;
-// - Busca por evento, turma e organizador;
-// - Visual v2.0 real, mobile-first, dark mode, acessível e com aria-live.
+// - Datas da turma via apiTurmaDatas(turma_id), com fallback para datas já presentes na turma;
+// - PDF via gerarQrCodePresencaPDF(turma, evento, organizador, { data_presenca }).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import PropTypes from "prop-types";
 import {
+  AlertTriangle,
+  ArrowLeft,
+  Building2,
+  CalendarClock,
+  CheckCircle2,
+  ClipboardList,
   FileDown,
+  Info,
   Layers,
   Loader2,
   QrCode,
   RefreshCcw,
-  Search,
   ShieldCheck,
   Sparkles,
-  X,
 } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
-import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
-import NadaEncontrado from "../components/ui/NadaEncontrado";
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
+
 import {
   isAbortLike,
   listarEventosAdmin,
   listarTurmasDoEvento,
 } from "../services/eventoService";
-import { gerarQrCodePresencaPDF } from "../utils/gerarQrCodePresencaPDF.jsx";
-import {
-  notifyError,
-  notifySuccess,
-} from "../components/ui/AppToast";
+
+import { apiTurmaDatas } from "../services/api";
+import { gerarQrCodePresencaPDF } from "../utils/gerarQrCodePresencaPDF";
+import { notifyError, notifyInfo, notifySuccess } from "../components/ui/AppToast";
 
 /* ─────────────────────────────────────────────────────────────
- * Helpers base
+ * Helpers
  * ───────────────────────────────────────────────────────────── */
-
-const CACHE_KEY = "qr:evento:v2";
-const CACHE_TTL_MS = 3 * 60 * 1000;
-
-const STRIPES = [
-  "from-emerald-700 to-teal-500",
-  "from-sky-700 to-cyan-500",
-  "from-indigo-700 to-violet-600",
-  "from-pink-700 to-rose-600",
-  "from-amber-600 to-yellow-500",
-  "from-lime-700 to-green-600",
-  "from-fuchsia-700 to-pink-600",
-];
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -73,43 +79,62 @@ function classNames(...classes) {
 
 function toPositiveInt(value) {
   const number = Number(value);
-
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
-function safeStr(value, max = 200) {
+function safeStr(value, max = 260) {
   return String(value ?? "").slice(0, max).trim();
 }
 
+function ymd(value) {
+  if (typeof value !== "string") return "";
+
+  const clean = value.trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(clean)) return clean.slice(0, 10);
+
+  return "";
+}
+
+function hhmm(value, fallback = "") {
+  if (typeof value !== "string") return fallback;
+
+  const clean = value.trim();
+
+  if (/^\d{2}:\d{2}$/.test(clean)) return clean;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(clean)) return clean.slice(0, 5);
+
+  return fallback;
+}
+
+function formatarDataBR(value) {
+  const data = ymd(value);
+
+  if (!data) return "—";
+
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function formatarDataCurta(value) {
+  const data = ymd(value);
+
+  if (!data) return "—";
+
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano.slice(2)}`;
+}
+
 function tituloEvento(evento) {
-  return safeStr(evento?.titulo || `Evento #${evento?.id ?? "—"}`, 170);
+  return safeStr(evento?.titulo || `Evento #${evento?.id ?? "—"}`, 180);
 }
 
 function tituloTurma(turma) {
-  return safeStr(turma?.nome || `Turma #${turma?.id ?? turma?.turma_id ?? "—"}`, 170);
-}
-
-function normalizarTexto(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
-}
-
-function hashSeed(value) {
-  const str = String(value ?? "");
-  let hash = 0;
-
-  for (let index = 0; index < str.length; index += 1) {
-    hash = (hash * 31 + str.charCodeAt(index)) | 0;
-  }
-
-  return Math.abs(hash);
-}
-
-function stripeClassFor(seed) {
-  return STRIPES[hashSeed(seed) % STRIPES.length];
+  return safeStr(
+    turma?.nome || turma?.turma_nome || `Turma #${turma?.id ?? turma?.turma_id ?? "—"}`,
+    180
+  );
 }
 
 function getErrorMessage(error, fallback) {
@@ -121,231 +146,281 @@ function getErrorMessage(error, fallback) {
   );
 }
 
-function readCache() {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
+function getOrganizadoresNomes(evento, turma) {
+  const fontes = [
+    Array.isArray(turma?.organizadores) ? turma.organizadores : [],
+    Array.isArray(turma?.organizador) ? turma.organizador : [],
+    Array.isArray(evento?.organizadores) ? evento.organizadores : [],
+    Array.isArray(evento?.organizador) ? evento.organizador : [],
+  ];
 
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw);
-
-    if (!parsed?.ts || Date.now() - parsed.ts > CACHE_TTL_MS) {
-      return null;
-    }
-
-    return Array.isArray(parsed.eventos) ? parsed.eventos : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(eventos) {
-  try {
-    sessionStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({
-        ts: Date.now(),
-        eventos,
-      })
-    );
-  } catch {
-    // noop
-  }
-}
-
-function getorganizadoresNomes(evento, turma) {
-  const fonteEvento = Array.isArray(evento?.organizador) ? evento.organizador : [];
-  const fonteTurma = Array.isArray(turma?.organizador) ? turma.organizador : [];
-
-  const nomes = (fonteEvento.length ? fonteEvento : fonteTurma)
-    .map((item) => item?.nome)
+  const nomes = fontes
+    .flat()
+    .map((item) => item?.nome || item?.nome_completo || item?.usuario_nome)
     .filter(Boolean);
 
-  return nomes.length ? nomes.join(", ") : "organizador";
+  return nomes.length ? [...new Set(nomes)].join(", ") : "organizador";
 }
 
-function montarTurmaParaQr(turma) {
+function normalizarDataItem(item, turma = {}) {
+  if (typeof item === "string") {
+    const data = ymd(item);
+
+    if (!data) return null;
+
+    return {
+      data,
+      data_presenca: data,
+      horario_inicio: hhmm(turma?.horario_inicio, ""),
+      horario_fim: hhmm(turma?.horario_fim, ""),
+    };
+  }
+
+  if (!item || typeof item !== "object") return null;
+
+  const data = ymd(
+    item.data ||
+      item.data_presenca ||
+      item.data_inicio ||
+      item.dia ||
+      item.date
+  );
+
+  if (!data) return null;
+
+  return {
+    ...item,
+    data,
+    data_presenca: data,
+    horario_inicio: hhmm(
+      item.horario_inicio || item.inicio || turma?.horario_inicio,
+      ""
+    ),
+    horario_fim: hhmm(item.horario_fim || item.fim || turma?.horario_fim, ""),
+  };
+}
+
+function extrairDatasDaTurmaLocal(turma) {
+  const fontes = [
+    turma?.datas,
+    turma?.datas_turma,
+    turma?.datasTurma,
+    turma?.encontros,
+    turma?.ocorrencias,
+  ];
+
+  const itens = fontes.find((fonte) => Array.isArray(fonte) && fonte.length);
+
+  if (Array.isArray(itens) && itens.length) {
+    return itens
+      .map((item) => normalizarDataItem(item, turma))
+      .filter(Boolean)
+      .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  }
+
+  const dataInicio = ymd(turma?.data_inicio || turma?.data);
+  const dataFim = ymd(turma?.data_fim || turma?.data_inicio || turma?.data);
+
+  if (!dataInicio) return [];
+
+  if (!dataFim || dataFim === dataInicio) {
+    return [
+      {
+        data: dataInicio,
+        data_presenca: dataInicio,
+        horario_inicio: hhmm(turma?.horario_inicio, ""),
+        horario_fim: hhmm(turma?.horario_fim, ""),
+      },
+    ];
+  }
+
+  return [
+    {
+      data: dataInicio,
+      data_presenca: dataInicio,
+      horario_inicio: hhmm(turma?.horario_inicio, ""),
+      horario_fim: hhmm(turma?.horario_fim, ""),
+    },
+  ];
+}
+
+function normalizarRespostaDatas(response, turma) {
+  const raw =
+    Array.isArray(response)
+      ? response
+      : Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.datas)
+          ? response.data.datas
+          : Array.isArray(response?.datas)
+            ? response.datas
+            : [];
+
+  return raw
+    .map((item) => normalizarDataItem(item, turma))
+    .filter(Boolean)
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+}
+
+function montarTurmaParaQr(turma, dataPresenca) {
   const turma_id = toPositiveInt(turma?.turma_id || turma?.id);
 
   return {
     ...turma,
     id: turma_id,
     turma_id,
+    data_presenca: dataPresenca,
     qr_payload: {
       turma_id,
+      data_presenca: dataPresenca,
     },
   };
+}
+
+function nomeArquivoQr({ evento, turma, dataPresenca }) {
+  const eventoId = toPositiveInt(evento?.id) || "evento";
+  const turmaId = toPositiveInt(turma?.turma_id || turma?.id) || "turma";
+
+  return `qr_presenca_evento_${eventoId}_turma_${turmaId}_${dataPresenca}.pdf`;
 }
 
 /* ─────────────────────────────────────────────────────────────
  * Componentes locais
  * ───────────────────────────────────────────────────────────── */
 
-function MiniStat({ label, value, icon: Icon, tone = "neutral" }) {
+function ActionButton({
+  children,
+  onClick,
+  disabled = false,
+  tone = "neutral",
+  type = "button",
+}) {
   const tones = {
     neutral:
-      "border-slate-200 bg-white text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white",
-    ok: "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100",
-    info: "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-100",
+      "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900",
+    emerald:
+      "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800 dark:border-emerald-600",
+    indigo:
+      "border-indigo-700 bg-indigo-700 text-white hover:bg-indigo-800 dark:border-indigo-600",
+    sky:
+      "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200",
+    rose:
+      "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 dark:border-rose-600",
   };
 
   return (
-    <article
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
       className={classNames(
-        "rounded-3xl border p-3 text-center shadow-sm sm:p-4",
+        "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60",
         tones[tone] || tones.neutral
       )}
     >
-      <div className="inline-flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wide opacity-80 sm:text-xs">
-        {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : null}
-        <span>{label}</span>
-      </div>
+      {children}
+    </button>
+  );
+}
 
-      <div className="mt-1 text-xl font-black tracking-tight sm:text-2xl">
-        {value}
+function Pill({ children, className = "" }) {
+  return (
+    <span
+      className={classNames(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
+  const tones = {
+    emerald:
+      "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100",
+    indigo:
+      "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-900/40 dark:bg-indigo-950/25 dark:text-indigo-100",
+    sky:
+      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
+    amber:
+      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
+    slate:
+      "border-slate-200 bg-white text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100",
+  };
+
+  return (
+    <article className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span
+            className={classNames(
+              "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
+              tones[tone] || tones.emerald
+            )}
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-zinc-400">
+              {label}
+            </p>
+
+            <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+              {value}
+            </p>
+
+            {hint ? (
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-zinc-400">
+                {hint}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
     </article>
   );
 }
 
-function HeaderHero({ onRefresh, carregando }) {
+function ContextoAusente({ onVoltar }) {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950 via-indigo-800 to-blue-700" />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.16),transparent_34%),radial-gradient(circle_at_82%_28%,rgba(129,140,248,0.26),transparent_42%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.18),transparent_45%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-32 left-1/2 h-[360px] w-[960px] max-w-[95vw] -translate-x-1/2 rounded-full bg-indigo-300/25 blur-3xl"
-      />
+    <section className="mt-5 overflow-hidden rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <Info className="h-6 w-6" aria-hidden="true" />
+        </span>
 
-      <a
-        href="#conteudo"
-        className="relative sr-only px-3 py-2 text-sm focus:not-sr-only focus:block focus:bg-white/20 focus:text-white"
-      >
-        Ir para o conteúdo
-      </a>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl font-black text-slate-950 dark:text-white">
+            Contexto do evento não informado
+          </h2>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-8 text-center sm:px-6 sm:py-10 md:py-12">
-        <div className="mx-auto max-w-3xl">
-          <div className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-wide ring-1 ring-white/15">
-            <QrCode className="h-4 w-4" aria-hidden="true" />
-            QR Code de presença v2.0
-          </div>
-
-          <h1 className="mt-4 text-2xl font-black tracking-tight sm:text-4xl">
-            QR Codes de presença por turma
-          </h1>
-
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/88 sm:text-base">
-            Gere PDFs oficiais de QR Code para cada turma, prontos para impressão
-            e vinculados ao contrato único de presença por turma_id.
+          <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
+            O endereço precisa conter um <strong>evento_id</strong> válido para
+            carregar as turmas e gerar QR Codes do evento específico.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black ring-1 ring-white/15 sm:text-sm">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-              Geração administrativa
-            </span>
-
-            <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-xs font-black ring-1 ring-white/15 sm:text-sm">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Contrato oficial
-            </span>
-
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={carregando}
-              className={classNames(
-                "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-black text-white shadow-sm transition",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
-                carregando
-                  ? "cursor-not-allowed bg-white/20 opacity-70"
-                  : "bg-white/15 hover:bg-white/25"
-              )}
-              aria-label="Atualizar eventos e turmas"
-              aria-busy={carregando ? "true" : "false"}
-            >
-              {carregando ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-              )}
-              {carregando ? "Atualizando..." : "Atualizar"}
-            </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ActionButton onClick={onVoltar} tone="indigo">
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Voltar ao Painel do Gestor
+            </ActionButton>
           </div>
         </div>
       </div>
-
-      <div className="relative h-px w-full bg-white/25" aria-hidden="true" />
-    </header>
+    </section>
   );
 }
 
-function ToolbarBusca({
-  busca,
-  setBusca,
-  limparBusca,
-  inputRef,
-  eventosFiltrados,
-  turmasFiltradas,
-  tentativa,
-  onRecarregar,
-}) {
+function LoadingPanel({ label = "Carregando dados..." }) {
   return (
-    <section
-      aria-label="Busca e resumo"
-      className="rounded-[1.75rem] border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90"
-    >
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-        <label className="relative block">
-          <span className="sr-only">Buscar evento, turma ou organizador</span>
-
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-            aria-hidden="true"
-          />
-
-          <input
-            ref={inputRef}
-            type="search"
-            inputMode="search"
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-            placeholder="Buscar evento, turma ou organizador..."
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-24 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-            aria-label="Buscar por nome do evento, turma ou organizador"
-          />
-
-          {busca ? (
-            <button
-              type="button"
-              onClick={limparBusca}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-              aria-label="Limpar busca"
-            >
-              Limpar
-            </button>
-          ) : null}
-        </label>
-
-        <button
-          type="button"
-          onClick={onRecarregar}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-indigo-700 px-4 text-sm font-black text-white transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          aria-label="Recarregar eventos e turmas"
-        >
-          <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-          {tentativa ? `Recarregar (${tentativa})` : "Recarregar"}
-        </button>
-      </div>
-
-      <div className="mt-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
-        {eventosFiltrados} evento{eventosFiltrados === 1 ? "" : "s"} •{" "}
-        {turmasFiltradas} turma{turmasFiltradas === 1 ? "" : "s"} na visualização
+    <section className="mt-5 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center justify-center gap-2 p-10 text-sm font-black text-indigo-700 dark:text-indigo-300">
+        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+        {label}
       </div>
     </section>
   );
@@ -356,30 +431,37 @@ function ToolbarBusca({
  * ───────────────────────────────────────────────────────────── */
 
 export default function QRCodesEventosAdmin() {
-  const reduceMotion = useReducedMotion();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [carregandoDados, setCarregandoDados] = useState(true);
-  const [eventos, setEventos] = useState([]);
+  const eventoIdParam = useMemo(
+    () => toPositiveInt(searchParams.get("evento_id")),
+    [searchParams]
+  );
+
+  const [evento, setEvento] = useState(null);
+  const [turmas, setTurmas] = useState([]);
+  const [datasPorTurma, setDatasPorTurma] = useState({});
+  const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
-  const [busca, setBusca] = useState(
-    () => localStorage.getItem("qr:busca") || ""
-  );
-  const [buscaDebounced, setBuscaDebounced] = useState(() =>
-    normalizarTexto(localStorage.getItem("qr:busca") || "")
-  );
-  const [gerando, setGerando] = useState(null);
-  const [tentativa, setTentativa] = useState(0);
+  const [gerando, setGerando] = useState("");
 
   const liveRef = useRef(null);
-  const erroRef = useRef(null);
   const abortRef = useRef(null);
-  const inputRef = useRef(null);
   const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
     if (liveRef.current) {
       liveRef.current.textContent = message || "";
     }
+  }, []);
+
+  const voltarPainelGestor = useCallback(() => {
+    navigate("/administrador");
+  }, [navigate]);
+
+  useEffect(() => {
+    document.title = "QR Codes do evento — Escola da Saúde";
   }, []);
 
   useEffect(() => {
@@ -396,9 +478,34 @@ export default function QRCodesEventosAdmin() {
     };
   }, []);
 
-  const carregar = useCallback(async () => {
+  const carregarDatasDaTurma = useCallback(async (turma) => {
+    const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+
+    if (!turmaId) return [];
+
+    const datasLocais = extrairDatasDaTurmaLocal(turma);
+
+    if (datasLocais.length > 1) {
+      return datasLocais;
+    }
+
     try {
-      abortRef.current?.abort?.("new-request");
+      const response = await apiTurmaDatas(turmaId, {
+        on401: "redirect",
+        on403: "silent",
+      });
+
+      const datasApi = normalizarRespostaDatas(response, turma);
+
+      return datasApi.length ? datasApi : datasLocais;
+    } catch {
+      return datasLocais;
+    }
+  }, []);
+
+  const carregarPagina = useCallback(async () => {
+    try {
+      abortRef.current?.abort?.("nova-requisicao");
     } catch {
       // noop
     }
@@ -406,525 +513,691 @@ export default function QRCodesEventosAdmin() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setCarregandoDados(true);
+    setLoading(true);
     setErro("");
-    setLive("Carregando eventos e turmas.");
+    setEvento(null);
+    setTurmas([]);
+    setDatasPorTurma({});
+    setGerando("");
+    setLive("Carregando evento, turmas e datas.");
+
+    if (!eventoIdParam) {
+      setLoading(false);
+      setLive("Contexto ausente.");
+      return;
+    }
 
     try {
       const listaEventos = await listarEventosAdmin({
         signal: controller.signal,
       });
 
-      const eventosArr = Array.isArray(listaEventos) ? listaEventos : [];
+      if (!mountedRef.current || controller.signal.aborted) return;
 
-      const withTurmas = await Promise.all(
-        eventosArr.map(async (evento) => {
-          const evento_id = toPositiveInt(evento?.id);
+      const eventos = Array.isArray(listaEventos) ? listaEventos : [];
+      const eventoEncontrado =
+        eventos.find((item) => Number(item?.id) === eventoIdParam) || null;
 
-          if (!evento_id) {
-            return {
-              ...evento,
-              turmas: [],
-            };
-          }
-
-          try {
-            const turmas = await listarTurmasDoEvento(evento_id, {
-              signal: controller.signal,
-            });
-
-            return {
-              ...evento,
-              turmas: Array.isArray(turmas) ? turmas : [],
-            };
-          } catch (error) {
-            if (isAbortLike(error)) throw error;
-
-            return {
-              ...evento,
-              turmas: [],
-            };
-          }
-        })
-      );
-
-      if (!mountedRef.current) return;
-
-      setEventos(withTurmas);
-      writeCache(withTurmas);
-
-      setLive(
-        withTurmas.length
-          ? `Foram carregados ${withTurmas.length} evento(s).`
-          : "Nenhum evento encontrado."
-      );
-    } catch (error) {
-      if (isAbortLike(error)) return;
-
-      const message = getErrorMessage(error, "Erro ao carregar eventos e turmas.");
-
-      if (!mountedRef.current) return;
-
-      setErro(message);
-      setEventos([]);
-      notifyError(message);
-      setLive("Falha ao carregar eventos e turmas.");
-
-      window.setTimeout(() => erroRef.current?.focus?.(), 0);
-    } finally {
-      if (mountedRef.current) {
-        setCarregandoDados(false);
-      }
-    }
-  }, [setLive]);
-
-  useEffect(() => {
-    const cached = readCache();
-
-    if (cached) {
-      setEventos(cached);
-      setCarregandoDados(false);
-      setLive(`Exibindo ${cached.length} evento(s) do cache.`);
-    }
-
-    carregar();
-
-    return () => {
-      try {
-        abortRef.current?.abort?.("unmount");
-      } catch {
-        // noop
-      }
-    };
-  }, [carregar, setLive]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("qr:busca", busca);
-    } catch {
-      // noop
-    }
-
-    const timer = window.setTimeout(() => {
-      setBuscaDebounced(normalizarTexto(busca));
-    }, 250);
-
-    return () => window.clearTimeout(timer);
-  }, [busca]);
-
-  const totalEventos = eventos.length;
-
-  const totalTurmas = useMemo(
-    () =>
-      eventos.reduce(
-        (acc, evento) => acc + (Array.isArray(evento?.turmas) ? evento.turmas.length : 0),
-        0
-      ),
-    [eventos]
-  );
-
-  const eventosFiltrados = useMemo(() => {
-    const q = buscaDebounced;
-
-    if (!q) return eventos;
-
-    return eventos
-      .map((evento) => {
-        const eventoTitulo = tituloEvento(evento);
-        const eventoMatch = normalizarTexto(eventoTitulo).includes(q);
-
-        const turmasFiltradas = (evento?.turmas || []).filter((turma) => {
-          const turmaTitulo = tituloTurma(turma);
-          const organizadores = getorganizadoresNomes(evento, turma);
-
-          return (
-            eventoMatch ||
-            normalizarTexto(turmaTitulo).includes(q) ||
-            normalizarTexto(organizadores).includes(q)
-          );
-        });
-
-        if (eventoMatch || turmasFiltradas.length > 0) {
-          return {
-            ...evento,
-            turmas: turmasFiltradas,
-          };
-        }
-
-        return null;
-      })
-      .filter(Boolean);
-  }, [eventos, buscaDebounced]);
-
-  const turmasFiltradasCount = useMemo(
-    () =>
-      eventosFiltrados.reduce(
-        (acc, evento) =>
-          acc + (Array.isArray(evento?.turmas) ? evento.turmas.length : 0),
-        0
-      ),
-    [eventosFiltrados]
-  );
-
-  const vazio = useMemo(
-    () =>
-      !carregandoDados &&
-      (!eventosFiltrados.length ||
-        eventosFiltrados.every((evento) => !evento?.turmas?.length)),
-    [carregandoDados, eventosFiltrados]
-  );
-
-  const handleGerarPDF = useCallback(
-    async (turma, eventoTitulo, organizadores) => {
-      if (gerando) return;
-
-      const turma_id = toPositiveInt(turma?.turma_id || turma?.id);
-
-      if (!turma_id) {
-        notifyError("turma_id inválido para geração do QR Code.");
+      if (!eventoEncontrado) {
+        setErro("O evento informado no link não foi encontrado.");
+        setLive("Evento não encontrado.");
         return;
       }
 
-      setGerando(turma_id);
-      setLive(`Gerando PDF da turma ${turma_id}.`);
+      setEvento(eventoEncontrado);
+      setLive("Evento localizado. Carregando turmas.");
+
+      const listaTurmas = await listarTurmasDoEvento(eventoIdParam, {
+        signal: controller.signal,
+      });
+
+      if (!mountedRef.current || controller.signal.aborted) return;
+
+      const turmasValidas = (Array.isArray(listaTurmas) ? listaTurmas : [])
+        .map((turma) => {
+          const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+
+          return {
+            ...turma,
+            id: turmaId,
+            turma_id: turmaId,
+          };
+        })
+        .filter((turma) => Boolean(turma.turma_id));
+
+      setTurmas(turmasValidas);
+      setLive(`${turmasValidas.length} turma(s) carregada(s). Carregando datas.`);
+
+      const pares = await Promise.all(
+        turmasValidas.map(async (turma) => {
+          const datas = await carregarDatasDaTurma(turma);
+
+          return [turma.turma_id, datas];
+        })
+      );
+
+      if (!mountedRef.current || controller.signal.aborted) return;
+
+      const mapaDatas = pares.reduce((acc, [turmaId, datas]) => {
+        acc[turmaId] = Array.isArray(datas) ? datas : [];
+        return acc;
+      }, {});
+
+      setDatasPorTurma(mapaDatas);
+      setLive("Evento, turmas e datas carregados.");
+    } catch (error) {
+      if (isAbortLike(error)) return;
+      if (!mountedRef.current) return;
+
+      const message = getErrorMessage(
+        error,
+        "Não foi possível carregar os dados para geração de QR Codes."
+      );
+
+      setErro(message);
+      setEvento(null);
+      setTurmas([]);
+      setDatasPorTurma({});
+      notifyError(message);
+      setLive("Falha ao carregar dados.");
+    } finally {
+      if (mountedRef.current && !controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [carregarDatasDaTurma, eventoIdParam, setLive]);
+
+  useEffect(() => {
+    carregarPagina();
+  }, [carregarPagina]);
+
+  const totalDatas = useMemo(() => {
+    return Object.values(datasPorTurma).reduce(
+      (acc, datas) => acc + (Array.isArray(datas) ? datas.length : 0),
+      0
+    );
+  }, [datasPorTurma]);
+
+  const turmasComMaisDeUmDia = useMemo(() => {
+    return turmas.filter((turma) => {
+      const datas = datasPorTurma[turma.turma_id] || [];
+      return datas.length > 1;
+    }).length;
+  }, [datasPorTurma, turmas]);
+
+  const eventoTitulo = evento ? tituloEvento(evento) : "";
+  const anyLoading = loading || Boolean(gerando);
+
+  const gerarQrIndividual = useCallback(
+    async ({ turma, dataItem }) => {
+      const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+      const dataPresenca = ymd(dataItem?.data_presenca || dataItem?.data);
+
+      if (!turmaId) {
+        notifyError("turma_id inválido para geração do QR Code.");
+        return false;
+      }
+
+      if (!dataPresenca) {
+        notifyError("data_presenca inválida para geração do QR Code.");
+        return false;
+      }
+
+      const key = `${turmaId}|${dataPresenca}`;
+
+      if (gerando) return false;
+
+      setGerando(key);
+      setLive(`Gerando QR da turma ${turmaId} para ${formatarDataBR(dataPresenca)}.`);
 
       try {
         await gerarQrCodePresencaPDF(
-          montarTurmaParaQr(turma),
-          eventoTitulo,
-          organizadores
+          montarTurmaParaQr(turma, dataPresenca),
+          eventoTitulo || "Evento",
+          getOrganizadoresNomes(evento, turma),
+          {
+            data_presenca: dataPresenca,
+            nomeArquivo: nomeArquivoQr({
+              evento,
+              turma,
+              dataPresenca,
+            }),
+          }
         );
 
         notifySuccess("PDF do QR Code gerado com sucesso.");
         setLive("PDF do QR Code gerado com sucesso.");
+
+        return true;
       } catch (error) {
         notifyError(getErrorMessage(error, "Erro ao gerar PDF do QR Code."));
         setLive("Falha ao gerar PDF do QR Code.");
+
+        return false;
       } finally {
-        setGerando(null);
+        setGerando("");
       }
     },
-    [gerando, setLive]
+    [evento, eventoTitulo, gerando, setLive]
   );
 
-  const gerarTodosDoEvento = useCallback(
-    async (evento) => {
-      if (!Array.isArray(evento?.turmas) || !evento.turmas.length || gerando) {
+  const gerarTodosDaTurma = useCallback(
+    async (turma) => {
+      const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+      const datas = datasPorTurma[turmaId] || [];
+
+      if (!turmaId) {
+        notifyError("turma_id inválido para geração dos QR Codes.");
         return;
       }
 
-      setGerando(-1);
-      setLive(`Gerando PDFs do evento ${tituloEvento(evento)}.`);
+      if (!datas.length) {
+        notifyError("Esta turma não possui datas válidas para geração de QR Code.");
+        return;
+      }
+
+      if (gerando) return;
+
+      setGerando(`turma|${turmaId}`);
+      setLive(`Gerando todos os QRs da turma ${turmaId}.`);
 
       try {
-        const eventoTitulo = tituloEvento(evento);
+        for (const dataItem of datas) {
+          const dataPresenca = ymd(dataItem?.data_presenca || dataItem?.data);
 
-        for (const turma of evento.turmas) {
-          const turma_id = toPositiveInt(turma?.turma_id || turma?.id);
-
-          if (!turma_id) continue;
+          if (!dataPresenca) continue;
 
           await gerarQrCodePresencaPDF(
-            montarTurmaParaQr(turma),
-            eventoTitulo,
-            getorganizadoresNomes(evento, turma)
+            montarTurmaParaQr(turma, dataPresenca),
+            eventoTitulo || "Evento",
+            getOrganizadoresNomes(evento, turma),
+            {
+              data_presenca: dataPresenca,
+              nomeArquivo: nomeArquivoQr({
+                evento,
+                turma,
+                dataPresenca,
+              }),
+            }
           );
         }
 
-        notifySuccess("PDFs gerados para todas as turmas do evento.");
-        setLive("PDFs gerados para todas as turmas do evento.");
+        notifySuccess("QR Codes da turma gerados com sucesso.");
+        setLive("QR Codes da turma gerados com sucesso.");
       } catch (error) {
-        notifyError(getErrorMessage(error, "Erro ao gerar alguns PDFs."));
-        setLive("Falha ao gerar alguns PDFs.");
+        notifyError(getErrorMessage(error, "Erro ao gerar QR Codes da turma."));
+        setLive("Falha ao gerar QR Codes da turma.");
       } finally {
-        setGerando(null);
+        setGerando("");
       }
     },
-    [gerando, setLive]
+    [datasPorTurma, evento, eventoTitulo, gerando, setLive]
   );
 
-  const limparBusca = useCallback(() => {
-    setBusca("");
+  const gerarTodosDoEvento = useCallback(async () => {
+    if (!turmas.length) {
+      notifyInfo("Nenhuma turma disponível para geração de QR Code.");
+      return;
+    }
 
-    window.setTimeout(() => inputRef.current?.focus?.(), 0);
-  }, []);
+    if (gerando) return;
 
-  const recarregar = useCallback(() => {
-    setTentativa((value) => value + 1);
-    carregar();
-  }, [carregar]);
+    setGerando("evento");
+    setLive("Gerando todos os QR Codes do evento.");
 
-  const motionConfig = useMemo(
-    () => ({
-      initial: reduceMotion ? false : { opacity: 0, y: 10 },
-      animate: reduceMotion ? {} : { opacity: 1, y: 0 },
-      exit: reduceMotion ? {} : { opacity: 0, y: 10 },
-      transition: { duration: 0.18 },
-    }),
-    [reduceMotion]
-  );
+    try {
+      for (const turma of turmas) {
+        const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+        const datas = datasPorTurma[turmaId] || [];
+
+        for (const dataItem of datas) {
+          const dataPresenca = ymd(dataItem?.data_presenca || dataItem?.data);
+
+          if (!turmaId || !dataPresenca) continue;
+
+          await gerarQrCodePresencaPDF(
+            montarTurmaParaQr(turma, dataPresenca),
+            eventoTitulo || "Evento",
+            getOrganizadoresNomes(evento, turma),
+            {
+              data_presenca: dataPresenca,
+              nomeArquivo: nomeArquivoQr({
+                evento,
+                turma,
+                dataPresenca,
+              }),
+            }
+          );
+        }
+      }
+
+      notifySuccess("Todos os QR Codes do evento foram gerados.");
+      setLive("Todos os QR Codes do evento foram gerados.");
+    } catch (error) {
+      notifyError(getErrorMessage(error, "Erro ao gerar todos os QR Codes."));
+      setLive("Falha ao gerar todos os QR Codes do evento.");
+    } finally {
+      setGerando("");
+    }
+  }, [datasPorTurma, evento, eventoTitulo, gerando, setLive, turmas]);
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
-      <HeaderHero onRefresh={carregar} carregando={carregandoDados} />
+    <div className="flex min-h-dvh flex-col overflow-x-hidden bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+        role="status"
+      />
 
-      {carregandoDados && (
-        <div
-          className="sticky top-0 z-40 h-1 w-full bg-indigo-100 dark:bg-indigo-950"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Carregando dados"
-          aria-busy="true"
-        >
-          <div
-            className={classNames(
-              "h-full w-1/3 bg-indigo-700 dark:bg-indigo-500",
-              reduceMotion ? "" : "animate-pulse"
-            )}
-          />
-        </div>
-      )}
-
-      <main
-        id="conteudo"
-        tabIndex={-1}
-        role="main"
-        className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4 lg:px-6"
-      >
-        <p
-          ref={liveRef}
-          className="sr-only"
-          aria-live="polite"
-          aria-atomic="true"
-          role="status"
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <HeaderHero
+          titulo="QR Codes de presença"
+          subtitulo="Tela operacional contextual do Painel do Gestor para gerar QR Codes oficiais por turma e por data de aula, evitando reutilização indevida de QR Code antigo."
+          icone={QrCode}
+          campanhaMes={new Date().getMonth() + 1}
+          tamanho="lg"
+          raio="xl"
         />
 
-        {!!erro && (
-          <p ref={erroRef} className="sr-only" role="alert" aria-live="assertive">
-            {erro}
-          </p>
+        <section
+          className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-5"
+          aria-label="Contexto operacional do evento"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
+                Contexto operacional
+              </p>
+
+              <div className="mt-2 flex flex-wrap gap-2">
+                {eventoIdParam ? (
+                  <Pill className="border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900/40 dark:bg-indigo-950/25 dark:text-indigo-200">
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento ID {eventoIdParam}
+                  </Pill>
+                ) : (
+                  <Pill className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
+                    <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento não informado
+                  </Pill>
+                )}
+
+                {eventoTitulo ? (
+                  <Pill className="max-w-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
+                    <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="truncate">{eventoTitulo}</span>
+                  </Pill>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <ActionButton onClick={voltarPainelGestor}>
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Painel do Gestor
+              </ActionButton>
+
+              <ActionButton
+                onClick={carregarPagina}
+                disabled={anyLoading || !eventoIdParam}
+                tone="indigo"
+              >
+                <RefreshCcw
+                  className={classNames("h-4 w-4", loading && "animate-spin")}
+                  aria-hidden="true"
+                />
+                Atualizar dados
+              </ActionButton>
+
+              <ActionButton
+                onClick={gerarTodosDoEvento}
+                disabled={anyLoading || !evento || !turmas.length || totalDatas <= 0}
+                tone="emerald"
+              >
+                {gerando === "evento" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <FileDown className="h-4 w-4" aria-hidden="true" />
+                )}
+                Gerar todos do evento
+              </ActionButton>
+            </div>
+          </div>
+        </section>
+
+        {anyLoading && (
+          <div
+            className="sticky top-0 z-40 mt-4 h-1 w-full overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-950/30"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Carregando ou gerando QR Codes"
+          >
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-indigo-700 dark:bg-indigo-400" />
+          </div>
         )}
 
-        <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <MiniStat
-            label="Eventos"
-            value={totalEventos}
-            icon={Layers}
-            tone="neutral"
-          />
+        {!eventoIdParam ? (
+          <ContextoAusente onVoltar={voltarPainelGestor} />
+        ) : (
+          <>
+            <section
+              className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+              aria-label="Resumo operacional"
+            >
+              <MetricCard
+                icon={ClipboardList}
+                label="Evento"
+                value={loading ? "…" : evento ? 1 : 0}
+                hint="Contexto recebido pelo Painel do Gestor"
+                tone="indigo"
+              />
 
-          <MiniStat
-            label="Turmas"
-            value={totalTurmas}
-            icon={QrCode}
-            tone="info"
-          />
+              <MetricCard
+                icon={Layers}
+                label="Turmas"
+                value={loading ? "…" : turmas.length}
+                hint="Turmas vinculadas ao evento"
+                tone="sky"
+              />
 
-          <ToolbarBusca
-            busca={busca}
-            setBusca={setBusca}
-            limparBusca={limparBusca}
-            inputRef={inputRef}
-            eventosFiltrados={eventosFiltrados.length}
-            turmasFiltradas={turmasFiltradasCount}
-            tentativa={tentativa}
-            onRecarregar={recarregar}
-          />
-        </section>
+              <MetricCard
+                icon={CalendarClock}
+                label="Datas"
+                value={loading ? "…" : totalDatas}
+                hint="Cada data gera um QR próprio"
+                tone="amber"
+              />
 
-        <section className="space-y-4" aria-label="Lista de eventos e turmas">
-          <AnimatePresence mode="wait">
-            {carregandoDados ? (
-              <motion.div key="loading" {...motionConfig}>
-                <CarregandoSkeleton linhas={4} />
-              </motion.div>
-            ) : erro ? (
-              <motion.section
-                key="error"
-                {...motionConfig}
-                className="rounded-[2rem] border border-rose-200 bg-rose-50 p-5 text-center shadow-sm dark:border-rose-900/50 dark:bg-rose-950/30"
+              <MetricCard
+                icon={ShieldCheck}
+                label="Turmas multi-dia"
+                value={loading ? "…" : turmasComMaisDeUmDia}
+                hint="Proteção contra QR antigo"
+                tone="emerald"
+              />
+            </section>
+
+            {erro ? (
+              <section
+                className="mt-5 rounded-[2rem] border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20"
                 role="alert"
               >
-                <p className="font-black text-rose-900 dark:text-rose-100">
-                  {erro}
-                </p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                    <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+                  </span>
 
-                <div className="mt-4 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={carregar}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-rose-700 px-4 py-2 text-sm font-black text-white transition hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                  >
-                    <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-                    Tentar novamente
-                  </button>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">
+                      Não foi possível carregar o evento
+                    </h2>
+
+                    <p className="mt-2 text-sm leading-relaxed text-rose-800 dark:text-rose-200">
+                      {erro}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <ActionButton onClick={carregarPagina} tone="rose">
+                        <RefreshCcw className="h-4 w-4" aria-hidden="true" />
+                        Tentar novamente
+                      </ActionButton>
+
+                      <ActionButton onClick={voltarPainelGestor}>
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                        Voltar ao Painel
+                      </ActionButton>
+                    </div>
+                  </div>
                 </div>
-              </motion.section>
-            ) : vazio ? (
-              <motion.div key="empty" {...motionConfig}>
-                <NadaEncontrado
-                  titulo="Nenhum evento com turma encontrado"
-                  subtitulo={
-                    busca
-                      ? "Tente ajustar a busca ou limpar o filtro."
-                      : "Não há turmas disponíveis para geração de QR Code."
-                  }
-                />
-              </motion.div>
-            ) : (
-              <motion.div key="list" {...motionConfig} className="space-y-4">
-                {eventosFiltrados.map((evento) => {
-                  const eventoTitulo = tituloEvento(evento);
-                  const stripe = stripeClassFor(evento.id ?? eventoTitulo);
-                  const turmas = Array.isArray(evento?.turmas)
-                    ? evento.turmas
-                    : [];
+              </section>
+            ) : null}
 
-                  return (
-                    <article
-                      key={evento.id ?? eventoTitulo}
-                      className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5"
-                      role="group"
-                      aria-label={`Evento ${eventoTitulo}`}
-                    >
-                      <div
-                        className={classNames(
-                          "pointer-events-none absolute inset-x-0 top-0 h-2 bg-gradient-to-r",
-                          stripe
-                        )}
-                        aria-hidden="true"
-                      />
+            {loading ? (
+              <LoadingPanel label="Carregando evento, turmas e datas..." />
+            ) : evento ? (
+              <>
+                <section className="mt-5 rounded-[2rem] border border-indigo-200 bg-indigo-50/80 p-4 shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/20 sm:p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-800 dark:text-indigo-200">
+                        Evento em foco
+                      </p>
 
-                      <header className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <h2 className="break-words text-base font-black tracking-tight text-slate-950 dark:text-white sm:text-lg">
-                            {eventoTitulo}
-                          </h2>
+                      <h2 className="mt-1 break-words text-2xl font-black text-slate-950 dark:text-white">
+                        {eventoTitulo}
+                      </h2>
 
-                          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            {turmas.length} turma{turmas.length === 1 ? "" : "s"}
-                          </p>
-                        </div>
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-700 dark:text-zinc-300">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Building2 className="h-4 w-4" aria-hidden="true" />
+                          {evento.local || "Local não informado"}
+                        </span>
 
-                        {!!turmas.length && (
-                          <button
-                            type="button"
-                            onClick={() => gerarTodosDoEvento(evento)}
-                            disabled={Boolean(gerando)}
-                            className={classNames(
-                              "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-xs font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60",
-                              gerando
-                                ? "bg-indigo-400"
-                                : "bg-indigo-700 hover:bg-indigo-800"
-                            )}
-                            aria-label={`Gerar PDFs de QR Code para todas as turmas do evento ${eventoTitulo}`}
+                        <span className="inline-flex items-center gap-1.5">
+                          <Sparkles className="h-4 w-4" aria-hidden="true" />
+                          QR seguro por data da aula
+                        </span>
+                      </div>
+                    </div>
+
+                    <Pill className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
+                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      Contrato turma_id + data_presenca
+                    </Pill>
+                  </div>
+                </section>
+
+                <section className="mt-5" aria-label="Turmas e QR Codes">
+                  {!turmas.length ? (
+                    <section className="overflow-hidden rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-zinc-900 dark:text-zinc-300">
+                        <Info className="h-7 w-7" aria-hidden="true" />
+                      </div>
+
+                      <p className="mt-4 text-base font-black text-slate-950 dark:text-white">
+                        Nenhuma turma encontrada
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+                        Este evento não possui turmas disponíveis para geração de QR Code.
+                      </p>
+                    </section>
+                  ) : (
+                    <div className="grid gap-5">
+                      {turmas.map((turma) => {
+                        const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+                        const datas = datasPorTurma[turmaId] || [];
+                        const turmaTitulo = tituloTurma(turma);
+                        const organizadores = getOrganizadoresNomes(evento, turma);
+                        const loadingTurma = gerando === `turma|${turmaId}`;
+
+                        return (
+                          <article
+                            key={turmaId}
+                            className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
                           >
-                            {gerando === -1 ? (
-                              <Loader2
-                                className="h-4 w-4 animate-spin"
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <FileDown className="h-4 w-4" aria-hidden="true" />
-                            )}
-                            {gerando === -1 ? "Gerando..." : "Gerar todos"}
-                          </button>
-                        )}
-                      </header>
+                            <div className="h-1.5 bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500" />
 
-                      {!turmas.length ? (
-                        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                          Nenhuma turma cadastrada para este evento.
-                        </p>
-                      ) : (
-                        <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                          {turmas.map((turma) => {
-                            const turma_id = toPositiveInt(turma?.turma_id || turma?.id);
-                            const turmaTitulo = tituloTurma(turma);
-                            const organizadores = getorganizadoresNomes(evento, turma);
-                            const isLoading = gerando === turma_id;
+                            <div className="p-4 sm:p-5">
+                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-700 dark:text-indigo-300">
+                                    Turma
+                                  </p>
 
-                            return (
-                              <li
-                                key={turma_id ?? turmaTitulo}
-                                className="relative overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/60"
-                              >
-                                <span
-                                  aria-hidden="true"
-                                  className={classNames(
-                                    "absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b",
-                                    stripe
-                                  )}
-                                />
+                                  <h3 className="mt-1 break-words text-xl font-black text-slate-950 dark:text-white">
+                                    {turmaTitulo}
+                                  </h3>
 
-                                <div className="flex items-center justify-between gap-3 pl-2">
-                                  <div className="min-w-0">
-                                    <p className="truncate font-black text-slate-900 dark:text-white">
-                                      {turmaTitulo}
-                                    </p>
+                                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-zinc-300">
+                                    <span>
+                                      Organizador: <strong>{organizadores}</strong>
+                                    </span>
 
-                                    <p className="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                      {organizadores}
-                                    </p>
-
-                                    <p className="mt-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                                      QR: turma_id {turma_id || "—"}
-                                    </p>
+                                    <span>
+                                      Datas válidas: <strong>{datas.length}</strong>
+                                    </span>
                                   </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleGerarPDF(
-                                        turma,
-                                        eventoTitulo,
-                                        organizadores
-                                      )
-                                    }
-                                    disabled={isLoading || gerando === -1 || !turma_id}
-                                    className={classNames(
-                                      "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-sm font-black text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60",
-                                      isLoading || gerando === -1 || !turma_id
-                                        ? "bg-indigo-400"
-                                        : "bg-indigo-700 hover:bg-indigo-800"
-                                    )}
-                                    aria-label={`Gerar PDF de QR Code da turma ${turmaTitulo}`}
-                                  >
-                                    {isLoading ? (
-                                      <>
-                                        <Loader2
-                                          className="h-4 w-4 animate-spin"
-                                          aria-hidden="true"
-                                        />
-                                        Gerando...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <FileDown
-                                          className="h-4 w-4"
-                                          aria-hidden="true"
-                                        />
-                                        Gerar PDF
-                                      </>
-                                    )}
-                                  </button>
                                 </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </article>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </section>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Pill className="border-slate-200 bg-slate-50 text-slate-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
+                                    <QrCode className="h-3.5 w-3.5" aria-hidden="true" />
+                                    turma_id {turmaId}
+                                  </Pill>
+
+                                  {datas.length > 1 ? (
+                                    <Pill className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
+                                      <ShieldCheck
+                                        className="h-3.5 w-3.5"
+                                        aria-hidden="true"
+                                      />
+                                      QR por dia
+                                    </Pill>
+                                  ) : null}
+
+                                  <ActionButton
+                                    onClick={() => gerarTodosDaTurma(turma)}
+                                    disabled={anyLoading || !datas.length}
+                                    tone="indigo"
+                                  >
+                                    {loadingTurma ? (
+                                      <Loader2
+                                        className="h-4 w-4 animate-spin"
+                                        aria-hidden="true"
+                                      />
+                                    ) : (
+                                      <FileDown className="h-4 w-4" aria-hidden="true" />
+                                    )}
+                                    Gerar todos da turma
+                                  </ActionButton>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="border-t border-slate-100 bg-slate-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
+                              {!datas.length ? (
+                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm font-semibold text-slate-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                                  Nenhuma data válida encontrada para esta turma.
+                                </div>
+                              ) : (
+                                <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                  {datas.map((dataItem) => {
+                                    const dataPresenca = ymd(
+                                      dataItem.data_presenca || dataItem.data
+                                    );
+
+                                    const key = `${turmaId}|${dataPresenca}`;
+                                    const isLoading = gerando === key;
+
+                                    return (
+                                      <li
+                                        key={key}
+                                        className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                                      >
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500 dark:text-zinc-400">
+                                              Data da presença
+                                            </p>
+
+                                            <p className="mt-1 text-xl font-black text-slate-950 dark:text-white">
+                                              {formatarDataBR(dataPresenca)}
+                                            </p>
+
+                                            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                                              {dataItem.horario_inicio || "Horário a definir"}
+                                              {dataItem.horario_fim
+                                                ? ` às ${dataItem.horario_fim}`
+                                                : ""}
+                                            </p>
+                                          </div>
+
+                                          <Pill className="border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900/40 dark:bg-indigo-950/25 dark:text-indigo-200">
+                                            {formatarDataCurta(dataPresenca)}
+                                          </Pill>
+                                        </div>
+
+                                        <div className="mt-4">
+                                          <ActionButton
+                                            onClick={() =>
+                                              gerarQrIndividual({
+                                                turma,
+                                                dataItem,
+                                              })
+                                            }
+                                            disabled={anyLoading || !dataPresenca}
+                                            tone="emerald"
+                                          >
+                                            {isLoading ? (
+                                              <Loader2
+                                                className="h-4 w-4 animate-spin"
+                                                aria-hidden="true"
+                                              />
+                                            ) : (
+                                              <FileDown
+                                                className="h-4 w-4"
+                                                aria-hidden="true"
+                                              />
+                                            )}
+                                            Gerar QR desta data
+                                          </ActionButton>
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              </>
+            ) : null}
+          </>
+        )}
       </main>
 
       <Footer />
     </div>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * PropTypes
+ * ───────────────────────────────────────────────────────────── */
+
+ActionButton.propTypes = {
+  children: PropTypes.node.isRequired,
+  onClick: PropTypes.func,
+  disabled: PropTypes.bool,
+  tone: PropTypes.oneOf(["neutral", "emerald", "indigo", "sky", "rose"]),
+  type: PropTypes.oneOf(["button", "submit", "reset"]),
+};
+
+Pill.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+};
+
+MetricCard.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  hint: PropTypes.string,
+  tone: PropTypes.oneOf(["emerald", "indigo", "sky", "amber", "slate"]),
+};
+
+ContextoAusente.propTypes = {
+  onVoltar: PropTypes.func.isRequired,
+};
+
+LoadingPanel.propTypes = {
+  label: PropTypes.string,
+};

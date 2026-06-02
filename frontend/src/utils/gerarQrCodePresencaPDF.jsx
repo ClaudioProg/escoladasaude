@@ -1,32 +1,31 @@
-// ✅ frontend/src/utils/gerarQrCodePresencaPDF.js — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/utils/gerarQrCodePresencaPDF.js — v2.1
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
-// Utilitário para gerar PDF com QR Code de confirmação de presença.
+// Utilitário para gerar PDF institucional com QR Code de confirmação de presença.
 //
-// Contratos aplicados:
-// - QR oficial baseado em turma_id;
-// - URL frontend oficial padrão: /presenca?turma_id=:turma_id;
-// - Sem query antiga "turma";
-// - Sem /api no QR;
-// - Sem /presencas;
-// - Sem path/payload livre;
-// - Sem react-toastify direto;
+// Revisão v2.1:
+// - layout institucional premium inspirado no padrão da página do organizador;
+// - QR oficial baseado em turma_id + data_presenca;
+// - URL frontend oficial: /presenca?turma_id=:turma_id&data_presenca=:data_presenca;
+// - um QR diferente para cada data/aula da turma;
+// - impede geração sem data_presenca válida;
+// - exibe data da presença no PDF;
+// - exibe turma, período, local e organizador;
+// - nome do arquivo inclui turma_id + data_presenca;
+// - sem /api no QR;
+// - sem /presencas;
+// - sem query antiga "turma";
+// - sem VITE_APP_URL;
+// - sem fallback hardcoded de domínio;
+// - sem render React oculto para gerar QR;
 // - AppToast oficial em src/components/ui/AppToast;
-// - Env oficial: VITE_FRONTEND_URL;
-// - Sem VITE_APP_URL;
-// - Sem fallback hardcoded de domínio;
-// - Sem render React oculto para gerar QR;
-// - Sem manipulação de datas;
-// - Sem risco de fuso horário.
+// - Env oficial: VITE_FRONTEND_URL.
 
 import QRCode from "qrcode";
 import jsPDF from "jspdf";
 
-import {
-  notifyError,
-  notifySuccess,
-} from "../components/ui/AppToast";
+import { notifyError, notifySuccess } from "../components/ui/AppToast";
 
 /* ─────────────────────────────────────────
    Constantes
@@ -35,11 +34,18 @@ import {
 const QR_ERROR_LEVEL = new Set(["L", "M", "Q", "H"]);
 const ORIENTACAO_PDF = new Set(["portrait", "landscape"]);
 
-const PDF_MIN_QR_MM = 60;
-const PDF_DEFAULT_QR_MM = 120;
-const PDF_DEFAULT_MARGIN_MM = 10;
-
 const PRESENCA_FRONTEND_PATH = "/presenca";
+
+const CORES = Object.freeze({
+  fundo: [248, 250, 252],
+  moldura: [15, 23, 42],
+  branco: [255, 255, 255],
+  laranja: [234, 88, 12],
+  texto: [15, 23, 42],
+  textoSuave: [71, 85, 105],
+  linha: [226, 232, 240],
+  borda: [203, 213, 225],
+});
 
 /* ─────────────────────────────────────────
    Helpers
@@ -106,6 +112,37 @@ function normalizeErrorCorrectionLevel(value) {
   return QR_ERROR_LEVEL.has(level) ? level : "M";
 }
 
+function ymd(value) {
+  if (typeof value !== "string") return "";
+
+  const clean = value.trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(clean)) return clean.slice(0, 10);
+
+  return "";
+}
+
+function hhmm(value, fallback = "") {
+  if (typeof value !== "string") return fallback;
+
+  const clean = value.trim();
+
+  if (/^\d{2}:\d{2}$/.test(clean)) return clean;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(clean)) return clean.slice(0, 5);
+
+  return fallback;
+}
+
+function formatarDataBR(value) {
+  const data = ymd(value);
+
+  if (!data) return "—";
+
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
 function getFrontendBaseUrl(customBaseUrl) {
   const explicitBase =
     customBaseUrl || String(import.meta.env.VITE_FRONTEND_URL || "").trim();
@@ -135,7 +172,7 @@ function getFrontendBaseUrl(customBaseUrl) {
   }
 }
 
-function buildPresencaUrl({ baseUrl, turma_id, frontendPath }) {
+function buildPresencaUrl({ baseUrl, turma_id, data_presenca, frontendPath }) {
   const base = getFrontendBaseUrl(baseUrl);
 
   if (!base) {
@@ -148,8 +185,16 @@ function buildPresencaUrl({ baseUrl, turma_id, frontendPath }) {
     throw new Error("frontendPath deve começar com '/'.");
   }
 
+  const dataPresenca = ymd(data_presenca);
+
+  if (!dataPresenca) {
+    throw new Error("data_presenca deve estar no formato YYYY-MM-DD.");
+  }
+
   const url = new URL(path, `${base}/`);
+
   url.searchParams.set("turma_id", String(turma_id));
+  url.searchParams.set("data_presenca", dataPresenca);
 
   return url.toString();
 }
@@ -177,14 +222,14 @@ function truncateLines(doc, text, maxWidth, maxLines = 2) {
 
 async function gerarQrDataUrl(url, options = {}) {
   const {
-    qrSize = 320,
-    errorCorrectionLevel = "M",
+    qrSize = 420,
+    errorCorrectionLevel = "H",
     includeMargin = true,
     qrFgColor = "#000000",
     qrBgColor = "#ffffff",
   } = options;
 
-  const width = normalizePositiveNumber(qrSize, 320, 128, 2048);
+  const width = normalizePositiveNumber(qrSize, 420, 128, 2048);
   const level = normalizeErrorCorrectionLevel(errorCorrectionLevel);
 
   return QRCode.toDataURL(url, {
@@ -198,11 +243,45 @@ async function gerarQrDataUrl(url, options = {}) {
   });
 }
 
-function addCenteredText(doc, text, x, y, options = {}) {
-  doc.text(String(text || ""), x, y, {
-    align: "center",
-    ...options,
-  });
+function setRgb(doc, method, rgb) {
+  doc[method](rgb[0], rgb[1], rgb[2]);
+}
+
+function textoSeguro(value, fallback = "—") {
+  const text = String(value || "").trim();
+  return text || fallback;
+}
+
+function extrairDataPresenca(turma, opcao) {
+  return ymd(
+    opcao?.data_presenca ||
+      turma?.data_presenca ||
+      turma?.data ||
+      turma?.qr_payload?.data_presenca ||
+      ""
+  );
+}
+
+function periodoTurmaTexto(turma, dataPresenca) {
+  const dataInicio = ymd(turma?.data_inicio || turma?.data);
+  const dataFim = ymd(turma?.data_fim || turma?.data_inicio || turma?.data);
+
+  const dataBase = dataPresenca || dataInicio || dataFim;
+
+  const horarioInicio = hhmm(turma?.horario_inicio, "");
+  const horarioFim = hhmm(turma?.horario_fim, "");
+
+  const dataTexto = formatarDataBR(dataBase);
+
+  if (horarioInicio && horarioFim) {
+    return `${dataTexto} • ${horarioInicio} às ${horarioFim}`;
+  }
+
+  if (horarioInicio) {
+    return `${dataTexto} • a partir de ${horarioInicio}`;
+  }
+
+  return dataTexto;
 }
 
 /* ─────────────────────────────────────────
@@ -210,26 +289,28 @@ function addCenteredText(doc, text, x, y, options = {}) {
 ───────────────────────────────────────── */
 
 /**
- * Gera um PDF com QR Code de confirmação de presença.
+ * Gera um PDF institucional com QR Code de confirmação de presença.
  *
  * @param {Object} turma
  * @param {number|string} [turma.id]
  * @param {number|string} [turma.turma_id]
  * @param {Object} [turma.qr_payload]
  * @param {number|string} [turma.qr_payload.turma_id]
+ * @param {string} [turma.qr_payload.data_presenca]
+ * @param {string} [turma.data_presenca]
+ * @param {string} [turma.data]
  * @param {string} [turma.nome]
  * @param {string} [nomeEvento="Evento"]
  * @param {string} [nomeorganizador="organizador"]
  * @param {Object} [opcao]
+ * @param {string} [opcao.data_presenca] YYYY-MM-DD
  * @param {string} [opcao.baseUrl]
  * @param {string} [opcao.frontendPath="/presenca"]
- * @param {number} [opcao.qrSize=320]
- * @param {"L"|"M"|"Q"|"H"} [opcao.errorCorrectionLevel="M"]
+ * @param {number} [opcao.qrSize=420]
+ * @param {"L"|"M"|"Q"|"H"} [opcao.errorCorrectionLevel="H"]
  * @param {boolean} [opcao.includeMargin=true]
  * @param {"portrait"|"landscape"} [opcao.orientacao="landscape"]
  * @param {string} [opcao.nomeArquivo]
- * @param {number} [opcao.qrLarguraPdf=120]
- * @param {number} [opcao.margemPdf=10]
  * @param {string} [opcao.qrFgColor="#000000"]
  * @param {string} [opcao.qrBgColor="#ffffff"]
  * @returns {Promise<boolean>}
@@ -252,17 +333,22 @@ export async function gerarQrCodePresencaPDF(
     return false;
   }
 
+  const data_presenca = extrairDataPresenca(turma, opcao);
+
+  if (!data_presenca) {
+    notifyError("data_presenca inválida para geração do QR Code.");
+    return false;
+  }
+
   try {
     const {
       baseUrl,
       frontendPath = PRESENCA_FRONTEND_PATH,
-      qrSize = 320,
-      errorCorrectionLevel = "M",
+      qrSize = 420,
+      errorCorrectionLevel = "H",
       includeMargin = true,
       orientacao = "landscape",
       nomeArquivo,
-      qrLarguraPdf = PDF_DEFAULT_QR_MM,
-      margemPdf = PDF_DEFAULT_MARGIN_MM,
       qrFgColor = "#000000",
       qrBgColor = "#ffffff",
     } = opcao || {};
@@ -270,6 +356,7 @@ export async function gerarQrCodePresencaPDF(
     const url = buildPresencaUrl({
       baseUrl,
       turma_id,
+      data_presenca,
       frontendPath,
     });
 
@@ -283,99 +370,147 @@ export async function gerarQrCodePresencaPDF(
 
     const doc = new jsPDF({
       orientation: normalizeOrientacao(orientacao),
+      unit: "mm",
+      format: "a4",
     });
 
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
 
-    const margem = normalizePositiveNumber(
-      margemPdf,
-      PDF_DEFAULT_MARGIN_MM,
-      5,
-      40
+    const titulo = textoSeguro(nomeEvento, "Evento");
+    const turmaNome = textoSeguro(
+      turma?.nome || turma?.turma_nome || `Turma ${turma_id}`,
+      `Turma ${turma_id}`
     );
+    const local = textoSeguro(
+      turma?.evento?.local || turma?.evento_local || turma?.local,
+      "Local a confirmar"
+    );
+    const organizador = textoSeguro(nomeorganizador, "Organizador");
+    const periodo = periodoTurmaTexto(turma, data_presenca);
 
-    const contentW = Math.max(0, pageW - 2 * margem);
-    let y = margem;
+    setRgb(doc, "setFillColor", CORES.fundo);
+    doc.rect(0, 0, pageW, pageH, "F");
 
-    const titulo = String(nomeEvento || "Evento").trim() || "Evento";
-    const turmaNome =
-      String(turma?.nome || `Turma #${turma_id}`).trim() || `Turma #${turma_id}`;
-    const organizador = String(nomeorganizador || "").trim();
+    setRgb(doc, "setFillColor", CORES.moldura);
+    doc.roundedRect(10, 10, pageW - 20, pageH - 20, 8, 8, "F");
 
+    setRgb(doc, "setFillColor", CORES.branco);
+    doc.roundedRect(14, 14, pageW - 28, pageH - 28, 7, 7, "F");
+
+    setRgb(doc, "setFillColor", CORES.laranja);
+    doc.rect(14, 14, pageW - 28, 7, "F");
+
+    setRgb(doc, "setTextColor", CORES.texto);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(26);
-    doc.setTextColor(20, 20, 20);
-
-    const tituloLines = truncateLines(doc, titulo, contentW, 2);
-
-    for (const line of tituloLines) {
-      addCenteredText(doc, line, margem + contentW / 2, y);
-      y += 8;
-    }
+    doc.setFontSize(12);
+    doc.text("ESCOLA MUNICIPAL DE SAÚDE PÚBLICA", 24, 33);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(18);
-    doc.setTextColor(35, 35, 35);
-    addCenteredText(doc, turmaNome, margem + contentW / 2, y);
-    y += 12;
-
-    if (organizador) {
-      doc.setFontSize(11);
-      doc.setTextColor(60, 60, 60);
-      addCenteredText(doc, `organizador: ${organizador}`, margem + contentW / 2, y);
-      y += 10;
-    }
-
-    const availableH = Math.max(0, pageH - margem - y);
-    let qrWmm = normalizePositiveNumber(
-      qrLarguraPdf,
-      PDF_DEFAULT_QR_MM,
-      PDF_MIN_QR_MM,
-      180
-    );
-
-    qrWmm = Math.min(qrWmm, Math.max(PDF_MIN_QR_MM, availableH - 22), contentW);
-
-    const qrX = margem + (contentW - qrWmm) / 2;
-    const qrY = y;
-
-    doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrWmm, qrWmm);
+    doc.setFontSize(8);
+    setRgb(doc, "setTextColor", CORES.textoSuave);
+    doc.text("Secretaria Municipal de Saúde — Prefeitura de Santos", 24, 39);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.setTextColor(50, 50, 50);
-    addCenteredText(
-      doc,
-      "Faça login na Plataforma e escaneie este QR para confirmar presença",
-      margem + contentW / 2,
-      qrY + qrWmm + 10
-    );
+    doc.setFontSize(30);
+    setRgb(doc, "setTextColor", CORES.texto);
+
+    const tituloLinhas = truncateLines(doc, titulo, 154, 3);
+    doc.text(tituloLinhas, 24, 64);
+
+    let y = 64 + tituloLinhas.length * 11 + 7;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    setRgb(doc, "setTextColor", CORES.textoSuave);
+    doc.text(turmaNome, 24, y);
+
+    y += 9;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    setRgb(doc, "setTextColor", CORES.textoSuave);
+    doc.text(periodo, 24, y);
+
+    y += 8;
+
+    const localLinhas = truncateLines(doc, local, 150, 2);
+    doc.text(localLinhas, 24, y);
+
+    y += localLinhas.length * 6 + 7;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setRgb(doc, "setTextColor", CORES.texto);
+    doc.text(`Data da presença: ${formatarDataBR(data_presenca)}`, 24, y);
+
+    setRgb(doc, "setFillColor", CORES.laranja);
+    doc.roundedRect(24, 137, 150, 18, 4, 4, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    setRgb(doc, "setTextColor", CORES.branco);
+    doc.text("REGISTRE SUA PRESENÇA PELO QR CODE", 99, 148.5, {
+      align: "center",
+    });
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
+    setRgb(doc, "setTextColor", CORES.textoSuave);
+    doc.text("Abra a câmera do celular, escaneie o código e faça login.", 24, 165);
+    doc.text(
+      "A presença será vinculada automaticamente à turma e à data desta aula.",
+      24,
+      171
+    );
 
-    const urlY = qrY + qrWmm + 18;
-    const urlCenterX = margem + contentW / 2;
-    const urlLines = doc.splitTextToSize(url, contentW);
+    setRgb(doc, "setFillColor", CORES.branco);
+    setRgb(doc, "setDrawColor", CORES.borda);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(190, 41, 78, 78, 5, 5, "FD");
 
-    if (typeof doc.textWithLink === "function" && urlLines.length === 1) {
-      const textWidth = doc.getTextWidth(urlLines[0]);
-      const linkX = urlCenterX - textWidth / 2;
+    doc.addImage(qrDataUrl, "PNG", 198, 49, 62, 62);
 
-      doc.textWithLink(urlLines[0], linkX, urlY, {
-        url,
-      });
-    } else {
-      doc.text(urlLines, urlCenterX, urlY, {
-        align: "center",
-      });
-    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    setRgb(doc, "setTextColor", CORES.texto);
+    doc.text("ESCANEIE AQUI", 229, 133, {
+      align: "center",
+    });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    setRgb(doc, "setTextColor", CORES.textoSuave);
+    doc.text("Confirmação de presença", 229, 140, {
+      align: "center",
+    });
+
+    doc.setFontSize(7);
+    const urlLines = doc.splitTextToSize(url, 76);
+    doc.text(urlLines.slice(0, 2), 229, 147, {
+      align: "center",
+    });
+
+    setRgb(doc, "setDrawColor", CORES.linha);
+    doc.line(24, 184, pageW - 24, 184);
+
+    doc.setFontSize(8);
+    setRgb(doc, "setTextColor", [100, 116, 139]);
+    doc.text(`Organizador: ${organizador}`, 24, 193);
+    doc.text(
+      `Plataforma Escola da Saúde 2.0 • Turma ${turma_id} • ${formatarDataBR(
+        data_presenca
+      )}`,
+      pageW - 24,
+      193,
+      {
+        align: "right",
+      }
+    );
 
     const nomePdf = sanitizeFilename(
-      nomeArquivo || `qr_presenca_turma_${turma_id}.pdf`,
-      `qr_presenca_turma_${turma_id}.pdf`
+      nomeArquivo || `qr_presenca_turma_${turma_id}_${data_presenca}.pdf`,
+      `qr_presenca_turma_${turma_id}_${data_presenca}.pdf`
     );
 
     doc.save(nomePdf);
@@ -387,6 +522,7 @@ export async function gerarQrCodePresencaPDF(
     console.error("[QR Presença] Erro ao gerar QR Code.", {
       message: error?.message || String(error),
       turma_id,
+      data_presenca,
     });
 
     notifyError("Erro ao gerar QR Code.");

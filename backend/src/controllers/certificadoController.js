@@ -2,13 +2,14 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/certificadoController.js — v2.1
- * Atualizado em: 18/05/2026
+ * ✅ backend/src/controllers/certificadoController.js — v2.2
+ * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
  * Função:
  * - Controller oficial dos certificados de evento/turma.
  * - Geração de PDF com QR Code por codigo_validacao.
+ * - Geração condicional de verso institucional com conteúdo programático.
  * - Validação pública por código único.
  * - Download autenticado.
  * - Elegibilidade de participante, organizador e palestrante interno.
@@ -65,6 +66,7 @@ const QRCode = require("qrcode");
 
 const {
   desenharCertificadoCompletoV2,
+  desenharVersoConteudoProgramatico,
   dataUrlToBuffer,
 } = require("../utils/certificadoLayoutPdf");
 
@@ -720,10 +722,11 @@ async function palestranteVinculadoATurma(db, usuarioId, turmaId) {
 async function obterContextoTurmaCertificado(db, eventoId, turmaId) {
   const result = await db.query(
     `
-    SELECT
+        SELECT
       e.id AS evento_id,
       e.titulo,
       e.tipo AS evento_tipo,
+      e.conteudo_programatico,
       t.id AS turma_id,
       t.nome AS turma_nome,
       t.horario_inicio,
@@ -991,6 +994,13 @@ async function gerarPdfFisico({
       : `Participou do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
   }
 
+  const fontsCertificado = {
+    regular: "AlegreyaSans-Regular",
+    bold: "AlegreyaSans-Bold",
+    serif: "BreeSerif",
+    script: "AlexBrush",
+  };
+
   desenharCertificadoCompletoV2(doc, {
     modelo:
       tipo === TIPO_CERTIFICADO.ORGANIZADOR ||
@@ -1007,13 +1017,31 @@ async function gerarPdfFisico({
     validacaoUrl: linkValidacao,
     qrDataUrl: qrDataURL,
     subtitulo: "Documento eletrônico emitido pela Plataforma Escola da Saúde",
-    fonts: {
-      regular: "AlegreyaSans-Regular",
-      bold: "AlegreyaSans-Bold",
-      serif: "BreeSerif",
-      script: "AlexBrush",
-    },
+    fonts: fontsCertificado,
   });
+
+  const conteudoProgramatico = safeText(
+    contextoTurma?.conteudo_programatico,
+    12000
+  );
+
+  if (conteudoProgramatico) {
+    doc.addPage({
+      size: "A4",
+      layout: "landscape",
+      margin: 40,
+    });
+
+    desenharVersoConteudoProgramatico(doc, {
+      tituloEvento,
+      turmaNome,
+      conteudoProgramatico,
+      numeroCertificado: numero_certificado,
+      codigoValidacao: codigo_validacao,
+      validacaoUrl: linkValidacao,
+      fonts: fontsCertificado,
+    });
+  }
 
   doc.end();
 
@@ -1039,8 +1067,11 @@ async function gerarPdfFisico({
         assinatura_visual: Boolean(assinante.imagem_base64),
         origem: assinante.origem,
       })),
-      rafaella_obrigatoria: true,
+            rafaella_obrigatoria: true,
       fabio_ultimo_quando_presente: true,
+      possui_verso_conteudo_programatico: Boolean(
+        safeText(contextoTurma?.conteudo_programatico, 12000)
+      ),
       validacao_url: linkValidacao,
     },
   };
@@ -1742,7 +1773,8 @@ async function obterCertificadoPorId(db, certificadoId) {
       u.nome AS usuario_nome,
       u.email AS usuario_email,
       u.cpf AS usuario_cpf,
-      e.titulo AS evento_titulo,
+            e.titulo AS evento_titulo,
+      e.conteudo_programatico,
       t.nome AS turma_nome,
       t.data_inicio,
       t.data_fim,
@@ -1869,6 +1901,7 @@ if (!finalFilePath || !fs.existsSync(finalFilePath)) {
     data_inicio: certificado.data_inicio,
     data_fim: certificado.data_fim,
     carga_horaria: certificado.carga_horaria,
+    conteudo_programatico: certificado.conteudo_programatico,
   };
 
   const pdf = await gerarPdfFisico({

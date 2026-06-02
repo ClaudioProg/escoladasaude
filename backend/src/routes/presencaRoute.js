@@ -304,6 +304,7 @@ router.post(
  * POST /api/presenca/qr
  * Body oficial:
  * - turma_id
+ * - data_presenca YYYY-MM-DD
  * - token?
  */
 router.post(

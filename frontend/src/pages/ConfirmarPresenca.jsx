@@ -333,9 +333,13 @@ export default function ConfirmarPresenca() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const turma_id = useMemo(() => {
-    return searchParams.get("turma_id") || turmaIdFromPath || "";
-  }, [searchParams, turmaIdFromPath]);
+const turma_id = useMemo(() => {
+  return searchParams.get("turma_id") || turmaIdFromPath || "";
+}, [searchParams, turmaIdFromPath]);
+
+const data_presenca = useMemo(() => {
+  return String(searchParams.get("data_presenca") || "").trim();
+}, [searchParams]);
 
   const [status, setStatus] = useState("loading");
   const [msg, setMsg] = useState("Confirmando presença...");
@@ -431,6 +435,18 @@ export default function ConfirmarPresenca() {
         return;
       }
 
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data_presenca)) {
+  setStatus("err");
+  setMsg("Data de presença ausente ou inválida.");
+  setDetail("Use o QR Code correto da aula de hoje.");
+  setRequiresLogin(false);
+  setWrongAccount(false);
+  setSubtitle("Não foi possível identificar a data da aula.");
+  setLive("Parâmetro data_presenca inválido.");
+  focusTitleSoon();
+  return;
+}
+
       const tokenOk = getValidToken();
 
 if (!tokenOk) {
@@ -461,10 +477,16 @@ if (!tokenOk) {
       }
 
       try {
-        await apiPresencaConfirmarQr(turmaIdSeguro, {
-  signal: controller.signal,
-  on401: "silent",
-});
+    await apiPresencaConfirmarQr(
+  {
+    turma_id: turmaIdSeguro,
+    data_presenca,
+  },
+  {
+    signal: controller.signal,
+    on401: "silent",
+  }
+);
 
         if (!mountedRef.current || myFlight !== inFlightRef.current) return;
 
@@ -496,7 +518,13 @@ setLive("Falha na confirmação de presença.");
 focusTitleSoon();
       }
     },
-    [focusTitleSoon, goToLogin, setLive, turma_id]
+    [
+  data_presenca,
+  focusTitleSoon,
+  goToLogin,
+  setLive,
+  turma_id
+]
   );
 
   useEffect(() => {

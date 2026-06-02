@@ -1,12 +1,37 @@
-// ✅ frontend/src/pages/AdminAvaliacao.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/pages/AdminAvaliacao.jsx — v2.1
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
+//
+// Tela operacional contextual para avaliações do evento.
+//
+// Revisão premium v2.1:
+// - tela acessada somente pelo Painel do Gestor;
+// - evento_id obrigatório via URL;
+// - sem modo geral;
+// - sem seletor/listagem geral de eventos;
+// - carrega somente o evento informado;
+// - HeaderHero global oficial limpo;
+// - botões, contexto, badges e stats abaixo do HeaderHero;
+// - preserva média oficial;
+// - preserva distribuição de notas;
+// - preserva ranking de melhores critérios e pontos de atenção;
+// - preserva comentários qualitativos;
+// - preserva busca em comentários;
+// - preserva filtro entre critérios oficiais e todos os critérios;
+// - preserva ordenação por maiores/menores médias;
+// - preserva exportação CSV;
+// - usa Footer oficial;
+// - sem /api manual no frontend;
+// - mobile-first, acessível, institucional e operacional.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
+import { useNavigate, useSearchParams } from "react-router-dom";
+import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
 import {
+  AlertTriangle,
   ArrowDown01,
+  ArrowLeft,
   ArrowUp01,
   BarChart3,
   ClipboardList,
@@ -14,6 +39,7 @@ import {
   Filter,
   Info,
   MessageSquare,
+  Percent,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -24,6 +50,7 @@ import {
 } from "lucide-react";
 
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import { notifyError, notifyInfo, notifySuccess } from "../components/ui/AppToast";
@@ -86,13 +113,21 @@ const CAMPOS_TEXTOS = [
   "comentarios_finais",
 ];
 
-function isNotaEnumOficial(value) {
-  return NOTA_ENUM_OFICIAL.includes(value);
+/* ─────────────────────────────────────────────
+ * Helpers
+ * ───────────────────────────────────────────── */
+
+function classNames(...classes) {
+  return classes.filter(Boolean).join(" ");
 }
 
-function notaParaPontuacao(value) {
-  if (!isNotaEnumOficial(value)) return null;
-  return NOTA_PONTUACAO[value];
+function toPositiveInt(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
+}
+
+function isNotaEnumOficial(value) {
+  return NOTA_ENUM_OFICIAL.includes(value);
 }
 
 function criarDistribuicaoNotas() {
@@ -117,10 +152,6 @@ function mediaFromDist(dist) {
 
   return total ? Number((soma / total).toFixed(2)) : null;
 }
-
-/* ─────────────────────────────────────────────
- * Helpers
- * ───────────────────────────────────────────── */
 
 function extrairData(response) {
   return response?.data ?? response ?? null;
@@ -149,6 +180,15 @@ function baixarArquivo(nome, conteudo, mime) {
   link.remove();
 
   URL.revokeObjectURL(url);
+}
+
+function getErrorMessage(error, fallback) {
+  return (
+    error?.data?.message ||
+    error?.response?.data?.message ||
+    error?.message ||
+    fallback
+  );
 }
 
 function labelDoCampo(campo) {
@@ -182,7 +222,7 @@ function normalizarEventos(response) {
   const lista = Array.isArray(response) ? response : [];
 
   return lista.map((evento) => ({
-    id: evento.id,
+    id: toPositiveInt(evento.id),
     titulo: evento.titulo || "Evento",
     data_inicio: evento.data_inicio || evento.di || null,
     data_fim: evento.data_fim || evento.df || null,
@@ -220,9 +260,9 @@ function normalizarAgregados(agregados, respostas) {
     if (distOriginal && NOTA_ENUM_OFICIAL.some((nota) => nota in distOriginal)) {
       dist[campo] = {
         Ótimo: Number(distOriginal["Ótimo"] || 0),
-        Bom: Number(distOriginal["Bom"] || 0),
-        Regular: Number(distOriginal["Regular"] || 0),
-        Ruim: Number(distOriginal["Ruim"] || 0),
+        Bom: Number(distOriginal.Bom || 0),
+        Regular: Number(distOriginal.Regular || 0),
+        Ruim: Number(distOriginal.Ruim || 0),
         Péssimo: Number(distOriginal["Péssimo"] || 0),
       };
     } else {
@@ -356,97 +396,145 @@ function obterTopCriterios(campos, medias, modo = "melhores") {
     .slice(0, 4);
 }
 
+function sanitizeFileName(value) {
+  return String(value || "evento")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}\-_ ]/gu, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 80);
+}
+
 /* ─────────────────────────────────────────────
  * Componentes locais
  * ───────────────────────────────────────────── */
 
-function HeaderHero({ onRefresh, carregando, resumo }) {
+function ActionButton({
+  children,
+  onClick,
+  disabled = false,
+  tone = "neutral",
+  type = "button",
+}) {
+  const tones = {
+    neutral:
+      "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900",
+    violet:
+      "border-violet-700 bg-violet-700 text-white hover:bg-violet-800 dark:border-violet-600",
+    slate:
+      "border-slate-900 bg-slate-950 text-white hover:bg-slate-800 dark:border-white dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200",
+  };
+
   return (
-    <header
-      className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-900 text-white"
-      role="banner"
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={classNames(
+        "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-60",
+        tones[tone] || tones.neutral
+      )}
     >
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-fuchsia-500 blur-3xl" />
-        <div className="absolute right-0 top-16 h-72 w-72 rounded-full bg-indigo-500 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400 blur-3xl" />
-      </div>
-
-      <a
-        href="#conteudo"
-        className="sr-only relative z-10 focus:not-sr-only focus:block focus:bg-white/20 focus:px-3 focus:py-2 focus:text-sm focus:text-white"
-      >
-        Ir para o conteúdo
-      </a>
-
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ring-1 ring-white/20 backdrop-blur">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              Painel administrativo
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur">
-                <BarChart3 className="h-7 w-7" aria-hidden="true" />
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
-                  Avaliações — Administração
-                </h1>
-
-                <p className="mt-1 max-w-3xl text-sm text-white/85 sm:text-base">
-                  Analise eventos avaliados, médias oficiais, distribuição de notas,
-                  comentários qualitativos e turmas com respostas registradas.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/20 backdrop-blur-xl">
-            <div className="grid grid-cols-3 gap-3">
-              <HeroMetric label="Eventos" value={resumo.eventos} />
-              <HeroMetric label="Turmas" value={resumo.turmas} />
-              <HeroMetric label="Respostas" value={resumo.respostas} />
-            </div>
-
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={carregando}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-violet-950 shadow-lg transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              aria-label="Atualizar dados de avaliações"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              {carregando ? "Atualizando painel..." : "Atualizar painel"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+      {children}
+    </button>
   );
 }
 
-function HeroMetric({ label, value }) {
+function Pill({ children, className = "" }) {
   return (
-    <div className="rounded-2xl bg-white/10 p-3 text-center ring-1 ring-white/15">
-      <p className="text-2xl font-black leading-none">{value}</p>
-      <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-white/75">
-        {label}
-      </p>
-    </div>
+    <span
+      className={classNames(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MetricCard({ icon: Icon, label, value, hint, tone = "violet" }) {
+  const tones = {
+    violet:
+      "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/25 dark:text-violet-100",
+    fuchsia:
+      "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-900 dark:border-fuchsia-900/40 dark:bg-fuchsia-950/25 dark:text-fuchsia-100",
+    emerald:
+      "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100",
+    amber:
+      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
+    sky:
+      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
+    slate:
+      "border-slate-200 bg-white text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100",
+  };
+
+  return (
+    <article className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start gap-4">
+          <span
+            className={classNames(
+              "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
+              tones[tone] || tones.violet
+            )}
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-zinc-400">
+              {label}
+            </p>
+
+            <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+              {value}
+            </p>
+
+            {hint ? (
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-zinc-400">
+                {hint}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ContextoAusente({ onVoltar }) {
+  return (
+    <section className="mt-5 overflow-hidden rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <Info className="h-6 w-6" aria-hidden="true" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl font-black text-slate-950 dark:text-white">
+            Contexto do evento não informado
+          </h2>
+
+          <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
+            O endereço precisa conter um <strong>evento_id</strong> válido para
+            carregar as avaliações do evento específico.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ActionButton onClick={onVoltar} tone="violet">
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Voltar ao Painel do Gestor
+            </ActionButton>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
 function ControlePainel({
-  eventos,
-  eventoId,
-  setEventoId,
   somenteOficiais,
   setSomenteOficiais,
   ordenar,
@@ -455,123 +543,45 @@ function ControlePainel({
   exportDisabled,
 }) {
   return (
-    <section className="sticky top-0 z-30 -mx-3 mb-6 border-b border-slate-200/80 bg-slate-50/90 px-3 py-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/90 sm:mx-0 sm:rounded-b-3xl sm:border sm:shadow-sm">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+    <section
+      className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-5"
+      aria-label="Controles da avaliação"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <label
-            htmlFor="sel-evento"
-            className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400"
-          >
-            Evento analisado
-          </label>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
+            Critérios e exportação
+          </p>
 
-          <select
-            id="sel-evento"
-            value={eventoId}
-            onChange={(event) => setEventoId(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-violet-950"
-            aria-label="Selecionar evento"
-          >
-            {eventos.map((evento) => (
-              <option key={evento.id} value={evento.id}>
-                {evento.titulo}
-                {evento.data_inicio ? ` • ${formatDateBr(evento.data_inicio)}` : ""}
-                {evento.data_fim ? ` a ${formatDateBr(evento.data_fim)}` : ""}
-                {typeof evento.total_respostas === "number"
-                  ? ` • ${evento.total_respostas} resp.`
-                  : ""}
-              </option>
-            ))}
-
-            {!eventos.length ? <option value="">Nenhum evento encontrado</option> : null}
-          </select>
+          <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+            Ajuste a visualização dos critérios avaliativos e exporte os dados consolidados.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <button
-            type="button"
-            onClick={() => setSomenteOficiais((value) => !value)}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-bold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
-          >
+          <ActionButton onClick={() => setSomenteOficiais((value) => !value)}>
             <Filter className="h-4 w-4" aria-hidden="true" />
             {somenteOficiais ? "Só oficiais" : "Todos critérios"}
-          </button>
+          </ActionButton>
 
-          <button
-            type="button"
+          <ActionButton
             onClick={() => setOrdenar((value) => (value === "desc" ? "asc" : "desc"))}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-bold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
           >
             {ordenar === "desc" ? (
               <ArrowDown01 className="h-4 w-4" aria-hidden="true" />
             ) : (
               <ArrowUp01 className="h-4 w-4" aria-hidden="true" />
             )}
-            {ordenar === "desc" ? "Maiores" : "Menores"}
-          </button>
+            {ordenar === "desc" ? "Maiores médias" : "Menores médias"}
+          </ActionButton>
 
-          <button
-            type="button"
-            onClick={onExportar}
-            disabled={exportDisabled}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-3 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
-          >
+          <ActionButton onClick={onExportar} disabled={exportDisabled} tone="slate">
             <Download className="h-4 w-4" aria-hidden="true" />
             Exportar CSV
-          </button>
+          </ActionButton>
         </div>
       </div>
     </section>
-  );
-}
-
-function KPI({ titulo, valor, icon: Icon, descricao, destaque = false }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-3xl p-5 shadow-sm ring-1 ${
-        destaque
-          ? "bg-gradient-to-br from-violet-700 to-fuchsia-700 text-white ring-violet-400/40"
-          : "bg-white text-slate-950 ring-slate-200 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800"
-      }`}
-    >
-      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-
-      <div className="relative flex items-start justify-between gap-4">
-        <div>
-          <p
-            className={`text-xs font-bold uppercase tracking-wide ${
-              destaque ? "text-white/75" : "text-slate-500 dark:text-zinc-400"
-            }`}
-          >
-            {titulo}
-          </p>
-
-          <p className="mt-2 text-2xl font-black leading-tight sm:text-3xl">
-            {valor}
-          </p>
-
-          {descricao ? (
-            <p
-              className={`mt-1 text-xs ${
-                destaque ? "text-white/75" : "text-slate-500 dark:text-zinc-400"
-              }`}
-            >
-              {descricao}
-            </p>
-          ) : null}
-        </div>
-
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-            destaque
-              ? "bg-white/15 ring-1 ring-white/20"
-              : "bg-violet-50 text-violet-700 ring-1 ring-violet-100 dark:bg-violet-950/50 dark:text-violet-200 dark:ring-violet-900"
-          }`}
-        >
-          {Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -727,21 +737,24 @@ function QuadroComentarios({ titulo, itens }) {
  * ───────────────────────────────────────────── */
 
 export default function AdminAvaliacao() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const reduceMotion = useReducedMotion();
   const liveRef = useRef(null);
+
+  const eventoIdParam = useMemo(
+    () => toPositiveInt(searchParams.get("evento_id")),
+    [searchParams]
+  );
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [eventos, setEventos] = useState([]);
-  const [eventoId, setEventoId] = useState("");
+  const [eventoAtual, setEventoAtual] = useState(null);
   const [payload, setPayload] = useState(null);
   const [somenteOficiais, setSomenteOficiais] = useState(true);
   const [ordenar, setOrdenar] = useState("desc");
   const [buscaComentario, setBuscaComentario] = useState("");
-
-  const eventoAtual = useMemo(() => {
-    return eventos.find((evento) => String(evento.id) === String(eventoId));
-  }, [eventos, eventoId]);
 
   const camposVisiveis = useMemo(() => {
     return somenteOficiais ? CAMPOS_OFICIAIS_MEDIA : CAMPOS_OBJETIVOS;
@@ -777,16 +790,11 @@ export default function AdminAvaliacao() {
     };
   }, [payload, buscaComentario]);
 
-  const resumoHero = useMemo(() => {
-    const turmas = Array.isArray(payload?.turmas) ? payload.turmas.length : 0;
-    const respostas = Number(payload?.agregados?.total || 0);
-
-    return {
-      eventos: eventos.length,
-      turmas,
-      respostas,
-    };
-  }, [eventos, payload]);
+  const totalComentarios = useMemo(() => {
+    return CAMPOS_TEXTOS.reduce((acc, campo) => {
+      return acc + Number(payload?.agregados?.textos?.[campo]?.length || 0);
+    }, 0);
+  }, [payload]);
 
   function setLive(message) {
     if (liveRef.current) {
@@ -794,11 +802,22 @@ export default function AdminAvaliacao() {
     }
   }
 
-  const carregarEventos = useCallback(async () => {
+  const voltarPainelGestor = useCallback(() => {
+    navigate("/administrador");
+  }, [navigate]);
+
+  const carregarPagina = useCallback(async () => {
     setCarregando(true);
     setErro("");
     setPayload(null);
-    setLive("Carregando eventos com avaliações.");
+    setEventoAtual(null);
+    setLive("Carregando avaliações do evento.");
+
+    if (!eventoIdParam) {
+      setCarregando(false);
+      setLive("Contexto de evento ausente.");
+      return;
+    }
 
     try {
       if (typeof api?.avaliacao?.adminEventos !== "function") {
@@ -807,62 +826,44 @@ export default function AdminAvaliacao() {
         );
       }
 
-      const response = await api.avaliacao.adminEventos();
-      const lista = normalizarEventos(extrairData(response));
-
-      setEventos(lista);
-
-      if (!lista.length) {
-        setEventoId("");
-        setErro("Não há eventos com avaliações registradas.");
-        setLive("Nenhum evento com avaliação foi encontrado.");
-        return;
-      }
-
-      setEventoId((atual) => atual || String(lista[0].id));
-      setLive(`Foram encontrados ${lista.length} evento(s) com avaliações.`);
-    } catch (error) {
-      console.error("[AdminAvaliacao] erro ao carregar eventos:", error);
-
-      setEventos([]);
-      setEventoId("");
-      setErro("Erro ao carregar eventos com avaliações.");
-
-      notifyError(
-        "Não foi possível carregar os eventos com avaliações. Tente novamente ou acione o suporte se o problema continuar."
-      );
-
-      setLive("Falha ao carregar eventos com avaliações.");
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
-
-  const carregarEvento = useCallback(async (id) => {
-    if (!id) return;
-
-    setCarregando(true);
-    setErro("");
-    setPayload(null);
-    setLive("Carregando avaliações do evento.");
-
-    try {
       if (typeof api?.avaliacao?.adminEvento !== "function") {
         throw new Error(
           "Facade api.avaliacao.adminEvento não encontrada em frontend/src/services/api.js."
         );
       }
 
-      const response = await api.avaliacao.adminEvento(id);
-      const dados = normalizarPayloadEvento(extrairData(response));
+      const eventosResponse = await api.avaliacao.adminEventos();
+      const lista = normalizarEventos(extrairData(eventosResponse)).filter(Boolean);
+
+      setEventos(lista);
+
+      const eventoEncontrado =
+        lista.find((evento) => Number(evento.id) === eventoIdParam) || null;
+
+      if (!eventoEncontrado) {
+        setErro("O evento informado no link não foi encontrado entre os eventos com avaliação.");
+        setLive("Evento não encontrado entre os eventos avaliados.");
+        return;
+      }
+
+      setEventoAtual(eventoEncontrado);
+
+      const eventoResponse = await api.avaliacao.adminEvento(eventoIdParam);
+      const dados = normalizarPayloadEvento(extrairData(eventoResponse));
 
       setPayload(dados);
       setLive("Avaliações do evento carregadas.");
     } catch (error) {
-      console.error("[AdminAvaliacao] erro ao carregar evento:", error);
+      console.error("[AdminAvaliacao] erro ao carregar página:", error);
 
+      const message = getErrorMessage(
+        error,
+        "Erro ao carregar avaliações do evento."
+      );
+
+      setErro(message);
       setPayload(null);
-      setErro("Erro ao carregar avaliações do evento.");
+      setEventoAtual(null);
 
       notifyError(
         "Não foi possível carregar as avaliações do evento. Tente novamente ou acione o suporte se o problema continuar."
@@ -872,29 +873,16 @@ export default function AdminAvaliacao() {
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [eventoIdParam]);
 
   useEffect(() => {
-    document.title = "Avaliações — Administração | Escola da Saúde";
-    carregarEventos();
-  }, [carregarEventos]);
-
-  useEffect(() => {
-    if (!eventoId) return;
-    carregarEvento(eventoId);
-  }, [eventoId, carregarEvento]);
-
-  function atualizarManual() {
-    if (eventoId) {
-      carregarEvento(eventoId);
-    } else {
-      carregarEventos();
-    }
-  }
+    document.title = "Avaliações do evento — Escola da Saúde";
+    carregarPagina();
+  }, [carregarPagina]);
 
   function exportarCSV() {
     if (!payload) {
-      notifyInfo("Selecione um evento com avaliações para exportar.");
+      notifyInfo("Não há avaliações carregadas para exportar.");
       return;
     }
 
@@ -932,9 +920,9 @@ export default function AdminAvaliacao() {
             limparCSV(labelDoCampo(campo)),
             media ?? "",
             dist["Ótimo"] || 0,
-            dist["Bom"] || 0,
-            dist["Regular"] || 0,
-            dist["Ruim"] || 0,
+            dist.Bom || 0,
+            dist.Regular || 0,
+            dist.Ruim || 0,
             dist["Péssimo"] || 0,
           ].join(";")
         );
@@ -958,13 +946,8 @@ export default function AdminAvaliacao() {
         linhas.push([limparCSV(texto)].join(";"));
       }
 
-      const titulo = String(eventoAtual?.titulo || "evento")
-        .replace(/[^\p{L}\p{N}\-_ ]/gu, "")
-        .replace(/\s+/g, "_")
-        .slice(0, 80);
-
       baixarArquivo(
-        `avaliacao_${titulo || "evento"}.csv`,
+        `avaliacao_${sanitizeFileName(eventoAtual?.titulo || "evento")}.csv`,
         linhas.join("\r\n"),
         "text/csv;charset=utf-8"
       );
@@ -976,242 +959,417 @@ export default function AdminAvaliacao() {
     }
   }
 
+  const mediaOficialTexto =
+    payload?.agregados?.mediaOficial != null
+      ? `${Number(payload.agregados.mediaOficial).toFixed(2)} / 10`
+      : "—";
+
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
-      <HeaderHero
-        carregando={carregando}
-        onRefresh={atualizarManual}
-        resumo={resumoHero}
-      />
+    <div className="flex min-h-dvh flex-col overflow-x-hidden bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
+      <p ref={liveRef} className="sr-only" aria-live="polite" />
 
-      {carregando ? (
-        <div
-          className="sticky top-0 z-40 h-1 w-full bg-violet-100 dark:bg-violet-950"
-          role="progressbar"
-          aria-label="Carregando avaliações"
-          aria-valuemin={0}
-          aria-valuemax={100}
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <HeaderHero
+          titulo="Avaliações do evento"
+          subtitulo="Tela operacional contextual do Painel do Gestor para analisar respostas, médias oficiais, critérios avaliativos e comentários do evento selecionado."
+          icone={BarChart3}
+          campanhaMes={new Date().getMonth() + 1}
+          tamanho="lg"
+          raio="xl"
+        />
+
+        <section
+          className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-5"
+          aria-label="Contexto operacional do evento"
         >
-          <div
-            className={`h-full w-1/3 bg-gradient-to-r from-violet-700 to-fuchsia-600 ${
-              reduceMotion ? "" : "animate-pulse"
-            }`}
-          />
-        </div>
-      ) : null}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
+                Contexto operacional
+              </p>
 
-      <main id="conteudo" className="flex-1">
-        <p ref={liveRef} className="sr-only" aria-live="polite" />
+              <div className="mt-2 flex flex-wrap gap-2">
+                {eventoIdParam ? (
+                  <Pill className="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/40 dark:bg-violet-950/25 dark:text-violet-200">
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento ID {eventoIdParam}
+                  </Pill>
+                ) : (
+                  <Pill className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
+                    <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento não informado
+                  </Pill>
+                )}
 
-        <div className="mx-auto max-w-7xl px-3 py-6 sm:px-4">
-          <ControlePainel
-            eventos={eventos}
-            eventoId={eventoId}
-            setEventoId={setEventoId}
-            somenteOficiais={somenteOficiais}
-            setSomenteOficiais={setSomenteOficiais}
-            ordenar={ordenar}
-            setOrdenar={setOrdenar}
-            onExportar={exportarCSV}
-            exportDisabled={!payload}
-          />
-
-          {carregando ? (
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <CarregandoSkeleton height={130} />
-                <CarregandoSkeleton height={130} />
-                <CarregandoSkeleton height={130} />
-                <CarregandoSkeleton height={130} />
+                {eventoAtual?.titulo ? (
+                  <Pill className="max-w-full border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-900/40 dark:bg-fuchsia-950/25 dark:text-fuchsia-200">
+                    <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="truncate">{eventoAtual.titulo}</span>
+                  </Pill>
+                ) : null}
               </div>
-              <CarregandoSkeleton height={340} />
-              <CarregandoSkeleton height={260} />
             </div>
-          ) : erro ? (
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
-              <NadaEncontrado mensagem={erro} />
-            </div>
-          ) : !eventoAtual ? (
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
-              <NadaEncontrado mensagem="Nenhum evento encontrado." />
-            </div>
-          ) : !payload ? (
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
-              <NadaEncontrado mensagem="Sem avaliações para este evento até o momento." />
-            </div>
-          ) : (
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-8"
-            >
-              <section
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-                aria-label="Resumo administrativo das avaliações"
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <ActionButton onClick={voltarPainelGestor}>
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Painel do Gestor
+              </ActionButton>
+
+              <ActionButton
+                onClick={carregarPagina}
+                disabled={carregando || !eventoIdParam}
+                tone="violet"
               >
-                <KPI
-                  titulo="Total de respostas"
-                  valor={payload.agregados?.total || 0}
-                  descricao="Respostas registradas no evento"
-                  icon={ClipboardList}
-                  destaque
+                <RefreshCw
+                  className={classNames("h-4 w-4", carregando && "animate-spin")}
+                  aria-hidden="true"
                 />
+                Atualizar dados
+              </ActionButton>
+            </div>
+          </div>
+        </section>
 
-                <KPI
-                  titulo="Média oficial"
-                  valor={
-                    payload.agregados?.mediaOficial != null
-                      ? `${Number(payload.agregados.mediaOficial).toFixed(2)} / 10`
-                      : "—"
-                  }
-                  descricao="Somente critérios oficiais"
-                  icon={Star}
-                />
+        {carregando ? (
+          <div
+            className="sticky top-0 z-40 mt-4 h-1 w-full overflow-hidden rounded-full bg-violet-100 dark:bg-violet-950/30"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Carregando avaliações"
+          >
+            <div
+              className={classNames(
+                "h-full w-1/3 rounded-full bg-violet-700 dark:bg-violet-400",
+                reduceMotion ? "" : "animate-pulse"
+              )}
+            />
+          </div>
+        ) : null}
 
-                <KPI
-                  titulo="Eventos carregados"
-                  valor={eventos.length}
-                  descricao="Eventos com avaliação"
-                  icon={BarChart3}
-                />
+        {!eventoIdParam ? (
+          <ContextoAusente onVoltar={voltarPainelGestor} />
+        ) : (
+          <>
+            <section
+              className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              aria-label="Resumo operacional das avaliações"
+            >
+              <MetricCard
+                icon={ClipboardList}
+                label="Respostas"
+                value={carregando ? "…" : payload?.agregados?.total || 0}
+                hint="Respostas registradas"
+                tone="violet"
+              />
 
-                <KPI
-                  titulo="Turmas no evento"
-                  valor={Array.isArray(payload.turmas) ? payload.turmas.length : 0}
-                  descricao="Turmas vinculadas ao evento"
-                  icon={Users}
-                />
-              </section>
+              <MetricCard
+                icon={Star}
+                label="Média oficial"
+                value={carregando ? "…" : mediaOficialTexto}
+                hint="Critérios oficiais"
+                tone="fuchsia"
+              />
 
-              {Array.isArray(payload.turmas) && payload.turmas.length ? (
-                <section aria-label="Turmas do evento">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Users className="h-4 w-4 text-violet-600" aria-hidden="true" />
-                    <h2 className="text-sm font-black text-slate-950 dark:text-white">
-                      Turmas com respostas
-                    </h2>
-                  </div>
+              <MetricCard
+                icon={Users}
+                label="Turmas"
+                value={carregando ? "…" : Array.isArray(payload?.turmas) ? payload.turmas.length : 0}
+                hint="Turmas com respostas"
+                tone="sky"
+              />
 
-                  <ul className="flex flex-wrap gap-2">
-                    {payload.turmas.map((turma) => (
-                      <li
-                        key={turma.id}
-                        className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-800"
-                        title={`${turma.nome} — ${turma.total_respostas ?? 0} respostas`}
-                      >
-                        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-fuchsia-600 px-2 text-xs font-black text-white">
-                          {turma.total_respostas ?? 0}
-                        </span>
-                        {turma.nome || `Turma ${turma.id}`}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
+              <MetricCard
+                icon={TrendingUp}
+                label="Classificação"
+                value={
+                  carregando
+                    ? "…"
+                    : classificarMedia(payload?.agregados?.mediaOficial)
+                }
+                hint="Resultado consolidado"
+                tone="emerald"
+              />
 
-              <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <RankingCriterios
-                  titulo="Melhores critérios"
-                  itens={melhoresCriterios}
-                  icon={Sparkles}
-                />
+              <MetricCard
+                icon={MessageSquare}
+                label="Comentários"
+                value={carregando ? "…" : totalComentarios}
+                hint="Textos qualitativos"
+                tone="amber"
+              />
 
-                <RankingCriterios
-                  titulo="Pontos de atenção"
-                  itens={pontosAtencao}
-                  icon={Info}
-                />
-              </section>
+              <MetricCard
+                icon={Percent}
+                label="Critérios"
+                value={carregando ? "…" : camposVisiveis.length}
+                hint={somenteOficiais ? "Somente oficiais" : "Todos visíveis"}
+                tone="slate"
+              />
+            </section>
 
-              <section aria-labelledby="medias-criterio-titulo">
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2
-                      id="medias-criterio-titulo"
-                      className="text-xl font-black text-slate-950 dark:text-white"
-                    >
-                      Médias por critério
-                    </h2>
+            <ControlePainel
+              somenteOficiais={somenteOficiais}
+              setSomenteOficiais={setSomenteOficiais}
+              ordenar={ordenar}
+              setOrdenar={setOrdenar}
+              onExportar={exportarCSV}
+              exportDisabled={!payload}
+            />
 
-                    <p className="text-sm text-slate-500 dark:text-zinc-400">
-                      Escala oficial convertida para pontuação de 0 a 10.
-                    </p>
-                  </div>
-
-                  <span className="inline-flex w-fit rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800 ring-1 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-800/50">
-                    Ótimo 10 • Bom 8 • Regular 6 • Ruim 4 • Péssimo 2
+            {erro ? (
+              <section
+                className="mt-5 rounded-[2rem] border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20"
+                role="alert"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                    <AlertTriangle className="h-6 w-6" aria-hidden="true" />
                   </span>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  {mediasOrdenadas.map(({ campo, nome, media }) => (
-                    <CampoBarra
-                      key={campo}
-                      nome={nome}
-                      media={media}
-                      dist={payload?.agregados?.dist?.[campo]}
-                      oficial={CAMPOS_OFICIAIS_MEDIA.includes(campo)}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              <section className="space-y-4" aria-labelledby="comentarios-titulo">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2
-                      id="comentarios-titulo"
-                      className="text-xl font-black text-slate-950 dark:text-white"
-                    >
-                      Comentários qualitativos
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">
+                      Não foi possível carregar as avaliações
                     </h2>
 
-                    <p className="text-sm text-slate-500 dark:text-zinc-400">
-                      Busque rapidamente termos citados pelos participantes.
+                    <p className="mt-2 text-sm leading-relaxed text-rose-800 dark:text-rose-200">
+                      {erro}
                     </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <ActionButton onClick={carregarPagina} tone="violet">
+                        <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                        Tentar novamente
+                      </ActionButton>
+
+                      <ActionButton onClick={voltarPainelGestor}>
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                        Voltar ao Painel
+                      </ActionButton>
+                    </div>
                   </div>
-
-                  <div className="relative w-full sm:max-w-md">
-                    <Search
-                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                      aria-hidden="true"
-                    />
-
-                    <input
-                      type="search"
-                      value={buscaComentario}
-                      onChange={(event) => setBuscaComentario(event.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-9 pr-3 text-sm font-medium text-slate-950 outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-violet-950"
-                      placeholder="Buscar nos comentários..."
-                      aria-label="Buscar nos comentários"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <QuadroComentarios
-                    titulo="O que mais gostaram"
-                    itens={textosFiltrados.gostou_mais}
-                  />
-
-                  <QuadroComentarios
-                    titulo="Sugestões de melhoria"
-                    itens={textosFiltrados.sugestoes_melhoria}
-                  />
-
-                  <QuadroComentarios
-                    titulo="Comentários finais"
-                    itens={textosFiltrados.comentarios_finais}
-                  />
                 </div>
               </section>
-            </motion.div>
-          )}
-        </div>
+            ) : null}
+
+            {carregando ? (
+              <div className="mt-5 space-y-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <CarregandoSkeleton height={130} />
+                  <CarregandoSkeleton height={130} />
+                  <CarregandoSkeleton height={130} />
+                </div>
+
+                <CarregandoSkeleton height={340} />
+                <CarregandoSkeleton height={260} />
+              </div>
+            ) : !eventoAtual ? (
+              <div className="mt-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+                <NadaEncontrado mensagem="Nenhum evento encontrado." />
+              </div>
+            ) : !payload ? (
+              <div className="mt-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+                <NadaEncontrado mensagem="Sem avaliações para este evento até o momento." />
+              </div>
+            ) : (
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-5 space-y-8"
+              >
+                {Array.isArray(payload.turmas) && payload.turmas.length ? (
+                  <section aria-label="Turmas do evento">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-violet-600" aria-hidden="true" />
+                      <h2 className="text-sm font-black text-slate-950 dark:text-white">
+                        Turmas com respostas
+                      </h2>
+                    </div>
+
+                    <ul className="flex flex-wrap gap-2">
+                      {payload.turmas.map((turma) => (
+                        <li
+                          key={turma.id}
+                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-800"
+                          title={`${turma.nome} — ${turma.total_respostas ?? 0} respostas`}
+                        >
+                          <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-fuchsia-600 px-2 text-xs font-black text-white">
+                            {turma.total_respostas ?? 0}
+                          </span>
+                          {turma.nome || `Turma ${turma.id}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+
+                <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <RankingCriterios
+                    titulo="Melhores critérios"
+                    itens={melhoresCriterios}
+                    icon={Sparkles}
+                  />
+
+                  <RankingCriterios
+                    titulo="Pontos de atenção"
+                    itens={pontosAtencao}
+                    icon={Info}
+                  />
+                </section>
+
+                <section aria-labelledby="medias-criterio-titulo">
+                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2
+                        id="medias-criterio-titulo"
+                        className="text-xl font-black text-slate-950 dark:text-white"
+                      >
+                        Médias por critério
+                      </h2>
+
+                      <p className="text-sm text-slate-500 dark:text-zinc-400">
+                        Escala oficial convertida para pontuação de 0 a 10.
+                      </p>
+                    </div>
+
+                    <span className="inline-flex w-fit rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800 ring-1 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-800/50">
+                      Ótimo 10 • Bom 8 • Regular 6 • Ruim 4 • Péssimo 2
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    {mediasOrdenadas.map(({ campo, nome, media }) => (
+                      <CampoBarra
+                        key={campo}
+                        nome={nome}
+                        media={media}
+                        dist={payload?.agregados?.dist?.[campo]}
+                        oficial={CAMPOS_OFICIAIS_MEDIA.includes(campo)}
+                      />
+                    ))}
+                  </div>
+                </section>
+
+                <section className="space-y-4" aria-labelledby="comentarios-titulo">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2
+                        id="comentarios-titulo"
+                        className="text-xl font-black text-slate-950 dark:text-white"
+                      >
+                        Comentários qualitativos
+                      </h2>
+
+                      <p className="text-sm text-slate-500 dark:text-zinc-400">
+                        Busque rapidamente termos citados pelos participantes.
+                      </p>
+                    </div>
+
+                    <div className="relative w-full sm:max-w-md">
+                      <Search
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        aria-hidden="true"
+                      />
+
+                      <input
+                        type="search"
+                        value={buscaComentario}
+                        onChange={(event) => setBuscaComentario(event.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-9 pr-3 text-sm font-medium text-slate-950 outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-violet-950"
+                        placeholder="Buscar nos comentários..."
+                        aria-label="Buscar nos comentários"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <QuadroComentarios
+                      titulo="O que mais gostaram"
+                      itens={textosFiltrados.gostou_mais}
+                    />
+
+                    <QuadroComentarios
+                      titulo="Sugestões de melhoria"
+                      itens={textosFiltrados.sugestoes_melhoria}
+                    />
+
+                    <QuadroComentarios
+                      titulo="Comentários finais"
+                      itens={textosFiltrados.comentarios_finais}
+                    />
+                  </div>
+                </section>
+              </motion.div>
+            )}
+          </>
+        )}
       </main>
 
       <Footer />
     </div>
   );
 }
+
+/* ─────────────────────────────────────────────
+ * PropTypes
+ * ───────────────────────────────────────────── */
+
+ActionButton.propTypes = {
+  children: PropTypes.node.isRequired,
+  onClick: PropTypes.func,
+  disabled: PropTypes.bool,
+  tone: PropTypes.oneOf(["neutral", "violet", "slate"]),
+  type: PropTypes.oneOf(["button", "submit", "reset"]),
+};
+
+Pill.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+};
+
+MetricCard.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  hint: PropTypes.string,
+  tone: PropTypes.oneOf(["violet", "fuchsia", "emerald", "amber", "sky", "slate"]),
+};
+
+ContextoAusente.propTypes = {
+  onVoltar: PropTypes.func.isRequired,
+};
+
+ControlePainel.propTypes = {
+  somenteOficiais: PropTypes.bool.isRequired,
+  setSomenteOficiais: PropTypes.func.isRequired,
+  ordenar: PropTypes.oneOf(["asc", "desc"]).isRequired,
+  setOrdenar: PropTypes.func.isRequired,
+  onExportar: PropTypes.func.isRequired,
+  exportDisabled: PropTypes.bool,
+};
+
+RankingCriterios.propTypes = {
+  titulo: PropTypes.string.isRequired,
+  itens: PropTypes.arrayOf(
+    PropTypes.shape({
+      campo: PropTypes.string.isRequired,
+      nome: PropTypes.string.isRequired,
+      media: PropTypes.number.isRequired,
+    })
+  ),
+  icon: PropTypes.elementType,
+};
+
+CampoBarra.propTypes = {
+  nome: PropTypes.string.isRequired,
+  media: PropTypes.number,
+  dist: PropTypes.object,
+  oficial: PropTypes.bool,
+};
+
+QuadroComentarios.propTypes = {
+  titulo: PropTypes.string.isRequired,
+  itens: PropTypes.arrayOf(PropTypes.string),
+};

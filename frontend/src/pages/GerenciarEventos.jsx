@@ -23,6 +23,7 @@
 // - imagens carregam progressivamente.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
@@ -463,6 +464,7 @@ function SearchBox({ value, onChange }) {
 
 export default function GerenciarEventos() {
   const reduceMotion = useReducedMotion();
+    const [searchParams, setSearchParams] = useSearchParams();
 
   const [eventos, setEventos] = useState([]);
   const [eventoSelecionado, setEventoSelecionado] = useState(null);
@@ -484,6 +486,7 @@ export default function GerenciarEventos() {
   const abortListRef = useRef(null);
   const abortEditRef = useRef(null);
   const mountedRef = useRef(true);
+  const editarAutoAbertoRef = useRef(null);
 
   const setLive = useCallback((message) => {
     if (liveRef.current) {
@@ -594,9 +597,53 @@ export default function GerenciarEventos() {
     }
   }, []);
 
-  const fecharModal = useCallback(() => {
+  useEffect(() => {
+  if (loading) return;
+  if (!Array.isArray(eventos) || eventos.length === 0) return;
+
+  const editarId = Number(searchParams.get("editar"));
+
+  if (!Number.isInteger(editarId) || editarId <= 0) return;
+  if (editarAutoAbertoRef.current === editarId) return;
+
+  const eventoParaEditar = eventos.find(
+    (evento) => Number(evento?.id) === editarId
+  );
+
+  if (!eventoParaEditar) {
+    notifyWarning(
+      "O evento informado no link não foi encontrado na listagem atual."
+    );
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("editar");
+    setSearchParams(nextParams, { replace: true });
+
+    return;
+  }
+
+  editarAutoAbertoRef.current = editarId;
+  abrirModalEditar(eventoParaEditar);
+}, [
+  abrirModalEditar,
+  eventos,
+  loading,
+  searchParams,
+  setSearchParams,
+]);
+
+    const fecharModal = useCallback(() => {
     setModalAberto(false);
-  }, []);
+
+    const editarId = Number(searchParams.get("editar"));
+
+    if (Number.isInteger(editarId) && editarId > 0) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("editar");
+      setSearchParams(nextParams, { replace: true });
+      editarAutoAbertoRef.current = null;
+    }
+  }, [searchParams, setSearchParams]);
 
   const pedirExclusao = useCallback((evento) => {
     if (!evento?.id) return;

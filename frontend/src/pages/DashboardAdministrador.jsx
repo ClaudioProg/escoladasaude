@@ -857,16 +857,26 @@ export default function DashboardAdministrador() {
 
   const irParaAcaoEvento = useCallback(
   (eventoId, acao) => {
+    const id = Number(eventoId);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      console.warn("[PainelGestor] evento_id inválido para navegação", {
+        eventoId,
+        acao,
+      });
+      return;
+    }
+
     const rotas = {
-      evento: `/gestao/evento?editar=${eventoId}`,
-      inscricao: `/gestao/cancelamento-inscricao?evento_id=${eventoId}`,
-      qrcode: `/gestao/qrcode?evento_id=${eventoId}`,
-      presenca: `/gestao/presenca?evento_id=${eventoId}`,
-      avaliacao: `/gestao/avaliacao?evento_id=${eventoId}`,
-      certificado: `/gestao/certificado?evento_id=${eventoId}`,
+      evento: `/gestao/evento?editar=${id}`,
+      inscricao: `/gestao/cancelamento-inscricao?evento_id=${id}`,
+      qrcode: `/gestao/qrcode?evento_id=${id}`,
+      presenca: `/gestao/presenca?evento_id=${id}`,
+      avaliacao: `/gestao/avaliacao?evento_id=${id}`,
+      certificado: `/gestao/certificado?evento_id=${id}`,
     };
 
-    navigate(rotas[acao] || `/gestao/evento?editar=${eventoId}`);
+    navigate(rotas[acao] || rotas.evento);
   },
   [navigate]
 );

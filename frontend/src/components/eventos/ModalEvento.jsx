@@ -1650,7 +1650,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
     solicitarRemoverTurma,
     turmas,
   ]);
-  return (
+    return (
     <>
       <Modal
         open={effectiveOpen}
@@ -1674,13 +1674,13 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
         >
           <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
 
-          <header className="relative border-b border-zinc-200 bg-white/90 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:p-6">
+          <header className="relative border-b border-zinc-200 bg-white/90 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-6 sm:py-4">
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
               <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
             </div>
 
-            <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="relative">
               <div className="min-w-0">
                 <div className="flex items-start gap-3">
                   <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -1744,78 +1744,74 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                   </Chip>
                 </div>
               </div>
-
-              <aside className="rounded-3xl border border-zinc-200 bg-zinc-50/85 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-                <div className="text-sm font-black text-zinc-950 dark:text-white">
-                  Resumo do cadastro
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                      Turmas
-                    </div>
-                    <div className="mt-1 text-xl font-black text-zinc-950 dark:text-white">
-                      {turmas.length}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                      Encontros
-                    </div>
-                    <div className="mt-1 text-xl font-black text-zinc-950 dark:text-white">
-                      {turmas.reduce(
-                        (total, turma) =>
-                          total +
-                          (Array.isArray(turma.datas) ? turma.datas.length : 0),
-                        0
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                      Folder
-                    </div>
-                    <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
-                      {folderFile || folderExistenteUrl
-                        ? "Configurado"
-                        : removerFolderExistente
-                          ? "Remover"
-                          : "Pendente"}
-                    </div>
-                  </div>
-
-                                    <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                      PDF
-                    </div>
-                    <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
-                      {programacaoFile || programacaoExistenteUrl
-                        ? "Configurado"
-                        : removerProgramacaoExistente
-                          ? "Remover"
-                          : "Opcional"}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40 sm:col-span-2">
-                    <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                      Conteúdo programático
-                    </div>
-                    <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
-                      {String(conteudoProgramatico || "").trim()
-                        ? "Configurado"
-                        : "Opcional"}
-                    </div>
-                  </div>
-                </div>
-              </aside>
             </div>
           </header>
 
-          <main className="overflow-y-auto overscroll-contain bg-zinc-50/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-6">
+          <main className="overflow-y-auto overscroll-contain bg-zinc-50/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-5">
+            <section
+              className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-5"
+              aria-label="Resumo do cadastro do evento"
+            >
+              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                  Turmas
+                </div>
+                <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
+                  {turmas.length}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                  Encontros
+                </div>
+                <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
+                  {turmas.reduce(
+                    (total, turma) =>
+                      total + (Array.isArray(turma.datas) ? turma.datas.length : 0),
+                    0
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                  Folder
+                </div>
+                <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                  {folderFile || folderExistenteUrl
+                    ? "Configurado"
+                    : removerFolderExistente
+                      ? "Remover"
+                      : "Pendente"}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                  PDF
+                </div>
+                <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                  {programacaoFile || programacaoExistenteUrl
+                    ? "Configurado"
+                    : removerProgramacaoExistente
+                      ? "Remover"
+                      : "Opcional"}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                  Conteúdo
+                </div>
+                <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                  {String(conteudoProgramatico || "").trim()
+                    ? "Configurado"
+                    : "Opcional"}
+                </div>
+              </div>
+            </section>
+
             {isPending ? (
               <p
                 className="rounded-2xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900"
@@ -1853,7 +1849,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                         />
                       </div>
 
-                                            <div className="grid gap-1 sm:col-span-2">
+                      <div className="grid gap-1 sm:col-span-2">
                         <FieldLabel htmlFor={`evento-descricao-${uid}`}>
                           Descrição
                         </FieldLabel>
@@ -1874,9 +1870,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           id={`evento-conteudo-programatico-${uid}`}
                           icon={ClipboardList}
                           value={conteudoProgramatico}
-                          onChange={(e) =>
-                            setConteudoProgramatico(e.target.value)
-                          }
+                          onChange={(e) => setConteudoProgramatico(e.target.value)}
                           placeholder={
                             "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
                           }
@@ -1975,9 +1969,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           {turmas.reduce(
                             (total, turma) =>
                               total +
-                              (Array.isArray(turma.datas)
-                                ? turma.datas.length
-                                : 0),
+                              (Array.isArray(turma.datas) ? turma.datas.length : 0),
                             0
                           )}{" "}
                           encontro(s)
@@ -2228,9 +2220,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                             <input
                               type="radio"
                               name={`restricao-${uid}`}
-                              checked={
-                                restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES
-                              }
+                              checked={restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES}
                               onChange={() =>
                                 setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES)
                               }
@@ -2242,9 +2232,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                             <input
                               type="radio"
                               name={`restricao-${uid}`}
-                              checked={
-                                restricaoUi === RESTRICAO_UI.LISTA_REGISTROS
-                              }
+                              checked={restricaoUi === RESTRICAO_UI.LISTA_REGISTROS}
                               onChange={() =>
                                 setRestricaoUi(RESTRICAO_UI.LISTA_REGISTROS)
                               }
@@ -2257,9 +2245,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                               type="radio"
                               name={`restricao-${uid}`}
                               checked={restricaoUi === RESTRICAO_UI.CARGOS}
-                              onChange={() =>
-                                setRestricaoUi(RESTRICAO_UI.CARGOS)
-                              }
+                              onChange={() => setRestricaoUi(RESTRICAO_UI.CARGOS)}
                             />
                             <span>Cargos permitidos</span>
                           </label>
@@ -2269,9 +2255,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                               type="radio"
                               name={`restricao-${uid}`}
                               checked={restricaoUi === RESTRICAO_UI.UNIDADES}
-                              onChange={() =>
-                                setRestricaoUi(RESTRICAO_UI.UNIDADES)
-                              }
+                              onChange={() => setRestricaoUi(RESTRICAO_UI.UNIDADES)}
                             />
                             <span>Unidades permitidas</span>
                           </label>
@@ -2287,9 +2271,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                               <TextInput
                                 id={`registros-${uid}`}
                                 value={registroInput}
-                                onChange={(e) =>
-                                  setRegistroInput(e.target.value)
-                                }
+                                onChange={(e) => setRegistroInput(e.target.value)}
                                 onPaste={(e) => {
                                   const text =
                                     e.clipboardData?.getData("text") || "";
@@ -2345,26 +2327,17 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                               <SelectInput
                                 id={`cargo-${uid}`}
                                 value={cargoAddId}
-                                onChange={(e) =>
-                                  setCargoAddId(e.target.value)
-                                }
+                                onChange={(e) => setCargoAddId(e.target.value)}
                               >
                                 <option value="">Selecione um cargo</option>
                                 {cargosDisponiveis.map((cargo) => (
-                                  <option
-                                    key={cargo.id}
-                                    value={String(cargo.id)}
-                                  >
+                                  <option key={cargo.id} value={String(cargo.id)}>
                                     {cargoLabel(cargo)}
                                   </option>
                                 ))}
                               </SelectInput>
 
-                              <ActionButton
-                                type="button"
-                                tone="info"
-                                onClick={addCargo}
-                              >
+                              <ActionButton type="button" tone="info" onClick={addCargo}>
                                 Adicionar
                               </ActionButton>
                             </div>
@@ -2400,16 +2373,11 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                               <SelectInput
                                 id={`unidade-permitida-${uid}`}
                                 value={unidadeAddId}
-                                onChange={(e) =>
-                                  setUnidadeAddId(e.target.value)
-                                }
+                                onChange={(e) => setUnidadeAddId(e.target.value)}
                               >
                                 <option value="">Selecione uma unidade</option>
                                 {unidades.map((unidade) => (
-                                  <option
-                                    key={unidade.id}
-                                    value={String(unidade.id)}
-                                  >
+                                  <option key={unidade.id} value={String(unidade.id)}>
                                     {unidade.nome}
                                   </option>
                                 ))}
@@ -2550,19 +2518,19 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
 
       {modalTurmaAberto && (
         <ModalTurma
-  open={modalTurmaAberto}
-  onClose={() => {
-    setModalTurmaAberto(false);
-    setEditandoTurmaIndex(null);
-  }}
-  onSalvar={salvarTurma}
-  turma={
-    editandoTurmaIndex === null || editandoTurmaIndex === undefined
-      ? null
-      : turmas[editandoTurmaIndex]
-  }
-  organizadores={organizadoresDisponiveis}
-/>
+          open={modalTurmaAberto}
+          onClose={() => {
+            setModalTurmaAberto(false);
+            setEditandoTurmaIndex(null);
+          }}
+          onSalvar={salvarTurma}
+          turma={
+            editandoTurmaIndex === null || editandoTurmaIndex === undefined
+              ? null
+              : turmas[editandoTurmaIndex]
+          }
+          organizadores={organizadoresDisponiveis}
+        />
       )}
 
       {modalQuestionarioAberto && evento?.id && (
@@ -2580,14 +2548,8 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                 questionario_id: questionario.id,
                 questoes_count: Array.isArray(questionario?.questoes)
                   ? questionario.questoes.length
-                  : Number(
-                      questionario?.questoes_count ||
-                        prev.questoes_count ||
-                        0
-                    ),
-                peso_total: Number(
-                  questionario?.peso_total || prev.peso_total || 0
-                ),
+                  : Number(questionario?.questoes_count || prev.questoes_count || 0),
+                peso_total: Number(questionario?.peso_total || prev.peso_total || 0),
                 publicado: Boolean(questionario?.publicado),
               }));
             }
@@ -2600,9 +2562,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
       <ModalConfirmacao
         open={!!confirmTurma.open}
         isOpen={!!confirmTurma.open}
-        onClose={() =>
-          setConfirmTurma({ open: false, idx: null, turma: null })
-        }
+        onClose={() => setConfirmTurma({ open: false, idx: null, turma: null })}
         onConfirm={confirmarRemoverTurma}
         titulo="Remover turma?"
         title="Remover turma?"
@@ -2625,4 +2585,4 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
       />
     </>
   );
-}  
+}

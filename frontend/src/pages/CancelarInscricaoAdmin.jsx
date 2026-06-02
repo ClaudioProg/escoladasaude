@@ -1,47 +1,65 @@
-// ✅ frontend/src/pages/CancelarInscricaoAdmin.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/pages/CancelarInscricaoAdmin.jsx — v2.1
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
-// Página administrativa para cancelamento de inscrições.
+// Página operacional contextual para cancelamento de inscrições.
+//
+// Revisão premium v2.1:
+// - tela acessada somente pelo Painel do Gestor;
+// - evento_id obrigatório via URL;
+// - sem modo geral;
+// - sem listagem de todos os eventos;
+// - sem busca/filtro geral;
+// - carrega apenas o evento informado;
+// - carrega automaticamente todas as turmas do evento;
+// - carrega automaticamente os inscritos de todas as turmas;
+// - conteúdo já aparece aberto;
+// - usa HeaderHero global oficial;
+// - usa Footer oficial;
+// - visual institucional premium;
+// - preserva cancelamento individual;
+// - preserva cancelamento em lote;
+// - preserva seleção individual e seleção de todos;
+// - preserva confirmação antes de ação destrutiva;
+// - preserva rollback visual em caso de erro;
+// - preserva CPF protegido;
+// - preserva aria-live;
+// - sem /api diretamente para domínio de eventos;
+// - sem rotas antigas em tentativa múltipla;
+// - sem status em_andamento;
+// - Status oficial: programado | andamento | encerrado | sem_datas;
+// - mobile-first, acessível, moderno e operacional.
 //
 // Contratos aplicados:
+// - parâmetro contextual oficial: evento_id;
 // - Eventos administrativos: /evento/administrador via eventoService;
 // - Turmas do evento: /evento/:evento_id/turma via eventoService;
 // - Inscritos da turma: /inscricao/turma/:turma_id via eventoService;
-// - Cancelamento administrativo: /inscricao/turma/:turma_id/usuario/:usuario_id via eventoService;
-// - Sem /api diretamente no frontend;
-// - Sem rotas antigas em tentativa múltipla;
-// - Sem /eventos, /turmas ou /inscricoes como fallback;
-// - Sem status em_andamento;
-// - Status oficial: programado | andamento | encerrado | sem_datas;
-// - "todos" é apenas filtro visual da UI;
-// - Sem Spinner antigo;
-// - Sem Footer antigo;
-// - Sem toast direto;
-// - Sem apiGet/apiDelete direto;
-// - CPF protegido por padrão;
-// - Mobile-first, acessível, com aria-live e confirmação antes de ação destrutiva.
+// - Cancelamento administrativo: api.inscricao.cancelarUsuarioNaTurma.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import {
   AlertTriangle,
+  ArrowLeft,
   Building2,
   CalendarClock,
   CheckSquare,
-  ChevronDown,
-  ChevronRight,
-  Filter,
+  ClipboardList,
   Info,
   Layers,
   RefreshCw,
-  Search,
   ShieldCheck,
   Square,
   Trash2,
+  UserCheck,
   Users,
   XCircle,
 } from "lucide-react";
+
+import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 
 import {
   isAbortLike,
@@ -63,20 +81,11 @@ import api from "../services/api";
 ────────────────────────────────────────────────────────────── */
 
 const STATUS_EVENTO = Object.freeze({
-  TODOS: "todos",
   PROGRAMADO: "programado",
   ANDAMENTO: "andamento",
   ENCERRADO: "encerrado",
   SEM_DATAS: "sem_datas",
 });
-
-const FILTROS_STATUS = Object.freeze([
-  { key: STATUS_EVENTO.TODOS, label: "Todos" },
-  { key: STATUS_EVENTO.PROGRAMADO, label: "Programados" },
-  { key: STATUS_EVENTO.ANDAMENTO, label: "Em andamento" },
-  { key: STATUS_EVENTO.ENCERRADO, label: "Encerrados" },
-  { key: STATUS_EVENTO.SEM_DATAS, label: "Sem datas" },
-]);
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
@@ -88,7 +97,6 @@ function classNames(...classes) {
 
 function toPositiveInt(value) {
   const number = Number(value);
-
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
@@ -150,14 +158,6 @@ function cpfProtegido(value) {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.***-**`;
 }
 
-function normalizarTexto(value) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
-}
-
 function deduzStatusEvento(evento) {
   const raw = String(evento?.status || "").trim().toLowerCase();
 
@@ -204,52 +204,71 @@ function labelStatus(status) {
   return "Programado";
 }
 
-function barByStatus(status) {
-  if (status === STATUS_EVENTO.PROGRAMADO) {
-    return "bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500";
-  }
-
-  if (status === STATUS_EVENTO.ANDAMENTO) {
-    return "bg-gradient-to-r from-amber-700 via-amber-600 to-amber-400";
-  }
-
-  if (status === STATUS_EVENTO.ENCERRADO) {
-    return "bg-gradient-to-r from-rose-800 via-rose-700 to-rose-500";
-  }
-
-  return "bg-gradient-to-r from-slate-500 via-slate-400 to-slate-300";
-}
-
 function statusChipClass(status) {
   if (status === STATUS_EVENTO.ANDAMENTO) {
-    return "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-100";
+    return "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200";
   }
 
   if (status === STATUS_EVENTO.ENCERRADO) {
-    return "bg-rose-100 text-rose-900 dark:bg-rose-950/40 dark:text-rose-100";
+    return "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200";
   }
 
   if (status === STATUS_EVENTO.SEM_DATAS) {
-    return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100";
+    return "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200";
   }
 
-  return "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100";
+  return "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200";
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Debounce
-────────────────────────────────────────────────────────────── */
+function statusDotClass(status) {
+  if (status === STATUS_EVENTO.ANDAMENTO) return "bg-amber-500";
+  if (status === STATUS_EVENTO.ENCERRADO) return "bg-rose-500";
+  if (status === STATUS_EVENTO.SEM_DATAS) return "bg-zinc-400";
 
-function useDebounced(value, delay = 350) {
-  const [debounced, setDebounced] = useState(value);
+  return "bg-emerald-500";
+}
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delay);
+function eventoPeriodoTexto(evento) {
+  const inicio = ymd(
+    evento?.data_inicio_geral || evento?.data_inicio || evento?.data
+  );
 
-    return () => window.clearTimeout(timer);
-  }, [value, delay]);
+  const fim = ymd(
+    evento?.data_fim_geral || evento?.data_fim || evento?.data || inicio
+  );
 
-  return debounced;
+  if (!inicio && !fim) return "Período não informado";
+  if (inicio && (!fim || inicio === fim)) return formatarDataBR(inicio);
+
+  return `${formatarDataBR(inicio)} a ${formatarDataBR(fim)}`;
+}
+
+function turmaPeriodoTexto(turma) {
+  const inicio = ymd(turma?.data_inicio || turma?.data);
+  const fim = ymd(turma?.data_fim || turma?.data_inicio || turma?.data);
+
+  const horaInicio = hhmm(turma?.horario_inicio);
+  const horaFim = hhmm(turma?.horario_fim);
+
+  const dataTexto =
+    inicio && fim && inicio !== fim
+      ? `${formatarDataBR(inicio)} a ${formatarDataBR(fim)}`
+      : inicio
+        ? formatarDataBR(inicio)
+        : "Datas a definir";
+
+  const horarioTexto =
+    horaInicio && horaFim
+      ? ` • ${horaInicio} às ${horaFim}`
+      : horaInicio
+        ? ` • a partir de ${horaInicio}`
+        : "";
+
+  return `${dataTexto}${horarioTexto}`;
+}
+
+function getErrorMessage(error, fallback) {
+  return error?.data?.message || error?.message || fallback;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -273,102 +292,97 @@ function LoadingInline({ pequeno = false, label = "Carregando..." }) {
   );
 }
 
-function MiniKpi({ icon: Icon, value, label, hideSm = false, hideMd = false }) {
+function Pill({ children, className = "" }) {
   return (
     <span
       className={classNames(
-        "items-center gap-1 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold ring-1 ring-white/10",
-        hideSm ? "hidden sm:inline-flex" : "inline-flex",
-        hideMd && "hidden md:inline-flex"
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
+        className
       )}
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
-      {value} {label}
+      {children}
     </span>
   );
 }
 
-function HeaderHero({
-  totalEventos,
-  totalTurmas,
-  totalInscritos,
-  onSearch,
-  searchValue,
-}) {
-  const buscaRef = useRef(null);
-
-  useEffect(() => {
-    const onKey = (event) => {
-      const mac = /(Mac|iPhone|iPad)/i.test(navigator.userAgent);
-      const key = String(event.key || "").toLowerCase();
-
-      if (
-        (mac && event.metaKey && key === "k") ||
-        (!mac && event.ctrlKey && key === "k")
-      ) {
-        event.preventDefault();
-        buscaRef.current?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
+  const tones = {
+    emerald:
+      "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-200 dark:border-emerald-900/40",
+    sky:
+      "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40",
+    amber:
+      "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/25 dark:text-amber-200 dark:border-amber-900/40",
+    rose:
+      "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/25 dark:text-rose-200 dark:border-rose-900/40",
+    slate:
+      "bg-slate-50 text-slate-800 border-slate-200 dark:bg-zinc-900/40 dark:text-zinc-100 dark:border-zinc-800",
+  };
 
   return (
-    <header
-      className="bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 text-white"
-      role="banner"
-    >
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="inline-flex items-center justify-center gap-2">
-            <XCircle className="h-5 w-5" aria-hidden="true" />
+    <article className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span
+            className={classNames(
+              "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
+              tones[tone] || tones.emerald
+            )}
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
 
-            <h1 className="text-xl font-black tracking-tight sm:text-2xl">
-              Cancelar inscrições
-            </h1>
-          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-zinc-400">
+              {label}
+            </p>
 
-          <p className="max-w-3xl text-sm text-white/90">
-            Expanda um evento, selecione a turma e cancele inscrições de
-            participantes com confirmação explícita.
-          </p>
+            <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+              {value}
+            </p>
 
-          <div className="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className="sm:col-span-2">
-              <label htmlFor="busca-cancelamento-inscricao" className="sr-only">
-                Buscar por evento ou local
-              </label>
-
-              <div className="relative">
-                <input
-                  id="busca-cancelamento-inscricao"
-                  ref={buscaRef}
-                  type="search"
-                  value={searchValue}
-                  onChange={(event) => onSearch(event.target.value)}
-                  placeholder="Buscar por título do evento ou local… (Ctrl/⌘+K)"
-                  className="w-full rounded-2xl bg-white/95 px-4 py-3 pl-11 text-sm font-semibold text-slate-900 placeholder-slate-500 outline-none focus:ring-2 focus:ring-white/70"
-                />
-
-                <Search
-                  className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <MiniKpi icon={Filter} value={totalEventos} label="eventos" />
-              <MiniKpi icon={Layers} value={totalTurmas} label="turmas" hideSm />
-              <MiniKpi icon={Users} value={totalInscritos} label="inscritos" hideMd />
-            </div>
+            {hint ? (
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-zinc-400">
+                {hint}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
-    </header>
+    </article>
+  );
+}
+
+function ActionButton({
+  children,
+  onClick,
+  disabled = false,
+  tone = "neutral",
+  type = "button",
+}) {
+  const tones = {
+    neutral:
+      "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900",
+    emerald:
+      "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800 dark:border-emerald-600",
+    rose:
+      "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 dark:border-rose-600",
+    sky:
+      "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200",
+  };
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={classNames(
+        "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60",
+        tones[tone] || tones.neutral
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -463,34 +477,54 @@ function ConfirmModal({
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 pb-5">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
+          <ActionButton onClick={onCancel} disabled={loading}>
             Cancelar
-          </button>
+          </ActionButton>
 
-          <button
-            type="button"
+          <ActionButton
             onClick={onConfirm}
             disabled={loading}
-            className={classNames(
-              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black text-white transition disabled:opacity-60",
-              danger
-                ? "bg-rose-700 hover:bg-rose-800"
-                : "bg-emerald-700 hover:bg-emerald-800"
-            )}
+            tone={danger ? "rose" : "emerald"}
           >
             {loading && (
               <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
             )}
             {confirmLabel}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>
+  );
+}
+
+function ContextoAusente({ onVoltar }) {
+  return (
+    <section className="mt-5 overflow-hidden rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <Info className="h-6 w-6" aria-hidden="true" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl font-black text-slate-950 dark:text-white">
+            Contexto do evento não informado
+          </h2>
+
+          <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
+            O endereço precisa conter um <strong>evento_id</strong> válido para
+            carregar as turmas e inscrições do evento específico.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ActionButton onClick={onVoltar} tone="emerald">
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Voltar ao Painel do Gestor
+            </ActionButton>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -499,21 +533,22 @@ function ConfirmModal({
 ────────────────────────────────────────────────────────────── */
 
 export default function CancelarInscricaoAdmin() {
-  const [eventos, setEventos] = useState([]);
-  const [loadingEventos, setLoadingEventos] = useState(true);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [abertoEvento, setAbertoEvento] = useState({});
-  const [turmasPorEvento, setTurmasPorEvento] = useState({});
-  const [loadingTurmas, setLoadingTurmas] = useState({});
+  const eventoIdParam = useMemo(
+    () => toPositiveInt(searchParams.get("evento_id")),
+    [searchParams]
+  );
 
-  const [abertaTurma, setAbertaTurma] = useState({});
-  const [inscritosPorTurma, setInscritosPorTurma] = useState({});
+  const [evento, setEvento] = useState(null);
+  const [turmas, setTurmas] = useState([]);
+  const [loadingEvento, setLoadingEvento] = useState(true);
+  const [loadingTurmas, setLoadingTurmas] = useState(false);
   const [loadingInscritos, setLoadingInscritos] = useState({});
 
+  const [inscritosPorTurma, setInscritosPorTurma] = useState({});
   const [selecionados, setSelecionados] = useState({});
-  const [busca, setBusca] = useState("");
-  const buscaDebounced = useDebounced(busca, 350);
-  const [filtroStatus, setFiltroStatus] = useState(STATUS_EVENTO.TODOS);
 
   const [modal, setModal] = useState({
     open: false,
@@ -521,89 +556,35 @@ export default function CancelarInscricaoAdmin() {
     usuario_ids: [],
   });
 
+  const [erro, setErro] = useState("");
   const [cancelando, setCancelando] = useState(false);
+
   const liveRef = useRef(null);
+  const mountedRef = useRef(true);
+  const abortRef = useRef(null);
 
   const setLive = useCallback((message) => {
     if (liveRef.current) {
-      liveRef.current.textContent = message;
+      liveRef.current.textContent = message || "";
     }
   }, []);
 
-  const carregarEventos = useCallback(
-    async ({ signal } = {}) => {
-      setLoadingEventos(true);
-      setLive("Carregando eventos.");
-
-      try {
-        const data = await listarEventosAdmin({ signal });
-
-        if (signal?.aborted) return;
-
-        setEventos(Array.isArray(data) ? data : []);
-        setLive(`${Array.isArray(data) ? data.length : 0} evento(s) carregado(s).`);
-      } catch (error) {
-        if (isAbortLike(error)) return;
-
-        notifyError(
-          error?.data?.message || error?.message || "Falha ao carregar eventos."
-        );
-        setLive("Falha ao carregar eventos.");
-        setEventos([]);
-      } finally {
-        if (!signal?.aborted) {
-          setLoadingEventos(false);
-        }
-      }
-    },
-    [setLive]
-  );
+  const voltarPainelGestor = useCallback(() => {
+    navigate("/administrador");
+  }, [navigate]);
 
   useEffect(() => {
-    const controller = new AbortController();
+    document.title = "Cancelar inscrições do evento — Escola da Saúde";
+  }, []);
 
-    carregarEventos({ signal: controller.signal });
+  useEffect(() => {
+    mountedRef.current = true;
 
-    return () => controller.abort();
-  }, [carregarEventos]);
-
-  const carregarTurmasEvento = useCallback(
-    async (evento_id) => {
-      const eventoId = toPositiveInt(evento_id);
-
-      if (!eventoId) return [];
-
-      setLoadingTurmas((prev) => ({ ...prev, [eventoId]: true }));
-      setLive(`Carregando turmas do evento ${eventoId}.`);
-
-      try {
-        const turmas = await listarTurmasDoEvento(eventoId);
-
-        setTurmasPorEvento((prev) => ({
-          ...prev,
-          [eventoId]: Array.isArray(turmas) ? turmas : [],
-        }));
-
-        setLive(`${Array.isArray(turmas) ? turmas.length : 0} turma(s) carregada(s).`);
-
-        return Array.isArray(turmas) ? turmas : [];
-      } catch (error) {
-        notifyError(
-          error?.data?.message ||
-            error?.message ||
-            "Falha ao carregar turmas do evento."
-        );
-
-        setTurmasPorEvento((prev) => ({ ...prev, [eventoId]: [] }));
-        setLive("Falha ao carregar turmas do evento.");
-
-        return [];
-      } finally {
-        setLoadingTurmas((prev) => ({ ...prev, [eventoId]: false }));
-      }
-    },
-    [setLive]
-  );
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort?.("unmount");
+    };
+  }, []);
 
   const carregarInscritos = useCallback(
     async (turma_id) => {
@@ -616,19 +597,24 @@ export default function CancelarInscricaoAdmin() {
 
       try {
         const inscritos = await listarInscritosDaTurma(turmaId);
+        const lista = Array.isArray(inscritos) ? inscritos : [];
+
+        if (!mountedRef.current) return [];
 
         setInscritosPorTurma((prev) => ({
           ...prev,
-          [turmaId]: Array.isArray(inscritos) ? inscritos : [],
+          [turmaId]: lista,
         }));
 
         setSelecionados((prev) => ({ ...prev, [turmaId]: new Set() }));
-        setLive(`${Array.isArray(inscritos) ? inscritos.length : 0} inscrito(s) carregado(s).`);
+        setLive(`${lista.length} inscrito(s) carregado(s).`);
 
-        return Array.isArray(inscritos) ? inscritos : [];
+        return lista;
       } catch (error) {
+        if (!mountedRef.current) return [];
+
         notifyError(
-          error?.data?.message || error?.message || "Falha ao carregar inscritos."
+          getErrorMessage(error, "Falha ao carregar inscritos da turma.")
         );
 
         setInscritosPorTurma((prev) => ({ ...prev, [turmaId]: [] }));
@@ -636,96 +622,132 @@ export default function CancelarInscricaoAdmin() {
 
         return [];
       } finally {
-        setLoadingInscritos((prev) => ({ ...prev, [turmaId]: false }));
+        if (mountedRef.current) {
+          setLoadingInscritos((prev) => ({ ...prev, [turmaId]: false }));
+        }
       }
     },
     [setLive]
   );
 
-  const toggleEvento = useCallback(
-    async (evento_id) => {
-      const eventoId = toPositiveInt(evento_id);
+  const carregarPagina = useCallback(async () => {
+    abortRef.current?.abort?.("nova-requisicao");
 
-      if (!eventoId) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      const willOpen = !abertoEvento[eventoId];
+    setErro("");
+    setEvento(null);
+    setTurmas([]);
+    setInscritosPorTurma({});
+    setSelecionados({});
+    setLoadingEvento(true);
+    setLoadingTurmas(false);
+    setLoadingInscritos({});
+    setLive("Carregando contexto do evento.");
 
-      setAbertoEvento((prev) => ({ ...prev, [eventoId]: willOpen }));
+    if (!eventoIdParam) {
+      setLoadingEvento(false);
+      setLive("Contexto ausente.");
+      return;
+    }
 
-      if (!willOpen) return;
-      if (turmasPorEvento[eventoId] || loadingTurmas[eventoId]) return;
+    try {
+      const eventos = await listarEventosAdmin({ signal: controller.signal });
 
-      await carregarTurmasEvento(eventoId);
-    },
-    [abertoEvento, carregarTurmasEvento, loadingTurmas, turmasPorEvento]
-  );
+      if (!mountedRef.current || controller.signal.aborted) return;
 
-  const toggleTurma = useCallback(
-    async (turma_id) => {
-      const turmaId = toPositiveInt(turma_id);
+      const listaEventos = Array.isArray(eventos) ? eventos : [];
+      const eventoEncontrado =
+        listaEventos.find((item) => Number(item?.id) === eventoIdParam) || null;
 
-      if (!turmaId) return;
-
-      const willOpen = !abertaTurma[turmaId];
-
-      setAbertaTurma((prev) => ({ ...prev, [turmaId]: willOpen }));
-
-      if (willOpen && !inscritosPorTurma[turmaId]) {
-        await carregarInscritos(turmaId);
-      }
-    },
-    [abertaTurma, carregarInscritos, inscritosPorTurma]
-  );
-
-  const totalTurmas = useMemo(
-    () =>
-      Object.values(turmasPorEvento).reduce(
-        (acc, list) => acc + (Array.isArray(list) ? list.length : 0),
-        0
-      ),
-    [turmasPorEvento]
-  );
-
-  const totalInscritos = useMemo(
-    () =>
-      Object.values(inscritosPorTurma).reduce(
-        (acc, list) => acc + (Array.isArray(list) ? list.length : 0),
-        0
-      ),
-    [inscritosPorTurma]
-  );
-
-  const eventosFiltrados = useMemo(() => {
-    const query = normalizarTexto(buscaDebounced);
-
-    return (Array.isArray(eventos) ? eventos : []).filter((evento) => {
-      const status = deduzStatusEvento(evento);
-
-      if (filtroStatus !== STATUS_EVENTO.TODOS && status !== filtroStatus) {
-        return false;
+      if (!eventoEncontrado) {
+        setErro("O evento informado no link não foi encontrado.");
+        setEvento(null);
+        setTurmas([]);
+        setLive("Evento não encontrado.");
+        return;
       }
 
-      if (!query) return true;
+      setEvento(eventoEncontrado);
+      setLive(`Evento ${eventoIdParam} localizado. Carregando turmas.`);
 
-      return [evento?.titulo, evento?.local]
-        .map(normalizarTexto)
-        .some((value) => value.includes(query));
-    });
-  }, [buscaDebounced, eventos, filtroStatus]);
+      setLoadingTurmas(true);
 
-  const anyLoading =
-    loadingEventos ||
-    Object.values(loadingTurmas).some(Boolean) ||
-    Object.values(loadingInscritos).some(Boolean);
+      const turmasEvento = await listarTurmasDoEvento(eventoIdParam);
 
-  const totalSelecionados = useMemo(
-    () =>
-      Object.values(selecionados).reduce(
-        (acc, setValue) => acc + (setValue?.size || 0),
-        0
-      ),
-    [selecionados]
-  );
+      if (!mountedRef.current || controller.signal.aborted) return;
+
+      const listaTurmas = Array.isArray(turmasEvento) ? turmasEvento : [];
+
+      setTurmas(listaTurmas);
+      setLive(`${listaTurmas.length} turma(s) carregada(s).`);
+
+      await Promise.all(
+        listaTurmas
+          .map((turma) => toPositiveInt(turma?.id))
+          .filter(Boolean)
+          .map((turmaId) => carregarInscritos(turmaId))
+      );
+
+      if (!mountedRef.current || controller.signal.aborted) return;
+
+      setLive("Evento, turmas e inscritos carregados.");
+    } catch (error) {
+      if (isAbortLike(error)) return;
+
+      if (!mountedRef.current) return;
+
+      const message = getErrorMessage(
+        error,
+        "Não foi possível carregar os dados do evento."
+      );
+
+      setErro(message);
+      setEvento(null);
+      setTurmas([]);
+      setInscritosPorTurma({});
+      setSelecionados({});
+      setLive("Falha ao carregar dados do evento.");
+
+      notifyError(message);
+    } finally {
+      if (mountedRef.current && !controller.signal.aborted) {
+        setLoadingEvento(false);
+        setLoadingTurmas(false);
+      }
+    }
+  }, [carregarInscritos, eventoIdParam, setLive]);
+
+  useEffect(() => {
+    carregarPagina();
+  }, [carregarPagina]);
+
+  const totalInscritos = useMemo(() => {
+    return Object.values(inscritosPorTurma).reduce(
+      (acc, lista) => acc + (Array.isArray(lista) ? lista.length : 0),
+      0
+    );
+  }, [inscritosPorTurma]);
+
+  const totalSelecionados = useMemo(() => {
+    return Object.values(selecionados).reduce(
+      (acc, setValue) => acc + (setValue?.size || 0),
+      0
+    );
+  }, [selecionados]);
+
+  const anyLoading = useMemo(() => {
+    return (
+      loadingEvento ||
+      loadingTurmas ||
+      Object.values(loadingInscritos).some(Boolean)
+    );
+  }, [loadingEvento, loadingInscritos, loadingTurmas]);
+
+  const status = useMemo(() => {
+    return evento ? deduzStatusEvento(evento) : STATUS_EVENTO.SEM_DATAS;
+  }, [evento]);
 
   function toggleSelecionado(turma_id, usuario_id) {
     const turmaId = toPositiveInt(turma_id);
@@ -881,11 +903,11 @@ export default function CancelarInscricaoAdmin() {
         [turmaId]: new Set(snapshotSelecionados),
       }));
 
-      notifyError(
-        error?.data?.message || error?.message || "Erro ao cancelar inscrição."
-      );
+      const message = getErrorMessage(error, "Erro ao cancelar inscrição.");
 
+      notifyError(message);
       setLive("Falha ao cancelar. Lista restaurada.");
+
       await carregarInscritos(turmaId);
     } finally {
       setCancelando(false);
@@ -894,379 +916,355 @@ export default function CancelarInscricaoAdmin() {
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
-
-      <HeaderHero
-        totalEventos={eventosFiltrados.length}
-        totalTurmas={totalTurmas}
-        totalInscritos={totalInscritos}
-        onSearch={setBusca}
-        searchValue={busca}
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
       />
 
-      <section
-        className="mx-auto mt-4 w-full max-w-6xl px-3 sm:px-6"
-        aria-label="Filtros de status"
-      >
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="inline-flex items-center gap-1 font-semibold text-slate-600 dark:text-zinc-300">
-            <Info className="h-4 w-4" aria-hidden="true" />
-            Filtro rápido:
-          </span>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <HeaderHero
+  titulo="Cancelamento de inscrições"
+  subtitulo="Tela operacional contextual do Painel do Gestor para cancelar inscrições de um evento específico, com confirmação explícita, CPF protegido e rastreabilidade operacional."
+  icone={XCircle}
+  campanhaMes={new Date().getMonth() + 1}
+  tamanho="lg"
+  raio="xl"
+/>
+<section
+  className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-5"
+  aria-label="Contexto operacional do evento"
+>
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="min-w-0">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
+        Contexto operacional
+      </p>
 
-          {FILTROS_STATUS.map((filtro) => (
-            <button
-              key={filtro.key}
-              type="button"
-              onClick={() => setFiltroStatus(filtro.key)}
-              className={classNames(
-                "rounded-full border px-3 py-1 text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-                filtroStatus === filtro.key
-                  ? "border-emerald-600 bg-emerald-600 text-white"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              )}
-              aria-pressed={filtroStatus === filtro.key}
-            >
-              {filtro.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {anyLoading && (
-        <div
-          className="sticky top-0 z-40 h-1 w-full bg-emerald-100"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Carregando dados"
-        >
-          <div className="h-full w-1/3 animate-pulse bg-emerald-700" />
-        </div>
-      )}
-
-      <main className="mx-auto min-w-0 max-w-6xl flex-1 px-3 py-6 sm:px-6">
-        {loadingEventos ? (
-          <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-zinc-900">
-            <div className="flex items-center justify-center p-8">
-              <LoadingInline label="Carregando eventos..." />
-            </div>
-          </section>
-        ) : eventosFiltrados.length === 0 ? (
-          <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-zinc-900">
-            <div className="p-8 text-center">
-              <p className="text-sm font-semibold text-slate-600 dark:text-zinc-300">
-                Nenhum evento encontrado{" "}
-                {buscaDebounced ? "para o filtro aplicado." : "no momento."}
-              </p>
-            </div>
-          </section>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {eventoIdParam ? (
+          <Pill className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            Evento ID {eventoIdParam}
+          </Pill>
         ) : (
-          <ul className="grid grid-cols-1 gap-4 sm:gap-6">
-            {eventosFiltrados.map((evento) => {
-              const eventoId = toPositiveInt(evento?.id);
-              const aberto = !!abertoEvento[eventoId];
-              const turmas = turmasPorEvento[eventoId] || [];
-              const carregandoTurmas = !!loadingTurmas[eventoId];
-              const status = deduzStatusEvento(evento);
-              const bar = barByStatus(status);
+          <Pill className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+            Evento não informado
+          </Pill>
+        )}
 
-              return (
-                <li
-                  key={eventoId}
-                  className="relative overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-zinc-900"
-                >
-                  <div
-                    className={classNames("absolute left-0 right-0 top-0 h-1.5", bar)}
-                    aria-hidden="true"
-                  />
+        {evento?.titulo ? (
+          <Pill className="max-w-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
+            <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="truncate">{evento.titulo}</span>
+          </Pill>
+        ) : null}
+      </div>
+    </div>
 
-                  <button
-                    type="button"
-                    onClick={() => toggleEvento(eventoId)}
-                    className="flex w-full items-start gap-3 p-4 text-left transition hover:bg-emerald-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:hover:bg-zinc-800/60"
-                    aria-expanded={aberto}
-                    aria-controls={`evento-${eventoId}-conteudo`}
-                  >
-                    {aberto ? (
-                      <ChevronDown className="mt-0.5 shrink-0" aria-hidden="true" />
-                    ) : (
-                      <ChevronRight className="mt-0.5 shrink-0" aria-hidden="true" />
-                    )}
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <ActionButton onClick={voltarPainelGestor}>
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Painel do Gestor
+      </ActionButton>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <div className="break-words font-black">
-                          {evento?.titulo || `Evento #${eventoId}`}
-                        </div>
+      <ActionButton
+        onClick={carregarPagina}
+        disabled={anyLoading || !eventoIdParam}
+        tone="emerald"
+      >
+        <RefreshCw
+          className={classNames("h-4 w-4", anyLoading && "animate-spin")}
+          aria-hidden="true"
+        />
+        Atualizar dados
+      </ActionButton>
+    </div>
+  </div>
+</section>
 
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-900">
-                          {turmas.length} turmas
+        {anyLoading && (
+          <div
+            className="sticky top-0 z-40 mt-4 h-1 w-full overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-950/30"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Carregando dados"
+          >
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-emerald-700" />
+          </div>
+        )}
+
+        {!eventoIdParam ? (
+          <ContextoAusente onVoltar={voltarPainelGestor} />
+        ) : (
+          <>
+            <section
+              className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+              aria-label="Resumo operacional"
+            >
+              <MetricCard
+                icon={ClipboardList}
+                label="Evento"
+                value={loadingEvento ? "…" : evento ? 1 : 0}
+                hint="Contexto recebido pelo Painel do Gestor"
+                tone="emerald"
+              />
+
+              <MetricCard
+                icon={Layers}
+                label="Turmas"
+                value={loadingTurmas ? "…" : turmas.length}
+                hint="Turmas vinculadas ao evento"
+                tone="sky"
+              />
+
+              <MetricCard
+                icon={Users}
+                label="Inscritos"
+                value={totalInscritos}
+                hint="Participantes carregados nas turmas"
+                tone="amber"
+              />
+
+              <MetricCard
+                icon={UserCheck}
+                label="Selecionados"
+                value={totalSelecionados}
+                hint="Prontos para cancelamento em lote"
+                tone={totalSelecionados > 0 ? "rose" : "slate"}
+              />
+            </section>
+
+            {erro ? (
+              <section
+                className="mt-5 rounded-[2rem] border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20"
+                role="alert"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                    <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">
+                      Não foi possível carregar o evento
+                    </h2>
+
+                    <p className="mt-2 text-sm leading-relaxed text-rose-800 dark:text-rose-200">
+                      {erro}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <ActionButton onClick={carregarPagina} tone="rose">
+                        <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                        Tentar novamente
+                      </ActionButton>
+
+                      <ActionButton onClick={voltarPainelGestor}>
+                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                        Voltar ao Painel
+                      </ActionButton>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {loadingEvento ? (
+              <section className="mt-5 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="flex items-center justify-center p-10">
+                  <LoadingInline label="Carregando evento..." />
+                </div>
+              </section>
+            ) : evento ? (
+              <>
+                <section className="mt-5 rounded-[2rem] border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800 dark:text-emerald-200">
+                        Evento em foco
+                      </p>
+
+                      <h2 className="mt-1 break-words text-2xl font-black text-slate-950 dark:text-white">
+                        {evento.titulo || `Evento #${eventoIdParam}`}
+                      </h2>
+
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-700 dark:text-zinc-300">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Building2 className="h-4 w-4" aria-hidden="true" />
+                          {evento.local || "Local não informado"}
                         </span>
 
-                        <span
-                          className={classNames(
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-black",
-                            statusChipClass(status)
-                          )}
-                        >
-                          {labelStatus(status)}
-                        </span>
-                      </div>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600 dark:text-zinc-300">
-                        <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        <span className="break-words">
-                          {evento?.local || "Local a definir"}
-                        </span>
-
-                        <span aria-hidden="true">•</span>
-
-                        <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
-                        <span>
-                          Carga horária:{" "}
-                          {evento?.carga_horaria_total ?? evento?.carga_horaria ?? "—"}
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                          {eventoPeriodoTexto(evento)}
                         </span>
                       </div>
                     </div>
-                  </button>
 
-                  {aberto && (
-                    <div
-                      id={`evento-${eventoId}-conteudo`}
-                      className="bg-slate-50/80 dark:bg-zinc-950/30"
-                    >
-                      {carregandoTurmas ? (
-                        <div className="p-4 pl-10">
-                          <LoadingInline pequeno label="Carregando turmas..." />
-                        </div>
-                      ) : turmas.length === 0 ? (
-                        <div className="p-4 pl-10 text-sm font-semibold text-slate-600 dark:text-zinc-300">
-                          Nenhuma turma para este evento.
-                        </div>
-                      ) : (
-                        turmas.map((turma) => {
-                          const turmaId = toPositiveInt(turma?.id);
-                          const aberta = !!abertaTurma[turmaId];
-                          const inscritos = inscritosPorTurma[turmaId] || [];
-                          const carregandoInscritos = !!loadingInscritos[turmaId];
-                          const setSelecionado = selecionados[turmaId] || new Set();
-                          const allSelected =
-                            inscritos.length > 0 &&
-                            setSelecionado.size === inscritos.length;
+                    <Pill className={statusChipClass(status)}>
+                      <span
+                        className={classNames(
+                          "h-2 w-2 rounded-full",
+                          statusDotClass(status)
+                        )}
+                        aria-hidden="true"
+                      />
+                      {labelStatus(status)}
+                    </Pill>
+                  </div>
+                </section>
 
-                          return (
-                            <div
-                              key={turmaId}
-                              className="border-t border-slate-100 dark:border-zinc-800"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => toggleTurma(turmaId)}
-                                className="flex w-full items-center gap-3 p-3 pl-10 text-left transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:hover:bg-zinc-800"
-                                aria-expanded={aberta}
-                                aria-controls={`turma-${turmaId}-conteudo`}
-                              >
-                                {aberta ? (
-                                  <ChevronDown
-                                    className="mt-0.5 shrink-0"
-                                    aria-hidden="true"
-                                  />
-                                ) : (
-                                  <ChevronRight
-                                    className="mt-0.5 shrink-0"
-                                    aria-hidden="true"
-                                  />
-                                )}
+                <section className="mt-5" aria-label="Turmas e inscrições">
+                  {loadingTurmas ? (
+                    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                      <div className="flex items-center justify-center p-10">
+                        <LoadingInline label="Carregando turmas..." />
+                      </div>
+                    </section>
+                  ) : turmas.length === 0 ? (
+                    <section className="overflow-hidden rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-zinc-900 dark:text-zinc-300">
+                        <Info className="h-7 w-7" aria-hidden="true" />
+                      </div>
 
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <div className="break-words font-bold">
-                                      {turma?.nome || `Turma #${turmaId}`}{" "}
-                                      <span className="text-xs font-semibold text-slate-500">
-                                        ({turma?.carga_horaria ?? "—"}h)
-                                      </span>
-                                    </div>
+                      <p className="mt-4 text-base font-black text-slate-950 dark:text-white">
+                        Nenhuma turma encontrada
+                      </p>
 
-                                    <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-black dark:bg-zinc-700">
-                                      {inscritos.length} inscritos
-                                    </span>
-                                  </div>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+                        Este evento não possui turmas disponíveis para
+                        cancelamento de inscrições.
+                      </p>
+                    </section>
+                  ) : (
+                    <div className="grid gap-5">
+                      {turmas.map((turma) => {
+                        const turmaId = toPositiveInt(turma?.id);
+                        const inscritos = inscritosPorTurma[turmaId] || [];
+                        const carregandoInscritos = !!loadingInscritos[turmaId];
+                        const setSelecionado = selecionados[turmaId] || new Set();
+                        const allSelected =
+                          inscritos.length > 0 &&
+                          setSelecionado.size === inscritos.length;
 
-                                  <div className="text-xs font-medium text-slate-600 dark:text-zinc-300">
-                                    {turma?.data_inicio
-                                      ? `Início: ${formatarDataBR(turma.data_inicio)}${
-                                          turma?.horario_inicio
-                                            ? ` às ${hhmm(turma.horario_inicio)}`
-                                            : ""
-                                        }`
-                                      : "Datas a definir"}
-                                  </div>
+                        return (
+                          <article
+                            key={turmaId}
+                            className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                          >
+                            <div className="h-1.5 bg-gradient-to-r from-sky-600 via-cyan-500 to-emerald-500" />
+
+                            <div className="p-4 sm:p-5">
+                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">
+                                    Turma
+                                  </p>
+
+                                  <h3 className="mt-1 break-words text-xl font-black text-slate-950 dark:text-white">
+                                    {turma?.nome || `Turma #${turmaId}`}
+                                  </h3>
+
+                                  <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
+                                    {turmaPeriodoTexto(turma)} •{" "}
+                                    {turma?.carga_horaria ?? "—"}h
+                                  </p>
                                 </div>
-                              </button>
 
-                              {aberta && (
-                                <div className="flex flex-wrap items-center gap-2 px-3 pb-2 pl-14 sm:px-4">
-                                  <button
-                                    type="button"
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Pill className="border-slate-200 bg-slate-50 text-slate-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
+                                    <Users
+                                      className="h-3.5 w-3.5"
+                                      aria-hidden="true"
+                                    />
+                                    {inscritos.length} inscrito(s)
+                                  </Pill>
+
+                                  <ActionButton
                                     onClick={() =>
                                       allSelected
                                         ? limparSelecao(turmaId)
                                         : selecionarTodos(turmaId)
                                     }
-                                    className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-2 py-1 text-xs font-black transition hover:bg-slate-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                    tone="sky"
+                                    disabled={
+                                      carregandoInscritos || inscritos.length === 0
+                                    }
                                   >
                                     {allSelected ? (
-                                      <Square className="h-4 w-4" aria-hidden="true" />
+                                      <Square
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                      />
                                     ) : (
                                       <CheckSquare
                                         className="h-4 w-4"
                                         aria-hidden="true"
                                       />
                                     )}
+                                    {allSelected
+                                      ? "Limpar seleção"
+                                      : "Selecionar todos"}
+                                  </ActionButton>
 
-                                    {allSelected ? "Limpar seleção" : "Selecionar todos"}
-                                  </button>
-
-                                  <button
-                                    type="button"
+                                  <ActionButton
                                     onClick={() => confirmarCancelarLote(turmaId)}
-                                    className="inline-flex items-center gap-1 rounded-xl bg-rose-700 px-2 py-1 text-xs font-black text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                    tone="rose"
                                     disabled={setSelecionado.size === 0}
                                   >
-                                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                                    Cancelar selecionados ({setSelecionado.size})
-                                  </button>
+                                    <Trash2
+                                      className="h-4 w-4"
+                                      aria-hidden="true"
+                                    />
+                                    Cancelar ({setSelecionado.size})
+                                  </ActionButton>
                                 </div>
-                              )}
+                              </div>
+                            </div>
 
-                              {aberta && (
-                                <div
-                                  id={`turma-${turmaId}-conteudo`}
-                                  className="p-3 pl-14 sm:p-4"
-                                >
-                                  {carregandoInscritos ? (
-                                    <div className="p-3">
-                                      <LoadingInline
-                                        pequeno
-                                        label="Carregando inscritos..."
-                                      />
-                                    </div>
-                                  ) : inscritos.length === 0 ? (
-                                    <div className="text-sm font-semibold text-slate-600 dark:text-zinc-300">
-                                      Nenhum inscrito nesta turma.
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <div className="hidden overflow-x-auto md:block">
-                                        <table className="min-w-full text-sm">
-                                          <thead className="bg-slate-100 dark:bg-zinc-800">
-                                            <tr className="text-left">
-                                              <th className="w-10 px-3 py-2 font-black">
-                                                <span className="sr-only">
-                                                  Selecionar
-                                                </span>
-                                              </th>
-                                              <th className="px-3 py-2 font-black">
-                                                Nome
-                                              </th>
-                                              <th className="px-3 py-2 font-black">
-                                                CPF
-                                              </th>
-                                              <th className="px-3 py-2 font-black">
-                                                Frequência
-                                              </th>
-                                              <th className="px-3 py-2 text-right font-black">
-                                                Ações
-                                              </th>
-                                            </tr>
-                                          </thead>
+                            <div className="border-t border-slate-100 bg-slate-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
+                              {carregandoInscritos ? (
+                                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+                                  <LoadingInline
+                                    pequeno
+                                    label="Carregando inscritos..."
+                                  />
+                                </div>
+                              ) : inscritos.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm font-semibold text-slate-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                                  Nenhum inscrito nesta turma.
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:block">
+                                    <table className="min-w-full text-sm">
+                                      <thead className="bg-slate-100 dark:bg-zinc-900">
+                                        <tr className="text-left">
+                                          <th className="w-12 px-3 py-3 font-black">
+                                            <span className="sr-only">
+                                              Selecionar
+                                            </span>
+                                          </th>
+                                          <th className="px-3 py-3 font-black">
+                                            Participante
+                                          </th>
+                                          <th className="px-3 py-3 font-black">
+                                            CPF
+                                          </th>
+                                          <th className="px-3 py-3 font-black">
+                                            Frequência
+                                          </th>
+                                          <th className="px-3 py-3 text-right font-black">
+                                            Ações
+                                          </th>
+                                        </tr>
+                                      </thead>
 
-                                          <tbody>
-                                            {inscritos.map((inscrito) => {
-                                              const usuarioId = toPositiveInt(
-                                                inscrito?.usuario_id
-                                              );
-                                              const marcado =
-                                                setSelecionado.has(usuarioId);
-
-                                              return (
-                                                <tr
-                                                  key={`${turmaId}-${usuarioId}`}
-                                                  className="border-t border-slate-200 dark:border-zinc-800"
-                                                >
-                                                  <td className="px-3 py-2 align-middle">
-                                                    <button
-                                                      type="button"
-                                                      onClick={() =>
-                                                        toggleSelecionado(
-                                                          turmaId,
-                                                          usuarioId
-                                                        )
-                                                      }
-                                                      aria-pressed={marcado}
-                                                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                                                      title={
-                                                        marcado
-                                                          ? "Remover da seleção"
-                                                          : "Selecionar para cancelamento"
-                                                      }
-                                                    >
-                                                      {marcado ? (
-                                                        <CheckSquare
-                                                          className="h-4 w-4"
-                                                          aria-hidden="true"
-                                                        />
-                                                      ) : (
-                                                        <Square
-                                                          className="h-4 w-4"
-                                                          aria-hidden="true"
-                                                        />
-                                                      )}
-                                                    </button>
-                                                  </td>
-
-                                                  <td className="break-words px-3 py-2 font-semibold">
-                                                    {inscrito?.nome || "—"}
-                                                  </td>
-
-                                                  <td className="px-3 py-2 font-mono">
-                                                    {cpfProtegido(inscrito?.cpf)}
-                                                  </td>
-
-                                                  <td className="px-3 py-2">
-                                                    {inscrito?.frequencia || "—"}
-                                                  </td>
-
-                                                  <td className="px-3 py-2">
-                                                    <div className="flex justify-end">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                          confirmarCancelarIndividual(
-                                                            turmaId,
-                                                            usuarioId
-                                                          )
-                                                        }
-                                                        className="inline-flex items-center gap-1 rounded-xl bg-rose-700 px-3 py-1.5 text-sm font-black text-white transition hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                                                        title="Cancelar inscrição"
-                                                      >
-                                                        <Trash2
-                                                          className="h-4 w-4"
-                                                          aria-hidden="true"
-                                                        />
-                                                        Cancelar
-                                                      </button>
-                                                    </div>
-                                                  </td>
-                                                </tr>
-                                              );
-                                            })}
-                                          </tbody>
-                                        </table>
-                                      </div>
-
-                                      <ul className="space-y-2 md:hidden">
+                                      <tbody>
                                         {inscritos.map((inscrito) => {
                                           const usuarioId = toPositiveInt(
                                             inscrito?.usuario_id
@@ -1275,11 +1273,11 @@ export default function CancelarInscricaoAdmin() {
                                             setSelecionado.has(usuarioId);
 
                                           return (
-                                            <li
+                                            <tr
                                               key={`${turmaId}-${usuarioId}`}
-                                              className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                                              className="border-t border-slate-200 dark:border-zinc-800"
                                             >
-                                              <div className="flex items-start gap-3">
+                                              <td className="px-3 py-3 align-middle">
                                                 <button
                                                   type="button"
                                                   onClick={() =>
@@ -1289,7 +1287,7 @@ export default function CancelarInscricaoAdmin() {
                                                     )
                                                   }
                                                   aria-pressed={marcado}
-                                                  className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 transition hover:bg-slate-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:hover:bg-zinc-800"
                                                   title={
                                                     marcado
                                                       ? "Remover da seleção"
@@ -1308,69 +1306,150 @@ export default function CancelarInscricaoAdmin() {
                                                     />
                                                   )}
                                                 </button>
+                                              </td>
 
-                                                <div className="min-w-0 flex-1">
-                                                  <p className="break-words font-black">
-                                                    {inscrito?.nome || "—"}
-                                                  </p>
+                                              <td className="break-words px-3 py-3 font-semibold">
+                                                {inscrito?.nome || "—"}
+                                              </td>
 
-                                                  <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
-                                                    CPF: {cpfProtegido(inscrito?.cpf)}
-                                                  </p>
+                                              <td className="px-3 py-3 font-mono text-xs">
+                                                {cpfProtegido(inscrito?.cpf)}
+                                              </td>
 
-                                                  <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
-                                                    Frequência:{" "}
-                                                    {inscrito?.frequencia || "—"}
-                                                  </p>
+                                              <td className="px-3 py-3">
+                                                {inscrito?.frequencia || "—"}
+                                              </td>
+
+                                              <td className="px-3 py-3">
+                                                <div className="flex justify-end">
+                                                  <ActionButton
+                                                    onClick={() =>
+                                                      confirmarCancelarIndividual(
+                                                        turmaId,
+                                                        usuarioId
+                                                      )
+                                                    }
+                                                    tone="rose"
+                                                  >
+                                                    <Trash2
+                                                      className="h-4 w-4"
+                                                      aria-hidden="true"
+                                                    />
+                                                    Cancelar
+                                                  </ActionButton>
                                                 </div>
-
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    confirmarCancelarIndividual(
-                                                      turmaId,
-                                                      usuarioId
-                                                    )
-                                                  }
-                                                  className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-rose-700 px-3 py-1.5 text-xs font-black text-white transition hover:bg-rose-800"
-                                                  title="Cancelar inscrição"
-                                                >
-                                                  <Trash2
-                                                    className="h-4 w-4"
-                                                    aria-hidden="true"
-                                                  />
-                                                  Cancelar
-                                                </button>
-                                              </div>
-                                            </li>
+                                              </td>
+                                            </tr>
                                           );
                                         })}
-                                      </ul>
-                                    </>
-                                  )}
-                                </div>
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  <ul className="space-y-3 md:hidden">
+                                    {inscritos.map((inscrito) => {
+                                      const usuarioId = toPositiveInt(
+                                        inscrito?.usuario_id
+                                      );
+                                      const marcado =
+                                        setSelecionado.has(usuarioId);
+
+                                      return (
+                                        <li
+                                          key={`${turmaId}-${usuarioId}`}
+                                          className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950"
+                                        >
+                                          <div className="flex items-start gap-3">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                toggleSelecionado(
+                                                  turmaId,
+                                                  usuarioId
+                                                )
+                                              }
+                                              aria-pressed={marcado}
+                                              className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-300 transition hover:bg-slate-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                              title={
+                                                marcado
+                                                  ? "Remover da seleção"
+                                                  : "Selecionar para cancelamento"
+                                              }
+                                            >
+                                              {marcado ? (
+                                                <CheckSquare
+                                                  className="h-4 w-4"
+                                                  aria-hidden="true"
+                                                />
+                                              ) : (
+                                                <Square
+                                                  className="h-4 w-4"
+                                                  aria-hidden="true"
+                                                />
+                                              )}
+                                            </button>
+
+                                            <div className="min-w-0 flex-1">
+                                              <p className="break-words font-black text-slate-950 dark:text-white">
+                                                {inscrito?.nome || "—"}
+                                              </p>
+
+                                              <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
+                                                CPF:{" "}
+                                                {cpfProtegido(inscrito?.cpf)}
+                                              </p>
+
+                                              <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
+                                                Frequência:{" "}
+                                                {inscrito?.frequencia || "—"}
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          <div className="mt-3 flex justify-end">
+                                            <ActionButton
+                                              onClick={() =>
+                                                confirmarCancelarIndividual(
+                                                  turmaId,
+                                                  usuarioId
+                                                )
+                                              }
+                                              tone="rose"
+                                            >
+                                              <Trash2
+                                                className="h-4 w-4"
+                                                aria-hidden="true"
+                                              />
+                                              Cancelar
+                                            </ActionButton>
+                                          </div>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </>
                               )}
                             </div>
-                          );
-                        })
-                      )}
+                          </article>
+                        );
+                      })}
                     </div>
                   )}
-                </li>
-              );
-            })}
-          </ul>
+                </section>
+              </>
+            ) : null}
+          </>
         )}
       </main>
 
       {totalSelecionados > 0 && (
         <div className="sticky bottom-0 z-30">
-          <div className="mx-auto max-w-6xl px-3 pb-4 sm:px-6">
+          <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8">
             <div className="rounded-3xl border border-emerald-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-emerald-900 dark:bg-zinc-900/95">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="inline-flex items-center gap-2 text-sm font-black text-emerald-900 dark:text-emerald-200">
                   <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  {totalSelecionados} selecionado(s)
+                  {totalSelecionados} participante(s) selecionado(s)
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -1381,15 +1460,14 @@ export default function CancelarInscricaoAdmin() {
                     if (!turmaId || quantidade <= 0) return null;
 
                     return (
-                      <button
+                      <ActionButton
                         key={turmaId}
-                        type="button"
                         onClick={() => confirmarCancelarLote(turmaId)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-rose-700 px-3 py-1.5 text-sm font-black text-white transition hover:bg-rose-800"
+                        tone="rose"
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        Cancelar ({quantidade}) • Turma {turmaId}
-                      </button>
+                        Cancelar {quantidade} • Turma {turmaId}
+                      </ActionButton>
                     );
                   })}
                 </div>
@@ -1417,6 +1495,8 @@ export default function CancelarInscricaoAdmin() {
         danger
         loading={cancelando}
       />
+
+      <Footer />
     </div>
   );
 }
@@ -1430,20 +1510,25 @@ LoadingInline.propTypes = {
   label: PropTypes.string,
 };
 
-MiniKpi.propTypes = {
-  icon: PropTypes.elementType.isRequired,
-  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-  label: PropTypes.string.isRequired,
-  hideSm: PropTypes.bool,
-  hideMd: PropTypes.bool,
+Pill.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
 };
 
-HeaderHero.propTypes = {
-  totalEventos: PropTypes.number.isRequired,
-  totalTurmas: PropTypes.number.isRequired,
-  totalInscritos: PropTypes.number.isRequired,
-  onSearch: PropTypes.func.isRequired,
-  searchValue: PropTypes.string.isRequired,
+MetricCard.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  hint: PropTypes.string,
+  tone: PropTypes.oneOf(["emerald", "sky", "amber", "rose", "slate"]),
+};
+
+ActionButton.propTypes = {
+  children: PropTypes.node.isRequired,
+  onClick: PropTypes.func,
+  disabled: PropTypes.bool,
+  tone: PropTypes.oneOf(["neutral", "emerald", "rose", "sky"]),
+  type: PropTypes.oneOf(["button", "submit", "reset"]),
 };
 
 ConfirmModal.propTypes = {
@@ -1455,4 +1540,8 @@ ConfirmModal.propTypes = {
   confirmLabel: PropTypes.string,
   danger: PropTypes.bool,
   loading: PropTypes.bool,
+};
+
+ContextoAusente.propTypes = {
+  onVoltar: PropTypes.func.isRequired,
 };

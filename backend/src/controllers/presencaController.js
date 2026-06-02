@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/presencaController.js — v2.0
- * Atualizado em: 14/05/2026
+ * ✅ backend/src/controllers/presencaController.js — v2.1
+ * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
  * Controller oficial do módulo de presença.
@@ -35,6 +35,9 @@
  * - Sem respostas { erro } ou { mensagem } soltas
  * - Sem ON CONFLICT dependente de constraint não confirmada
  * - PDF oficial mantido via PDFKit
+ * - QR de presença obrigatório por turma_id + data_presenca.
+ * - QR antigo sem data_presenca não é aceito.
+ * - QR de data diferente de hoje é bloqueado.
  */
 
 const db = require("../db");
@@ -796,10 +799,28 @@ async function confirmarPresencaViaQR(req, res) {
   try {
     const usuarioId = getUserId(req);
     const turmaId = toPositiveInt(req.body?.turma_id || req.params?.turma_id);
-    const dataPresenca = hojeSaoPaulo();
+    const dataPresenca = normalizeDateOnly(req.body?.data_presenca);
+    const hoje = hojeSaoPaulo();
 
     if (!usuarioId) return fail(res, 401, "Não autenticado.");
     if (!turmaId) return fail(res, 400, "turma_id é obrigatório.");
+
+    if (!dataPresenca) {
+      return fail(res, 400, "data_presenca deve estar no formato YYYY-MM-DD.");
+    }
+
+    if (dataPresenca !== hoje) {
+      return fail(
+        res,
+        409,
+        "Este QR Code não corresponde à data de hoje. Solicite o QR Code correto à organização.",
+        {
+          data_presenca: dataPresenca,
+          hoje,
+          motivo: "QR_DATA_DIFERENTE_DE_HOJE",
+        }
+      );
+    }
 
     const resultado = await withTransaction(async (q) => {
       const turma = await buscarTurma(q, turmaId);
@@ -832,8 +853,20 @@ async function confirmarPresencaViaQR(req, res) {
         };
       }
 
-      const inicio = dateTimeLocal(dataPresenca, dataTurma.horario_inicio);
-      const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
+const inicio = dateTimeLocal(
+  dataPresenca,
+  dataTurma.horario_inicio || "08:00"
+);
+
+if (!inicio) {
+  return {
+    status: 409,
+    error: true,
+    message: "Horário de início da aula inválido para confirmação de presença.",
+  };
+}
+
+const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
 
       if (new Date() < permitidoDesde) {
         return {
@@ -870,10 +903,11 @@ async function confirmarPresencaViaQR(req, res) {
       return fail(res, resultado.status, resultado.message, resultado.details);
     }
 
-    logDev(rid, "confirmarPresencaViaQR OK", {
-      usuario_id: usuarioId,
-      turma_id: turmaId,
-    });
+ logDev(rid, "confirmarPresencaViaQR OK", {
+  usuario_id: usuarioId,
+  turma_id: turmaId,
+  data_presenca: dataPresenca,
+});
 
     return ok(res, resultado.data, resultado.message, resultado.status);
   } catch (error) {

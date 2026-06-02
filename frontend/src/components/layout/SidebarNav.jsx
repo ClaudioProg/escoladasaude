@@ -718,30 +718,6 @@ function criarSecoes() {
           icon: BarChart3,
         },
         {
-          label: "Presenças",
-          path: ROTA.gestaoPresenca,
-          icon: ClipboardCheck,
-          resumo_chave: "presenca_pendente",
-        },
-        {
-          label: "Certificados",
-          path: ROTA.gestaoCertificado,
-          icon: Award,
-          resumo_chave: "certificado_pendente",
-        },
-        {
-          label: "Avaliações",
-          path: ROTA.gestaoAvaliacao,
-          icon: PencilLine,
-          resumo_chave: "avaliacao_pendente",
-        },
-        { label: "QR Codes", path: ROTA.gestaoQrcode, icon: QrCode },
-        {
-          label: "Cancelar inscrição",
-          path: ROTA.gestaoCancelamentoInscricao,
-          icon: X,
-        },
-        {
           label: "Calendário Anual de EPS",
           path: ROTA.administradorCalendarioEPS,
           icon: School,

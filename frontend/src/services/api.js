@@ -2079,12 +2079,29 @@ export async function apiPresencaRegistrar(payload = {}, opts = {}) {
   });
 }
 
-export async function apiPresencaConfirmarQr(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+export async function apiPresencaConfirmarQr(payload = {}, opts = {}) {
+  const source =
+    payload && typeof payload === "object"
+      ? payload
+      : { turma_id: payload };
+
+  const turmaId = Number(source?.turma_id);
+  const dataPresenca = String(source?.data_presenca || "").trim();
+
+  if (!Number.isInteger(turmaId) || turmaId <= 0) {
+    throw new Error("turma_id é obrigatório.");
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataPresenca)) {
+    throw new Error("data_presenca deve estar no formato YYYY-MM-DD.");
+  }
 
   return apiPost(
     "/presenca/qr",
-    { turma_id: Number(turmaId) },
+    {
+      turma_id: turmaId,
+      data_presenca: dataPresenca,
+    },
     {
       auth: true,
       on401: "redirect",
@@ -3711,6 +3728,27 @@ avaliacao: {
   porTurma: (turmaId, opts) => apiAvaliacaoListarPorTurma(turmaId, opts),
 
   disponiveis: apiAvaliacaoDisponiveis,
+
+  adminEventos: (opts = {}) =>
+    apiGet("/avaliacao/admin/eventos", {
+      auth: true,
+      on403: "silent",
+      ...opts,
+    }),
+
+  adminEvento: (eventoId, opts = {}) =>
+    apiGet(`/avaliacao/admin/evento/${eventoId}`, {
+      auth: true,
+      on403: "silent",
+      ...opts,
+    }),
+
+  adminTurma: (turmaId, opts = {}) =>
+    apiGet(`/avaliacao/admin/turma/${turmaId}`, {
+      auth: true,
+      on403: "silent",
+      ...opts,
+    }),
 },
 
 questionario: {

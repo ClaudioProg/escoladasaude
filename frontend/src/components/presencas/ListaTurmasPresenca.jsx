@@ -1,17 +1,24 @@
-// ✅ src/components/presencas/ListaTurmasPresenca.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ src/components/presencas/ListaTurmasPresenca.jsx — v2.1
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
 // Componente orquestrador da gestão de presenças por evento/turma.
 //
-// Contratos aplicados:
-// - Sem toast direto;
-// - Sem BotaoPrimario legado;
-// - Sem apiGet/apiPost/apiDelete direto;
-// - Sem /api manual no frontend;
-// - Sem /api/presencas/turma/:id/detalhes;
-// - Sem /api/presencas/confirmar-simples;
-// - Sem /api/turmas/:id direto;
+// Revisão premium v2.1:
+// - preserva comportamento antigo quando usado em páginas gerais;
+// - adiciona modo contextual obrigatório para Painel do Gestor;
+// - modoContextualEvento/abrirTudo deixam todas as turmas abertas;
+// - carregarListasAutomaticamente carrega inscritos, avaliações e presenças sem clique;
+// - não exibe botão "Ver detalhes/Recolher" no modo contextual;
+// - mantém ações existentes: PDF, remoção de turma, controle de presença;
+// - mantém visão por pessoa/data para compatibilidade;
+// - sem toast direto fora do AppToast;
+// - sem BotaoPrimario legado;
+// - sem apiGet/apiPost/apiDelete direto;
+// - sem /api manual no frontend;
+// - sem /api/presencas/turma/:id/detalhes;
+// - sem /api/presencas/confirmar-simples;
+// - sem /api/turmas/:id direto;
 // - Presenças da turma via api.presenca.turmaDetalhe(turma_id);
 // - PDF recebido por prop gerarRelatorioPDF(turma_id, turma_nome);
 // - Controle por pessoa/data delegado para ControlePresencaInscritos;
@@ -21,7 +28,7 @@
 // - Date-only seguro em YYYY-MM-DD;
 // - Mobile-first, dark mode, acessível e sem duplicar regra de presença.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -117,14 +124,16 @@ function formatarDataBR(value) {
 
 function formatarPeriodoTurma(turma) {
   const inicio = ymd(turma?.data_inicio);
-  const fim = ymd(turma?.data_fim);
+  const fim = ymd(turma?.data_fim || turma?.data_inicio);
   const hi = hhmm(turma?.horario_inicio, "");
   const hf = hhmm(turma?.horario_fim, "");
 
   const datas =
     inicio && fim
       ? `${formatarDataBR(inicio)} a ${formatarDataBR(fim)}`
-      : "Período a definir";
+      : inicio
+        ? formatarDataBR(inicio)
+        : "Período a definir";
 
   const horas = hi || hf ? `${hi || "—"}–${hf || "—"}` : "Horário a definir";
 
@@ -146,7 +155,7 @@ function getStatusTurma(turma, agora = new Date()) {
   );
 
   const fim = toLocalDateTime(
-    turma?.data_fim,
+    turma?.data_fim || turma?.data_inicio,
     hhmm(turma?.horario_fim, "23:59")
   );
 
@@ -249,8 +258,14 @@ function normalizeDetalhePresenca(response, turma) {
   const datas = datasBrutas
     .map((item) => ({
       data: ymd(item?.data || item),
-      horario_inicio: hhmm(item?.horario_inicio || item?.inicio || turma?.horario_inicio, ""),
-      horario_fim: hhmm(item?.horario_fim || item?.fim || turma?.horario_fim, ""),
+      horario_inicio: hhmm(
+        item?.horario_inicio || item?.inicio || turma?.horario_inicio,
+        ""
+      ),
+      horario_fim: hhmm(
+        item?.horario_fim || item?.fim || turma?.horario_fim,
+        ""
+      ),
     }))
     .filter((item) => item.data)
     .sort((a, b) => a.data.localeCompare(b.data));
@@ -521,6 +536,9 @@ export default function ListaTurmasPresenca({
   onTurmaRemovida,
   mostrarBotaoRemover = false,
   agrupamento = "pessoa",
+  modoContextualEvento = false,
+  abrirTudo = false,
+  carregarListasAutomaticamente = false,
 }) {
   const [turmaExpandidaId, setTurmaExpandidaId] = useState(null);
   const [presencasPorTurma, setPresencasPorTurma] = useState({});
@@ -529,6 +547,8 @@ export default function ListaTurmasPresenca({
   const [removendoId, setRemovendoId] = useState(null);
   const [idsRemovidos, setIdsRemovidos] = useState(() => new Set());
 
+  const autoCarregadasRef = useRef(new Set());
+
   const agora = hoje instanceof Date ? hoje : new Date();
 
   const eventosOrdenados = useMemo(() => {
@@ -536,6 +556,18 @@ export default function ListaTurmasPresenca({
       .slice()
       .sort(ordenarEventosDesc);
   }, [eventos]);
+
+  const turmasValidasFlat = useMemo(() => {
+    return eventosOrdenados.flatMap((evento) => {
+      return (Array.isArray(evento?.turmas) ? evento.turmas : [])
+        .filter((turma) => {
+          const turma_id = getTurmaId(turma);
+
+          return turma_id && !idsRemovidos.has(String(turma_id));
+        })
+        .sort(ordenarTurmasDesc);
+    });
+  }, [eventosOrdenados, idsRemovidos]);
 
   const marcarCarregando = useCallback((turma_id, loading) => {
     setCarregandoTurmas((prev) => {
@@ -589,6 +621,54 @@ export default function ListaTurmasPresenca({
     },
     [marcarCarregando]
   );
+
+  useEffect(() => {
+    if (!modoadministradorPresencas) return;
+    if (!carregarListasAutomaticamente && !abrirTudo && !modoContextualEvento) {
+      return;
+    }
+
+    if (!turmasValidasFlat.length) return;
+
+    let cancelado = false;
+
+    async function carregarTudoAberto() {
+      for (const turma of turmasValidasFlat) {
+        if (cancelado) return;
+
+        const turma_id = getTurmaId(turma);
+
+        if (!turma_id) continue;
+
+        const chave = String(turma_id);
+
+        if (autoCarregadasRef.current.has(chave)) continue;
+
+        autoCarregadasRef.current.add(chave);
+
+        await Promise.allSettled([
+          carregarInscritos?.(turma_id),
+          carregarAvaliacao?.(turma_id),
+          carregarPresencas(turma),
+        ]);
+      }
+    }
+
+    carregarTudoAberto();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [
+    abrirTudo,
+    carregarAvaliacao,
+    carregarInscritos,
+    carregarListasAutomaticamente,
+    carregarPresencas,
+    modoContextualEvento,
+    modoadministradorPresencas,
+    turmasValidasFlat,
+  ]);
 
   const removerTurmaAgora = useCallback(
     async ({ turma_id }) => {
@@ -646,6 +726,16 @@ export default function ListaTurmasPresenca({
         return;
       }
 
+      if (abrirTudo || modoContextualEvento) {
+        await Promise.allSettled([
+          carregarInscritos?.(turma_id),
+          carregarAvaliacao?.(turma_id),
+          carregarPresencas(turma),
+        ]);
+
+        return;
+      }
+
       const estaExpandida = turmaExpandidaId === turma_id;
 
       if (estaExpandida) {
@@ -655,20 +745,18 @@ export default function ListaTurmasPresenca({
 
       setTurmaExpandidaId(turma_id);
 
-      try {
-        await Promise.allSettled([
-          carregarInscritos?.(turma_id),
-          carregarAvaliacao?.(turma_id),
-          carregarPresencas(turma),
-        ]);
-      } catch {
-        // Promise.allSettled já captura; mantido por segurança.
-      }
+      await Promise.allSettled([
+        carregarInscritos?.(turma_id),
+        carregarAvaliacao?.(turma_id),
+        carregarPresencas(turma),
+      ]);
     },
     [
+      abrirTudo,
       carregarAvaliacao,
       carregarInscritos,
       carregarPresencas,
+      modoContextualEvento,
       turmaExpandidaId,
     ]
   );
@@ -741,7 +829,11 @@ export default function ListaTurmasPresenca({
                       {turmasValidas.map((turma) => {
                         const turma_id = getTurmaId(turma);
                         const status = getStatusTurma(turma, agora);
-                        const estaExpandida = turmaExpandidaId === turma_id;
+                        const estaExpandida =
+                          abrirTudo ||
+                          modoContextualEvento ||
+                          turmaExpandidaId === turma_id;
+
                         const isLoadingTurma = carregandoTurmas.has(
                           String(turma_id)
                         );
@@ -820,6 +912,15 @@ export default function ListaTurmasPresenca({
                                       }
                                       tone="violet"
                                     />
+
+                                    {(abrirTudo || modoContextualEvento) && (
+                                      <StatPill
+                                        icon={BadgeCheck}
+                                        label="Lista"
+                                        value="aberta"
+                                        tone="emerald"
+                                      />
+                                    )}
                                   </div>
                                 </div>
 
@@ -866,42 +967,54 @@ export default function ListaTurmasPresenca({
                                       </button>
                                     )}
 
-                                  {modoadministradorPresencas && (
-                                    <Botao
-                                      type="button"
-                                      variant="primario"
-                                      size="sm"
-                                      onClick={() => toggleTurma(turma)}
-                                      aria-expanded={estaExpandida}
-                                      aria-controls={`turma-${turma_id}-detalhes`}
-                                      className="rounded-2xl"
-                                    >
-                                      <span className="inline-flex items-center gap-2">
-                                        {estaExpandida ? "Recolher" : "Ver detalhes"}
-                                        {estaExpandida ? (
-                                          <ChevronUp
-                                            size={16}
-                                            aria-hidden="true"
-                                          />
-                                        ) : (
-                                          <ChevronDown
-                                            size={16}
-                                            aria-hidden="true"
-                                          />
-                                        )}
-                                      </span>
-                                    </Botao>
-                                  )}
+                                  {modoadministradorPresencas &&
+                                    !abrirTudo &&
+                                    !modoContextualEvento && (
+                                      <Botao
+                                        type="button"
+                                        variant="primario"
+                                        size="sm"
+                                        onClick={() => toggleTurma(turma)}
+                                        aria-expanded={estaExpandida}
+                                        aria-controls={`turma-${turma_id}-detalhes`}
+                                        className="rounded-2xl"
+                                      >
+                                        <span className="inline-flex items-center gap-2">
+                                          {estaExpandida
+                                            ? "Recolher"
+                                            : "Ver detalhes"}
+                                          {estaExpandida ? (
+                                            <ChevronUp
+                                              size={16}
+                                              aria-hidden="true"
+                                            />
+                                          ) : (
+                                            <ChevronDown
+                                              size={16}
+                                              aria-hidden="true"
+                                            />
+                                          )}
+                                        </span>
+                                      </Botao>
+                                    )}
                                 </div>
                               </div>
 
-                              <AnimatePresence>
+                              <AnimatePresence initial={false}>
                                 {modoadministradorPresencas && estaExpandida && (
                                   <motion.div
                                     id={`turma-${turma_id}-detalhes`}
-                                    initial={{ opacity: 0, height: 0 }}
+                                    initial={
+                                      abrirTudo || modoContextualEvento
+                                        ? false
+                                        : { opacity: 0, height: 0 }
+                                    }
                                     animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
+                                    exit={
+                                      abrirTudo || modoContextualEvento
+                                        ? undefined
+                                        : { opacity: 0, height: 0 }
+                                    }
                                     className="mt-4 overflow-hidden"
                                   >
                                     {isLoadingTurma ? (
@@ -976,8 +1089,7 @@ export default function ListaTurmasPresenca({
               <p>
                 Remover a turma{" "}
                 <strong>
-                  {confirmRemover.turma_nome ||
-                    `#${confirmRemover.turma_id}`}
+                  {confirmRemover.turma_nome || `#${confirmRemover.turma_id}`}
                 </strong>
                 ?
               </p>
@@ -1064,4 +1176,7 @@ ListaTurmasPresenca.propTypes = {
   onTurmaRemovida: PropTypes.func,
   mostrarBotaoRemover: PropTypes.bool,
   agrupamento: PropTypes.oneOf(["pessoa", "data"]),
+  modoContextualEvento: PropTypes.bool,
+  abrirTudo: PropTypes.bool,
+  carregarListasAutomaticamente: PropTypes.bool,
 };

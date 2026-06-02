@@ -1,13 +1,14 @@
 "use strict";
 
 /**
- * ✅ backend/src/utils/certificadoLayoutPdf.js — v2.7
- * Atualizado em: 28/05/2026
+ * ✅ backend/src/utils/certificadoLayoutPdf.js — v2.8
+ * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
  * Função:
  * - Template programático premium para certificados PDF.
  * - Certificado institucional oficial em 1 página A4 horizontal.
+ * - Verso institucional opcional para conteúdo programático.
  *
  * Diretrizes v2.7:
  * - Layout premium refinado a partir da v2.6.
@@ -26,7 +27,8 @@
  * - Suporta de 1 a 3 assinaturas oficiais.
  *
  * Contrato preservado:
- * - desenharCertificadoCompletoV2(doc, options)
+  * - desenharCertificadoCompletoV2(doc, options)
+ * - desenharVersoConteudoProgramatico(doc, options)
  * - desenharAssinaturas(doc, assinaturas, options)
  * - normalizarAssinaturasLayout(assinaturas)
  * - dataUrlToBuffer(value)
@@ -1095,6 +1097,299 @@ function desenharValidacao(doc, options = {}) {
   doc.restore();
 }
 
+function normalizarConteudoProgramatico(value, max = 12000) {
+  const linhas = String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((linha) => linha.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const texto = linhas.join("\n");
+
+  return texto.length > max ? texto.slice(0, max) : texto;
+}
+
+function desenharLinhasConteudoProgramatico(doc, linhas, options = {}) {
+  const {
+    x,
+    y,
+    width,
+    height,
+    fonts,
+    maxFontSize = 11,
+    minFontSize = 7.2,
+  } = options;
+
+  if (!Array.isArray(linhas) || !linhas.length) return;
+
+  let fontSize = maxFontSize;
+  let lineGap = 3;
+
+  setFont(doc, fonts.regular, "Helvetica");
+
+  while (fontSize > minFontSize) {
+    doc.fontSize(fontSize);
+
+    const alturaTotal = linhas.reduce((total, linha) => {
+      return (
+        total +
+        doc.heightOfString(linha, {
+          width,
+          align: "left",
+          lineGap,
+        }) +
+        4
+      );
+    }, 0);
+
+    if (alturaTotal <= height) break;
+
+    fontSize -= 0.4;
+    lineGap = Math.max(1.4, lineGap - 0.12);
+  }
+
+  let cursorY = y;
+
+  for (const linha of linhas) {
+    const isMarcada = /^[-•*]\s+/.test(linha);
+    const texto = linha.replace(/^[-•*]\s+/, "").trim();
+
+    const bulletX = x;
+    const textX = isMarcada ? x + 15 : x;
+    const textW = isMarcada ? width - 15 : width;
+
+    if (isMarcada) {
+      doc
+        .circle(bulletX + 4, cursorY + fontSize * 0.58, 2)
+        .fillColor(CORES.ouro)
+        .fill();
+    }
+
+    setFont(doc, fonts.regular, "Helvetica");
+    doc.fillColor(CORES.texto).fontSize(fontSize).text(texto || linha, textX, cursorY, {
+      width: textW,
+      align: "left",
+      lineGap,
+    });
+
+    const alturaLinha = doc.heightOfString(texto || linha, {
+      width: textW,
+      align: "left",
+      lineGap,
+    });
+
+    cursorY += alturaLinha + 4;
+
+        if (cursorY > y + height - 14) {
+      setFont(doc, fonts.bold, "Helvetica-Bold");
+      doc
+        .fillColor(CORES.textoMuted)
+        .fontSize(6.4)
+        .text("Conteúdo ajustado ao limite físico do verso.", x, y + height - 10, {
+          width,
+          height: 8,
+          align: "right",
+          lineBreak: false,
+          ellipsis: true,
+        });
+      break;
+    }
+  }
+}
+
+function desenharVersoConteudoProgramatico(doc, options = {}) {
+  const pageW = doc.page.width;
+  const pageH = doc.page.height;
+  const fonts = fontSet(options.fonts);
+
+  const conteudo = normalizarConteudoProgramatico(
+    options.conteudoProgramatico,
+    12000
+  );
+
+  if (!conteudo) return;
+
+  const tituloEvento = safeText(options.tituloEvento, 220);
+  const turmaNome = safeText(options.turmaNome, 180);
+  const numeroCertificado = safeText(options.numeroCertificado, 80);
+  const codigoValidacao = safeText(options.codigoValidacao, 120);
+  // A URL completa já consta na frente do certificado junto ao QR Code.
+  // No verso, não imprimimos URL para impedir quebra automática e terceira página.
+
+  desenharMoldura(doc, {
+    modelo: "padrao",
+    fonts,
+  });
+
+  desenharTopoInstitucional(doc, {
+    ...options,
+    fonts,
+  });
+
+  doc.save();
+
+  setFont(doc, fonts.serif, "Helvetica-Bold");
+  doc
+    .fillColor(CORES.verdeProfundo)
+    .fontSize(27)
+    .text("CONTEÚDO PROGRAMÁTICO", 72, 136, {
+      width: pageW - 144,
+      align: "center",
+      characterSpacing: 1.2,
+      lineBreak: false,
+    });
+
+  setFont(doc, fonts.regular, "Helvetica");
+  doc
+    .fillColor(CORES.ouroEscuro)
+    .fontSize(9.4)
+    .text("Verso institucional do certificado", 90, 169, {
+      width: pageW - 180,
+      align: "center",
+      lineBreak: false,
+    });
+
+  doc.strokeColor(CORES.ouro).lineWidth(0.7);
+  doc.moveTo(pageW / 2 - 88, 194).lineTo(pageW / 2 - 16, 194).stroke();
+  doc.moveTo(pageW / 2 + 16, 194).lineTo(pageW / 2 + 88, 194).stroke();
+  doc.circle(pageW / 2, 194, 1.8).fillColor(CORES.ouro).fill();
+
+  const infoX = 86;
+  const infoY = 212;
+  const infoW = pageW - 172;
+
+  doc
+    .roundedRect(infoX, infoY, infoW, 58, 14)
+    .fillColor("#fffaf0")
+    .fill();
+
+  doc
+    .roundedRect(infoX, infoY, infoW, 58, 14)
+    .strokeColor("#ead9a6")
+    .lineWidth(0.65)
+    .stroke();
+
+  setFont(doc, fonts.bold, "Helvetica-Bold");
+  doc.fillColor(CORES.verdeProfundo).fontSize(10.8).text(tituloEvento, infoX + 18, infoY + 13, {
+    width: infoW - 36,
+    align: "center",
+    lineBreak: false,
+    ellipsis: true,
+  });
+
+  if (turmaNome) {
+    setFont(doc, fonts.regular, "Helvetica");
+    doc.fillColor(CORES.textoSuave).fontSize(8.8).text(turmaNome, infoX + 18, infoY + 33, {
+      width: infoW - 36,
+      align: "center",
+      lineBreak: false,
+      ellipsis: true,
+    });
+  }
+
+  const boxX = 92;
+  const boxY = 292;
+  const boxW = pageW - 184;
+  const boxH = 184;
+
+  doc
+    .roundedRect(boxX, boxY, boxW, boxH, 16)
+    .fillColor(CORES.papelClaro)
+    .fill();
+
+  doc
+    .roundedRect(boxX, boxY, boxW, boxH, 16)
+    .strokeColor(CORES.linha)
+    .lineWidth(0.7)
+    .stroke();
+
+  const linhas = conteudo.split("\n").filter(Boolean);
+  const usarDuasColunas = linhas.length > 14 || conteudo.length > 1800;
+
+  if (usarDuasColunas) {
+    const gap = 22;
+    const colW = (boxW - 48 - gap) / 2;
+    const metade = Math.ceil(linhas.length / 2);
+
+    desenharLinhasConteudoProgramatico(doc, linhas.slice(0, metade), {
+      x: boxX + 24,
+      y: boxY + 20,
+      width: colW,
+      height: boxH - 40,
+      fonts,
+      maxFontSize: linhas.length > 26 ? 7.8 : 8.6,
+      minFontSize: 6.2,
+    });
+
+    doc.strokeColor("#ead9a6").lineWidth(0.45);
+    doc
+      .moveTo(boxX + 24 + colW + gap / 2, boxY + 18)
+      .lineTo(boxX + 24 + colW + gap / 2, boxY + boxH - 18)
+      .stroke();
+
+    desenharLinhasConteudoProgramatico(doc, linhas.slice(metade), {
+      x: boxX + 24 + colW + gap,
+      y: boxY + 20,
+      width: colW,
+      height: boxH - 40,
+      fonts,
+      maxFontSize: linhas.length > 26 ? 7.8 : 8.6,
+      minFontSize: 6.2,
+    });
+  } else {
+    desenharLinhasConteudoProgramatico(doc, linhas, {
+      x: boxX + 24,
+      y: boxY + 22,
+      width: boxW - 48,
+      height: boxH - 44,
+      fonts,
+      maxFontSize: linhas.length > 18 ? 9.2 : 10.8,
+      minFontSize: 7.2,
+    });
+  }
+
+  const rodapeY = pageH - 70;
+
+  doc.strokeColor(CORES.ouro).lineWidth(0.65);
+  doc.moveTo(86, rodapeY - 12).lineTo(pageW - 86, rodapeY - 12).stroke();
+
+  setFont(doc, fonts.bold, "Helvetica-Bold");
+  doc.fillColor(CORES.verdeProfundo).fontSize(8).text(
+    "Documento eletrônico emitido pela Plataforma Escola da Saúde",
+    86,
+    rodapeY,
+    {
+      width: pageW - 172,
+      height: 10,
+      align: "center",
+      lineBreak: false,
+      ellipsis: true,
+    }
+  );
+
+  setFont(doc, fonts.regular, "Helvetica");
+  doc.fillColor(CORES.textoMuted).fontSize(7).text(
+    [
+      numeroCertificado ? `Certificado nº: ${numeroCertificado}` : "",
+      codigoValidacao ? `Código de validação: ${codigoValidacao}` : "",
+    ]
+      .filter(Boolean)
+      .join("  •  "),
+    86,
+    rodapeY + 15,
+    {
+      width: pageW - 172,
+      height: 10,
+      align: "center",
+      lineBreak: false,
+      ellipsis: true,
+    }
+  );
+
+  doc.restore();
+}
+
 function desenharCertificadoCompletoV2(doc, options = {}) {
   const fonts = fontSet(options.fonts);
 
@@ -1142,6 +1437,7 @@ function desenharCertificadoCompletoV2(doc, options = {}) {
 
 module.exports = {
   desenharCertificadoCompletoV2,
+  desenharVersoConteudoProgramatico,
   desenharAssinaturas,
   normalizarAssinaturasLayout,
   dataUrlToBuffer,
