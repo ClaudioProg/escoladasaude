@@ -1,6 +1,23 @@
-// ✅ frontend/src/pages/RelatoriosCustomizados.jsx — v2.0
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/pages/RelatoriosCustomizados.jsx — v2.1
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
+//
+// Painel administrativo premium de relatórios institucionais.
+//
+// Revisão premium v2.1:
+// - usa HeaderHero global oficial limpo;
+// - remove hero local com KPIs dentro do cabeçalho;
+// - botões, filtros, contexto, badges e stats ficam abaixo do HeaderHero;
+// - evita busca automática a cada alteração de filtro;
+// - busca inicial e troca de relatório controladas;
+// - filtros só são aplicados ao clicar em "Buscar relatório";
+// - mantém contratos oficiais api.relatorio;
+// - mantém exportação XLSX por facade oficial;
+// - adiciona cards responsivos para mobile e tabela em telas maiores;
+// - melhora leitura de envelopes oficiais ok/data/meta;
+// - fortalece controle de concorrência para respostas antigas;
+// - mantém Footer oficial;
+// - mobile-first, acessível, rastreável e operacional.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -11,7 +28,6 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardList,
-  Download,
   FileBadge2,
   FileSpreadsheet,
   Filter,
@@ -29,12 +45,18 @@ import {
 } from "lucide-react";
 
 import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import Botao from "../components/ui/Botao";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import RelatoriosTabela from "../components/relatorios/RelatoriosTabela";
-import { notifyError, notifyInfo, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 
 /* ─────────────────────────────────────────────
@@ -68,13 +90,14 @@ import { api } from "../services/api";
  * GET /api/relatorio/saude-plataforma
  * GET /api/relatorio/exportar/:tipo.xlsx
  *
- * Diretrizes v2.0:
+ * Diretrizes v2.1:
  * - Sem apiGet/apiPostFile direto.
  * - Sem react-toastify direto.
  * - Sem file-saver.
  * - Sem endpoints antigos relatorios/opcao, relatorios/custom, relatorios/exportar.
  * - Sem aliases de filtro.
  * - Date-only como YYYY-MM-DD.
+ * - HeaderHero limpo.
  */
 
 /* ─────────────────────────────────────────────
@@ -94,7 +117,8 @@ const RELATORIOS = [
     key: "eventos",
     exportKey: "eventos",
     label: "Eventos",
-    description: "Eventos, turmas, vagas, inscritos, presenças, certificados e avaliação.",
+    description:
+      "Eventos, turmas, vagas, inscritos, presenças, certificados e avaliação.",
     icon: CalendarDays,
     tone: "cyan",
   },
@@ -117,7 +141,7 @@ const RELATORIOS = [
   {
     key: "organizadores",
     exportKey: "organizadores",
-    label: "organizadores",
+    label: "Organizadores",
     description: "Atuação, avaliações e assinatura dos organizadores.",
     icon: GraduationCap,
     tone: "violet",
@@ -185,6 +209,20 @@ const EXPORTAVEIS = new Set([
   "saude-plataforma",
 ]);
 
+const STATUS_OFICIAIS = [
+  "programado",
+  "andamento",
+  "encerrado",
+  "emitido",
+  "enviado",
+  "cancelado",
+  "anulado",
+  "substituido",
+  "erro_emissao",
+];
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 /* ─────────────────────────────────────────────
  * Helpers
  * ───────────────────────────────────────────── */
@@ -193,18 +231,32 @@ function cx(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
-function extrairData(response) {
-  return response?.data ?? response ?? null;
+function isObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function extrairPayload(response) {
+  const base = response?.data ?? response ?? null;
+
+  if (isObject(base) && Object.prototype.hasOwnProperty.call(base, "data")) {
+    return base.data;
+  }
+
+  return base;
 }
 
 function extrairMeta(response) {
-  return response?.meta || response?.data?.meta || {};
+  const base = response?.data ?? response ?? {};
+
+  return response?.meta || base?.meta || base?.data?.meta || {};
 }
 
 function obterMensagemErro(error, fallback) {
   return (
     error?.response?.data?.message ||
+    error?.response?.data?.erro ||
     error?.data?.message ||
+    error?.data?.erro ||
     error?.message ||
     fallback
   );
@@ -224,13 +276,13 @@ function hojeYMD() {
   const date = new Date();
   const pad = (n) => String(n).padStart(2, "0");
 
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}`;
 }
 
 function primeiroDiaAnoYMD() {
-  const ano = new Date().getFullYear();
-
-  return `${ano}-01-01`;
+  return `${new Date().getFullYear()}-01-01`;
 }
 
 function normalizarBusca(value) {
@@ -258,7 +310,22 @@ function getRelatorioAtual(key) {
 function getRowsFromData(data) {
   if (Array.isArray(data)) return data;
 
-  if (data && typeof data === "object") {
+  if (isObject(data)) {
+    if (Array.isArray(data.rows)) return data.rows;
+    if (Array.isArray(data.itens)) return data.itens;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.resultados)) return data.resultados;
+    if (Array.isArray(data.registros)) return data.registros;
+    if (Array.isArray(data.eventos)) return data.eventos;
+    if (Array.isArray(data.presencas)) return data.presencas;
+    if (Array.isArray(data.avaliacoes)) return data.avaliacoes;
+    if (Array.isArray(data.organizadores)) return data.organizadores;
+    if (Array.isArray(data.certificados)) return data.certificados;
+    if (Array.isArray(data.usuarios)) return data.usuarios;
+    if (Array.isArray(data.salas)) return data.salas;
+    if (Array.isArray(data.notificacoes)) return data.notificacoes;
+    if (Array.isArray(data.alertas)) return data.alertas;
+
     return [data];
   }
 
@@ -277,15 +344,24 @@ function formatarNumero(value) {
   return new Intl.NumberFormat("pt-BR").format(number);
 }
 
-function formatarPercentual(value) {
-  const number = Number(value);
+function formatarDataBR(value) {
+  const text = String(value || "").trim();
 
-  if (!Number.isFinite(number)) return "—";
+  if (!text) return "—";
 
-  return `${number.toFixed(1).replace(".", ",")}%`;
+  const ymd = text.slice(0, 10);
+
+  if (!isYMD(ymd)) return text;
+
+  const [ano, mes, dia] = ymd.split("-");
+  return `${dia}/${mes}/${ano}`;
 }
 
 function downloadBlob(filename, blob) {
+  if (!(blob instanceof Blob)) {
+    throw new Error("Arquivo de exportação inválido.");
+  }
+
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 
@@ -296,11 +372,32 @@ function downloadBlob(filename, blob) {
   anchor.click();
   anchor.remove();
 
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function filenameFromContentDisposition(header) {
+  const text = String(header || "");
+
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(text);
+  if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1]);
+
+  const regularMatch = /filename="?([^"]+)"?/i.exec(text);
+  if (regularMatch?.[1]) return regularMatch[1];
+
+  return "";
 }
 
 function inferirNomeArquivo(result, fallback) {
-  return result?.filename || result?.nome_arquivo || fallback;
+  const headers = result?.headers || result?.response?.headers || {};
+  const contentDisposition =
+    headers["content-disposition"] || headers["Content-Disposition"];
+
+  return (
+    result?.filename ||
+    result?.nome_arquivo ||
+    filenameFromContentDisposition(contentDisposition) ||
+    fallback
+  );
 }
 
 function filtrarClientSide(rows, busca) {
@@ -310,6 +407,8 @@ function filtrarClientSide(rows, busca) {
 
   return rows.filter((row) => {
     return Object.values(row || {}).some((value) => {
+      if (value === null || value === undefined) return false;
+
       return normalizarBusca(value).includes(q);
     });
   });
@@ -323,6 +422,102 @@ function getStatusSaude(row) {
   if (severidade === "info") return "info";
 
   return "ok";
+}
+
+function getCellLabel(key) {
+  const labels = {
+    id: "ID",
+    evento_id: "Evento ID",
+    turma_id: "Turma ID",
+    usuario_id: "Usuário ID",
+    organizador_id: "Organizador ID",
+    nome: "Nome",
+    nome_completo: "Nome",
+    titulo: "Título",
+    evento_titulo: "Evento",
+    turma_nome: "Turma",
+    status: "Status",
+    data: "Data",
+    data_inicio: "Início",
+    data_fim: "Fim",
+    criado_em: "Criado em",
+    atualizado_em: "Atualizado em",
+    severidade: "Severidade",
+    mensagem: "Mensagem",
+  };
+
+  return (
+    labels[key] ||
+    String(key || "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  );
+}
+
+function getValorExibicao(value) {
+  if (value === null || value === undefined || value === "") return "—";
+
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
+
+  if (typeof value === "number") return formatarNumero(value);
+
+  const text = String(value);
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return formatarDataBR(text);
+
+  return text;
+}
+
+function getResumoLinha(row) {
+  if (!isObject(row)) return [];
+
+  const entries = Object.entries(row).filter(([, value]) => {
+    return value !== null && value !== undefined && value !== "";
+  });
+
+  const prioridade = [
+    "id",
+    "titulo",
+    "evento_titulo",
+    "nome",
+    "nome_completo",
+    "turma_nome",
+    "status",
+    "severidade",
+    "data_inicio",
+    "data_fim",
+    "criado_em",
+  ];
+
+  const ordenadas = [
+    ...prioridade
+      .filter((key) => Object.prototype.hasOwnProperty.call(row, key))
+      .map((key) => [key, row[key]]),
+    ...entries.filter(([key]) => !prioridade.includes(key)),
+  ];
+
+  return ordenadas.slice(0, 8);
+}
+
+function montarParamsOficiais(filtros) {
+  const params = {};
+
+  if (isYMD(filtros.data_inicio)) params.data_inicio = filtros.data_inicio;
+  if (isYMD(filtros.data_fim)) params.data_fim = filtros.data_fim;
+
+  const eventoId = toPositiveIntOrEmpty(filtros.evento_id);
+  const turmaId = toPositiveIntOrEmpty(filtros.turma_id);
+  const organizadorId = toPositiveIntOrEmpty(filtros.organizador_id);
+  const usuarioId = toPositiveIntOrEmpty(filtros.usuario_id);
+
+  if (eventoId) params.evento_id = eventoId;
+  if (turmaId) params.turma_id = turmaId;
+  if (organizadorId) params.organizador_id = organizadorId;
+  if (usuarioId) params.usuario_id = usuarioId;
+
+  if (filtros.status) params.status = filtros.status;
+
+  return params;
 }
 
 /* ─────────────────────────────────────────────
@@ -357,138 +552,174 @@ function Badge({ tone = "slate", children }) {
   );
 }
 
-function MiniStatHero({ icon: Icon, label, value, tone = "violet" }) {
+function MiniStatCard({
+  icon: Icon,
+  label,
+  value,
+  description,
+  tone = "violet",
+  active = false,
+}) {
   const tones = {
-    violet: "bg-violet-400/15 text-violet-50 ring-violet-300/20",
-    emerald: "bg-emerald-400/15 text-emerald-50 ring-emerald-300/20",
-    amber: "bg-amber-400/15 text-amber-50 ring-amber-300/20",
-    rose: "bg-rose-400/15 text-rose-50 ring-rose-300/20",
-    cyan: "bg-cyan-400/15 text-cyan-50 ring-cyan-300/20",
+    violet:
+      "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+    emerald:
+      "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+    amber:
+      "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+    rose:
+      "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
+    cyan:
+      "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
   };
 
   return (
-    <div className={cx("rounded-3xl p-4 ring-1 backdrop-blur", tones[tone])}>
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+    <article
+      className={cx(
+        "rounded-[1.75rem] border p-4 shadow-sm ring-1 ring-black/5 transition dark:ring-white/10",
+        "hover:-translate-y-0.5 hover:shadow-lg",
+        tones[tone] || tones.violet,
+        active && "outline outline-2 outline-offset-2 outline-violet-400"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/75 shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
           <Icon className="h-5 w-5" aria-hidden="true" />
-        </div>
+        </span>
 
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-wide opacity-80">
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] opacity-70">
             {label}
           </p>
-          <p className="text-2xl font-black leading-none">{value}</p>
+
+          <p className="mt-1 text-3xl font-black leading-none tracking-tight">
+            {value}
+          </p>
+
+          <p className="mt-1 text-xs font-semibold opacity-75">
+            {description}
+          </p>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-function Hero({ kpis, carregando, exportando, onRefresh }) {
+function ResumoExecutivo({ kpis, carregando }) {
   return (
-    <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-800 text-white">
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-400 blur-3xl" />
-        <div className="absolute right-0 top-8 h-72 w-72 rounded-full bg-fuchsia-500 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-500 blur-3xl" />
-      </div>
+    <section
+      aria-label="Resumo executivo dos relatórios"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
+      <MiniStatCard
+        icon={CalendarDays}
+        label="Eventos"
+        value={carregando ? "..." : formatarNumero(kpis.eventos)}
+        description="registros ou indicador atual"
+        tone="cyan"
+      />
 
-      <a
-        href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-950"
-      >
-        Ir para o conteúdo
-      </a>
+      <MiniStatCard
+        icon={UsersRound}
+        label="Inscrições"
+        value={carregando ? "..." : formatarNumero(kpis.inscricoes)}
+        description="volume operacional"
+        tone="violet"
+      />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black ring-1 ring-white/20 backdrop-blur">
-              <BarChart3 className="h-4 w-4" aria-hidden="true" />
-              Relatórios institucionais
-            </div>
+      <MiniStatCard
+        icon={FileBadge2}
+        label="Certificados"
+        value={carregando ? "..." : formatarNumero(kpis.certificados)}
+        description="emitidos, enviados ou liberáveis"
+        tone="emerald"
+      />
 
-            <h1 className="mt-4 text-2xl font-black tracking-tight sm:text-4xl">
-              Painel de relatórios da Escola da Saúde
-            </h1>
-
-            <p className="mt-3 max-w-3xl text-sm text-white/85 sm:text-base">
-              Acompanhe eventos, presenças, avaliações, certificados, usuários,
-              salas, notificações e saúde da plataforma com filtros oficiais e
-              exportação institucional.
-            </p>
-          </div>
-
-          <div className="flex shrink-0">
-            <Botao
-              type="button"
-              variant="secondary"
-              onClick={onRefresh}
-              disabled={carregando || exportando}
-              className="bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15"
-            >
-              <span className="inline-flex items-center gap-2">
-                <RefreshCcw
-                  className={cx(
-                    "h-4 w-4",
-                    (carregando || exportando) && "animate-spin"
-                  )}
-                  aria-hidden="true"
-                />
-                {carregando ? "Atualizando..." : "Atualizar"}
-              </span>
-            </Botao>
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MiniStatHero
-            icon={CalendarDays}
-            label="Eventos"
-            value={formatarNumero(kpis.eventos)}
-            tone="cyan"
-          />
-          <MiniStatHero
-            icon={UsersRound}
-            label="Inscrições"
-            value={formatarNumero(kpis.inscricoes)}
-            tone="violet"
-          />
-          <MiniStatHero
-            icon={FileBadge2}
-            label="Certificados"
-            value={formatarNumero(kpis.certificados)}
-            tone="emerald"
-          />
-          <MiniStatHero
-            icon={HeartPulse}
-            label="Alertas"
-            value={formatarNumero(kpis.alertas)}
-            tone={kpis.alertas > 0 ? "rose" : "emerald"}
-          />
-        </div>
-
-        <div className="mt-5 rounded-3xl bg-white/10 p-4 text-sm text-white/85 ring-1 ring-white/15 backdrop-blur">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-            <p>
-              Os relatórios v2.0 usam contratos oficiais, filtros padronizados e
-              dados rastreáveis para suporte, auditoria e tomada de decisão.
-            </p>
-          </div>
-        </div>
-      </div>
-    </header>
+      <MiniStatCard
+        icon={HeartPulse}
+        label="Alertas"
+        value={carregando ? "..." : formatarNumero(kpis.alertas)}
+        description="pendências ou inconsistências"
+        tone={kpis.alertas > 0 ? "rose" : "emerald"}
+        active={kpis.alertas > 0}
+      />
+    </section>
   );
 }
 
-function RelatorioTabs({ value, onChange, counts }) {
+function BarraContextual({
+  carregando,
+  exportando,
+  relatorioAtual,
+  filtrosAplicados,
+  onRefresh,
+}) {
+  const Icon = relatorioAtual.icon;
+
+  return (
+    <section className="rounded-[1.75rem] border border-white/70 bg-white/90 p-4 shadow-xl shadow-slate-200/60 ring-1 ring-slate-200 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/85 dark:shadow-black/20 dark:ring-zinc-800">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={relatorioAtual.tone}>
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              {relatorioAtual.label}
+            </Badge>
+
+            <Badge tone="slate">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              Contrato oficial v2.1
+            </Badge>
+          </div>
+
+          <h2 className="mt-3 text-lg font-black text-slate-950 dark:text-white">
+            Relatórios institucionais com rastreabilidade
+          </h2>
+
+          <p className="mt-1 max-w-4xl text-sm font-medium text-slate-600 dark:text-zinc-300">
+            Use os filtros oficiais para consultar dados da plataforma. As
+            alterações nos campos não disparam busca automática; clique em{" "}
+            <strong>Buscar relatório</strong> para aplicar.
+          </p>
+
+          <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+            Período aplicado:{" "}
+            <strong>{formatarDataBR(filtrosAplicados.data_inicio)}</strong> até{" "}
+            <strong>{formatarDataBR(filtrosAplicados.data_fim)}</strong>
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Botao
+            type="button"
+            variant="secondary"
+            onClick={onRefresh}
+            disabled={carregando || exportando}
+          >
+            <span className="inline-flex items-center gap-2">
+              <RefreshCcw
+                className={cx(
+                  "h-4 w-4",
+                  (carregando || exportando) && "animate-spin"
+                )}
+                aria-hidden="true"
+              />
+              {carregando ? "Atualizando..." : "Atualizar relatório"}
+            </span>
+          </Botao>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RelatorioTabs({ value, onChange, counts, disabled }) {
   return (
     <section
       aria-label="Categorias de relatório"
       className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
     >
-      <div className="flex min-w-fit gap-2 py-1">
+      <div className="flex min-w-fit gap-2 py-1" role="tablist">
         {RELATORIOS.map((item) => {
           const Icon = item.icon;
           const active = value === item.key;
@@ -500,10 +731,12 @@ function RelatorioTabs({ value, onChange, counts }) {
               type="button"
               role="tab"
               aria-selected={active}
+              disabled={disabled}
               onClick={() => onChange(item.key)}
               className={cx(
                 "inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black ring-1 transition",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+                "disabled:cursor-not-allowed disabled:opacity-60",
                 active
                   ? "bg-slate-950 text-white ring-slate-950 dark:bg-white dark:text-slate-950 dark:ring-white"
                   : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 dark:bg-zinc-900 dark:text-zinc-200 dark:ring-zinc-800 dark:hover:bg-zinc-800"
@@ -511,6 +744,7 @@ function RelatorioTabs({ value, onChange, counts }) {
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
               <span>{item.label}</span>
+
               {Number.isFinite(count) ? (
                 <span
                   className={cx(
@@ -520,7 +754,7 @@ function RelatorioTabs({ value, onChange, counts }) {
                       : "bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300"
                   )}
                 >
-                  {count}
+                  {formatarNumero(count)}
                 </span>
               ) : null}
             </button>
@@ -548,13 +782,27 @@ function Filtros({
   return (
     <section
       aria-label="Filtros do relatório"
-      className="rounded-[1.5rem] bg-white/85 p-4 shadow-sm ring-1 ring-slate-200 backdrop-blur dark:bg-zinc-900/85 dark:ring-zinc-800"
+      className="rounded-[1.75rem] border border-white/70 bg-white/90 p-4 shadow-xl shadow-slate-200/60 ring-1 ring-slate-200 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/85 dark:shadow-black/20 dark:ring-zinc-800"
     >
-      <div className="mb-3 flex items-center gap-2">
-        <Filter className="h-4 w-4 text-slate-500" aria-hidden="true" />
-        <h2 className="text-sm font-black text-slate-950 dark:text-white">
-          Filtros oficiais
-        </h2>
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-black text-slate-950 dark:text-white">
+              Filtros oficiais
+            </h2>
+          </div>
+
+          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+            Os campos seguem o contrato oficial do backend. Não há aliases nem
+            nomes alternativos.
+          </p>
+        </div>
+
+        <Badge tone={relatorioAtual.exportKey ? "emerald" : "amber"}>
+          <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
+          {relatorioAtual.exportKey ? "Exportação disponível" : "Sem XLSX direto"}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -591,7 +839,7 @@ function Filtros({
         />
 
         <CampoTextoNumerico
-          label="organizador ID"
+          label="Organizador ID"
           value={filtros.organizador_id}
           onChange={(value) =>
             setFiltros((prev) => ({ ...prev, organizador_id: value }))
@@ -607,7 +855,7 @@ function Filtros({
         />
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_220px]">
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_240px]">
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -618,8 +866,8 @@ function Filtros({
             type="search"
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
-            placeholder="Buscar nos resultados carregados..."
-            className="w-full rounded-2xl border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm text-slate-950 outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:ring-violet-950"
+            placeholder="Buscar nos resultados já carregados..."
+            className="w-full rounded-2xl border border-slate-300 bg-white py-2.5 pl-9 pr-10 text-sm text-slate-950 outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:ring-violet-950"
             aria-label="Buscar nos resultados"
           />
 
@@ -640,19 +888,15 @@ function Filtros({
           onChange={(event) =>
             setFiltros((prev) => ({ ...prev, status: event.target.value }))
           }
-          className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
+          className="rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
           aria-label="Filtrar por status"
         >
           <option value="">Status: todos</option>
-          <option value="programado">programado</option>
-          <option value="andamento">andamento</option>
-          <option value="encerrado">encerrado</option>
-          <option value="emitido">emitido</option>
-          <option value="enviado">enviado</option>
-          <option value="cancelado">cancelado</option>
-          <option value="anulado">anulado</option>
-          <option value="substituido">substituido</option>
-          <option value="erro_emissao">erro_emissao</option>
+          {STATUS_OFICIAIS.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -723,11 +967,12 @@ function CampoData({ label, value, onChange }) {
       <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
         {label}
       </span>
+
       <input
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
+        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
       />
     </label>
   );
@@ -739,6 +984,7 @@ function CampoTextoNumerico({ label, value, onChange }) {
       <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
         {label}
       </span>
+
       <input
         type="number"
         inputMode="numeric"
@@ -746,7 +992,7 @@ function CampoTextoNumerico({ label, value, onChange }) {
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Opcional"
-        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
+        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:ring-violet-950"
       />
     </label>
   );
@@ -756,7 +1002,7 @@ function RelatorioDescricao({ relatorio, total, meta }) {
   const Icon = relatorio.icon;
 
   return (
-    <section className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+    <section className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Badge tone={relatorio.tone}>
@@ -778,6 +1024,7 @@ function RelatorioDescricao({ relatorio, total, meta }) {
             <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
               Registros
             </p>
+
             <p className="mt-1 text-xl font-black text-slate-950 dark:text-white">
               {formatarNumero(total)}
             </p>
@@ -787,8 +1034,9 @@ function RelatorioDescricao({ relatorio, total, meta }) {
             <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
               Fonte
             </p>
+
             <p className="mt-1 text-xs font-black text-slate-950 dark:text-white">
-              v2.0
+              v2.1
             </p>
           </div>
         </div>
@@ -804,7 +1052,7 @@ function RelatorioDescricao({ relatorio, total, meta }) {
 }
 
 function ResumoGeralCards({ data }) {
-  const item = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const item = isObject(data) && !Array.isArray(data) ? data : {};
 
   const cards = [
     ["Eventos", item.total_eventos, CalendarDays, "cyan"],
@@ -822,7 +1070,7 @@ function ResumoGeralCards({ data }) {
       {cards.map(([label, value, Icon, tone]) => (
         <div
           key={label}
-          className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
+          className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
         >
           <div className="flex items-center gap-3">
             <span
@@ -845,6 +1093,7 @@ function ResumoGeralCards({ data }) {
               <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
                 {label}
               </p>
+
               <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
                 {formatarNumero(value)}
               </p>
@@ -889,10 +1138,11 @@ function StatusCard({ label, value, tone }) {
   };
 
   return (
-    <div className={cx("rounded-[1.5rem] p-4 shadow-sm ring-1", classes[tone])}>
+    <div className={cx("rounded-[1.75rem] p-4 shadow-sm ring-1", classes[tone])}>
       <p className="text-[11px] font-black uppercase tracking-wide opacity-70">
         {label}
       </p>
+
       <p className="mt-1 text-3xl font-black">{Number(value) || 0}</p>
     </div>
   );
@@ -927,7 +1177,7 @@ function Resultado({
 
   if (carregando) {
     return (
-      <section className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+      <section className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
         <div className="space-y-3">
           <CarregandoSkeleton height={72} />
           <CarregandoSkeleton height={260} />
@@ -944,8 +1194,21 @@ function Resultado({
     return (
       <div className="space-y-4">
         <ResumoGeralCards data={data} />
-        <RelatorioDescricao relatorio={relatorio} total={getTotalRows(data)} meta={meta} />
-        <RelatoriosTabela data={rows} />
+        <RelatorioDescricao
+          relatorio={relatorio}
+          total={getTotalRows(data)}
+          meta={meta}
+        />
+        <TabelaResultado
+          rows={rows}
+          total={rows.length}
+          pageSafe={1}
+          totalPages={1}
+          pageSize={rows.length || 25}
+          setPage={() => {}}
+          setPageSize={() => {}}
+          esconderPaginacao
+        />
       </div>
     );
   }
@@ -954,7 +1217,11 @@ function Resultado({
     return (
       <div className="space-y-4">
         <SaudeCards rows={rows} />
-        <RelatorioDescricao relatorio={relatorio} total={rowsFiltradas.length} meta={meta} />
+        <RelatorioDescricao
+          relatorio={relatorio}
+          total={rowsFiltradas.length}
+          meta={meta}
+        />
         <TabelaResultado
           rows={slice}
           total={rowsFiltradas.length}
@@ -997,62 +1264,73 @@ function TabelaResultado({
   pageSize,
   setPage,
   setPageSize,
+  esconderPaginacao = false,
 }) {
   return (
-    <section className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+    <section className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-600 dark:text-zinc-300">
           {formatarNumero(total)} registro(s)
         </p>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs font-bold text-slate-500 dark:text-zinc-400">
-            Por página
-          </label>
+        {!esconderPaginacao ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs font-bold text-slate-500 dark:text-zinc-400">
+              Por página
+            </label>
 
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value) || 25);
-              setPage(1);
-            }}
-            className="rounded-xl border border-slate-300 bg-white px-2 py-1.5 text-sm font-bold text-slate-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200"
-          >
-            {[10, 25, 50, 100].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value) || 25);
+                setPage(1);
+              }}
+              className="rounded-xl border border-slate-300 bg-white px-2 py-1.5 text-sm font-bold text-slate-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200"
+            >
+              {PAGE_SIZE_OPTIONS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
 
-          <button
-            type="button"
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            disabled={pageSafe <= 1}
-            className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-black disabled:opacity-50 dark:border-zinc-700"
-            aria-label="Página anterior"
-          >
-            ‹
-          </button>
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={pageSafe <= 1}
+              className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-black disabled:opacity-50 dark:border-zinc-700"
+              aria-label="Página anterior"
+            >
+              ‹
+            </button>
 
-          <span className="text-sm font-black text-slate-700 dark:text-zinc-200">
-            {pageSafe}/{totalPages}
-          </span>
+            <span className="text-sm font-black text-slate-700 dark:text-zinc-200">
+              {pageSafe}/{totalPages}
+            </span>
 
-          <button
-            type="button"
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={pageSafe >= totalPages}
-            className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-black disabled:opacity-50 dark:border-zinc-700"
-            aria-label="Próxima página"
-          >
-            ›
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={pageSafe >= totalPages}
+              className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-black disabled:opacity-50 dark:border-zinc-700"
+              aria-label="Próxima página"
+            >
+              ›
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {rows.length > 0 ? (
-        <RelatoriosTabela data={rows} />
+        <>
+          <div className="space-y-3 lg:hidden">
+            <ResultadoCardsMobile rows={rows} />
+          </div>
+
+          <div className="hidden lg:block">
+            <RelatoriosTabela data={rows} />
+          </div>
+        </>
       ) : (
         <NadaEncontrado
           titulo="Nenhum resultado encontrado"
@@ -1060,6 +1338,50 @@ function TabelaResultado({
         />
       )}
     </section>
+  );
+}
+
+function ResultadoCardsMobile({ rows }) {
+  return (
+    <>
+      {rows.map((row, index) => {
+        const resumo = getResumoLinha(row);
+        const key = row?.id || row?.codigo || row?.evento_id || index;
+
+        return (
+          <article
+            key={key}
+            className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-zinc-800 dark:bg-zinc-950"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Badge tone="slate">
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                Registro {index + 1}
+              </Badge>
+
+              {row?.status ? <Badge tone="cyan">{String(row.status)}</Badge> : null}
+            </div>
+
+            <dl className="space-y-2">
+              {resumo.map(([keyName, value]) => (
+                <div
+                  key={keyName}
+                  className="grid grid-cols-[110px_1fr] gap-2 rounded-2xl bg-white px-3 py-2 text-xs ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
+                >
+                  <dt className="font-black text-slate-500 dark:text-zinc-400">
+                    {getCellLabel(keyName)}
+                  </dt>
+
+                  <dd className="min-w-0 break-words font-semibold text-slate-800 dark:text-zinc-100">
+                    {getValorExibicao(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        );
+      })}
+    </>
   );
 }
 
@@ -1081,6 +1403,16 @@ export default function RelatoriosCustomizados() {
     status: "",
   }));
 
+  const [filtrosAplicados, setFiltrosAplicados] = useState(() => ({
+    data_inicio: primeiroDiaAnoYMD(),
+    data_fim: hojeYMD(),
+    evento_id: "",
+    turma_id: "",
+    organizador_id: "",
+    usuario_id: "",
+    status: "",
+  }));
+
   const [busca, setBusca] = useState("");
   const [data, setData] = useState(null);
   const [meta, setMeta] = useState({});
@@ -1089,175 +1421,203 @@ export default function RelatoriosCustomizados() {
   const [exportando, setExportando] = useState(false);
 
   const liveRef = useRef(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
+  const requestSeqRef = useRef(0);
 
   const relatorioAtual = getRelatorioAtual(relatorioKey);
+
+  const paramsOficiais = useMemo(() => montarParamsOficiais(filtros), [filtros]);
+
+  const paramsAplicados = useMemo(
+    () => montarParamsOficiais(filtrosAplicados),
+    [filtrosAplicados]
+  );
 
   const setLive = useCallback((message) => {
     if (liveRef.current) liveRef.current.textContent = message;
   }, []);
 
-  const paramsOficiais = useMemo(() => {
-    const params = {};
-
-    if (isYMD(filtros.data_inicio)) params.data_inicio = filtros.data_inicio;
-    if (isYMD(filtros.data_fim)) params.data_fim = filtros.data_fim;
-
-    const eventoId = toPositiveIntOrEmpty(filtros.evento_id);
-    const turmaId = toPositiveIntOrEmpty(filtros.turma_id);
-    const organizadorId = toPositiveIntOrEmpty(filtros.organizador_id);
-    const usuarioId = toPositiveIntOrEmpty(filtros.usuario_id);
-
-    if (eventoId) params.evento_id = eventoId;
-    if (turmaId) params.turma_id = turmaId;
-    if (organizadorId) params.organizador_id = organizadorId;
-    if (usuarioId) params.usuario_id = usuarioId;
-
-    if (filtros.status) params.status = filtros.status;
-
-    return params;
-  }, [filtros]);
-
-  const validarFiltros = useCallback(() => {
-    if (filtros.data_inicio && !isYMD(filtros.data_inicio)) {
+  const validarFiltros = useCallback((valores = filtros) => {
+    if (valores.data_inicio && !isYMD(valores.data_inicio)) {
       notifyWarning("Data inicial inválida. Use uma data válida.");
       return false;
     }
 
-    if (filtros.data_fim && !isYMD(filtros.data_fim)) {
+    if (valores.data_fim && !isYMD(valores.data_fim)) {
       notifyWarning("Data final inválida. Use uma data válida.");
       return false;
     }
 
     if (
-      filtros.data_inicio &&
-      filtros.data_fim &&
-      filtros.data_inicio > filtros.data_fim
+      valores.data_inicio &&
+      valores.data_fim &&
+      valores.data_inicio > valores.data_fim
     ) {
       notifyWarning("A data inicial não pode ser maior que a data final.");
+      return false;
+    }
+
+    if (valores.status && !STATUS_OFICIAIS.includes(valores.status)) {
+      notifyWarning("Status inválido para o contrato oficial.");
       return false;
     }
 
     return true;
   }, [filtros]);
 
-  const chamarRelatorio = useCallback(
-    async (key, params) => {
-      switch (key) {
-        case "resumo-geral":
-          validarFacade("api.relatorio.resumoGeral", api?.relatorio?.resumoGeral);
-          return api.relatorio.resumoGeral(params);
+  const chamarRelatorio = useCallback(async (key, params) => {
+    switch (key) {
+      case "resumo-geral":
+        validarFacade("api.relatorio.resumoGeral", api?.relatorio?.resumoGeral);
+        return api.relatorio.resumoGeral(params);
 
-        case "eventos":
-          validarFacade("api.relatorio.eventos", api?.relatorio?.eventos);
-          return api.relatorio.eventos(params);
+      case "eventos":
+        validarFacade("api.relatorio.eventos", api?.relatorio?.eventos);
+        return api.relatorio.eventos(params);
 
-        case "presencas":
-          validarFacade("api.relatorio.presencas", api?.relatorio?.presencas);
-          return api.relatorio.presencas(params);
+      case "presencas":
+        validarFacade("api.relatorio.presencas", api?.relatorio?.presencas);
+        return api.relatorio.presencas(params);
 
-        case "avaliacoes":
-          validarFacade("api.relatorio.avaliacoes", api?.relatorio?.avaliacoes);
-          return api.relatorio.avaliacoes(params);
+      case "avaliacoes":
+        validarFacade("api.relatorio.avaliacoes", api?.relatorio?.avaliacoes);
+        return api.relatorio.avaliacoes(params);
 
-        case "organizadores":
-          validarFacade("api.relatorio.organizadores", api?.relatorio?.organizadores);
-          return api.relatorio.organizadores(params);
+      case "organizadores":
+        validarFacade(
+          "api.relatorio.organizadores",
+          api?.relatorio?.organizadores
+        );
+        return api.relatorio.organizadores(params);
 
-        case "certificados":
-          validarFacade("api.relatorio.certificados", api?.relatorio?.certificados);
-          return api.relatorio.certificados(params);
+      case "certificados":
+        validarFacade(
+          "api.relatorio.certificados",
+          api?.relatorio?.certificados
+        );
+        return api.relatorio.certificados(params);
 
-        case "certificados-pendencias":
-          validarFacade(
-            "api.relatorio.certificadosPendencias",
-            api?.relatorio?.certificadosPendencias
-          );
-          return api.relatorio.certificadosPendencias(params);
+      case "certificados-pendencias":
+        validarFacade(
+          "api.relatorio.certificadosPendencias",
+          api?.relatorio?.certificadosPendencias
+        );
+        return api.relatorio.certificadosPendencias(params);
 
-        case "usuarios":
-          validarFacade("api.relatorio.usuarios", api?.relatorio?.usuarios);
-          return api.relatorio.usuarios(params);
+      case "usuarios":
+        validarFacade("api.relatorio.usuarios", api?.relatorio?.usuarios);
+        return api.relatorio.usuarios(params);
 
-        case "salas":
-          validarFacade("api.relatorio.salas", api?.relatorio?.salas);
-          return api.relatorio.salas(params);
+      case "salas":
+        validarFacade("api.relatorio.salas", api?.relatorio?.salas);
+        return api.relatorio.salas(params);
 
-        case "notificacoes":
-          validarFacade("api.relatorio.notificacoes", api?.relatorio?.notificacoes);
-          return api.relatorio.notificacoes(params);
+      case "notificacoes":
+        validarFacade(
+          "api.relatorio.notificacoes",
+          api?.relatorio?.notificacoes
+        );
+        return api.relatorio.notificacoes(params);
 
-        case "saude-plataforma":
-          validarFacade(
-            "api.relatorio.saudePlataforma",
-            api?.relatorio?.saudePlataforma
-          );
-          return api.relatorio.saudePlataforma(params);
+      case "saude-plataforma":
+        validarFacade(
+          "api.relatorio.saudePlataforma",
+          api?.relatorio?.saudePlataforma
+        );
+        return api.relatorio.saudePlataforma(params);
 
-        default:
-          throw new Error("Relatório inválido.");
+      default:
+        throw new Error("Relatório inválido.");
+    }
+  }, []);
+
+  const executarBusca = useCallback(
+    async ({ key, params, label, filtrosParaAplicar, silencioso = false }) => {
+      const requestId = requestSeqRef.current + 1;
+      requestSeqRef.current = requestId;
+
+      try {
+        setCarregando(true);
+        setErro("");
+
+        if (!silencioso) {
+          setLive(`Carregando relatório: ${label}.`);
+        }
+
+        const response = await chamarRelatorio(key, params);
+        const payload = extrairPayload(response);
+        const responseMeta = extrairMeta(response);
+
+        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+
+        setData(payload);
+        setMeta(responseMeta || {});
+        setFiltrosAplicados(filtrosParaAplicar);
+        setLive("Relatório carregado com sucesso.");
+      } catch (error) {
+        console.error("[RelatoriosCustomizados] erro:", error);
+
+        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+
+        const message = obterMensagemErro(
+          error,
+          "Não foi possível carregar o relatório."
+        );
+
+        setErro(message);
+        setData(null);
+        setMeta({});
+        notifyError(message);
+        setLive("Erro ao carregar relatório.");
+      } finally {
+        if (mountedRef.current && requestSeqRef.current === requestId) {
+          setCarregando(false);
+        }
       }
     },
-    []
+    [chamarRelatorio, setLive]
   );
 
-  const buscarRelatorio = useCallback(async () => {
-    if (!validarFiltros()) return;
+  const buscarRelatorio = useCallback(
+    async ({ silencioso = false } = {}) => {
+      if (!validarFiltros(filtros)) return;
 
-    try {
-      setCarregando(true);
-      setErro("");
-      setLive(`Carregando relatório: ${relatorioAtual.label}.`);
-
-      const response = await chamarRelatorio(relatorioKey, paramsOficiais);
-      const payload = extrairData(response);
-      const responseMeta = extrairMeta(response);
-
-      if (!mountedRef.current) return;
-
-      setData(payload);
-      setMeta(responseMeta || {});
-      setLive("Relatório carregado com sucesso.");
-    } catch (error) {
-      console.error("[RelatoriosCustomizados] erro:", error);
-
-      if (!mountedRef.current) return;
-
-      const message = obterMensagemErro(
-        error,
-        "Não foi possível carregar o relatório."
-      );
-
-      setErro(message);
-      setData(null);
-      setMeta({});
-      notifyError(message);
-      setLive("Erro ao carregar relatório.");
-    } finally {
-      if (mountedRef.current) setCarregando(false);
-    }
-  }, [
-    chamarRelatorio,
-    paramsOficiais,
-    relatorioAtual.label,
-    relatorioKey,
-    setLive,
-    validarFiltros,
-  ]);
+      await executarBusca({
+        key: relatorioKey,
+        params: paramsOficiais,
+        label: relatorioAtual.label,
+        filtrosParaAplicar: filtros,
+        silencioso,
+      });
+    },
+    [
+      executarBusca,
+      filtros,
+      paramsOficiais,
+      relatorioAtual.label,
+      relatorioKey,
+      validarFiltros,
+    ]
+  );
 
   useEffect(() => {
     mountedRef.current = true;
     document.title = "Relatórios Institucionais | Escola da Saúde";
 
-    buscarRelatorio();
-
     return () => {
       mountedRef.current = false;
     };
-  }, [buscarRelatorio]);
+  }, []);
+
+  useEffect(() => {
+    buscarRelatorio({ silencioso: true });
+    // A troca de relatório deve carregar com os filtros atuais,
+    // mas a alteração de campos de filtro não deve disparar busca automática.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relatorioKey]);
 
   const limparFiltros = useCallback(() => {
-    setFiltros({
+    const limpos = {
       data_inicio: primeiroDiaAnoYMD(),
       data_fim: hojeYMD(),
       evento_id: "",
@@ -1265,10 +1625,11 @@ export default function RelatoriosCustomizados() {
       organizador_id: "",
       usuario_id: "",
       status: "",
-    });
+    };
 
+    setFiltros(limpos);
     setBusca("");
-    setLive("Filtros limpos.");
+    setLive("Filtros limpos. Clique em Buscar relatório para aplicar.");
   }, [setLive]);
 
   const exportarAtual = useCallback(async () => {
@@ -1279,7 +1640,7 @@ export default function RelatoriosCustomizados() {
       return;
     }
 
-    if (!validarFiltros()) return;
+    if (!validarFiltros(filtrosAplicados)) return;
 
     try {
       validarFacade("api.relatorio.exportarXlsx", api?.relatorio?.exportarXlsx);
@@ -1287,7 +1648,7 @@ export default function RelatoriosCustomizados() {
       setExportando(true);
       setLive("Exportando relatório XLSX.");
 
-      const result = await api.relatorio.exportarXlsx(exportKey, paramsOficiais);
+      const result = await api.relatorio.exportarXlsx(exportKey, paramsAplicados);
       const blob = result?.blob || result?.data || result;
       const filename = inferirNomeArquivo(
         result,
@@ -1305,12 +1666,32 @@ export default function RelatoriosCustomizados() {
       );
       setLive("Erro ao exportar relatório.");
     } finally {
-      setExportando(false);
+      if (mountedRef.current) setExportando(false);
     }
-  }, [paramsOficiais, relatorioAtual.exportKey, setLive, validarFiltros]);
+  }, [
+    filtrosAplicados,
+    paramsAplicados,
+    relatorioAtual.exportKey,
+    setLive,
+    validarFiltros,
+  ]);
+
+  const trocarRelatorio = useCallback((key) => {
+    if (key === relatorioKey) return;
+
+    setRelatorioKey(key);
+    setBusca("");
+    setErro("");
+    setData(null);
+    setMeta({});
+  }, [relatorioKey]);
 
   const rows = useMemo(() => getRowsFromData(data), [data]);
-  const rowsFiltradas = useMemo(() => filtrarClientSide(rows, busca), [rows, busca]);
+
+  const rowsFiltradas = useMemo(
+    () => filtrarClientSide(rows, busca),
+    [rows, busca]
+  );
 
   const counts = useMemo(() => {
     const base = {};
@@ -1323,7 +1704,7 @@ export default function RelatoriosCustomizados() {
   }, [relatorioKey, rows.length]);
 
   const kpis = useMemo(() => {
-    const resumo = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+    const resumo = isObject(data) && !Array.isArray(data) ? data : {};
 
     if (relatorioKey === "resumo-geral") {
       return {
@@ -1339,8 +1720,12 @@ export default function RelatoriosCustomizados() {
     }
 
     if (relatorioKey === "saude-plataforma") {
-      const criticos = rows.filter((row) => getStatusSaude(row) === "critico").length;
-      const alertas = rows.filter((row) => getStatusSaude(row) === "alerta").length;
+      const criticos = rows.filter(
+        (row) => getStatusSaude(row) === "critico"
+      ).length;
+      const alertas = rows.filter(
+        (row) => getStatusSaude(row) === "alerta"
+      ).length;
 
       return {
         eventos: rows.length,
@@ -1369,17 +1754,28 @@ export default function RelatoriosCustomizados() {
   );
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
-      <Hero
-        kpis={kpis}
-        carregando={carregando}
-        exportando={exportando}
-        onRefresh={buscarRelatorio}
-      />
+    <div className="flex min-h-dvh flex-col overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-950 focus:shadow-lg"
+      >
+        Ir para o conteúdo
+      </a>
+
+      <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+        <HeaderHero
+          titulo="Relatórios institucionais"
+          subtitulo="Acompanhe eventos, presenças, avaliações, certificados, usuários, salas, notificações e saúde da plataforma com filtros oficiais, dados rastreáveis e exportação administrativa."
+          icone={BarChart3}
+          campanhaMes="junho"
+          tamanho="md"
+          raio="xl"
+        />
+      </div>
 
       <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
 
-      {(carregando || exportando) ? (
+      {carregando || exportando ? (
         <div
           className="sticky top-0 z-50 h-1 w-full bg-violet-100 dark:bg-violet-950"
           role="progressbar"
@@ -1396,18 +1792,23 @@ export default function RelatoriosCustomizados() {
 
       <main
         id="conteudo"
-        className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6"
+        className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8"
       >
+        <ResumoExecutivo kpis={kpis} carregando={carregando} />
+
+        <BarraContextual
+          carregando={carregando}
+          exportando={exportando}
+          relatorioAtual={relatorioAtual}
+          filtrosAplicados={filtrosAplicados}
+          onRefresh={() => buscarRelatorio()}
+        />
+
         <RelatorioTabs
           value={relatorioKey}
-          onChange={(key) => {
-            setRelatorioKey(key);
-            setBusca("");
-            setErro("");
-            setData(null);
-            setMeta({});
-          }}
+          onChange={trocarRelatorio}
           counts={counts}
+          disabled={carregando || exportando}
         />
 
         <AnimatePresence mode="wait">
@@ -1417,7 +1818,7 @@ export default function RelatoriosCustomizados() {
               setFiltros={setFiltros}
               busca={busca}
               setBusca={setBusca}
-              onBuscar={buscarRelatorio}
+              onBuscar={() => buscarRelatorio()}
               onLimpar={limparFiltros}
               carregando={carregando}
               exportando={exportando}
@@ -1434,7 +1835,7 @@ export default function RelatoriosCustomizados() {
               meta={meta}
               carregando={carregando}
               erro={erro}
-              onRetry={buscarRelatorio}
+              onRetry={() => buscarRelatorio()}
               busca={busca}
             />
           </motion.div>

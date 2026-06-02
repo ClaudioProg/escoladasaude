@@ -1,6 +1,6 @@
 /**
- * ✅ frontend/src/pages/SaudePlataformaAdmin.jsx — v2.0
- * Atualizado em: 19/05/2026
+ * ✅ frontend/src/pages/SaudePlataformaAdmin.jsx — v2.1
+ * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
  * Página administrativa da Saúde da Plataforma.
@@ -13,9 +13,23 @@
  * - Exibir detalhes técnicos controlados de cada indicador.
  * - Apoiar diagnóstico executivo, auditoria, pendências e operação administrativa.
  *
+ * Revisão premium v2.1:
+ * - usa HeaderHero global oficial limpo;
+ * - adiciona Footer oficial;
+ * - remove hero local como cabeçalho principal;
+ * - mantém classificação, KPIs e diagnóstico fora do HeaderHero;
+ * - evita recarregamento automático a cada digitação nos filtros;
+ * - filtros só são aplicados ao clicar em "Aplicar filtros";
+ * - paginação executa nova busca de forma controlada;
+ * - adiciona controle contra respostas antigas sobrescreverem dados recentes;
+ * - fortalece extração de envelopes ok/data/meta;
+ * - melhora responsividade, leitura mobile e estados de carregamento;
+ * - mantém contrato oficial api.saudePlataforma.*;
+ * - sem aliases, sem montagem direta de /api e sem legado.
+ *
  * Contratos aplicados:
- * - Service oficial futuro: api.saudePlataforma.*
- * - Backend oficial futuro: /api/saude-plataforma
+ * - Service oficial: api.saudePlataforma.*
+ * - Backend oficial: /api/saude-plataforma
  * - View oficial: v_saude_plataforma
  * - Status oficiais:
  *   - saudavel
@@ -26,12 +40,9 @@
  *   - aviso
  *   - erro
  *   - critico
- * - Sem montagem direta de /api
- * - Sem aliases
- * - Sem legado
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -47,21 +58,32 @@ import {
   HeartPulse,
   Info,
   Layers,
+  Loader2,
   RefreshCw,
   Search,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  XCircle,
+  X,
 } from "lucide-react";
 
 import api from "../services/api";
+import Footer from "../components/layout/Footer";
+import HeaderHero from "../components/layout/HeaderHero";
 import Botao from "../components/ui/Botao";
 import Modal from "../components/ui/Modal";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
+
+/* ─────────────────────────────────────────────
+ * Contratos oficiais da tela
+ * ───────────────────────────────────────────── */
 
 const STATUS = [
   { value: "", label: "Todos" },
@@ -78,28 +100,117 @@ const SEVERIDADES = [
   { value: "critico", label: "Crítico" },
 ];
 
+const STATUS_OFICIAIS = STATUS.map((item) => item.value).filter(Boolean);
+const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(Boolean);
+
 const LIMITES = [25, 50, 100, 200];
+
+const FILTROS_INICIAIS = {
+  indicador_id: "",
+  modulo: "",
+  status: "",
+  severidade: "",
+  janela: "",
+  busca: "",
+  pagina: 1,
+  limite: 100,
+};
+
+/* ─────────────────────────────────────────────
+ * Helpers
+ * ───────────────────────────────────────────── */
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+function isObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function validarFacade(nome, fn) {
+  if (typeof fn !== "function") {
+    throw new Error(`Facade ausente no api.js: ${nome}.`);
+  }
+}
+
+function extrairData(response) {
+  const base = response?.data ?? response ?? null;
+
+  if (isObject(base) && Object.prototype.hasOwnProperty.call(base, "data")) {
+    return base.data;
+  }
+
+  return base;
+}
+
+function extrairMeta(response) {
+  const base = response?.data ?? response ?? {};
+
+  return response?.meta || base?.meta || {};
+}
+
+function obterMensagemErro(error, fallback) {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.erro ||
+    error?.data?.message ||
+    error?.data?.erro ||
+    error?.message ||
+    fallback
+  );
+}
+
+function montarParams(filtros) {
+  return Object.fromEntries(
+    Object.entries(filtros).filter(([, valor]) => {
+      return valor !== "" && valor !== null && valor !== undefined;
+    })
+  );
+}
+
+function montarParamsResumo(filtros) {
+  return Object.fromEntries(
+    Object.entries(filtros).filter(([chave, valor]) => {
+      return (
+        !["pagina", "limite"].includes(chave) &&
+        valor !== "" &&
+        valor !== null &&
+        valor !== undefined
+      );
+    })
+  );
+}
+
+function formatarNumero(valor) {
+  const numero = Number(valor);
+
+  if (!Number.isFinite(numero)) return "0";
+
+  return new Intl.NumberFormat("pt-BR").format(numero);
+}
+
 function formatarDataHora(valor) {
   if (!valor) return "—";
 
-  try {
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "medium",
-    }).format(new Date(valor));
-  } catch {
-    return "—";
-  }
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) return "—";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(data);
 }
 
 function copiarTexto(texto, mensagem = "Conteúdo copiado.") {
   if (!texto) {
     notifyWarning("Não há conteúdo disponível para copiar.");
+    return;
+  }
+
+  if (!navigator?.clipboard?.writeText) {
+    notifyWarning("Cópia automática indisponível neste navegador.");
     return;
   }
 
@@ -135,6 +246,22 @@ function normalizarResumo(resumo) {
       ? resumo.por_severidade
       : [],
     destaques: Array.isArray(resumo?.destaques) ? resumo.destaques : [],
+  };
+}
+
+function normalizarIndicador(indicador) {
+  return {
+    indicador_id: indicador?.indicador_id || "",
+    modulo: indicador?.modulo || "—",
+    titulo: indicador?.titulo || "Indicador sem título",
+    descricao: indicador?.descricao || "Sem descrição registrada.",
+    status: indicador?.status || "saudavel",
+    severidade: indicador?.severidade || "info",
+    janela: indicador?.janela || "",
+    valor: Number(indicador?.valor || 0),
+    atualizado_em: indicador?.atualizado_em || null,
+    detalhes: indicador?.detalhes ?? null,
+    ...indicador,
   };
 }
 
@@ -187,6 +314,20 @@ function severidadeClasses(severidade) {
   return mapa[severidade] || mapa.info;
 }
 
+function statusIcon(status) {
+  const mapa = {
+    saudavel: ShieldCheck,
+    alerta: AlertTriangle,
+    critico: ShieldAlert,
+  };
+
+  return mapa[status] || ShieldCheck;
+}
+
+/* ─────────────────────────────────────────────
+ * Componentes locais
+ * ───────────────────────────────────────────── */
+
 function BadgeStatus({ status }) {
   return (
     <span
@@ -213,9 +354,88 @@ function BadgeSeveridade({ severidade }) {
   );
 }
 
+function BadgeTecnico({ children }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
+      {children}
+    </span>
+  );
+}
+
+function ClassificacaoOperacional({ resumo }) {
+  const Icone = statusIcon(resumo.status_geral);
+
+  return (
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-200/60 ring-1 ring-slate-200 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/85 dark:shadow-black/20 dark:ring-zinc-800 sm:p-6">
+      <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-violet-100 blur-3xl dark:bg-violet-950/40" />
+      <div className="absolute bottom-0 left-1/3 h-36 w-36 rounded-full bg-blue-100 blur-3xl dark:bg-blue-950/40" />
+
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-3xl">
+          <div
+            className={cx(
+              "mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide",
+              statusClasses(resumo.status_geral)
+            )}
+          >
+            <Icone className="h-3.5 w-3.5" aria-hidden="true" />
+            {statusLabel(resumo.status_geral)}
+          </div>
+
+          <h2 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+            {resumo.titulo}
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {resumo.descricao}
+          </p>
+
+          <p className="mt-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            Última atualização: {formatarDataHora(resumo.atualizado_em)}
+          </p>
+        </div>
+
+        <div className="grid min-w-full grid-cols-2 gap-3 sm:min-w-[360px]">
+          <MiniResumo
+            label="Info"
+            value={resumo.info}
+            className="bg-blue-50 text-blue-900 ring-blue-100 dark:bg-blue-950/30 dark:text-blue-100 dark:ring-blue-800/60"
+          />
+          <MiniResumo
+            label="Avisos"
+            value={resumo.aviso}
+            className="bg-amber-50 text-amber-900 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800/60"
+          />
+          <MiniResumo
+            label="Erros"
+            value={resumo.erro}
+            className="bg-red-50 text-red-900 ring-red-100 dark:bg-red-950/30 dark:text-red-100 dark:ring-red-800/60"
+          />
+          <MiniResumo
+            label="Críticos"
+            value={resumo.severidade_critica}
+            className="bg-purple-50 text-purple-900 ring-purple-100 dark:bg-purple-950/30 dark:text-purple-100 dark:ring-purple-800/60"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MiniResumo({ label, value, className }) {
+  return (
+    <div className={cx("rounded-2xl p-3 text-center ring-1", className)}>
+      <p className="text-[11px] font-black uppercase tracking-wide opacity-70">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-black">{formatarNumero(value)}</p>
+    </div>
+  );
+}
+
 function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
+    <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
@@ -224,15 +444,15 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
 
           <p
             className={cx(
-              "mt-2 text-2xl font-black tracking-tight",
+              "mt-2 text-3xl font-black tracking-tight",
               destaque || "text-slate-950 dark:text-white"
             )}
           >
-            {valor}
+            {formatarNumero(valor)}
           </p>
 
           {detalhe ? (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
               {detalhe}
             </p>
           ) : null}
@@ -269,7 +489,7 @@ function JsonPreview({ titulo, valor }) {
           onClick={() => copiarTexto(conteudo, `${titulo} copiado.`)}
           className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
         >
-          <Copy className="h-3.5 w-3.5" />
+          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
           Copiar
         </button>
       </div>
@@ -288,134 +508,586 @@ function JsonPreview({ titulo, valor }) {
 }
 
 function IndicadorCard({ indicador, onAbrir }) {
+  const item = normalizarIndicador(indicador);
+
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/70">
+    <article className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/70">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap gap-2">
-            <BadgeStatus status={indicador.status} />
-            <BadgeSeveridade severidade={indicador.severidade} />
-            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-              {indicador.janela || "sem janela"}
-            </span>
+            <BadgeStatus status={item.status} />
+            <BadgeSeveridade severidade={item.severidade} />
+            <BadgeTecnico>{item.janela || "sem janela"}</BadgeTecnico>
           </div>
 
           <h3 className="break-words text-base font-black text-slate-950 dark:text-white">
-            {indicador.titulo}
+            {item.titulo}
           </h3>
 
           <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {indicador.descricao}
+            {item.descricao}
           </p>
 
           <div className="mt-3 grid gap-2 text-xs text-slate-500 dark:text-slate-400 sm:grid-cols-2 xl:grid-cols-4">
             <span className="inline-flex items-center gap-1">
-              <Layers className="h-3.5 w-3.5" />
-              {indicador.modulo}
+              <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+              {item.modulo}
             </span>
 
             <span className="inline-flex items-center gap-1">
-              <Gauge className="h-3.5 w-3.5" />
-              Valor: {Number(indicador.valor || 0)}
+              <Gauge className="h-3.5 w-3.5" aria-hidden="true" />
+              Valor: {formatarNumero(item.valor)}
+            </span>
+
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{item.indicador_id || "—"}</span>
             </span>
 
             <span className="inline-flex items-center gap-1">
-              <Info className="h-3.5 w-3.5" />
-              {indicador.indicador_id}
-            </span>
-
-            <span className="inline-flex items-center gap-1">
-              <Clock3 className="h-3.5 w-3.5" />
-              {formatarDataHora(indicador.atualizado_em)}
+              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+              {formatarDataHora(item.atualizado_em)}
             </span>
           </div>
         </div>
 
         <button
           type="button"
-          onClick={() => onAbrir(indicador)}
+          onClick={() => onAbrir(item)}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
         >
-          <Eye className="h-4 w-4" />
-          Ver
+          <Eye className="h-4 w-4" aria-hidden="true" />
+          Ver detalhes
         </button>
       </div>
     </article>
   );
 }
 
-function HeroSaude({ resumo }) {
-  const mapa = {
-    saudavel: {
-      icon: ShieldCheck,
-      badge:
-        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-      halo: "bg-emerald-100 dark:bg-emerald-950/40",
-    },
-    alerta: {
-      icon: AlertTriangle,
-      badge:
-        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-      halo: "bg-amber-100 dark:bg-amber-950/40",
-    },
-    critico: {
-      icon: ShieldAlert,
-      badge:
-        "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
-      halo: "bg-red-100 dark:bg-red-950/40",
-    },
-  };
-
-  const config = mapa[resumo.status_geral] || mapa.saudavel;
-  const Icone = config.icon;
-
+function SaudePorModulo({ resumo }) {
   return (
-    <header className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-6">
-      <div
-        className={cx(
-          "absolute right-0 top-0 h-44 w-44 rounded-full blur-3xl",
-          config.halo
-        )}
-      />
-      <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-blue-100 blur-3xl dark:bg-blue-950/40" />
-
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-3xl">
-          <div
-            className={cx(
-              "mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide",
-              config.badge
-            )}
-          >
-            <Icone className="h-3.5 w-3.5" />
-            {statusLabel(resumo.status_geral)}
-          </div>
-
-          <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
-            Saúde da Plataforma
-          </h1>
-
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {resumo.descricao}
-          </p>
-
-          <p className="mt-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Última atualização: {formatarDataHora(resumo.atualizado_em)}
-          </p>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Classificação geral
-          </p>
-          <p className="mt-2 text-3xl font-black text-slate-950 dark:text-white">
-            {resumo.titulo}
-          </p>
-        </div>
+    <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="mb-4 flex items-center gap-2">
+        <BarChart3 className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+        <h2 className="text-base font-black text-slate-950 dark:text-white">
+          Saúde por módulo
+        </h2>
       </div>
-    </header>
+
+      {resumo.por_modulo.length > 0 ? (
+        <div className="space-y-3">
+          {resumo.por_modulo.map((item) => {
+            const total = Number(item.total || 0);
+            const criticos = Number(item.criticos || 0);
+            const alertas = Number(item.alertas || 0);
+            const percentualRisco =
+              total > 0 ? Math.round(((criticos + alertas) / total) * 100) : 0;
+
+            return (
+              <div key={item.modulo} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    {item.modulo || "Sem módulo"}
+                  </span>
+
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {formatarNumero(total)} indicador(es)
+                  </span>
+                </div>
+
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className={cx(
+                      "h-full rounded-full transition-all",
+                      criticos > 0
+                        ? "bg-red-600"
+                        : alertas > 0
+                          ? "bg-amber-500"
+                          : "bg-emerald-600"
+                    )}
+                    style={{
+                      width: `${Math.max(percentualRisco, total > 0 ? 5 : 0)}%`,
+                    }}
+                  />
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {formatarNumero(criticos)} crítico(s) ·{" "}
+                  {formatarNumero(alertas)} alerta(s) · soma de valores:{" "}
+                  {formatarNumero(item.soma_valores || 0)}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Nenhum agrupamento por módulo disponível.
+        </p>
+      )}
+    </section>
   );
 }
+
+function DiagnosticoExecutivo({ diagnostico, onAbrir }) {
+  const criticos = Array.isArray(diagnostico?.criticos)
+    ? diagnostico.criticos.slice(0, 4)
+    : [];
+  const alertas = Array.isArray(diagnostico?.alertas)
+    ? diagnostico.alertas.slice(0, 4)
+    : [];
+
+  return (
+    <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="mb-4 flex items-center gap-2">
+        <Sparkles className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+        <h2 className="text-base font-black text-slate-950 dark:text-white">
+          Diagnóstico executivo
+        </h2>
+      </div>
+
+      {criticos.length > 0 || alertas.length > 0 ? (
+        <div className="space-y-3">
+          {criticos.map((item) => (
+            <BotaoDiagnostico
+              key={item.indicador_id}
+              item={item}
+              tone="critico"
+              onAbrir={onAbrir}
+            />
+          ))}
+
+          {alertas.map((item) => (
+            <BotaoDiagnostico
+              key={item.indicador_id}
+              item={item}
+              tone="alerta"
+              onAbrir={onAbrir}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <p className="font-black">Sem alertas relevantes</p>
+          <p className="mt-1">
+            Não há indicadores críticos ou em alerta para exibir no diagnóstico
+            executivo.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BotaoDiagnostico({ item, tone, onAbrir }) {
+  const classes = {
+    critico:
+      "border-red-200 bg-red-50 hover:bg-red-100 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100 dark:hover:bg-red-950/60",
+    alerta:
+      "border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-950/60",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => onAbrir(item)}
+      className={cx(
+        "w-full rounded-2xl border p-3 text-left transition",
+        classes[tone]
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="truncate text-sm font-black">{item.titulo}</p>
+        <span className="text-sm font-black">{formatarNumero(item.valor)}</span>
+      </div>
+
+      <p className="mt-1 text-xs opacity-80">
+        {item.modulo} · {item.janela || "sem janela"}
+      </p>
+    </button>
+  );
+}
+
+function PainelFiltros({
+  filtros,
+  setFiltros,
+  carregando,
+  atualizando,
+  onAplicar,
+  onLimpar,
+}) {
+  const atualizarFiltro = useCallback(
+    (campo, valor) => {
+      setFiltros((anterior) => ({
+        ...anterior,
+        [campo]: valor,
+        pagina: 1,
+      }));
+    },
+    [setFiltros]
+  );
+
+  return (
+    <section className="rounded-[1.75rem] border border-white/70 bg-white/90 p-4 shadow-xl shadow-slate-200/60 ring-1 ring-slate-200 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/85 dark:shadow-black/20 dark:ring-zinc-800 sm:p-5">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+            <Filter className="h-4 w-4" aria-hidden="true" />
+            Filtros da Saúde da Plataforma
+          </div>
+
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Os filtros seguem o contrato oficial. A busca só será executada ao
+            clicar em aplicar.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Botao
+            type="button"
+            variant="secondary"
+            onClick={onLimpar}
+            disabled={carregando || atualizando}
+          >
+            <span className="inline-flex items-center gap-2">
+              <X className="h-4 w-4" aria-hidden="true" />
+              Limpar filtros
+            </span>
+          </Botao>
+
+          <Botao
+            type="button"
+            variant="secondary"
+            onClick={onAplicar}
+            disabled={carregando || atualizando}
+          >
+            <span className="inline-flex items-center gap-2">
+              <RefreshCw
+                className={cx("h-4 w-4", atualizando && "animate-spin")}
+                aria-hidden="true"
+              />
+              Atualizar
+            </span>
+          </Botao>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <CampoTexto
+          label="Busca"
+          value={filtros.busca}
+          onChange={(value) => atualizarFiltro("busca", value)}
+          placeholder="Título, descrição, módulo..."
+          icon={Search}
+        />
+
+        <CampoTexto
+          label="Indicador ID"
+          value={filtros.indicador_id}
+          onChange={(value) => atualizarFiltro("indicador_id", value)}
+          placeholder="Ex.: pendencias_total_atual"
+          icon={Info}
+        />
+
+        <CampoTexto
+          label="Módulo"
+          value={filtros.modulo}
+          onChange={(value) => atualizarFiltro("modulo", value)}
+          placeholder="Ex.: reserva"
+          icon={Layers}
+        />
+
+        <CampoTexto
+          label="Janela"
+          value={filtros.janela}
+          onChange={(value) => atualizarFiltro("janela", value)}
+          placeholder="Ex.: atual"
+          icon={Clock3}
+        />
+
+        <CampoSelect
+          label="Status"
+          value={filtros.status}
+          onChange={(value) => atualizarFiltro("status", value)}
+          options={STATUS}
+        />
+
+        <CampoSelect
+          label="Severidade"
+          value={filtros.severidade}
+          onChange={(value) => atualizarFiltro("severidade", value)}
+          options={SEVERIDADES}
+        />
+
+        <CampoSelect
+          label="Itens por página"
+          value={filtros.limite}
+          onChange={(value) => atualizarFiltro("limite", Number(value))}
+          options={LIMITES.map((limite) => ({
+            value: limite,
+            label: String(limite),
+          }))}
+        />
+
+        <div className="flex items-end">
+          <Botao
+            type="button"
+            onClick={onAplicar}
+            disabled={carregando || atualizando}
+            className="w-full justify-center gap-2"
+          >
+            {atualizando ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Search className="h-4 w-4" aria-hidden="true" />
+            )}
+            Aplicar filtros
+          </Botao>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CampoTexto({ label, value, onChange, placeholder, icon: Icon }) {
+  return (
+    <label className="space-y-1.5">
+      <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+
+      <div className="relative">
+        {Icon ? (
+          <Icon
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            aria-hidden="true"
+          />
+        ) : null}
+
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={cx(
+            "w-full rounded-xl border border-slate-200 bg-white py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950",
+            Icon ? "pl-9 pr-3" : "px-3"
+          )}
+        />
+      </div>
+    </label>
+  );
+}
+
+function CampoSelect({ label, value, onChange, options }) {
+  return (
+    <label className="space-y-1.5">
+      <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
+      >
+        {options.map((opcao) => (
+          <option key={opcao.value} value={opcao.value}>
+            {opcao.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function ListaIndicadores({
+  indicadores,
+  meta,
+  atualizando,
+  onAbrir,
+  onMudarPagina,
+}) {
+  const paginaAtual = Number(meta.pagina || 1);
+  const totalPaginas = Math.max(Number(meta.total_paginas || 1), 1);
+
+  return (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">
+            Indicadores monitorados
+          </h2>
+
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {formatarNumero(meta.total)} indicador(es) encontrado(s).
+          </p>
+        </div>
+
+        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+          {atualizando ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          ) : (
+            <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
+          Página {paginaAtual} de {totalPaginas}
+        </div>
+      </div>
+
+      {indicadores.length === 0 ? (
+        <div className="p-6">
+          <NadaEncontrado
+            titulo="Nenhum indicador encontrado"
+            mensagem="Ajuste os filtros para visualizar outros indicadores da Saúde da Plataforma."
+          />
+        </div>
+      ) : (
+        <div className="grid gap-3 p-4">
+          {indicadores.map((indicador) => (
+            <IndicadorCard
+              key={indicador.indicador_id}
+              indicador={indicador}
+              onAbrir={onAbrir}
+            />
+          ))}
+        </div>
+      )}
+
+      {indicadores.length > 0 ? (
+        <div className="flex flex-col gap-3 border-t border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Mostrando até {formatarNumero(meta.limite)} por página.
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={paginaAtual <= 1 || atualizando}
+              onClick={() => onMudarPagina(paginaAtual - 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Anterior
+            </button>
+
+            <button
+              type="button"
+              disabled={paginaAtual >= totalPaginas || atualizando}
+              onClick={() => onMudarPagina(paginaAtual + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+            >
+              Próxima
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ModalIndicador({
+  indicadorSelecionado,
+  carregandoDetalhe,
+  onFechar,
+}) {
+  const indicador = indicadorSelecionado
+    ? normalizarIndicador(indicadorSelecionado)
+    : null;
+
+  return (
+    <Modal
+      aberto={Boolean(indicadorSelecionado)}
+      onFechar={onFechar}
+      titulo="Detalhes do indicador"
+      tamanho="xl"
+    >
+      {carregandoDetalhe ? (
+        <CarregandoSkeleton
+          linhas={6}
+          titulo="Carregando indicador"
+          subtitulo="Buscando detalhes da Saúde da Plataforma."
+        />
+      ) : indicador ? (
+        <div className="space-y-5">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap gap-2">
+                  <BadgeStatus status={indicador.status} />
+                  <BadgeSeveridade severidade={indicador.severidade} />
+                  <BadgeTecnico>{indicador.janela || "sem janela"}</BadgeTecnico>
+                </div>
+
+                <h3 className="break-words text-xl font-black text-slate-950 dark:text-white">
+                  {indicador.titulo}
+                </h3>
+
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  {indicador.descricao}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  copiarTexto(indicador.indicador_id, "ID do indicador copiado.")
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                <Copy className="h-4 w-4" aria-hidden="true" />
+                Copiar ID
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DetalheResumo label="Valor" value={formatarNumero(indicador.valor)} />
+              <DetalheResumo label="Módulo" value={indicador.modulo || "—"} />
+              <DetalheResumo label="Janela" value={indicador.janela || "—"} />
+              <DetalheResumo
+                label="Atualizado em"
+                value={formatarDataHora(indicador.atualizado_em)}
+              />
+            </div>
+          </section>
+
+          <JsonPreview
+            titulo="Critérios e detalhes técnicos"
+            valor={indicador.detalhes}
+          />
+
+          <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100">
+            <p className="font-black">Orientação operacional</p>
+            <p className="mt-1">
+              Este indicador é derivado da view oficial da Saúde da Plataforma.
+              Para resolver alertas ou críticos, corrija a causa nos módulos de
+              origem, especialmente quando o indicador apontar pendências,
+              certificados, reservas, notificações ou auditoria.
+            </p>
+          </section>
+        </div>
+      ) : null}
+    </Modal>
+  );
+}
+
+function DetalheResumo({ label, value }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+      <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </div>
+
+      <p className="break-words text-sm font-black text-slate-950 dark:text-white">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+ * Página principal
+ * ───────────────────────────────────────────── */
 
 export default function SaudePlataformaAdmin() {
   const [indicadores, setIndicadores] = useState([]);
@@ -428,16 +1100,8 @@ export default function SaudePlataformaAdmin() {
     total_paginas: 1,
   });
 
-  const [filtros, setFiltros] = useState({
-    indicador_id: "",
-    modulo: "",
-    status: "",
-    severidade: "",
-    janela: "",
-    busca: "",
-    pagina: 1,
-    limite: 100,
-  });
+  const [filtros, setFiltros] = useState(FILTROS_INICIAIS);
+  const [filtrosAplicados, setFiltrosAplicados] = useState(FILTROS_INICIAIS);
 
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -446,29 +1110,68 @@ export default function SaudePlataformaAdmin() {
   const [indicadorSelecionado, setIndicadorSelecionado] = useState(null);
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
 
+  const mountedRef = useRef(false);
+  const requestSeqRef = useRef(0);
+
   const resumoNormalizado = useMemo(() => normalizarResumo(resumo), [resumo]);
 
-  const carregarResumo = useCallback(async () => {
-    const params = Object.fromEntries(
-      Object.entries(filtros).filter(
-        ([chave, valor]) =>
-          !["pagina", "limite"].includes(chave) &&
-          valor !== "" &&
-          valor !== null
-      )
+  const validarFiltros = useCallback((valores) => {
+    if (valores.status && !STATUS_OFICIAIS.includes(valores.status)) {
+      notifyWarning("Status inválido para o contrato oficial.");
+      return false;
+    }
+
+    if (
+      valores.severidade &&
+      !SEVERIDADES_OFICIAIS.includes(valores.severidade)
+    ) {
+      notifyWarning("Severidade inválida para o contrato oficial.");
+      return false;
+    }
+
+    if (!LIMITES.includes(Number(valores.limite))) {
+      notifyWarning("Limite inválido para paginação.");
+      return false;
+    }
+
+    const pagina = Number(valores.pagina || 1);
+
+    if (!Number.isInteger(pagina) || pagina < 1) {
+      notifyWarning("Página inválida.");
+      return false;
+    }
+
+    return true;
+  }, []);
+
+  const carregarResumo = useCallback(async (proximosFiltros) => {
+    validarFacade("api.saudePlataforma.resumo", api?.saudePlataforma?.resumo);
+
+    const resposta = await api.saudePlataforma.resumo(
+      montarParamsResumo(proximosFiltros)
     );
 
-    const resposta = await api.saudePlataforma.resumo(params);
-    setResumo(resposta?.data || null);
-  }, [filtros]);
+    return extrairData(resposta);
+  }, []);
 
   const carregarDiagnostico = useCallback(async () => {
+    validarFacade(
+      "api.saudePlataforma.diagnostico",
+      api?.saudePlataforma?.diagnostico
+    );
+
     const resposta = await api.saudePlataforma.diagnostico();
-    setDiagnostico(resposta?.data || null);
+
+    return extrairData(resposta);
   }, []);
 
   const carregarIndicadores = useCallback(
-    async ({ silencioso = false } = {}) => {
+    async ({ proximosFiltros = filtrosAplicados, silencioso = false } = {}) => {
+      if (!validarFiltros(proximosFiltros)) return;
+
+      const requestId = requestSeqRef.current + 1;
+      requestSeqRef.current = requestId;
+
       try {
         if (silencioso) {
           setAtualizando(true);
@@ -478,603 +1181,296 @@ export default function SaudePlataformaAdmin() {
 
         setErro("");
 
-        const params = Object.fromEntries(
-          Object.entries(filtros).filter(([, valor]) => valor !== "" && valor !== null)
+        validarFacade(
+          "api.saudePlataforma.listar",
+          api?.saudePlataforma?.listar
         );
 
-        const resposta = await api.saudePlataforma.listar(params);
+        const respostaIndicadores = await api.saudePlataforma.listar(
+          montarParams(proximosFiltros)
+        );
 
-        setIndicadores(Array.isArray(resposta?.data) ? resposta.data : []);
+        const [resumoPayload, diagnosticoPayload] = await Promise.all([
+          carregarResumo(proximosFiltros),
+          carregarDiagnostico(),
+        ]);
+
+        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+
+        const dataIndicadores = extrairData(respostaIndicadores);
+        const metaIndicadores = extrairMeta(respostaIndicadores);
+
+        setIndicadores(
+          Array.isArray(dataIndicadores)
+            ? dataIndicadores.map(normalizarIndicador)
+            : []
+        );
+
         setMeta({
-          total: resposta?.meta?.total || 0,
-          pagina: resposta?.meta?.pagina || filtros.pagina || 1,
-          limite: resposta?.meta?.limite || filtros.limite || 100,
-          total_paginas: resposta?.meta?.total_paginas || 1,
+          total: Number(metaIndicadores?.total || 0),
+          pagina: Number(metaIndicadores?.pagina || proximosFiltros.pagina || 1),
+          limite: Number(metaIndicadores?.limite || proximosFiltros.limite || 100),
+          total_paginas: Number(metaIndicadores?.total_paginas || 1),
         });
 
-        await carregarResumo();
-        await carregarDiagnostico();
+        setResumo(resumoPayload || null);
+        setDiagnostico(diagnosticoPayload || null);
+        setFiltrosAplicados(proximosFiltros);
       } catch (error) {
         console.error("[SaudePlataformaAdmin] Falha ao carregar saúde:", error);
 
+        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+
         setErro(
-          error?.response?.data?.message ||
-            error?.message ||
+          obterMensagemErro(
+            error,
             "Não foi possível carregar a Saúde da Plataforma."
+          )
         );
       } finally {
-        setCarregando(false);
-        setAtualizando(false);
+        if (mountedRef.current && requestSeqRef.current === requestId) {
+          setCarregando(false);
+          setAtualizando(false);
+        }
       }
     },
-    [filtros, carregarResumo, carregarDiagnostico]
+    [carregarDiagnostico, carregarResumo, filtrosAplicados, validarFiltros]
   );
 
   useEffect(() => {
-    carregarIndicadores();
+    mountedRef.current = true;
+    document.title = "Saúde da Plataforma | Escola da Saúde";
+
+    carregarIndicadores({
+      proximosFiltros: FILTROS_INICIAIS,
+      silencioso: false,
+    });
+
+    return () => {
+      mountedRef.current = false;
+    };
+    // Busca inicial única. Alteração em filtros não dispara nova requisição.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const aplicarFiltros = useCallback(() => {
+    const proximosFiltros = {
+      ...filtros,
+      pagina: 1,
+    };
+
+    setFiltros(proximosFiltros);
+
+    carregarIndicadores({
+      proximosFiltros,
+      silencioso: true,
+    });
+  }, [carregarIndicadores, filtros]);
+
+  const limparFiltros = useCallback(() => {
+    setFiltros(FILTROS_INICIAIS);
+
+    carregarIndicadores({
+      proximosFiltros: FILTROS_INICIAIS,
+      silencioso: true,
+    });
   }, [carregarIndicadores]);
 
-  function atualizarFiltro(campo, valor) {
-    setFiltros((anterior) => ({
-      ...anterior,
-      [campo]: valor,
-      pagina: campo === "pagina" ? valor : 1,
-    }));
-  }
+  const mudarPagina = useCallback(
+    (pagina) => {
+      const proximaPagina = Math.max(Number(pagina || 1), 1);
 
-  function limparFiltros() {
-    setFiltros({
-      indicador_id: "",
-      modulo: "",
-      status: "",
-      severidade: "",
-      janela: "",
-      busca: "",
-      pagina: 1,
-      limite: 100,
-    });
-  }
+      const proximosFiltros = {
+        ...filtrosAplicados,
+        pagina: proximaPagina,
+      };
 
-  async function abrirDetalhe(indicador) {
+      setFiltros((anterior) => ({
+        ...anterior,
+        pagina: proximaPagina,
+      }));
+
+      carregarIndicadores({
+        proximosFiltros,
+        silencioso: true,
+      });
+    },
+    [carregarIndicadores, filtrosAplicados]
+  );
+
+  const abrirDetalhe = useCallback(async (indicador) => {
     try {
       setCarregandoDetalhe(true);
-      setIndicadorSelecionado(indicador);
+      setIndicadorSelecionado(normalizarIndicador(indicador));
 
-      const resposta = await api.saudePlataforma.obterPorId(indicador.indicador_id);
-      setIndicadorSelecionado(resposta?.data || indicador);
+      validarFacade(
+        "api.saudePlataforma.obterPorId",
+        api?.saudePlataforma?.obterPorId
+      );
+
+      const resposta = await api.saudePlataforma.obterPorId(
+        indicador.indicador_id
+      );
+
+      if (!mountedRef.current) return;
+
+      setIndicadorSelecionado(
+        normalizarIndicador(extrairData(resposta) || indicador)
+      );
     } catch (error) {
       console.error("[SaudePlataformaAdmin] Falha ao carregar indicador:", error);
 
       notifyError(
-        error?.response?.data?.message ||
+        obterMensagemErro(
+          error,
           "Não foi possível carregar os detalhes do indicador."
+        )
       );
     } finally {
-      setCarregandoDetalhe(false);
+      if (mountedRef.current) setCarregandoDetalhe(false);
     }
-  }
-
-  const paginaAtual = Number(meta.pagina || filtros.pagina || 1);
-  const totalPaginas = Math.max(Number(meta.total_paginas || 1), 1);
+  }, []);
 
   if (carregando) {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <CarregandoSkeleton
-          linhas={8}
-          titulo="Carregando Saúde da Plataforma"
-          subtitulo="Buscando indicadores, alertas, críticos e diagnóstico executivo."
-        />
-      </main>
+      <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <CarregandoSkeleton
+            linhas={8}
+            titulo="Carregando Saúde da Plataforma"
+            subtitulo="Buscando indicadores, alertas, críticos e diagnóstico executivo."
+          />
+        </main>
+
+        <Footer />
+      </div>
     );
   }
 
   if (erro) {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <ErroCarregamento
-          titulo="Não foi possível carregar a Saúde da Plataforma"
-          mensagem={erro}
-          onTentarNovamente={() => carregarIndicadores()}
-        />
-      </main>
+      <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <ErroCarregamento
+            titulo="Não foi possível carregar a Saúde da Plataforma"
+            mensagem={erro}
+            onTentarNovamente={() =>
+              carregarIndicadores({
+                proximosFiltros: filtrosAplicados,
+                silencioso: false,
+              })
+            }
+          />
+        </main>
+
+        <Footer />
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <HeroSaude resumo={resumoNormalizado} />
-
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <CardResumo
-          icone={Activity}
-          titulo="Indicadores"
-          valor={resumoNormalizado.total_indicadores}
-          detalhe="Total monitorado"
-        />
-
-        <CardResumo
-          icone={CheckCircle2}
-          titulo="Saudáveis"
-          valor={resumoNormalizado.saudaveis}
-          detalhe="Sem ação imediata"
-          destaque="text-emerald-700 dark:text-emerald-300"
-        />
-
-        <CardResumo
-          icone={AlertTriangle}
-          titulo="Alertas"
-          valor={resumoNormalizado.alertas}
-          detalhe="Requerem acompanhamento"
-          destaque="text-amber-700 dark:text-amber-300"
-        />
-
-        <CardResumo
-          icone={ShieldAlert}
-          titulo="Críticos"
-          valor={resumoNormalizado.criticos}
-          detalhe="Exigem atenção imediata"
-          destaque="text-red-700 dark:text-red-300"
-        />
-      </section>
-
-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-            <h2 className="text-base font-black text-slate-950 dark:text-white">
-              Saúde por módulo
-            </h2>
-          </div>
-
-          {resumoNormalizado.por_modulo.length > 0 ? (
-            <div className="space-y-3">
-              {resumoNormalizado.por_modulo.map((item) => {
-                const total = Number(item.total || 0);
-                const criticos = Number(item.criticos || 0);
-                const alertas = Number(item.alertas || 0);
-                const percentualRisco =
-                  total > 0 ? Math.round(((criticos + alertas) / total) * 100) : 0;
-
-                return (
-                  <div key={item.modulo} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-semibold text-slate-800 dark:text-slate-100">
-                        {item.modulo}
-                      </span>
-
-                      <span className="text-slate-500 dark:text-slate-400">
-                        {total} indicador(es)
-                      </span>
-                    </div>
-
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                      <div
-                        className={cx(
-                          "h-full rounded-full",
-                          criticos > 0
-                            ? "bg-red-600"
-                            : alertas > 0
-                              ? "bg-amber-500"
-                              : "bg-emerald-600"
-                        )}
-                        style={{ width: `${Math.max(percentualRisco, total > 0 ? 5 : 0)}%` }}
-                      />
-                    </div>
-
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {criticos} crítico(s) · {alertas} alerta(s) · soma de valores:{" "}
-                      {Number(item.soma_valores || 0)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Nenhum agrupamento por módulo disponível.
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-            <h2 className="text-base font-black text-slate-950 dark:text-white">
-              Diagnóstico executivo
-            </h2>
-          </div>
-
-          {diagnostico?.criticos?.length || diagnostico?.alertas?.length ? (
-            <div className="space-y-3">
-              {diagnostico?.criticos?.slice(0, 4).map((item) => (
-                <button
-                  type="button"
-                  key={item.indicador_id}
-                  onClick={() => abrirDetalhe(item)}
-                  className="w-full rounded-2xl border border-red-200 bg-red-50 p-3 text-left transition hover:bg-red-100 dark:border-red-800 dark:bg-red-950/40 dark:hover:bg-red-950/60"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-black text-red-900 dark:text-red-100">
-                      {item.titulo}
-                    </p>
-                    <span className="text-sm font-black text-red-900 dark:text-red-100">
-                      {item.valor}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-red-700 dark:text-red-200">
-                    {item.modulo} · {item.janela}
-                  </p>
-                </button>
-              ))}
-
-              {diagnostico?.alertas?.slice(0, 4).map((item) => (
-                <button
-                  type="button"
-                  key={item.indicador_id}
-                  onClick={() => abrirDetalhe(item)}
-                  className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:hover:bg-amber-950/60"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-black text-amber-900 dark:text-amber-100">
-                      {item.titulo}
-                    </p>
-                    <span className="text-sm font-black text-amber-900 dark:text-amber-100">
-                      {item.valor}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-200">
-                    {item.modulo} · {item.janela}
-                  </p>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
-              <p className="font-black">Sem alertas relevantes</p>
-              <p className="mt-1">
-                Não há indicadores críticos ou em alerta para exibir no diagnóstico
-                executivo.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-5">
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
-              <Filter className="h-4 w-4" />
-              Filtros da Saúde da Plataforma
-            </div>
-
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Localize indicadores por módulo, status, severidade, janela ou texto.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={limparFiltros}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
-            >
-              Limpar filtros
-            </button>
-
-            <button
-              type="button"
-              onClick={() => carregarIndicadores({ silencioso: true })}
-              disabled={atualizando}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
-            >
-              <RefreshCw
-                className={cx("h-4 w-4", atualizando && "animate-spin")}
-                aria-hidden="true"
-              />
-              Atualizar
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Busca
-            </span>
-            <input
-              type="text"
-              value={filtros.busca}
-              onChange={(event) => atualizarFiltro("busca", event.target.value)}
-              placeholder="Título, descrição, módulo..."
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            />
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Indicador ID
-            </span>
-            <input
-              type="text"
-              value={filtros.indicador_id}
-              onChange={(event) =>
-                atualizarFiltro("indicador_id", event.target.value)
-              }
-              placeholder="Ex.: pendencias_total_atual"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            />
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Módulo
-            </span>
-            <input
-              type="text"
-              value={filtros.modulo}
-              onChange={(event) => atualizarFiltro("modulo", event.target.value)}
-              placeholder="Ex.: reserva"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            />
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Janela
-            </span>
-            <input
-              type="text"
-              value={filtros.janela}
-              onChange={(event) => atualizarFiltro("janela", event.target.value)}
-              placeholder="Ex.: atual"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            />
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Status
-            </span>
-            <select
-              value={filtros.status}
-              onChange={(event) => atualizarFiltro("status", event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            >
-              {STATUS.map((opcao) => (
-                <option key={opcao.value} value={opcao.value}>
-                  {opcao.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Severidade
-            </span>
-            <select
-              value={filtros.severidade}
-              onChange={(event) =>
-                atualizarFiltro("severidade", event.target.value)
-              }
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            >
-              {SEVERIDADES.map((opcao) => (
-                <option key={opcao.value} value={opcao.value}>
-                  {opcao.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Itens por página
-            </span>
-            <select
-              value={filtros.limite}
-              onChange={(event) =>
-                atualizarFiltro("limite", Number(event.target.value))
-              }
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
-            >
-              {LIMITES.map((limite) => (
-                <option key={limite} value={limite}>
-                  {limite}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="flex items-end">
-            <Botao
-              type="button"
-              onClick={() => carregarIndicadores({ silencioso: true })}
-              disabled={atualizando}
-              className="w-full justify-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Aplicar filtros
-            </Botao>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-black text-slate-950 dark:text-white">
-              Indicadores monitorados
-            </h2>
-
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {meta.total} indicador(es) encontrado(s).
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-            <Clock3 className="h-3.5 w-3.5" />
-            Página {paginaAtual} de {totalPaginas}
-          </div>
-        </div>
-
-        {indicadores.length === 0 ? (
-          <div className="p-6">
-            <NadaEncontrado
-              titulo="Nenhum indicador encontrado"
-              mensagem="Ajuste os filtros para visualizar outros indicadores da Saúde da Plataforma."
-            />
-          </div>
-        ) : (
-          <div className="grid gap-3 p-4">
-            {indicadores.map((indicador) => (
-              <IndicadorCard
-                key={indicador.indicador_id}
-                indicador={indicador}
-                onAbrir={abrirDetalhe}
-              />
-            ))}
-          </div>
-        )}
-
-        {indicadores.length > 0 ? (
-          <div className="flex flex-col gap-3 border-t border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Mostrando até {meta.limite} por página.
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={paginaAtual <= 1}
-                onClick={() => atualizarFiltro("pagina", paginaAtual - 1)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Anterior
-              </button>
-
-              <button
-                type="button"
-                disabled={paginaAtual >= totalPaginas}
-                onClick={() => atualizarFiltro("pagina", paginaAtual + 1)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
-              >
-                Próxima
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <Modal
-        aberto={Boolean(indicadorSelecionado)}
-        onFechar={() => setIndicadorSelecionado(null)}
-        titulo="Detalhes do indicador"
-        tamanho="xl"
+    <div className="flex min-h-dvh flex-col overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-950 focus:shadow-lg"
       >
-        {carregandoDetalhe ? (
-          <CarregandoSkeleton
-            linhas={6}
-            titulo="Carregando indicador"
-            subtitulo="Buscando detalhes da Saúde da Plataforma."
+        Ir para o conteúdo
+      </a>
+
+      <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+        <HeaderHero
+          titulo="Saúde da plataforma"
+          subtitulo="Monitore indicadores operacionais, alertas, pendências e inconsistências críticas da Escola da Saúde com dados rastreáveis e visão executiva."
+          icone={HeartPulse}
+          campanhaMes="junho"
+          tamanho="md"
+          raio="xl"
+        />
+      </div>
+
+      {atualizando ? (
+        <div
+          className="sticky top-0 z-50 h-1 w-full bg-violet-100 dark:bg-violet-950"
+          role="progressbar"
+          aria-label="Atualizando Saúde da Plataforma"
+        >
+          <div className="h-full w-1/3 animate-pulse bg-violet-700" />
+        </div>
+      ) : null}
+
+      <main
+        id="conteudo"
+        className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8"
+      >
+        <ClassificacaoOperacional resumo={resumoNormalizado} />
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CardResumo
+            icone={Activity}
+            titulo="Indicadores"
+            valor={resumoNormalizado.total_indicadores}
+            detalhe="Total monitorado"
           />
-        ) : indicadorSelecionado ? (
-          <div className="space-y-5">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    <BadgeStatus status={indicadorSelecionado.status} />
-                    <BadgeSeveridade severidade={indicadorSelecionado.severidade} />
-                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-                      {indicadorSelecionado.janela || "sem janela"}
-                    </span>
-                  </div>
 
-                  <h3 className="break-words text-xl font-black text-slate-950 dark:text-white">
-                    {indicadorSelecionado.titulo}
-                  </h3>
+          <CardResumo
+            icone={CheckCircle2}
+            titulo="Saudáveis"
+            valor={resumoNormalizado.saudaveis}
+            detalhe="Sem ação imediata"
+            destaque="text-emerald-700 dark:text-emerald-300"
+          />
 
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    {indicadorSelecionado.descricao}
-                  </p>
-                </div>
+          <CardResumo
+            icone={AlertTriangle}
+            titulo="Alertas"
+            valor={resumoNormalizado.alertas}
+            detalhe="Requerem acompanhamento"
+            destaque="text-amber-700 dark:text-amber-300"
+          />
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    copiarTexto(
-                      indicadorSelecionado.indicador_id,
-                      "ID do indicador copiado."
-                    )
-                  }
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar ID
-                </button>
-              </div>
+          <CardResumo
+            icone={ShieldAlert}
+            titulo="Críticos"
+            valor={resumoNormalizado.criticos}
+            detalhe="Exigem atenção imediata"
+            destaque="text-red-700 dark:text-red-300"
+          />
+        </section>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Valor
-                  </div>
-                  <p className="text-2xl font-black text-slate-950 dark:text-white">
-                    {Number(indicadorSelecionado.valor || 0)}
-                  </p>
-                </div>
+        <section className="grid gap-4 lg:grid-cols-2">
+          <SaudePorModulo resumo={resumoNormalizado} />
 
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Módulo
-                  </div>
-                  <p className="break-words text-sm font-black text-slate-950 dark:text-white">
-                    {indicadorSelecionado.modulo || "—"}
-                  </p>
-                </div>
+          <DiagnosticoExecutivo
+            diagnostico={diagnostico}
+            onAbrir={abrirDetalhe}
+          />
+        </section>
 
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Janela
-                  </div>
-                  <p className="break-words text-sm font-black text-slate-950 dark:text-white">
-                    {indicadorSelecionado.janela || "—"}
-                  </p>
-                </div>
+        <PainelFiltros
+          filtros={filtros}
+          setFiltros={setFiltros}
+          carregando={carregando}
+          atualizando={atualizando}
+          onAplicar={aplicarFiltros}
+          onLimpar={limparFiltros}
+        />
 
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Atualizado em
-                  </div>
-                  <p className="break-words text-sm font-black text-slate-950 dark:text-white">
-                    {formatarDataHora(indicadorSelecionado.atualizado_em)}
-                  </p>
-                </div>
-              </div>
-            </section>
+        <ListaIndicadores
+          indicadores={indicadores}
+          meta={meta}
+          atualizando={atualizando}
+          onAbrir={abrirDetalhe}
+          onMudarPagina={mudarPagina}
+        />
+      </main>
 
-            <JsonPreview
-              titulo="Critérios e detalhes técnicos"
-              valor={indicadorSelecionado.detalhes}
-            />
+      <ModalIndicador
+        indicadorSelecionado={indicadorSelecionado}
+        carregandoDetalhe={carregandoDetalhe}
+        onFechar={() => setIndicadorSelecionado(null)}
+      />
 
-            <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100">
-              <p className="font-black">Orientação operacional</p>
-              <p className="mt-1">
-                Este indicador é derivado da view oficial da Saúde da Plataforma. Para
-                resolver alertas ou críticos, corrija a causa nos módulos de origem,
-                especialmente quando o indicador apontar pendências, certificados,
-                reservas, notificações ou auditoria.
-              </p>
-            </section>
-          </div>
-        ) : null}
-      </Modal>
-    </main>
+      <Footer />
+    </div>
   );
 }
