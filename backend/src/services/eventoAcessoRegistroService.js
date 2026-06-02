@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/services/eventoAcessoRegistroService.js — v2.0
- * Atualizado em: 19/05/2026
+ * ✅ backend/src/services/eventoAcessoRegistroService.js — v2.1
+ * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
  * Serviço oficial de acesso/elegibilidade para eventos restritos.
@@ -28,9 +28,9 @@
  *
  * Fontes oficiais:
  * - eventos;
+ * - eventos.cargos_permitidos_ids;
+ * - eventos.unidades_permitidas_ids;
  * - evento_registros;
- * - evento_cargos;
- * - evento_unidades;
  * - usuarios.
  *
  * Contratos oficiais:
@@ -45,8 +45,6 @@
  * - sem dbModule.db;
  * - sem fallback de banco;
  * - sem múltiplos formatos de db;
- * - sem eventos.cargos_permitidos_ids como fonte funcional;
- * - sem eventos.unidades_permitidas_ids como fonte funcional;
  * - sem liberação indireta para modo desconhecido;
  * - sem export paralelo podeVerEvento.
  */
@@ -267,28 +265,6 @@ LIMIT 1
     return null;
   }
 
-  const [cargosResult, unidadesResult] = await Promise.all([
-    executar(
-      conn,
-      `
-      SELECT cargo
-      FROM evento_cargos
-      WHERE evento_id = $1
-      `,
-      [eventoId]
-    ),
-
-    executar(
-      conn,
-      `
-      SELECT unidade_id
-      FROM evento_unidades
-      WHERE evento_id = $1
-      `,
-      [eventoId]
-    ),
-  ]);
-
   return {
     id: toPositiveIntOrNull(row.id),
     titulo: row.titulo || null,
@@ -450,17 +426,35 @@ async function checarAcessoEvento(
     });
   }
 
-  if (modo === MODO_LISTA) {
-    if (!registroNormalizado) {
-      return buildResultado({
-        ok: false,
-        motivo: MOTIVOS.SEM_REGISTRO,
-        evento,
-        usuario,
-      });
-    }
+if (modo === MODO_LISTA) {
+  if (!registroNormalizado) {
+    return buildResultado({
+      ok: false,
+      motivo: MOTIVOS.SEM_REGISTRO,
+      evento,
+      usuario,
+    });
+  }
 
-    if (modo === MODO_CARGOS) {
+  const autorizado = await registroEstaAutorizado(
+    {
+      eventoId: evento.id,
+      registroNorm: registroNormalizado,
+    },
+    conn
+  );
+
+  return buildResultado({
+    ok: autorizado,
+    motivo: autorizado
+      ? MOTIVOS.ACESSO_LIBERADO
+      : MOTIVOS.REGISTRO_NAO_AUTORIZADO,
+    evento,
+    usuario,
+  });
+}
+
+if (modo === MODO_CARGOS) {
   const temCargoPermitido =
     cargoId != null && cargosPermitidosIds.includes(cargoId);
 
@@ -495,24 +489,6 @@ if (modo === MODO_UNIDADES) {
     },
   });
 }
-
-    const autorizado = await registroEstaAutorizado(
-      {
-        eventoId: evento.id,
-        registroNorm: registroNormalizado,
-      },
-      conn
-    );
-
-    return buildResultado({
-      ok: autorizado,
-      motivo: autorizado
-        ? MOTIVOS.ACESSO_LIBERADO
-        : MOTIVOS.REGISTRO_NAO_AUTORIZADO,
-      evento,
-      usuario,
-    });
-  }
 
   if (modo) {
     logWarn("Modo de restrição inválido.", {

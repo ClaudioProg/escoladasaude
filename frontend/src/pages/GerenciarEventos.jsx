@@ -1,4 +1,4 @@
-// ✅ src/pages/GerenciarEventos.jsx — v2.0
+// ✅ src/pages/GerenciarEventos.jsx — v2.1
 // Plataforma Escola da Saúde
 //
 // Página administrativa de eventos.
@@ -11,6 +11,7 @@
 // - sem rotas antigas de turma;
 // - sem upload separado por fallback;
 // - folder/programação enviados via campos oficiais: folder e programacao;
+// - conteúdo programático consumido pelo contrato oficial conteudo_programatico;
 // - página interna do EscolaAppShell;
 // - sem Footer próprio;
 // - sem fundo duplicado de tela;
@@ -171,6 +172,10 @@ function getPeriodoEvento(evento) {
   return `${inicioBr} a ${fimBr}`;
 }
 
+function eventoTemConteudoProgramatico(evento) {
+  return Boolean(String(evento?.conteudo_programatico || "").trim());
+}
+
 function eventMatchesSearch(evento, termo) {
   const q = normalizeTitleSort(termo);
 
@@ -182,6 +187,7 @@ function eventMatchesSearch(evento, termo) {
     evento?.local,
     evento?.publico_alvo,
     evento?.descricao,
+    evento?.conteudo_programatico,
   ]
     .map(normalizeTitleSort)
     .join(" ");
@@ -764,6 +770,7 @@ export default function GerenciarEventos() {
     let encerrados = 0;
     let eventosAnoAtual = 0;
     let comProgramacao = 0;
+    let comConteudoProgramatico = 0;
 
     for (const evento of eventos) {
       if (evento?.publicado) publicados += 1;
@@ -780,6 +787,10 @@ export default function GerenciarEventos() {
       if (evento?.programacao_kind === "blob" || evento?.programacao_pdf_size) {
         comProgramacao += 1;
       }
+
+      if (eventoTemConteudoProgramatico(evento)) {
+        comConteudoProgramatico += 1;
+      }
     }
 
     return {
@@ -791,6 +802,7 @@ export default function GerenciarEventos() {
       anoAtual,
       eventosAnoAtual,
       comProgramacao,
+      comConteudoProgramatico,
     };
   }, [eventos]);
 
@@ -986,11 +998,11 @@ export default function GerenciarEventos() {
                 tone="emerald"
               />
               <StatPill
-                icon={FileText}
-                label="Com PDF"
-                value={stats.comProgramacao}
-                tone="sky"
-              />
+  icon={FileText}
+  label="Com conteúdo"
+  value={stats.comConteudoProgramatico}
+  tone="sky"
+/>
             </div>
           </section>
         )}
@@ -1179,18 +1191,31 @@ export default function GerenciarEventos() {
                             )}
 
                             {(evento?.programacao_kind === "blob" ||
-                              evento?.programacao_pdf_size) && (
-                              <Chip
-                                title="Programação PDF cadastrada"
-                                className="bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40"
-                              >
-                                <FileText
-                                  className="h-3.5 w-3.5"
-                                  aria-hidden="true"
-                                />
-                                Programação
-                              </Chip>
-                            )}
+  evento?.programacao_pdf_size) && (
+  <Chip
+    title="Programação PDF cadastrada"
+    className="bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40"
+  >
+    <FileText
+      className="h-3.5 w-3.5"
+      aria-hidden="true"
+    />
+    Programação
+  </Chip>
+)}
+
+{eventoTemConteudoProgramatico(evento) && (
+  <Chip
+    title="Conteúdo programático cadastrado para impressão no verso do certificado"
+    className="bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-200 dark:border-emerald-900/40"
+  >
+    <FileText
+      className="h-3.5 w-3.5"
+      aria-hidden="true"
+    />
+    Conteúdo programático
+  </Chip>
+)}
                           </div>
 
                           <div className="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-300">

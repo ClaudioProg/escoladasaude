@@ -1,5 +1,5 @@
-// ✅ frontend/src/services/eventoService.js — v2.1
-// Atualizado em: 18/05/2026
+// ✅ frontend/src/services/eventoService.js — v2.2
+// Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
 // Service específico do domínio de eventos.
@@ -10,6 +10,7 @@
 // - eliminar fallback de rotas antigas;
 // - padronizar payload de criação/edição;
 // - padronizar folder/programação em banco;
+// - preservar conteúdo programático do evento para impressão no verso do certificado;
 // - centralizar inscrições vinculadas aos eventos;
 // - centralizar consultas administrativas de inscritos por turma;
 // - manter date-only seguro em YYYY-MM-DD;
@@ -23,6 +24,7 @@
 // - módulo oficial backend de turma: /turma;
 // - folder: campo multipart "folder";
 // - programação: campo multipart "programacao";
+// - conteúdo programático: eventos.conteudo_programatico;
 // - inscrição: /inscricao;
 // - turma vinculada ao evento: /turma/evento/:evento_id;
 // - turma simples vinculada ao evento: /turma/evento/:evento_id/simples;
@@ -538,6 +540,10 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
     source?.publico_alvo ?? base?.publico_alvo ?? ""
   ).trim();
 
+  const conteudoProgramatico = String(
+    source?.conteudo_programatico ?? base?.conteudo_programatico ?? ""
+  ).trim();
+
   const unidadeId = toPositiveIntOrNull(source?.unidade_id ?? base?.unidade_id);
 
   const restrito = Boolean(
@@ -619,6 +625,8 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
 
     ...(posCurso ? { pos_curso: posCurso } : {}),
   });
+
+  payload.conteudo_programatico = conteudoProgramatico;
 
   return payload;
 }

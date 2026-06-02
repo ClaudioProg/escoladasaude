@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-// src/components/eventos/ModalEvento.jsx
+// ✅ src/components/eventos/ModalEvento.jsx — v2.1
+// 02/06/2026
 // Plataforma Escola da Saúde
 //
 // Modal administrativo premium de criação/edição de evento.
@@ -10,6 +11,8 @@
 // - ModalTurma e ModalQuestionarioEvento ficam na mesma pasta
 // - Folder: File em folderFile
 // - Programação: File em programacaoFile
+// - Conteúdo programático: eventos.conteudo_programatico
+// - Conteúdo programático opcional e impresso no verso do certificado quando informado
 // - Sem campo legado "file"
 // - Sem folder_url/programacao_pdf_url como fonte funcional
 // - Sem resolveAssetUrl/openAsset
@@ -633,6 +636,7 @@ export default function ModalEvento({
   const [tipo, setTipo] = useState("");
   const [unidadeId, setUnidadeId] = useState("");
   const [publicoAlvo, setPublicoAlvo] = useState("");
+  const [conteudoProgramatico, setConteudoProgramatico] = useState("");
 
   const [unidades, setUnidades] = useState([]);
   const [organizadoresDisponiveis, setorganizadoresDisponiveis] = useState([]);
@@ -866,12 +870,13 @@ export default function ModalEvento({
     if (prevEventoKeyRef.current === key) return;
 
     startTransition(() => {
-      setTitulo(evento?.titulo || "");
+            setTitulo(evento?.titulo || "");
       setDescricao(evento?.descricao || "");
       setLocal(evento?.local || "");
       setTipo(evento?.tipo || "");
       setUnidadeId(evento?.unidade_id ? String(evento.unidade_id) : "");
       setPublicoAlvo(evento?.publico_alvo || "");
+      setConteudoProgramatico(evento?.conteudo_programatico || "");
 
       setFolderFile(null);
       setFolderPreview("");
@@ -947,6 +952,8 @@ export default function ModalEvento({
         const completo = await EventoService.admin.buscarCompleto(evento.id);
 
         if (!alive || !completo?.id) return;
+
+                setConteudoProgramatico(completo?.conteudo_programatico || "");
 
         setTurmas(
           Array.isArray(completo.turmas)
@@ -1403,7 +1410,7 @@ if (restrito) {
   }
 }
 
-      const payload = {
+            const payload = {
         ...(evento?.id ? { id: Number(evento.id) } : {}),
 
         titulo: String(titulo).trim(),
@@ -1412,6 +1419,8 @@ if (restrito) {
         tipo,
         unidade_id: Number(unidadeId),
         publico_alvo: String(publicoAlvo || "").trim(),
+        conteudo_programatico:
+          String(conteudoProgramatico || "").trim() || null,
 
         turmas: turmasPayload,
 
@@ -1439,7 +1448,7 @@ if (restrito) {
         ...(programacaoFile instanceof File ? { programacaoFile } : {}),
       };
 
-      logDev("Payload do modal preparado", {
+            logDev("Payload do modal preparado", {
         eventoId: payload.id || null,
         turmas: payload.turmas?.length || 0,
         restrito: payload.restrito,
@@ -1447,14 +1456,16 @@ if (restrito) {
         cargos: payload.cargos_permitidos?.length || 0,
         unidades: payload.unidades_permitidas?.length || 0,
         registros: payload.registros_permitidos?.length || 0,
+        hasConteudoProgramatico: Boolean(payload.conteudo_programatico),
         hasFolder: folderFile instanceof File,
         hasProgramacao: programacaoFile instanceof File,
       });
 
       onSalvar(payload);
     },
-    [
+        [
       cargosPermitidos,
+      conteudoProgramatico,
       descricao,
       evento?.id,
       folderFile,
@@ -1776,7 +1787,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                    <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
                     <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
                       PDF
                     </div>
@@ -1786,6 +1797,17 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                         : removerProgramacaoExistente
                           ? "Remover"
                           : "Opcional"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950/40 sm:col-span-2">
+                    <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
+                      Conteúdo programático
+                    </div>
+                    <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                      {String(conteudoProgramatico || "").trim()
+                        ? "Configurado"
+                        : "Opcional"}
                     </div>
                   </div>
                 </div>
@@ -1831,7 +1853,7 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                         />
                       </div>
 
-                      <div className="grid gap-1 sm:col-span-2">
+                                            <div className="grid gap-1 sm:col-span-2">
                         <FieldLabel htmlFor={`evento-descricao-${uid}`}>
                           Descrição
                         </FieldLabel>
@@ -1842,6 +1864,30 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           onChange={(e) => setDescricao(e.target.value)}
                           placeholder="Contexto, objetivos, orientações e observações do evento."
                         />
+                      </div>
+
+                      <div className="grid gap-1 sm:col-span-2">
+                        <FieldLabel htmlFor={`evento-conteudo-programatico-${uid}`}>
+                          Conteúdo programático
+                        </FieldLabel>
+                        <TextArea
+                          id={`evento-conteudo-programatico-${uid}`}
+                          icon={ClipboardList}
+                          value={conteudoProgramatico}
+                          onChange={(e) =>
+                            setConteudoProgramatico(e.target.value)
+                          }
+                          placeholder={
+                            "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
+                          }
+                          rows={6}
+                          className="min-h-36"
+                        />
+
+                        <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                          Campo opcional. Quando preenchido, será impresso no verso do certificado,
+                          preservando as quebras de linha informadas.
+                        </p>
                       </div>
 
                       <div className="grid gap-1 sm:col-span-2">

@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/eventoAdminController.js — v2.1
- * Atualizado em: 18/05/2026
+ * ✅ backend/src/controllers/eventoAdminController.js — v2.2
+ * Atualizado em: 02/06/2026
  * Plataforma Escola da Saúde
  *
  * Controller administrativo de eventos.
@@ -16,12 +16,14 @@
  * - publicar/despublicar evento;
  * - atualizar folder e programação;
  * - vincular turmas, datas, organizadores, palestrantes e assinantes;
+ * - registrar conteúdo programático do evento para impressão no verso do certificado;
  * - preservar integridade documental e operacional.
  *
  * Contratos oficiais:
  * - req.user.perfil === "administrador";
  * - folder persistido em eventos.folder_blob;
  * - programação PDF persistida em eventos.programacao_pdf_blob;
+ * - conteúdo programático persistido em eventos.conteudo_programatico;
  * - upload oficial:
  *   - folder
  *   - programacao
@@ -1255,6 +1257,7 @@ async function listarEventosAdmin(req, res) {
         e.tipo,
         e.unidade_id,
         e.publico_alvo,
+        e.conteudo_programatico,
         e.publicado,
         e.restrito,
         e.restrito_modo,
@@ -1344,13 +1347,14 @@ async function criarEvento(req, res) {
 
   const body = normalizeBodyMultipart(req.body || {});
 
-  const {
+    const {
     titulo,
     descricao,
     local,
     tipo,
     unidade_id,
     publico_alvo,
+    conteudo_programatico,
     turmas = [],
     restrito = false,
     restrito_modo = null,
@@ -1474,33 +1478,35 @@ const registrosNormalizados =
 
     const result = await client.query(
       `
-      INSERT INTO eventos (
+            INSERT INTO eventos (
         titulo,
         descricao,
         local,
         tipo,
         unidade_id,
         publico_alvo,
+        conteudo_programatico,
         restrito,
         restrito_modo,
         publicado,
         cargos_permitidos_ids,
         unidades_permitidas_ids
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,FALSE,$9,$10)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,FALSE,$10,$11)
       RETURNING *
       `,
-      [
+            [
         String(titulo).trim(),
         String(descricao || "").trim(),
         String(local).trim(),
         String(tipo).trim(),
         Number(unidade_id),
         String(publico_alvo || "").trim(),
-restritoFinal,
-restritoFinal ? restritoModoFinal : null,
-cargoIds,
-unidadeIds,
+        String(conteudo_programatico || "").trim() || null,
+        restritoFinal,
+        restritoFinal ? restritoModoFinal : null,
+        cargoIds,
+        unidadeIds,
       ]
     );
 
@@ -1579,13 +1585,14 @@ async function atualizarEvento(req, res) {
 
   const body = normalizeBodyMultipart(req.body || {});
 
-  const {
+    const {
     titulo,
     descricao,
     local,
     tipo,
     unidade_id,
     publico_alvo,
+    conteudo_programatico,
     turmas,
     restrito,
     restrito_modo,
@@ -1677,8 +1684,15 @@ async function atualizarEvento(req, res) {
       pushSet("unidade_id", Number(unidade_id));
     }
 
-    if (typeof publico_alvo !== "undefined") {
+        if (typeof publico_alvo !== "undefined") {
       pushSet("publico_alvo", String(publico_alvo || "").trim());
+    }
+
+    if (typeof conteudo_programatico !== "undefined") {
+      pushSet(
+        "conteudo_programatico",
+        String(conteudo_programatico || "").trim() || null
+      );
     }
 
     if (typeof restrito !== "undefined") {
