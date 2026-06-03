@@ -104,6 +104,7 @@ const REQUIRED_ADMIN_HANDLERS = [
   "uploadFolderOnly",
   "uploadProgramacaoOnly",
   "listarEventosAdmin",
+  "buscarEventoAdminPorId",
   "criarEvento",
   "atualizarEvento",
   "excluirEvento",
@@ -253,6 +254,19 @@ router.get(
     cacheControl: "private, no-cache, must-revalidate",
   }),
   asyncHandler(eventoAdminController.listarEventosAdmin)
+);
+
+
+router.get(
+  "/administrador/:id",
+  authMiddleware,
+  requireAdmin,
+  ensureNumericParam("id", "evento_id"),
+  privateNoCache,
+  routeTag("eventoRoute:v2.1 GET /administrador/:id", {
+    cacheControl: "private, no-cache, must-revalidate",
+  }),
+  asyncHandler(eventoAdminController.buscarEventoAdminPorId)
 );
 
 /* ───────────────────────────────────────────────────────────────

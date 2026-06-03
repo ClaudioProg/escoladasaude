@@ -953,7 +953,9 @@ export default function ModalEvento({
 
         if (!alive || !completo?.id) return;
 
-                setConteudoProgramatico(completo?.conteudo_programatico || "");
+if (Object.prototype.hasOwnProperty.call(completo, "conteudo_programatico")) {
+  setConteudoProgramatico(completo?.conteudo_programatico || "");
+}
 
         setTurmas(
           Array.isArray(completo.turmas)

@@ -787,6 +787,21 @@ export async function buscarEvento(eventoId, opts = {}) {
   return unwrapDataObject(response);
 }
 
+export async function buscarEventoAdmin(eventoId, opts = {}) {
+  const id = toPositiveIntOrNull(eventoId);
+
+  if (!id) throw new Error("evento_id é obrigatório.");
+
+  const response = await apiGet(`${EVENTO_BASE}/administrador/${id}`, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+
+  return unwrapDataObject(response);
+}
+
 export async function listarTurmasDoEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
@@ -833,6 +848,37 @@ export async function buscarEventoCompleto(eventoId, opts = {}) {
   } catch (error) {
     if (!isAbortLike(error)) {
       console.warn("[eventoService.buscarEventoCompleto] falha ao carregar turmas completas", {
+        evento_id: evento.id,
+        message: error?.message,
+        status: error?.status,
+      });
+    }
+
+    turmas = Array.isArray(evento?.turmas) ? evento.turmas : [];
+  }
+
+  return {
+    ...evento,
+    turmas,
+  };
+}
+
+export async function buscarEventoAdminCompleto(eventoId, opts = {}) {
+  const evento = await buscarEventoAdmin(eventoId, opts);
+
+  if (!evento?.id) return null;
+
+  let turmas = [];
+
+  try {
+    turmas = await listarTurmasDoEvento(evento.id, {
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+    });
+  } catch (error) {
+    if (!isAbortLike(error)) {
+      console.warn("[eventoService.buscarEventoAdminCompleto] falha ao carregar turmas completas", {
         evento_id: evento.id,
         message: error?.message,
         status: error?.status,
@@ -1241,22 +1287,22 @@ export const EventoService = {
     getInscricaoPorTurmaId,
   },
 
-  admin: {
-    listar: listarEventosAdmin,
-    buscar: buscarEvento,
-    buscarCompleto: buscarEventoCompleto,
-    listarTurmas: listarTurmasDoEvento,
-    listarTurmasSimples: listarTurmasSimplesDoEvento,
-    criar: criarEvento,
-    atualizar: atualizarEvento,
-    excluir: excluirEvento,
-    publicar: publicarEvento,
-    despublicar: despublicarEvento,
-    alternarPublicacao: alternarPublicacaoEvento,
-    atualizarArquivos: atualizarArquivosEvento,
-    atualizarFolder: atualizarFolderEvento,
-    atualizarProgramacao: atualizarProgramacaoEvento,
-  },
+admin: {
+  listar: listarEventosAdmin,
+  buscar: buscarEventoAdmin,
+  buscarCompleto: buscarEventoAdminCompleto,
+  listarTurmas: listarTurmasDoEvento,
+  listarTurmasSimples: listarTurmasSimplesDoEvento,
+  criar: criarEvento,
+  atualizar: atualizarEvento,
+  excluir: excluirEvento,
+  publicar: publicarEvento,
+  despublicar: despublicarEvento,
+  alternarPublicacao: alternarPublicacaoEvento,
+  atualizarArquivos: atualizarArquivosEvento,
+  atualizarFolder: atualizarFolderEvento,
+  atualizarProgramacao: atualizarProgramacaoEvento,
+},
 
   publico: {
     listar: listarEventosPublicos,

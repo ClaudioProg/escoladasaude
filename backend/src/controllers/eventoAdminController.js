@@ -1335,6 +1335,129 @@ async function listarEventosAdmin(req, res) {
 }
 
 /* ───────────────────────────────────────────────────────────────
+   Detalhe administrativo do evento
+─────────────────────────────────────────────────────────────── */
+
+async function buscarEventoAdminPorId(req, res) {
+  const rid = mkRid();
+
+  if (!isAdmin(req)) {
+    return forbidden(res);
+  }
+
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return badRequest(res, "evento_id inválido.", {
+      rid,
+      code: "EVENTO_ID_INVALIDO",
+    });
+  }
+
+  logStart(rid, "buscarEventoAdminPorId", { id });
+
+  try {
+    const { rows } = await db.query(
+      `
+      SELECT
+        e.id,
+        e.titulo,
+        e.descricao,
+        e.local,
+        e.tipo,
+        e.unidade_id,
+        e.publico_alvo,
+        e.conteudo_programatico,
+        e.publicado,
+        e.restrito,
+        e.restrito_modo,
+        e.visibilidade,
+        e.criado_em,
+        e.atualizado_em,
+
+        e.cargos_permitidos_ids,
+        e.unidades_permitidas_ids,
+
+        (
+          SELECT COALESCE(
+            json_agg(er.registro_norm ORDER BY er.registro_norm),
+            '[]'::json
+          )
+          FROM evento_registros er
+          WHERE er.evento_id = e.id
+        ) AS registros_permitidos,
+
+        (
+          SELECT COALESCE(
+            json_agg(ec.cargo ORDER BY ec.cargo),
+            '[]'::json
+          )
+          FROM evento_cargos ec
+          WHERE ec.evento_id = e.id
+        ) AS cargos_permitidos,
+
+        (
+          SELECT COALESCE(
+            json_agg(eu.unidade_id ORDER BY eu.unidade_id),
+            '[]'::json
+          )
+          FROM evento_unidades eu
+          WHERE eu.evento_id = e.id
+        ) AS unidades_permitidas,
+
+        ('/api/evento/' || e.id || '/folder') AS folder_blob_url,
+        CASE
+          WHEN e.folder_blob IS NOT NULL THEN 'blob'
+          ELSE 'none'
+        END AS folder_kind,
+
+        ('/api/evento/' || e.id || '/programacao') AS programacao_pdf_blob_url,
+        CASE
+          WHEN e.programacao_pdf_blob IS NOT NULL THEN 'blob'
+          ELSE 'none'
+        END AS programacao_kind,
+
+        e.folder_size,
+        e.folder_updated_at,
+        e.programacao_pdf_size,
+        e.programacao_pdf_nome_original,
+        e.programacao_pdf_updated_at
+      FROM eventos e
+      WHERE e.id = $1
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    if (!rows.length) {
+      return sendError(res, {
+        status: 404,
+        code: "EVENTO_NAO_ENCONTRADO",
+        message: "Evento não encontrado.",
+        rid,
+      });
+    }
+
+    logInfo(rid, "buscarEventoAdminPorId OK", { id });
+
+    return sendOk(res, {
+      message: "Evento administrativo carregado.",
+      data: rows[0],
+    });
+  } catch (err) {
+    logError(rid, "buscarEventoAdminPorId erro", err);
+
+    return sendError(res, {
+      status: 500,
+      code: "EVENTO_ADMIN_OBTER_ERRO",
+      message: "Erro ao buscar evento administrativo.",
+      rid,
+      error: err,
+    });
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
    Criar evento
 ─────────────────────────────────────────────────────────────── */
 
@@ -2318,6 +2441,7 @@ module.exports = {
   uploadProgramacaoOnly,
 
   listarEventosAdmin,
+  buscarEventoAdminPorId,
   criarEvento,
   atualizarEvento,
   excluirEvento,
