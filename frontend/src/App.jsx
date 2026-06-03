@@ -1,4 +1,4 @@
-// ✅ frontend/src/App.jsx — v2.3
+// ✅ frontend/src/App.jsx — v2.4
 // Atualizado em: 19/05/2026
 //
 // Plataforma Escola da Saúde
@@ -167,7 +167,7 @@ const SaudePlataformaAdmin = lazy(() =>
   import("./pages/SaudePlataformaAdmin")
 );
 
-const GerenciarEventos = lazy(() => import("./pages/GerenciarEventos"));
+const GestaoEventos = lazy(() => import("./pages/GestaoEventos"));
 const GestaoInformacoes = lazy(() => import("./pages/GestaoInformacoes"));
 const GestaoUsuarios = lazy(() => import("./pages/GestaoUsuarios"));
 const GestaoOrganizador = lazy(() => import("./pages/GestaoOrganizador"));
@@ -892,7 +892,7 @@ function AdministradorRoutes() {
         element={
           <ProtectedPage
             permitido={PERFIL_PERMITIDO.administrador}
-            element={<GerenciarEventos />}
+            element={<GestaoEventos />}
           />
         }
       />

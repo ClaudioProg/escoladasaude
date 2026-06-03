@@ -1373,7 +1373,6 @@ async function buscarEventoAdminPorId(req, res) {
         e.restrito_modo,
         e.visibilidade,
         e.criado_em,
-        e.atualizado_em,
 
         e.cargos_permitidos_ids,
         e.unidades_permitidas_ids,
