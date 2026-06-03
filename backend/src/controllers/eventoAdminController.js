@@ -1817,21 +1817,113 @@ async function atualizarEvento(req, res) {
       );
     }
 
-    if (typeof restrito !== "undefined") {
-      pushSet("restrito", Boolean(restrito));
+const alterouRestricao =
+  typeof restrito !== "undefined" ||
+  typeof restrito_modo !== "undefined" ||
+  typeof registros_permitidos !== "undefined" ||
+  typeof cargos_permitidos !== "undefined" ||
+  typeof unidades_permitidas !== "undefined";
+
+if (alterouRestricao) {
+  const restritoFinal = Boolean(restrito);
+  const restritoModoFinal = restritoFinal
+    ? String(restrito_modo || "").trim()
+    : null;
+
+  const modosValidos = new Set([
+    MODO_TODOS,
+    MODO_LISTA,
+    MODO_CARGOS,
+    MODO_UNIDADES,
+  ]);
+
+  if (!restritoFinal) {
+    pushSet("restrito", false);
+    pushSet("restrito_modo", null);
+    pushSet("restricao_registros", null);
+    pushSet("cargos_permitidos_ids", null);
+    pushSet("unidades_permitidas_ids", null);
+  } else {
+    if (!modosValidos.has(restritoModoFinal)) {
+      throw Object.assign(new Error("Modo de restrição inválido."), {
+        status: 400,
+        code: "EVENTO_RESTRICAO_MODO_INVALIDO",
+      });
     }
 
-    if (typeof restrito_modo !== "undefined") {
-      pushSet("restrito_modo", restrito ? restrito_modo || null : null);
+    const registrosNormalizados =
+      restritoModoFinal === MODO_LISTA
+        ? normalizeListaRegistros(registros_permitidos)
+        : [];
+
+    const cargoIds =
+      restritoModoFinal === MODO_CARGOS
+        ? toPostgresIntArray(cargos_permitidos)
+        : null;
+
+    const unidadeIds =
+      restritoModoFinal === MODO_UNIDADES
+        ? toPostgresIntArray(unidades_permitidas)
+        : null;
+
+    if (restritoModoFinal === MODO_LISTA && !registrosNormalizados.length) {
+      throw Object.assign(
+        new Error("Evento restrito por lista precisa ter ao menos um registro autorizado."),
+        {
+          status: 400,
+          code: "EVENTO_RESTRICAO_LISTA_VAZIA",
+        }
+      );
     }
 
-    if (typeof cargos_permitidos !== "undefined") {
-      pushSet("cargos_permitidos_ids", toPostgresIntArray(cargos_permitidos));
+    if (restritoModoFinal === MODO_CARGOS && !cargoIds?.length) {
+      throw Object.assign(
+        new Error("Evento restrito por cargos precisa ter ao menos um cargo autorizado."),
+        {
+          status: 400,
+          code: "EVENTO_RESTRICAO_CARGOS_VAZIA",
+        }
+      );
     }
 
-    if (typeof unidades_permitidas !== "undefined") {
-      pushSet("unidades_permitidas_ids", toPostgresIntArray(unidades_permitidas));
+    if (restritoModoFinal === MODO_UNIDADES && !unidadeIds?.length) {
+      throw Object.assign(
+        new Error("Evento restrito por unidades precisa ter ao menos uma unidade autorizada."),
+        {
+          status: 400,
+          code: "EVENTO_RESTRICAO_UNIDADES_VAZIA",
+        }
+      );
     }
+
+    pushSet("restrito", true);
+    pushSet("restrito_modo", restritoModoFinal);
+
+    if (restritoModoFinal === MODO_TODOS) {
+      pushSet("restricao_registros", null);
+      pushSet("cargos_permitidos_ids", null);
+      pushSet("unidades_permitidas_ids", null);
+    }
+
+    if (restritoModoFinal === MODO_LISTA) {
+      pushSet("restricao_registros", registrosNormalizados);
+      pushSet("cargos_permitidos_ids", null);
+      pushSet("unidades_permitidas_ids", null);
+    }
+
+    if (restritoModoFinal === MODO_CARGOS) {
+      pushSet("restricao_registros", null);
+      pushSet("cargos_permitidos_ids", cargoIds);
+      pushSet("unidades_permitidas_ids", null);
+    }
+
+    if (restritoModoFinal === MODO_UNIDADES) {
+      pushSet("restricao_registros", null);
+      pushSet("cargos_permitidos_ids", null);
+      pushSet("unidades_permitidas_ids", unidadeIds);
+    }
+  }
+}
 
     if (body.remover_folder === true) {
       await limparFolderDoEvento(client, eventoId);
@@ -1860,15 +1952,15 @@ async function atualizarEvento(req, res) {
       );
     }
 
-    if (
-      typeof restrito !== "undefined" ||
-      typeof restrito_modo !== "undefined" ||
-      typeof registros_permitidos !== "undefined" ||
-      typeof cargos_permitidos !== "undefined" ||
-      typeof unidades_permitidas !== "undefined"
-    ) {
-      await sincronizarRestricoesEvento(client, eventoId, body);
-    }
+    if (alterouRestricao) {
+  await sincronizarRestricoesEvento(client, eventoId, {
+    restrito: Boolean(restrito),
+    restrito_modo: Boolean(restrito) ? String(restrito_modo || "").trim() : null,
+    registros_permitidos,
+    cargos_permitidos,
+    unidades_permitidas,
+  });
+}
 
     if (Array.isArray(turmas)) {
       await sincronizarTurmasEvento(client, eventoId, turmas);

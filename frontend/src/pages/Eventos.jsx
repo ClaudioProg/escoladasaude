@@ -102,6 +102,8 @@ function hojeIsoLocal() {
 
 const HOJE_ISO = hojeIsoLocal();
 
+const LIMITE_EVENTOS_COM_TURMAS_ABERTAS = 4;
+
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
@@ -430,8 +432,7 @@ function RegrasDicasButton() {
       num: "1",
       titulo: "Como se inscrever em um evento",
       texto:
-        "Localize o evento desejado e clique em Ver turmas. Depois, escolha uma turma disponível e confirme sua inscrição. A inscrição só será concluída quando a plataforma exibir a confirmação de sucesso.",
-    },
+"Localize o evento desejado e escolha uma das opções de inscrição exibidas no card. Quando houver muitas turmas, clique em Ver opções de inscrição para visualizar todas. A inscrição só será concluída quando a plataforma exibir a confirmação de sucesso."    },
     {
       num: "2",
       titulo: "Eventos visíveis nem sempre permitem inscrição",
@@ -786,11 +787,12 @@ export default function Eventos() {
     turmaNome: "",
   });
 
-  const liveRef = useRef(null);
-  const imageStartTimerRef = useRef(null);
-  const abortEventosRef = useRef(null);
-  const abortInscricaoRef = useRef(null);
-  const mountedRef = useRef(true);
+const liveRef = useRef(null);
+const imageStartTimerRef = useRef(null);
+const abortEventosRef = useRef(null);
+const abortInscricaoRef = useRef(null);
+const mountedRef = useRef(true);
+const turmasPreviewAutoRef = useRef(new Set());
 
   const setLive = useCallback((message) => {
     if (liveRef.current) {
@@ -933,44 +935,51 @@ export default function Eventos() {
     };
   }, [eventos, inscricaoTurmaIds]);
 
-  const carregarTurmas = useCallback(
-    async (eventoId) => {
-      if (turmasVisiveis[eventoId]) {
-        setTurmasVisiveis((prev) => ({
-          ...prev,
-          [eventoId]: false,
-        }));
-        return;
-      }
+const carregarTurmas = useCallback(
+  async (eventoId, options = {}) => {
+    const id = Number(eventoId);
+    const abrirAutomaticamente = options?.abrirAutomaticamente === true;
 
+    if (!Number.isInteger(id) || id <= 0) return;
+
+    if (!abrirAutomaticamente && turmasVisiveis[id]) {
       setTurmasVisiveis((prev) => ({
         ...prev,
-        [eventoId]: true,
+        [id]: false,
       }));
+      return;
+    }
 
-      if (turmasPorEvento[eventoId] || carregandoTurmas) return;
+    setTurmasVisiveis((prev) => ({
+      ...prev,
+      [id]: true,
+    }));
 
-      setCarregandoTurmas(eventoId);
+    if (turmasPorEvento[id] || carregandoTurmas === id) return;
 
-      try {
-        const turmas = await EventoService.publico.listarTurmasSimples(eventoId);
+    setCarregandoTurmas(id);
 
-        if (!mountedRef.current) return;
+    try {
+      const turmas = await EventoService.publico.listarTurmasSimples(id);
 
-        setTurmasPorEvento((prev) => ({
-          ...prev,
-          [eventoId]: Array.isArray(turmas) ? turmas : [],
-        }));
-      } catch {
+      if (!mountedRef.current) return;
+
+      setTurmasPorEvento((prev) => ({
+        ...prev,
+        [id]: Array.isArray(turmas) ? turmas : [],
+      }));
+    } catch {
+      if (!abrirAutomaticamente) {
         notifyError("Erro ao carregar turmas.");
-      } finally {
-        if (mountedRef.current) {
-          setCarregandoTurmas(null);
-        }
       }
-    },
-    [carregandoTurmas, turmasPorEvento, turmasVisiveis]
-  );
+    } finally {
+      if (mountedRef.current) {
+        setCarregandoTurmas(null);
+      }
+    }
+  },
+  [carregandoTurmas, turmasPorEvento, turmasVisiveis]
+);
 
   const atualizarTurmasDoEvento = useCallback(async (eventoId) => {
     if (!eventoId) return;
@@ -1493,10 +1502,10 @@ export default function Eventos() {
                             className="sm:min-w-[160px]"
                           >
                             {carregandoTurmas === evento.id
-                              ? "Carregando..."
-                              : turmasVisiveis[evento.id]
-                                ? "Ocultar turmas"
-                                : "Ver turmas"}
+  ? "Carregando opções..."
+  : turmasVisiveis[evento.id]
+    ? "Ocultar opções"
+    : "Inscreva-se"}
                           </AcaoPrimaria>
                         </div>
                       </div>
