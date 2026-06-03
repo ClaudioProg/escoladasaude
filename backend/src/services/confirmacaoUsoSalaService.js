@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/services/confirmacaoUsoSalaService.js — v2.0
- * Atualizado em: 18/05/2026
+ * ✅ backend/src/services/confirmacaoUsoSalaService.js — v2.1
+ * Atualizado em: 03/06/2026
  * Plataforma Escola da Saúde
  *
  * Função:
@@ -52,6 +52,9 @@ const TIPO_PROGRAMADO = "confirmacao_uso_sala";
 const TIPO_NOTIFICACAO_SOLICITACAO = "sala_confirmacao_uso";
 const TIPO_NOTIFICACAO_CONFIRMADA = "sala_uso_confirmado";
 const TIPO_NOTIFICACAO_CANCELADA = "sala_cancelada_sem_confirmacao";
+
+const EMAIL_ADMIN_ALERTA_49H = "escoladasaude@santos.sp.gov.br";
+const TIPO_EMAIL_ALERTA_ADMIN_49H = "alerta_confirmacao_49h_sala";
 
 const STATUS_PROGRAMADO = Object.freeze({
   PENDENTE: "pendente",
@@ -477,15 +480,21 @@ async function listarReservasParaSolicitarConfirmacao(options = {}) {
       rs.confirmacao_solicitada_em,
       rs.confirmado_em,
       rs.confirmado_por,
+       rs.termo_aceito,
+      rs.termo_assinado_em,
+      rs.assinatura_id,
       u.nome AS solicitante_nome,
       u.email AS solicitante_email
     FROM reservas_salas rs
     JOIN usuarios u
       ON u.id = rs.solicitante_id
-    WHERE rs.status::text = $1
+        WHERE rs.status::text = $1
       AND rs.data BETWEEN $2::date AND $3::date
       AND rs.confirmado_em IS NULL
       AND rs.cancelado_em IS NULL
+      AND rs.termo_aceito IS TRUE
+      AND rs.termo_assinado_em IS NOT NULL
+      AND rs.assinatura_id IS NOT NULL
     ORDER BY
       rs.data ASC,
       rs.sala ASC,
@@ -526,16 +535,22 @@ async function listarReservasVencidasSemConfirmacao(options = {}) {
       rs.confirmacao_solicitada_em,
       rs.confirmado_em,
       rs.confirmado_por,
+            rs.termo_aceito,
+      rs.termo_assinado_em,
+      rs.assinatura_id,
       u.nome AS solicitante_nome,
       u.email AS solicitante_email
     FROM reservas_salas rs
     JOIN usuarios u
       ON u.id = rs.solicitante_id
-    WHERE rs.status::text = $1
+        WHERE rs.status::text = $1
       AND rs.data <= $2::date
       AND rs.confirmado_em IS NULL
       AND rs.cancelado_em IS NULL
       AND rs.confirmacao_solicitada_em IS NOT NULL
+      AND rs.termo_aceito IS TRUE
+      AND rs.termo_assinado_em IS NOT NULL
+      AND rs.assinatura_id IS NOT NULL
     ORDER BY
       rs.data ASC,
       rs.sala ASC,
@@ -1193,10 +1208,157 @@ async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {
 }
 
 /* =========================================================================
-   Cancelamento por ausência de confirmação
+   Alerta administrativo 49h antes sem confirmação
 =========================================================================== */
 
-async function processarCancelamentoSemConfirmacao(row, options = {}) {
+function montarTextoEmailAlertaAdmin49h(row) {
+  const usuario = limparTexto(row.solicitante_nome) || "Usuário não identificado";
+  const emailUsuario = limparTexto(row.solicitante_email, 255);
+  const sala = labelSala(row.sala);
+  const dataBr = formatarDataBr(row.data);
+  const periodo = labelPeriodo(row.periodo);
+  const finalidade = limparTexto(row.finalidade) || "Não informada";
+
+  return [
+    "Alerta de reserva de sala ainda não confirmada.",
+    "",
+    `Usuário: ${usuario}${emailUsuario ? ` (${emailUsuario})` : ""}`,
+    `Sala: ${sala}`,
+    `Data: ${dataBr}`,
+    `Período: ${periodo}`,
+    `Evento/finalidade: ${finalidade}`,
+    "",
+    "Até o momento, o usuário não confirmou a utilização da sala na Plataforma Escola da Saúde.",
+    "",
+    "Este alerta é enviado aproximadamente 49 horas antes da data da reserva, considerando o contrato atual da agenda por data e período.",
+    "",
+    "Este é um aviso automático da Plataforma Escola da Saúde.",
+  ].join("\n");
+}
+
+function montarHtmlEmailAlertaAdmin49h(row) {
+  const usuario = limparTexto(row.solicitante_nome) || "Usuário não identificado";
+  const emailUsuario = limparTexto(row.solicitante_email, 255);
+  const sala = labelSala(row.sala);
+  const dataBr = formatarDataBr(row.data);
+  const periodo = labelPeriodo(row.periodo);
+  const finalidade = limparTexto(row.finalidade) || "Não informada";
+
+  return `
+    <div style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+      <div style="max-width:680px;margin:0 auto;padding:28px 16px;">
+        <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;">
+          <div style="background:#92400e;padding:22px 26px;color:#ffffff;">
+            <h1 style="margin:0;font-size:22px;line-height:1.3;">Reserva de sala ainda não confirmada</h1>
+            <p style="margin:6px 0 0;font-size:14px;opacity:.95;">Alerta administrativo — Escola da Saúde</p>
+          </div>
+
+          <div style="padding:26px;">
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.55;">
+              Uma reserva aprovada ainda não foi confirmada pelo usuário.
+            </p>
+
+            <div style="border:1px solid #fde68a;background:#fffbeb;border-radius:16px;padding:18px;margin:18px 0;">
+              <p style="margin:0 0 10px;"><strong>Usuário:</strong> ${escapeHtml(usuario)}</p>
+              ${
+                emailUsuario
+                  ? `<p style="margin:0 0 10px;"><strong>E-mail:</strong> ${escapeHtml(emailUsuario)}</p>`
+                  : ""
+              }
+              <p style="margin:0 0 10px;"><strong>Sala:</strong> ${escapeHtml(sala)}</p>
+              <p style="margin:0 0 10px;"><strong>Data:</strong> ${escapeHtml(dataBr)}</p>
+              <p style="margin:0 0 10px;"><strong>Período:</strong> ${escapeHtml(periodo)}</p>
+              <p style="margin:0;"><strong>Evento/finalidade:</strong> ${escapeHtml(finalidade)}</p>
+            </div>
+
+            <p style="margin:18px 0 0;font-size:15px;line-height:1.6;color:#374151;">
+              Até o momento, o usuário não confirmou a utilização da sala na Plataforma Escola da Saúde.
+            </p>
+
+            <p style="margin:18px 0 0;font-size:13px;line-height:1.55;color:#6b7280;">
+              Este alerta é enviado aproximadamente 49 horas antes da data da reserva,
+              considerando o contrato atual da agenda por data e período.
+            </p>
+          </div>
+        </div>
+
+        <p style="text-align:center;margin:18px 0 0;font-size:12px;color:#6b7280;">
+          Secretaria Municipal de Saúde — Escola da Saúde
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+async function enviarEmailAlertaAdmin49h(row) {
+  return sendEmail({
+    to: EMAIL_ADMIN_ALERTA_49H,
+    subject: "Alerta: reserva de sala ainda não confirmada",
+    html: montarHtmlEmailAlertaAdmin49h(row),
+    text: montarTextoEmailAlertaAdmin49h(row),
+    headers: {
+      "X-Escola-Saude-Tipo": TIPO_EMAIL_ALERTA_ADMIN_49H,
+      "X-Escola-Saude-Reserva-Id": String(row.id),
+    },
+  });
+}
+
+async function listarReservasParaAlertaAdmin49h(options = {}) {
+  const hoje = resolverHoje(options);
+  const dataAlerta = adicionarDiasYmd(hoje, 2);
+
+  const limite = asPositiveInt(options.limite);
+
+  const sql = `
+    SELECT
+      rs.id,
+      rs.sala,
+      rs.data::date AS data,
+      rs.periodo,
+      rs.finalidade,
+      rs.qtd_pessoas,
+      rs.coffee_break,
+      rs.solicitante_id,
+      rs.status,
+      rs.termo_aceito,
+      rs.termo_assinado_em,
+      rs.assinatura_id,
+      rs.confirmacao_solicitada_em,
+      rs.confirmado_em,
+      rs.confirmado_por,
+      rs.cancelado_em,
+      rs.alerta_confirmacao_49h_enviado_em,
+      u.nome AS solicitante_nome,
+      u.email AS solicitante_email
+    FROM reservas_salas rs
+    JOIN usuarios u
+      ON u.id = rs.solicitante_id
+    WHERE rs.status::text = $1
+      AND rs.data = $2::date
+      AND rs.confirmado_em IS NULL
+      AND rs.cancelado_em IS NULL
+      AND rs.alerta_confirmacao_49h_enviado_em IS NULL
+      AND rs.termo_aceito IS TRUE
+      AND rs.termo_assinado_em IS NOT NULL
+      AND rs.assinatura_id IS NOT NULL
+    ORDER BY
+      rs.data ASC,
+      rs.sala ASC,
+      rs.periodo ASC,
+      rs.id ASC
+    ${limite ? `LIMIT ${limite}` : ""}
+  `;
+
+  const rows = await dbMany(sql, [STATUS_RESERVA.APROVADO, dataAlerta]);
+
+  return {
+    hoje,
+    data_alerta: dataAlerta,
+    rows,
+  };
+}
+
+async function processarAlertaAdmin49h(row, options = {}) {
   const dryRun = !!options.dryRun;
   const base = montarResumoReserva(row);
 
@@ -1204,8 +1366,9 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
     return {
       ...base,
       dryRun: true,
-      acao: "diagnostico_cancelamento",
-      motivo_cancelamento: MOTIVO_CANCELAMENTO_PADRAO,
+      acao: "diagnostico_alerta_admin_49h",
+      email_destino: EMAIL_ADMIN_ALERTA_49H,
+      email_subject: "Alerta: reserva de sala ainda não confirmada",
     };
   }
 
@@ -1222,12 +1385,18 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
           rs.data::date AS data,
           rs.periodo,
           rs.finalidade,
+          rs.qtd_pessoas,
+          rs.coffee_break,
           rs.solicitante_id,
           rs.status,
+          rs.termo_aceito,
+          rs.termo_assinado_em,
+          rs.assinatura_id,
           rs.confirmacao_solicitada_em,
           rs.confirmado_em,
           rs.confirmado_por,
           rs.cancelado_em,
+          rs.alerta_confirmacao_49h_enviado_em,
           u.nome AS solicitante_nome,
           u.email AS solicitante_email
         FROM reservas_salas rs
@@ -1253,8 +1422,216 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
     if (
       String(atual.status) !== STATUS_RESERVA.APROVADO ||
       atual.confirmado_em ||
-      atual.cancelado_em
+      atual.cancelado_em ||
+      atual.alerta_confirmacao_49h_enviado_em ||
+      atual.termo_aceito !== true ||
+      !atual.termo_assinado_em ||
+      !atual.assinatura_id
     ) {
+      await client.query("ROLLBACK");
+
+      return {
+        ...base,
+        acao: "ignorado",
+        motivo: "Reserva não está apta ao alerta administrativo de 49h.",
+      };
+    }
+
+    await enviarEmailAlertaAdmin49h(atual);
+
+    const atualizadoResult = await client.query(
+      `
+        UPDATE reservas_salas
+           SET alerta_confirmacao_49h_enviado_em = NOW(),
+               updated_at = NOW()
+         WHERE id = $1
+         RETURNING
+           id,
+           sala,
+           data::date AS data,
+           periodo,
+           finalidade,
+           solicitante_id,
+           status,
+           confirmacao_solicitada_em,
+           confirmado_em,
+           confirmado_por,
+           cancelado_em,
+           alerta_confirmacao_49h_enviado_em
+      `,
+      [atual.id]
+    );
+
+    const reserva = atualizadoResult.rows?.[0];
+
+    await client.query("COMMIT");
+
+    return {
+      ...montarResumoReserva({
+        ...reserva,
+        solicitante_nome: atual.solicitante_nome,
+        solicitante_email: atual.solicitante_email,
+      }),
+      acao: "alerta_admin_49h_enviado",
+      email_destino: EMAIL_ADMIN_ALERTA_49H,
+      alerta_confirmacao_49h_enviado_em:
+        reserva?.alerta_confirmacao_49h_enviado_em || null,
+    };
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+
+    console.error("[confirmacaoUsoSalaService.processarAlertaAdmin49h] ERRO", {
+      message: error?.message,
+      code: error?.code,
+      reserva_id: row.id,
+      usuario_id: row.solicitante_id,
+    });
+
+    return {
+      ...base,
+      acao: "erro",
+      erro: error?.message || "Erro ao enviar alerta administrativo de 49h.",
+      erro_code: error?.code || null,
+    };
+  } finally {
+    client.release?.();
+  }
+}
+
+async function executarAlertasAdminConfirmacao49hSala(options = {}) {
+  const dryRun = !!options.dryRun;
+
+  const { hoje, data_alerta, rows } =
+    await listarReservasParaAlertaAdmin49h(options);
+
+  const resultados = [];
+
+  for (const row of rows) {
+    // eslint-disable-next-line no-await-in-loop
+    const resultado = await processarAlertaAdmin49h(row, { dryRun });
+    resultados.push(resultado);
+  }
+
+  const resumo = resultados.reduce(
+    (acc, item) => {
+      acc.total += 1;
+
+      if (item.acao === "diagnostico_alerta_admin_49h") acc.diagnostico += 1;
+      if (item.acao === "alerta_admin_49h_enviado") acc.enviados += 1;
+      if (item.acao === "ignorado") acc.ignorados += 1;
+      if (item.acao === "erro") acc.erros += 1;
+
+      return acc;
+    },
+    {
+      total: 0,
+      diagnostico: 0,
+      enviados: 0,
+      ignorados: 0,
+      erros: 0,
+    }
+  );
+
+  return {
+    ok: true,
+    code: dryRun
+      ? "SALA-ALERTA-ADMIN-49H-DIAGNOSTICO-OK"
+      : "SALA-ALERTA-ADMIN-49H-EXECUCAO-OK",
+    message: dryRun
+      ? "Diagnóstico de alertas administrativos de 49h concluído."
+      : "Alertas administrativos de 49h processados.",
+    data: {
+      dryRun,
+      hoje,
+      data_alerta,
+      resumo,
+      itens: resultados,
+    },
+    meta: {
+      email_destino: EMAIL_ADMIN_ALERTA_49H,
+      timezone: options.timezone || TIMEZONE_OFICIAL,
+    },
+  };
+}
+
+async function diagnosticarAlertasAdminConfirmacao49hSala(options = {}) {
+  return executarAlertasAdminConfirmacao49hSala({
+    ...options,
+    dryRun: true,
+  });
+}
+
+/* =========================================================================
+   Cancelamento por ausência de confirmação
+=========================================================================== */
+
+async function processarCancelamentoSemConfirmacao(row, options = {}) {
+  const dryRun = !!options.dryRun;
+  const base = montarResumoReserva(row);
+
+  if (dryRun) {
+    return {
+      ...base,
+      dryRun: true,
+      acao: "diagnostico_cancelamento",
+      motivo_cancelamento: MOTIVO_CANCELAMENTO_PADRAO,
+    };
+  }
+
+  const client = await getClient();
+
+  try {
+    await client.query("BEGIN");
+
+    const atualResult = await client.query(
+  `
+    SELECT
+      rs.id,
+      rs.sala,
+      rs.data::date AS data,
+      rs.periodo,
+      rs.finalidade,
+      rs.solicitante_id,
+      rs.status,
+      rs.termo_aceito,
+      rs.termo_assinado_em,
+      rs.assinatura_id,
+      rs.confirmacao_solicitada_em,
+      rs.confirmado_em,
+      rs.confirmado_por,
+      rs.cancelado_em,
+      u.nome AS solicitante_nome,
+      u.email AS solicitante_email
+    FROM reservas_salas rs
+    JOIN usuarios u ON u.id = rs.solicitante_id
+    WHERE rs.id = $1
+    FOR UPDATE
+  `,
+  [row.id]
+);
+
+    const atual = atualResult.rows?.[0];
+
+    if (!atual) {
+      await client.query("ROLLBACK");
+
+      return {
+        ...base,
+        acao: "ignorado",
+        motivo: "Reserva não encontrada.",
+      };
+    }
+
+    if (
+  String(atual.status) !== STATUS_RESERVA.APROVADO ||
+  atual.confirmado_em ||
+  atual.cancelado_em ||
+  atual.termo_aceito !== true ||
+  !atual.termo_assinado_em ||
+  !atual.assinatura_id
+) {
       await client.query("ROLLBACK");
 
       return {
@@ -1412,10 +1789,14 @@ module.exports = {
   diagnosticarSolicitacoesConfirmacaoUsoSala,
   confirmarUsoReservaSala,
 
+  executarAlertasAdminConfirmacao49hSala,
+  diagnosticarAlertasAdminConfirmacao49hSala,
+
   executarCancelamentosSemConfirmacaoUsoSala,
   diagnosticarCancelamentosSemConfirmacaoUsoSala,
 
   listarReservasParaSolicitarConfirmacao,
+  listarReservasParaAlertaAdmin49h,
   listarReservasVencidasSemConfirmacao,
 
   _internals: {

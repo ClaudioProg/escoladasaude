@@ -43,6 +43,7 @@
 
 const {
   executarSolicitacoesConfirmacaoUsoSala,
+  executarAlertasAdminConfirmacao49hSala,
   executarCancelamentosSemConfirmacaoUsoSala,
 } = require("../services/confirmacaoUsoSalaService");
 
@@ -233,9 +234,14 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
       timezone: TIMEZONE_OFICIAL,
     });
 
-    const resultadoSolicitacoes = await executarSolicitacoesConfirmacaoUsoSala({
+        const resultadoSolicitacoes = await executarSolicitacoesConfirmacaoUsoSala({
       timezone: TIMEZONE_OFICIAL,
     });
+
+    const resultadoAlertasAdmin49h =
+      await executarAlertasAdminConfirmacao49hSala({
+        timezone: TIMEZONE_OFICIAL,
+      });
 
     let resultadoCancelamentos = null;
 
@@ -268,9 +274,10 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
 
     ultimoDiaExecutado = decisao.agora.ymd;
 
-    console.log("[confirmacaoUsoSalaJob] Execução concluída.", {
+       console.log("[confirmacaoUsoSalaJob] Execução concluída.", {
       dia_execucao: decisao.agora.ymd,
       solicitacoes: resultadoSolicitacoes?.data?.resumo || null,
+      alertas_admin_49h: resultadoAlertasAdmin49h?.data?.resumo || null,
       cancelamentos: resultadoCancelamentos?.data?.resumo || null,
       cancelamento_automatico_habilitado: cancelamentoAutomaticoHabilitado(),
     });
@@ -278,8 +285,9 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
     return {
       ok: true,
       skipped: false,
-      result: {
+       result: {
         solicitacoes: resultadoSolicitacoes,
+        alertas_admin_49h: resultadoAlertasAdmin49h,
         cancelamentos: resultadoCancelamentos,
       },
     };
