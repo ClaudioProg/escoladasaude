@@ -35,8 +35,8 @@ import TabelaUsuarios from "../components/usuarios/TabelaUsuarios";
 import {
   apiPerfilOpcao,
   apiUsuarioAtualizarBasico,
+  apiUsuarioAtualizarDadosAdministrativos,
   apiUsuarioAtualizarPerfil,
-  apiUsuarioAtualizarPerfilInstitucional,
   apiUsuarioEstatisticaDetalhada,
   apiUsuarioListar,
   apiUsuarioResumo,
@@ -728,9 +728,9 @@ export default function GestaoUsuarios() {
       celular: celularNovo,
     });
 
-    await apiUsuarioAtualizarPerfilInstitucional(id, {
-      unidade_id: unidadeIdNovo,
-    });
+   await apiUsuarioAtualizarDadosAdministrativos(id, {
+  unidade_id: unidadeIdNovo,
+});
 
     await apiUsuarioAtualizarPerfil(id, {
       perfil: perfilNovo,
