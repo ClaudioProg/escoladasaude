@@ -34,16 +34,12 @@ import {
   AlertTriangle,
   Camera,
   CheckCircle,
-  CheckCircle2,
   Loader2,
   QrCode,
   RefreshCw,
   Repeat,
-  ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 
-import { api } from "../services/api";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import Footer from "../components/layout/Footer";
@@ -166,15 +162,6 @@ function getNomeUsuario() {
   } catch {
     return "usuário";
   }
-}
-
-function getErrorMessage(error, fallback) {
-  return (
-    error?.data?.message ||
-    error?.response?.data?.message ||
-    error?.message ||
-    fallback
-  );
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -405,59 +392,65 @@ export default function Scanner() {
     }
   }, [deviceId]);
 
-  const registrarPresenca = useCallback(
-    async (decodedText) => {
-      const parsed = parseQrPayload(decodedText);
+  const abrirUrlDoQrCode = useCallback(
+  async (decodedText) => {
+    const raw = String(decodedText || "").trim();
 
-      if (!parsed.ok) {
-        processedRef.current = false;
-        setDetectado(false);
-        setResultado(null);
-        setHandoff(false);
-        setStatus("QR inválido");
-        notifyWarning(parsed.message);
-        setLive(parsed.message);
-        return;
-      }
+    if (!raw) {
+      processedRef.current = false;
+      setDetectado(false);
+      setResultado(null);
+      setHandoff(false);
+      setStatus("QR inválido");
+      notifyWarning("Conteúdo do QR Code vazio.");
+      setLive("Conteúdo do QR Code vazio.");
+      return;
+    }
 
-      setHandoff(true);
-      setStatus("Registrando presença...");
-      setLive("Registrando presença.");
+    let url;
 
-      try {
-        if (parsed.tipo === "token") {
-          await api.presenca.confirmarToken(parsed.token);
-        } else {
-          await api.presenca.confirmarQr(parsed.turma_id);
-        }
+    try {
+      url = new URL(raw);
+    } catch {
+      processedRef.current = false;
+      setDetectado(false);
+      setResultado(null);
+      setHandoff(false);
+      setStatus("QR inválido");
+      notifyWarning("Este QR Code não contém uma URL válida.");
+      setLive("QR Code sem URL válida.");
+      return;
+    }
 
-        notifySuccess("Presença registrada com sucesso.");
-setLive("Presença registrada com sucesso.");
+    const origensPermitidas = [
+      "https://escoladasaude.vercel.app",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ];
 
-await stopCamera();
+    if (!origensPermitidas.includes(url.origin)) {
+      processedRef.current = false;
+      setDetectado(false);
+      setResultado(null);
+      setHandoff(false);
+      setStatus("QR não autorizado");
+      notifyWarning("Este QR Code não pertence à Plataforma da Escola da Saúde.");
+      setLive("QR Code não autorizado.");
+      return;
+    }
 
-if (!mountedRef.current) return;
+    setHandoff(true);
+    setStatus("Abrindo confirmação...");
+    setLive("Abrindo página de confirmação de presença.");
 
-navigate("/minha-presenca", {
-  replace: true,
-});
-      } catch (error) {
-        const message = getErrorMessage(
-          error,
-          "Não foi possível registrar a presença."
-        );
+    await stopCamera();
 
-        notifyError(message);
-        setLive(message);
+    if (!mountedRef.current) return;
 
-        processedRef.current = false;
-        setDetectado(false);
-        setHandoff(false);
-        setStatus("Falha no registro");
-      }
-    },
-    [navigate, setLive, stopCamera]
-  );
+    window.location.assign(url.toString());
+  },
+  [setLive, stopCamera]
+);
 
   const startCamera = useCallback(
     async (reason = "start") => {
@@ -512,7 +505,7 @@ navigate("/minha-presenca", {
             }),
           ]);
 
-          await registrarPresenca(decodedText);
+          await abrirUrlDoQrCode(decodedText);
         };
 
         const onError = () => {
@@ -567,7 +560,7 @@ navigate("/minha-presenca", {
         startLockRef.current = false;
       }
     },
-    [deviceId, loadDevices, registrarPresenca, setLive, stopCamera]
+    [abrirUrlDoQrCode, deviceId, loadDevices, setLive, stopCamera]
   );
 
   useEffect(() => {
