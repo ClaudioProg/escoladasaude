@@ -9,16 +9,17 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   CalendarDays,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   GraduationCap,
   LayoutDashboard,
-  MapPin,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -26,7 +27,9 @@ import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 import useEscolaTheme from "../hooks/useEscolaTheme";
 import {
+  apiEventoExcluir,
   apiEventoListarAdministrador,
+  apiEventoPublicar,
   apiTurmaListarPorEvento,
 } from "../services/api";
 import { getEventoFolderUrl } from "../services/eventoService";
@@ -191,6 +194,14 @@ function getPeriodoEvento(evento, turmas = []) {
 
 function getTituloEvento(evento) {
   return String(evento?.titulo || "Evento sem título").trim();
+}
+
+function isEventoPublicado(evento) {
+  return (
+    evento?.publicado === true ||
+    evento?.publicado === "true" ||
+    evento?.publicado === 1
+  );
 }
 
 function statusEvento(evento, turmas = []) {
@@ -454,7 +465,14 @@ function FolderPreview({ evento, titulo }) {
   );
 }
 
-function QuickAction({ children, onClick, icon: Icon, tone = "evento" }) {
+function QuickAction({
+  children,
+  onClick,
+  icon: Icon,
+  tone = "evento",
+  disabled = false,
+  loading = false,
+}) {
   const tones = {
     evento:
       "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200",
@@ -468,29 +486,50 @@ function QuickAction({ children, onClick, icon: Icon, tone = "evento" }) {
       "border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/25 dark:text-violet-200",
     certificado:
       "border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-200",
+    publicar:
+      "border-lime-200 bg-lime-50 text-lime-800 hover:bg-lime-100 dark:border-lime-900/40 dark:bg-lime-950/25 dark:text-lime-200",
+    excluir:
+      "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200",
   };
 
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled || loading}
       className={cx(
-        "flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[1.75rem] border px-3 py-4 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+        "flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[1.75rem] border px-3 py-4 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60",
         tones[tone] || tones.evento
       )}
     >
-      {Icon ? <Icon className="h-8 w-8" aria-hidden="true" /> : null}
+      {Icon ? (
+        <Icon
+          className={cx("h-8 w-8", loading ? "animate-spin" : "")}
+          aria-hidden="true"
+        />
+      ) : null}
+
       <span>{children}</span>
     </button>
   );
 }
 
-function EventCard({ evento, turmas, onAcao }) {
+function EventCard({
+  evento,
+  turmas,
+  onAcao,
+  onPublicar,
+  onExcluir,
+  acaoEventoId,
+}) {
   const status = statusUi(statusEvento(evento, turmas));
   const titulo = getTituloEvento(evento);
   const periodo = getPeriodoEvento(evento, turmas);
   const dataInicio = getDataInicioEvento(evento, turmas);
   const folderUrl = getEventoFolderUrl(evento);
+  const publicado = isEventoPublicado(evento);
+const publicando = acaoEventoId === `${evento.id}:publicar`;
+const excluindo = acaoEventoId === `${evento.id}:excluir`;
 
   const totalTurmas = Array.isArray(turmas) ? turmas.length : 0;
   const totalDatas = Array.isArray(turmas)
@@ -543,15 +582,15 @@ function EventCard({ evento, turmas, onAcao }) {
               ID {evento.id}
             </span>
 
-            {evento?.publicado ? (
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                Publicado
-              </span>
-            ) : (
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
-                Rascunho
-              </span>
-            )}
+            {publicado ? (
+  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+    Publicado
+  </span>
+) : (
+  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
+    Rascunho
+  </span>
+)}
           </div>
 
           <h3 className="mt-4 break-words text-2xl font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-3xl">
@@ -600,11 +639,12 @@ function EventCard({ evento, turmas, onAcao }) {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+<div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
   <QuickAction
     tone="evento"
     onClick={() => onAcao(evento.id, "evento")}
     icon={LayoutDashboard}
+    disabled={publicando || excluindo}
   >
     Evento
   </QuickAction>
@@ -613,6 +653,7 @@ function EventCard({ evento, turmas, onAcao }) {
     tone="inscricao"
     onClick={() => onAcao(evento.id, "inscricao")}
     icon={ClipboardList}
+    disabled={publicando || excluindo}
   >
     Inscrição
   </QuickAction>
@@ -621,6 +662,7 @@ function EventCard({ evento, turmas, onAcao }) {
     tone="qrcode"
     onClick={() => onAcao(evento.id, "qrcode")}
     icon={Search}
+    disabled={publicando || excluindo}
   >
     QR Code
   </QuickAction>
@@ -629,6 +671,7 @@ function EventCard({ evento, turmas, onAcao }) {
     tone="presenca"
     onClick={() => onAcao(evento.id, "presenca")}
     icon={GraduationCap}
+    disabled={publicando || excluindo}
   >
     Presença
   </QuickAction>
@@ -637,6 +680,7 @@ function EventCard({ evento, turmas, onAcao }) {
     tone="avaliacao"
     onClick={() => onAcao(evento.id, "avaliacao")}
     icon={Sparkles}
+    disabled={publicando || excluindo}
   >
     Avaliação
   </QuickAction>
@@ -645,8 +689,29 @@ function EventCard({ evento, turmas, onAcao }) {
     tone="certificado"
     onClick={() => onAcao(evento.id, "certificado")}
     icon={ShieldCheck}
+    disabled={publicando || excluindo}
   >
     Certificado
+  </QuickAction>
+
+  <QuickAction
+    tone="publicar"
+    onClick={() => onPublicar(evento.id)}
+    icon={CheckCircle2}
+    disabled={publicado || publicando || excluindo}
+    loading={publicando}
+  >
+    {publicado ? "Publicado" : "Publicar"}
+  </QuickAction>
+
+  <QuickAction
+    tone="excluir"
+    onClick={() => onExcluir(evento)}
+    icon={Trash2}
+    disabled={publicando || excluindo}
+    loading={excluindo}
+  >
+    Excluir
   </QuickAction>
 </div>
         </div>
@@ -673,6 +738,7 @@ export default function DashboardAdministrador() {
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [acaoEventoId, setAcaoEventoId] = useState(null);
 
   const liveRef = useRef(null);
   const erroRef = useRef(null);
@@ -855,7 +921,7 @@ export default function DashboardAdministrador() {
     setMesIndex(agora.getMonth());
   }, []);
 
-  const irParaAcaoEvento = useCallback(
+const irParaAcaoEvento = useCallback(
   (eventoId, acao) => {
     const id = Number(eventoId);
 
@@ -879,6 +945,110 @@ export default function DashboardAdministrador() {
     navigate(rotas[acao] || rotas.evento);
   },
   [navigate]
+);
+
+const publicarEvento = useCallback(
+  async (eventoId) => {
+    const id = Number(eventoId);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      console.warn("[PainelGestor] evento_id inválido para publicação", {
+        eventoId,
+      });
+      return;
+    }
+
+    try {
+      setAcaoEventoId(`${id}:publicar`);
+      setLive("Publicando evento...");
+
+      await apiEventoPublicar(id);
+
+      if (!mountedRef.current) return;
+
+      setEventos((listaAtual) =>
+        listaAtual.map((evento) =>
+          Number(evento.id) === id
+            ? {
+                ...evento,
+                publicado: true,
+              }
+            : evento
+        )
+      );
+
+      setLive("Evento publicado com sucesso.");
+    } catch (error) {
+      console.error("[PainelGestor] erro ao publicar evento", {
+        eventoId: id,
+        message: error?.message,
+      });
+
+      const message = getErrorMessage(error, "Erro ao publicar evento.");
+      setLive(message);
+      window.alert(message);
+    } finally {
+      if (mountedRef.current) {
+        setAcaoEventoId(null);
+      }
+    }
+  },
+  [setLive]
+);
+
+const excluirEvento = useCallback(
+  async (evento) => {
+    const id = Number(evento?.id);
+    const titulo = getTituloEvento(evento);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      console.warn("[PainelGestor] evento_id inválido para exclusão", {
+        evento,
+      });
+      return;
+    }
+
+    const confirmou = window.confirm(
+      `Tem certeza que deseja excluir o evento "${titulo}"?\n\nEssa ação não poderá ser desfeita.`
+    );
+
+    if (!confirmou) return;
+
+    try {
+      setAcaoEventoId(`${id}:excluir`);
+      setLive("Excluindo evento...");
+
+      await apiEventoExcluir(id);
+
+      if (!mountedRef.current) return;
+
+      setEventos((listaAtual) =>
+        listaAtual.filter((item) => Number(item.id) !== id)
+      );
+
+      setTurmasPorEvento((atual) => {
+        const proximo = { ...atual };
+        delete proximo[id];
+        return proximo;
+      });
+
+      setLive("Evento excluído com sucesso.");
+    } catch (error) {
+      console.error("[PainelGestor] erro ao excluir evento", {
+        eventoId: id,
+        message: error?.message,
+      });
+
+      const message = getErrorMessage(error, "Erro ao excluir evento.");
+      setLive(message);
+      window.alert(message);
+    } finally {
+      if (mountedRef.current) {
+        setAcaoEventoId(null);
+      }
+    }
+  },
+  [setLive]
 );
 
   return (
@@ -1039,6 +1209,9 @@ export default function DashboardAdministrador() {
   evento={evento}
   turmas={turmasPorEvento?.[evento.id] || []}
   onAcao={irParaAcaoEvento}
+  onPublicar={publicarEvento}
+  onExcluir={excluirEvento}
+  acaoEventoId={acaoEventoId}
 />
               ))}
 

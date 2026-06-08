@@ -1678,6 +1678,32 @@ export async function apiEventoListarAdministrador(params = {}, opts = {}) {
   });
 }
 
+export async function apiEventoPublicar(eventoId, opts = {}) {
+  if (!eventoId) throw new Error("evento_id é obrigatório.");
+
+  return apiPatch(
+    `/evento/${eventoId}/publicar`,
+    {},
+    {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+    }
+  );
+}
+
+export async function apiEventoExcluir(eventoId, opts = {}) {
+  if (!eventoId) throw new Error("evento_id é obrigatório.");
+
+  return apiDelete(`/evento/${eventoId}`, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+}
+
 export async function apiEventoFolderResponse(eventoId, opts = {}) {
   if (!eventoId) throw new Error("eventoId é obrigatório.");
 
@@ -3547,6 +3573,8 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
   evento: {
     listarAdministrador: (params, opts) =>
       apiEventoListarAdministrador(params, opts),
+      publicar: (eventoId, opts) => apiEventoPublicar(eventoId, opts),
+  excluir: (eventoId, opts) => apiEventoExcluir(eventoId, opts),
     folderResponse: (eventoId, opts) =>
       apiEventoFolderResponse(eventoId, opts),
     programacaoResponse: (eventoId, opts) =>
