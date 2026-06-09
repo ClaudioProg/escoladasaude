@@ -1681,7 +1681,7 @@ export async function apiEventoListarAdministrador(params = {}, opts = {}) {
 export async function apiEventoPublicar(eventoId, opts = {}) {
   if (!eventoId) throw new Error("evento_id é obrigatório.");
 
-  return apiPatch(
+  return apiPost(
     `/evento/${eventoId}/publicar`,
     {},
     {
