@@ -696,7 +696,11 @@ async function organizadorVinculadoATurma(db, usuarioId, turmaId) {
       FROM turma_responsavel tr
       WHERE tr.turma_id = $2
         AND tr.usuario_id = $1
-        AND tr.papel = 'organizador'
+        AND LOWER(TRIM(COALESCE(tr.papel, ''))) IN (
+          'organizador',
+          'instrutor',
+          'palestrante'
+        )
     ) AS vinculado
     `,
     [usuarioId, turmaId]
@@ -2256,6 +2260,170 @@ async function listarCertificadosDisponiveisUsuario(req, res) {
 }
 
 /* ─────────────────────────────────────────────
+ * Listagem do organizador autenticado — devidos/emitidos
+ * ───────────────────────────────────────────── */
+
+async function listarElegiveisOrganizador(req, res) {
+  const rid = reqRid(req);
+  const db = getDb(req);
+
+  const usuarioAutenticadoId = getUsuarioId(req);
+  const perfil = getPerfil(req);
+
+  if (!usuarioAutenticadoId) {
+    return responderErro(
+      res,
+      401,
+      "Usuário não autenticado.",
+      "CERTIFICADO_USUARIO_NAO_AUTENTICADO",
+      "req.user.id não foi encontrado."
+    );
+  }
+
+  const usuarioIdQuery = toPositiveInt(req.query?.usuario_id);
+
+  const usuarioId =
+    perfil === "administrador" && usuarioIdQuery
+      ? usuarioIdQuery
+      : usuarioAutenticadoId;
+
+  try {
+    const result = await db.query(
+      `
+      WITH responsaveis AS (
+        SELECT DISTINCT
+          tr.usuario_id,
+          tr.turma_id,
+          LOWER(TRIM(COALESCE(tr.papel, ''))) AS papel_original
+        FROM turma_responsavel tr
+        WHERE tr.usuario_id = $1
+          AND LOWER(TRIM(COALESCE(tr.papel, ''))) IN (
+            'organizador',
+            'instrutor',
+            'palestrante'
+          )
+      ),
+      fim_real AS (
+        SELECT
+          t.id AS turma_id,
+          COALESCE(
+            (
+              SELECT MAX(
+                dt.data::date +
+                COALESCE(
+                  dt.horario_fim::time,
+                  t.horario_fim::time,
+                  '23:59'::time
+                )
+              )
+              FROM datas_turma dt
+              WHERE dt.turma_id = t.id
+            ),
+            (
+              COALESCE(t.data_fim::date, t.data_inicio::date) +
+              COALESCE(t.horario_fim::time, '23:59'::time)
+            )
+          ) AS fim_local
+        FROM turmas t
+      )
+      SELECT
+        r.usuario_id,
+        'organizador' AS papel,
+        r.papel_original,
+
+        e.id AS evento_id,
+        e.titulo AS evento_titulo,
+
+        t.id AS turma_id,
+        t.nome AS turma_nome,
+        to_char(t.data_inicio::date, 'YYYY-MM-DD') AS data_inicio,
+        to_char(t.data_fim::date, 'YYYY-MM-DD') AS data_fim,
+        t.horario_inicio,
+        t.horario_fim,
+        t.carga_horaria,
+
+        'organizador' AS tipo,
+
+        c.id AS certificado_id,
+        c.numero_certificado,
+        c.codigo_validacao,
+        c.status,
+        c.gerado_em,
+        c.enviado_em,
+        c.arquivo_pdf,
+
+        CASE
+          WHEN c.id IS NOT NULL THEN TRUE
+          ELSE FALSE
+        END AS ja_gerado,
+
+        CASE
+          WHEN c.id IS NOT NULL THEN FALSE
+          WHEN fr.fim_local IS NULL THEN FALSE
+          WHEN (NOW() AT TIME ZONE $2::text) >= fr.fim_local THEN TRUE
+          ELSE FALSE
+        END AS pode_gerar,
+
+        CASE
+          WHEN c.id IS NOT NULL THEN NULL
+          WHEN fr.fim_local IS NULL THEN 'A turma não possui data final suficiente para liberar emissão.'
+          WHEN (NOW() AT TIME ZONE $2::text) < fr.fim_local THEN 'A turma ainda não encerrou.'
+          ELSE NULL
+        END AS motivo_bloqueio
+
+      FROM responsaveis r
+
+      JOIN turmas t
+        ON t.id = r.turma_id
+
+      JOIN eventos e
+        ON e.id = t.evento_id
+
+      LEFT JOIN fim_real fr
+        ON fr.turma_id = t.id
+
+      LEFT JOIN certificados c
+  ON c.usuario_id = r.usuario_id
+ AND c.turma_id = t.id
+ AND c.evento_id = e.id
+ AND c.tipo::text = 'organizador'
+ AND c.status IN ('emitido', 'enviado')
+
+      ORDER BY
+        COALESCE(t.data_fim, t.data_inicio) DESC NULLS LAST,
+        t.id DESC
+      `,
+      [usuarioId, TZ]
+    );
+
+    return responderSucesso(
+      res,
+      200,
+      result.rows || [],
+      "Certificados de organizador carregados.",
+      "CERTIFICADO_ORGANIZADOR_ELEGIVEIS_OK",
+      {
+        meta: {
+          usuario_id: usuarioId,
+          total: result.rows?.length || 0,
+        },
+      }
+    );
+  } catch (error) {
+    logError(rid, "Erro ao listar certificados de organizador", error);
+
+    return responderErro(
+      res,
+      500,
+      "Erro ao listar certificados de organizador.",
+      "CERTIFICADO_ORGANIZADOR_ELEGIVEIS_ERRO",
+      "Falha inesperada em listarElegiveisOrganizador.",
+      IS_DEV ? error.message : null
+    );
+  }
+}
+
+/* ─────────────────────────────────────────────
  * Listagem administrativa por turma
  * ───────────────────────────────────────────── */
 
@@ -2886,6 +3054,7 @@ module.exports = {
 
   listarCertificadoUsuario,
   listarCertificadosDisponiveisUsuario,
+  listarElegiveisOrganizador,
   listarCertificadosPorTurma,
   listarElegiveisPorTurma,
   listarAdminArvore,

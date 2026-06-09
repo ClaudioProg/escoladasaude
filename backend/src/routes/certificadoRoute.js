@@ -36,7 +36,7 @@
  * - Participante: tipo "usuario".
  * - Organizador: tipo "organizador".
  * - Organizadores vêm de turma_responsavel.
- * - Palestrantes vinculados vêm de turma_palestrante.
+* - Instrutor/palestrante são legados e não geram mais tipo próprio de certificado.
  * - Assinantes de turma vêm de turma_certificado_assinante.
  * - Certificado avulso aceita assinantes_ids.
  * - Certificado avulso deve ter de 1 a 3 assinaturas.
@@ -103,6 +103,7 @@ const certificadoFns = [
 
   "listarCertificadoUsuario",
   "listarCertificadosDisponiveisUsuario",
+  "listarElegiveisOrganizador",
   "listarCertificadosPorTurma",
   "listarElegiveisPorTurma",
   "listarAdminArvore",
@@ -577,6 +578,27 @@ router.get(
   "/disponiveis",
   authorize("usuario", "organizador", "administrador"),
   asyncHandler(certificadoController.listarCertificadosDisponiveisUsuario)
+);
+
+/**
+ * GET /api/certificado/organizador/elegiveis
+ *
+ * Função:
+ * - Lista todos os certificados devidos do organizador autenticado.
+ * - Inclui emitidos, pendentes de emissão e turmas ainda não encerradas.
+ *
+ * Fonte oficial:
+ * - turma_responsavel.usuario_id
+ * - turma_responsavel.papel = 'organizador'
+ *
+ * Tipos oficiais:
+ * - usuario
+ * - organizador
+ */
+router.get(
+  "/organizador/elegiveis",
+  authorize("usuario", "organizador", "administrador"),
+  asyncHandler(certificadoController.listarElegiveisOrganizador)
 );
 
 /**

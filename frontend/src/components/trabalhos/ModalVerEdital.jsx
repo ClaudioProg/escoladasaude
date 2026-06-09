@@ -479,24 +479,11 @@ style={{
         exit={{ opacity: 0, y: 18, scale: 0.98 }}
         transition={{ duration: 0.18 }}
       >
-        <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-4 text-white sm:p-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(139,92,246,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
+<header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 px-5 py-4 text-white sm:px-6 sm:py-5">          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(139,92,246,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
 
           <div className="relative flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Badge tone="violet">
-                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                  Edital institucional
-                </Badge>
-
-                {chamada?.publicado ? (
-                  <Badge tone="emerald">Publicado</Badge>
-                ) : (
-                  <Badge tone="slate">Não publicado</Badge>
-                )}
-              </div>
-
+              
               <h2
                 id={titleId}
                 className="flex items-center gap-2 text-lg font-black leading-tight tracking-tight sm:text-2xl"

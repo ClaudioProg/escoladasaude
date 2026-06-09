@@ -2422,6 +2422,10 @@ export async function apiCertificadoGerar(payload = {}, opts = {}) {
   });
 }
 
+async function apiCertificadoElegivelOrganizador(params, opts) {
+  return apiGet("/certificado/organizador/elegiveis", params, opts);
+}
+
 export async function apiCertificadoValidarPublico(codigoValidacao, opts = {}) {
   const codigo = String(codigoValidacao || "").trim();
 
@@ -3827,6 +3831,7 @@ certificado: {
   meus: apiCertificadoMeus,
   disponiveis: apiCertificadoDisponiveis,
   elegivel: apiCertificadoElegivel,
+  elegivelorganizador: apiCertificadoElegivelOrganizador,
 
   gerar: apiCertificadoGerar,
   validarPublico: (codigoValidacao, opts) =>

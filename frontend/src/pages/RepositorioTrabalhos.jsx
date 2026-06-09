@@ -103,33 +103,76 @@ function inicioExperienciaFormatado(value) {
   return `${month}/${year}`;
 }
 
+function normalizarApiBaseUrl() {
+  const raw = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+
+  const base = raw || "https://escola-saude-api.onrender.com/api";
+  const semBarraFinal = base.replace(/\/+$/, "");
+
+  if (semBarraFinal.endsWith("/api")) {
+    return semBarraFinal;
+  }
+
+  return `${semBarraFinal}/api`;
+}
+
 function abrirPosterSubmissao(id) {
   if (!id) return;
 
-  const baseUrl = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+  const baseUrl = normalizarApiBaseUrl();
   const token = localStorage.getItem("token") || "";
 
-  const url = `${baseUrl}/submissao/${id}/poster`;
+  const url = `${baseUrl}/submissao/${encodeURIComponent(id)}/poster`;
 
   fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    method: "GET",
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {},
   })
     .then(async (response) => {
       if (!response.ok) {
-        throw new Error("Não foi possível abrir o arquivo do trabalho.");
+        let message = "Não foi possível abrir o arquivo do trabalho.";
+
+        try {
+          const data = await response.json();
+          message = data?.message || data?.erro || message;
+        } catch {
+          // resposta não JSON
+        }
+
+        throw new Error(message);
       }
 
       const blob = await response.blob();
+
+      if (!blob || blob.size <= 0) {
+        throw new Error("O arquivo retornado está vazio.");
+      }
+
       const objectUrl = URL.createObjectURL(blob);
 
-      window.open(objectUrl, "_blank", "noopener,noreferrer");
+      const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
+
+      if (!opened) {
+        throw new Error(
+          "O navegador bloqueou a abertura do arquivo. Permita pop-ups para a Plataforma da Escola da Saúde."
+        );
+      }
 
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     })
     .catch((error) => {
-  console.error("[RepositorioTrabalhos] erro ao abrir arquivo", error);
-  alert("Não foi possível abrir o arquivo do trabalho.");
-});
+      console.error("[RepositorioTrabalhos] erro ao abrir arquivo", {
+        message: error?.message,
+        url,
+        id,
+      });
+
+      alert(error?.message || "Não foi possível abrir o arquivo do trabalho.");
+    });
 }
 
 /* =========================================================================

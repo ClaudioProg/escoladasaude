@@ -552,20 +552,23 @@ export default function Certificadosorganizador() {
 
   const carregarCertificados = useCallback(async () => {
     try {
-      validarFacade("api.certificado.elegivel", api?.certificado?.elegivel);
+      validarFacade(
+  "api.certificado.elegivelorganizador",
+  api?.certificado?.elegivelorganizador
+);
 
-      setCarregando(true);
-      setErro("");
-      setLive("Carregando certificados de organizador.");
+setCarregando(true);
+setErro("");
+setLive("Carregando certificados de organizador.");
 
-      const params = new URLSearchParams(window.location.search);
-      const usuarioIdUrl = Number(params.get("usuario_id"));
-      const deveEnviarUsuarioId =
-        usuarioAdministrador(usuario) &&
-        Number.isInteger(usuarioIdUrl) &&
-        usuarioIdUrl > 0;
+const params = new URLSearchParams(window.location.search);
+const usuarioIdUrl = Number(params.get("usuario_id"));
+const deveEnviarUsuarioId =
+  usuarioAdministrador(usuario) &&
+  Number.isInteger(usuarioIdUrl) &&
+  usuarioIdUrl > 0;
 
-      const response = await api.certificado.elegivel(
+const response = await api.certificado.elegivelorganizador(
   deveEnviarUsuarioId ? { usuario_id: usuarioIdUrl } : undefined
 );
 
@@ -806,8 +809,7 @@ export default function Certificadosorganizador() {
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
       <HeaderHero
   titulo="Certificados de organizador"
-  subtitulo="Emita, acompanhe e baixe seus certificados eletrônicos como organizador, palestrante ou responsável por atividade formativa."
-  icon={Award}
+subtitulo="Emita, acompanhe e baixe seus certificados eletrônicos como organizador de atividade formativa."  icon={Award}
 />
 
       <p ref={liveRef} className="sr-only" aria-live="polite" />
