@@ -318,6 +318,37 @@ function normalizarOrganizadores(item) {
     : [];
 }
 
+function textoDeObjetoOuString(value, campos = []) {
+  if (typeof value === "string" || typeof value === "number") {
+    return safeText(value, "");
+  }
+
+  if (value && typeof value === "object") {
+    for (const campo of campos) {
+      const texto = safeText(value?.[campo], "");
+      if (texto) return texto;
+    }
+  }
+
+  return "";
+}
+
+function idDeObjetoOuValor(value, campos = []) {
+  if (typeof value === "number" || typeof value === "string") {
+    const id = Number(value);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  }
+
+  if (value && typeof value === "object") {
+    for (const campo of campos) {
+      const id = Number(value?.[campo]);
+      if (Number.isInteger(id) && id > 0) return id;
+    }
+  }
+
+  return null;
+}
+
 function normalizarAgendaResponse(response) {
   const lista = extrairListaAgenda(response);
 
@@ -329,22 +360,37 @@ function normalizarAgendaResponse(response) {
       if (!dataInicio) return null;
 
       const eventoTitulo = safeText(
-        item?.evento_titulo ||
-          item?.evento ||
-          item?.titulo_evento ||
-          item?.titulo,
-        "Evento"
-      );
+  item?.evento_titulo ||
+    textoDeObjetoOuString(item?.evento, ["titulo", "nome", "descricao"]) ||
+    item?.titulo_evento ||
+    item?.titulo,
+  "Evento"
+);
 
-      const turmaNome = safeText(item?.nome || item?.turma_nome, "");
+const turmaNome = safeText(
+  item?.turma_nome ||
+    textoDeObjetoOuString(item?.turma, ["nome", "titulo"]) ||
+    item?.nome,
+  ""
+);
 
-      const normalizado = {
-        id: item?.id,
-        turma_id: item?.turma_id || item?.id,
-        evento_id: item?.evento_id || item?.id,
-        titulo: turmaNome ? `${eventoTitulo} — ${turmaNome}` : eventoTitulo,
-        evento_titulo: eventoTitulo,
-        turma_nome: turmaNome,
+const turmaId =
+  idDeObjetoOuValor(item?.turma_id) ||
+  idDeObjetoOuValor(item?.turma, ["id", "turma_id"]) ||
+  idDeObjetoOuValor(item?.id);
+
+const eventoId =
+  idDeObjetoOuValor(item?.evento_id) ||
+  idDeObjetoOuValor(item?.evento, ["id", "evento_id"]) ||
+  null;
+
+const normalizado = {
+  id: item?.id,
+  turma_id: turmaId,
+  evento_id: eventoId,
+  titulo: turmaNome ? `${eventoTitulo} — ${turmaNome}` : eventoTitulo,
+  evento_titulo: eventoTitulo,
+  turma_nome: turmaNome,
         local: item?.local || item?.sala || item?.sala_nome || null,
         data_inicio: dataInicio,
         data_fim: dataFim,

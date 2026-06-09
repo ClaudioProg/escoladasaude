@@ -1,6 +1,18 @@
-// ✅ frontend/src/pages/organizadorPresenca.jsx — v2.0
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/pages/PresencaOrganizador.jsx — v2.1
+// Atualizado em: 09/06/2026
 // Plataforma Escola da Saúde
+//
+// Página premium do organizador para gestão de presenças.
+//
+// Ajustes v2.1:
+// - lista de presença em PDF no formato paisagem;
+// - layout institucional premium para lista de assinatura;
+// - cabeçalho visual com evento, turma, data, horário e local;
+// - tabela mais larga, legível e adequada para impressão;
+// - coluna de assinatura ampliada;
+// - coluna de observação adicionada;
+// - proteção contra evento vindo como objeto;
+// - preservação dos contratos oficiais existentes.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -82,6 +94,33 @@ function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function textoSeguro(value, fallback = "") {
+  if (value === null || value === undefined) return fallback;
+
+  if (typeof value === "string" || typeof value === "number") {
+    const text = String(value).trim();
+    return text || fallback;
+  }
+
+  if (typeof value === "object") {
+    const candidatos = [
+      value.nome,
+      value.titulo,
+      value.evento_titulo,
+      value.turma_nome,
+      value.descricao,
+      value.label,
+    ];
+
+    for (const candidato of candidatos) {
+      const text = String(candidato ?? "").trim();
+      if (text) return text;
+    }
+  }
+
+  return fallback;
+}
+
 function ymd(value) {
   if (!value) return "";
 
@@ -130,11 +169,25 @@ function normalizarTurma(turma) {
 
   if (!id || !eventoId) return null;
 
+  const eventoNome = textoSeguro(
+    turma?.evento?.nome ||
+      turma?.evento?.titulo ||
+      turma?.evento_nome ||
+      turma?.evento_titulo ||
+      turma?.evento,
+    "Evento"
+  );
+
+  const eventoLocal = textoSeguro(
+    turma?.evento?.local || turma?.evento_local || turma?.local,
+    ""
+  );
+
   return {
     ...turma,
     id,
     evento_id: eventoId,
-    nome: turma?.nome || `Turma #${id}`,
+    nome: textoSeguro(turma?.nome || turma?.turma_nome, `Turma #${id}`),
     data_inicio: ymd(turma?.data_inicio),
     data_fim: ymd(turma?.data_fim || turma?.data_inicio),
     horario_inicio: hhmm(turma?.horario_inicio),
@@ -142,8 +195,8 @@ function normalizarTurma(turma) {
     status: turma?.status || "programado",
     evento: {
       id: eventoId,
-      nome: turma?.evento?.nome || turma?.evento_nome || "Evento",
-      local: turma?.evento?.local || turma?.evento_local || "",
+      nome: eventoNome,
+      local: eventoLocal,
     },
     datas: safeArray(turma?.datas),
   };
@@ -198,6 +251,16 @@ function calcularFrequenciaResumo(detalhes) {
       frequencia: `${frequencia}%`,
     };
   });
+}
+
+function nomeArquivoSeguro(value, fallback = "arquivo") {
+  const text = String(value || fallback)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w.-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return text || fallback;
 }
 
 /* ─────────────────────────────────────────────
@@ -375,57 +438,51 @@ export default function organizadorPresenca() {
     }
   }, []);
 
-  const carregarTurmas = useCallback(
-    async () => {
-      try {
-        validarFacade("api.organizador.minhasTurmas", api?.organizador?.minhasTurmas);
+  const carregarTurmas = useCallback(async () => {
+    try {
+      validarFacade("api.organizador.minhasTurmas", api?.organizador?.minhasTurmas);
 
-        setCarregando(true);
-        setErro("");
-        setLive("Carregando suas turmas.");
+      setCarregando(true);
+      setErro("");
+      setLive("Carregando suas turmas.");
 
-        const response = await api.organizador.minhasTurmas({ filtro: "todos" });
-        const data = extrairData(response);
-        const lista = safeArray(data)
-          .map(normalizarTurma)
-          .filter(Boolean);
+      const response = await api.organizador.minhasTurmas({ filtro: "todos" });
+      const data = extrairData(response);
+      const lista = safeArray(data)
+        .map(normalizarTurma)
+        .filter(Boolean);
 
-        const ordenadas = ordenarTurmasPorDataDesc(lista);
+      const ordenadas = ordenarTurmasPorDataDesc(lista);
 
-        if (!mountedRef.current) return;
+      if (!mountedRef.current) return;
 
-        setTurmas(ordenadas);
-        setLive(`${ordenadas.length} turma(s) carregada(s).`);
+      setTurmas(ordenadas);
+      setLive(`${ordenadas.length} turma(s) carregada(s).`);
 
-        Promise.allSettled(
-          ordenadas.map((turma) =>
-            carregarPresencas(turma.id, {
-              silent: true,
-            })
-          )
-        );
+      Promise.allSettled(
+        ordenadas.map((turma) =>
+          carregarPresencas(turma.id, {
+            silent: true,
+          })
+        )
+      );
 
-        await carregarAssinatura();
-      } catch (error) {
-        console.error("[organizadorPresenca] erro ao carregar turmas:", error);
+      await carregarAssinatura();
+    } catch (error) {
+      console.error("[organizadorPresenca] erro ao carregar turmas:", error);
 
-        if (!mountedRef.current) return;
+      if (!mountedRef.current) return;
 
-        const message = obterMensagemErro(
-          error,
-          "Erro ao carregar suas turmas."
-        );
+      const message = obterMensagemErro(error, "Erro ao carregar suas turmas.");
 
-        setErro(message);
-        setTurmas([]);
-        notifyError(message);
-        setLive("Erro ao carregar suas turmas.");
-      } finally {
-        if (mountedRef.current) setCarregando(false);
-      }
-    },
-    [carregarAssinatura, carregarPresencas, setLive]
-  );
+      setErro(message);
+      setTurmas([]);
+      notifyError(message);
+      setLive("Erro ao carregar suas turmas.");
+    } finally {
+      if (mountedRef.current) setCarregando(false);
+    }
+  }, [carregarAssinatura, carregarPresencas, setLive]);
 
   useEffect(() => {
     carregarTurmas();
@@ -564,64 +621,61 @@ export default function organizadorPresenca() {
     [datasPorTurma, presencasPorTurma]
   );
 
-  const gerarRelatorioPDF = useCallback(
-    async (turmaIdRaw) => {
-      const turmaId = toPositiveInt(turmaIdRaw);
+  const gerarRelatorioPDF = useCallback(async (turmaIdRaw) => {
+    const turmaId = toPositiveInt(turmaIdRaw);
 
-      if (!turmaId) {
-        notifyError("Turma inválida para relatório.");
-        return;
-      }
+    if (!turmaId) {
+      notifyError("Turma inválida para relatório.");
+      return;
+    }
 
-      try {
-        const [{ default: jsPDF }, auto] = await Promise.all([
-          import("jspdf"),
-          import("jspdf-autotable"),
-        ]);
+    try {
+      const [{ default: jsPDF }, auto] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
 
-        const autoTable = auto.default;
+      const autoTable = auto.default;
 
-        validarFacade("api.presenca.detalhesTurma", api?.presenca?.detalhesTurma);
+      validarFacade("api.presenca.detalhesTurma", api?.presenca?.detalhesTurma);
 
-        const response = await api.presenca.detalhesTurma(turmaId);
-        const data = extrairData(response) || {};
-        const datas = safeArray(data?.datas);
-        const usuarios = safeArray(data?.usuarios);
-        const totalDias = datas.length;
+      const response = await api.presenca.detalhesTurma(turmaId);
+      const data = extrairData(response) || {};
+      const datas = safeArray(data?.datas);
+      const usuarios = safeArray(data?.usuarios);
+      const totalDias = datas.length;
 
-        const doc = new jsPDF();
+      const doc = new jsPDF();
 
-        doc.setFontSize(16);
-        doc.text("Relatório de Presenças por Turma", 14, 20);
+      doc.setFontSize(16);
+      doc.text("Relatório de Presenças por Turma", 14, 20);
 
-        const linhas = usuarios.map((usuario) => {
-          const presencas = safeArray(usuario?.presencas);
-          const presentes = presencas.filter((presenca) => presenca?.presente === true).length;
-          const frequencia = totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
+      const linhas = usuarios.map((usuario) => {
+        const presencas = safeArray(usuario?.presencas);
+        const presentes = presencas.filter((presenca) => presenca?.presente === true).length;
+        const frequencia = totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
 
-          return [
-            usuario?.nome || "—",
-            formatarDocumento(usuario?.cpf),
-            `${frequencia}%`,
-            frequencia >= 75 ? "Sim" : "Não",
-          ];
-        });
+        return [
+          usuario?.nome || "—",
+          formatarDocumento(usuario?.cpf),
+          `${frequencia}%`,
+          frequencia >= 75 ? "Sim" : "Não",
+        ];
+      });
 
-        autoTable(doc, {
-          startY: 30,
-          head: [["Nome", "Documento", "Frequência", "≥ 75%"]],
-          body: linhas,
-        });
+      autoTable(doc, {
+        startY: 30,
+        head: [["Nome", "Documento", "Frequência", "≥ 75%"]],
+        body: linhas,
+      });
 
-        doc.save(`relatorio_turma_${turmaId}.pdf`);
-        notifySuccess("PDF de presença gerado.");
-      } catch (error) {
-        console.error("[organizadorPresenca] erro ao gerar relatório:", error);
-        notifyError("Erro ao gerar relatório em PDF.");
-      }
-    },
-    []
-  );
+      doc.save(`relatorio_turma_${turmaId}.pdf`);
+      notifySuccess("PDF de presença gerado.");
+    } catch (error) {
+      console.error("[organizadorPresenca] erro ao gerar relatório:", error);
+      notifyError("Erro ao gerar relatório em PDF.");
+    }
+  }, []);
 
   const gerarListaAssinaturaPDF = useCallback(
     async (turmaIdRaw) => {
@@ -667,247 +721,424 @@ export default function organizadorPresenca() {
           return;
         }
 
-        const doc = new jsPDF();
+        const eventoNome = textoSeguro(turma?.evento?.nome, "Evento");
+        const turmaNome = textoSeguro(turma?.nome, `Turma ${turmaId}`);
+        const local = textoSeguro(turma?.evento?.local || turma?.local, "Local não informado");
+        const geradoEm = new Date().toLocaleString("pt-BR");
+        const organizadorNome = textoSeguro(nome, "Organizador");
+
+        const alunosOrdenados = safeArray(alunos)
+          .slice()
+          .sort((a, b) =>
+            textoSeguro(a?.nome, "").localeCompare(textoSeguro(b?.nome, ""), "pt-BR", {
+              sensitivity: "base",
+            })
+          );
+
+        const doc = new jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: "a4",
+        });
+
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+
+        const marginX = 12;
+        const contentW = pageW - marginX * 2;
 
         datasReais.forEach((item, index) => {
-          if (index > 0) doc.addPage();
+          if (index > 0) doc.addPage("a4", "landscape");
 
           const dataFormatada = formatDateBr(item.data);
           const horaInicio = item.horario_inicio || turma.horario_inicio || "";
           const horaFim = item.horario_fim || turma.horario_fim || "";
+          const horario =
+            horaInicio && horaFim
+              ? `${horaInicio} às ${horaFim}`
+              : horaInicio
+                ? `A partir das ${horaInicio}`
+                : "Horário não informado";
 
-          doc.setFontSize(14);
-          doc.text(
-            `Lista de Assinatura - ${turma.evento?.nome || "Evento"} - ${turma.nome || ""}`,
-            14,
-            20
+          doc.setFillColor(248, 250, 252);
+          doc.rect(0, 0, pageW, pageH, "F");
+
+          doc.setFillColor(15, 23, 42);
+          doc.roundedRect(marginX, 8, contentW, 31, 4, 4, "F");
+
+          doc.setFillColor(14, 165, 233);
+          doc.rect(marginX, 8, contentW * 0.34, 4, "F");
+
+          doc.setFillColor(168, 85, 247);
+          doc.rect(marginX + contentW * 0.34, 8, contentW * 0.33, 4, "F");
+
+          doc.setFillColor(16, 185, 129);
+          doc.rect(marginX + contentW * 0.67, 8, contentW * 0.33, 4, "F");
+
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(15);
+          doc.text("LISTA DE PRESENÇA / ASSINATURA", marginX + 7, 20);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.5);
+          doc.text("Plataforma da Escola da Saúde 2.0", marginX + 7, 26);
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.text(`Data: ${dataFormatada}`, pageW - marginX - 7, 19, {
+            align: "right",
+          });
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.5);
+          doc.text(`Horário: ${horario}`, pageW - marginX - 7, 25, {
+            align: "right",
+          });
+          doc.text(`Turma ID: ${turmaId}`, pageW - marginX - 7, 31, {
+            align: "right",
+          });
+
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(12);
+
+          const eventoLinhas = doc.splitTextToSize(eventoNome, contentW - 12);
+          doc.text(eventoLinhas, marginX + 2, 49);
+
+          let infoY = 49 + eventoLinhas.length * 5.5 + 1;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(71, 85, 105);
+
+          const turmaLocalLinhas = doc.splitTextToSize(
+            `Turma: ${turmaNome}   •   Local: ${local}`,
+            contentW - 12
           );
 
-          doc.setFontSize(11);
-          doc.text(`Data: ${dataFormatada} | Horário: ${horaInicio} às ${horaFim}`, 14, 28);
+          doc.text(turmaLocalLinhas, marginX + 2, infoY);
+
+          infoY += turmaLocalLinhas.length * 4.5 + 2;
+
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(
+            `Organizador: ${organizadorNome}   •   Gerado em: ${geradoEm}`,
+            marginX + 2,
+            infoY
+          );
+
+          const linhas = alunosOrdenados.map((aluno, alunoIndex) => [
+            String(alunoIndex + 1).padStart(2, "0"),
+            textoSeguro(aluno?.nome, "—"),
+            formatarDocumento(aluno?.cpf),
+            "",
+            "",
+          ]);
 
           autoTable(doc, {
-            startY: 34,
-            head: [["Nome", "Documento", "Assinatura"]],
-            body: alunos.map((aluno) => [
-              aluno?.nome || "—",
-              formatarDocumento(aluno?.cpf),
-              "______________________",
-            ]),
+            startY: Math.max(66, infoY + 6),
+            margin: {
+              left: marginX,
+              right: marginX,
+              bottom: 18,
+            },
+            head: [["#", "Nome", "Documento", "Assinatura", "Observação"]],
+            body: linhas,
+            theme: "plain",
+            styles: {
+              font: "helvetica",
+              fontSize: 8.2,
+              cellPadding: {
+                top: 2.4,
+                right: 2,
+                bottom: 2.4,
+                left: 2,
+              },
+              lineColor: [226, 232, 240],
+              lineWidth: 0.15,
+              valign: "middle",
+              textColor: [15, 23, 42],
+              overflow: "linebreak",
+            },
+            headStyles: {
+              fillColor: [30, 64, 175],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+              fontSize: 8.5,
+              halign: "left",
+            },
+            alternateRowStyles: {
+              fillColor: [248, 250, 252],
+            },
+            columnStyles: {
+              0: {
+                cellWidth: 11,
+                halign: "center",
+                fontStyle: "bold",
+                textColor: [71, 85, 105],
+              },
+              1: {
+                cellWidth: 88,
+              },
+              2: {
+                cellWidth: 34,
+              },
+              3: {
+                cellWidth: 78,
+              },
+              4: {
+                cellWidth: contentW - 11 - 88 - 34 - 78,
+              },
+            },
+            didParseCell: (data) => {
+              if (data.section === "body" && data.column.index === 3) {
+                data.cell.text = ["________________________________________"];
+                data.cell.styles.textColor = [51, 65, 85];
+                data.cell.styles.halign = "center";
+              }
+
+              if (data.section === "body" && data.column.index === 4) {
+                data.cell.text = [" "];
+              }
+            },
+            didDrawPage: () => {
+              const pageNumber = doc.internal.getNumberOfPages();
+
+              doc.setDrawColor(226, 232, 240);
+              doc.line(marginX, pageH - 12, pageW - marginX, pageH - 12);
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(7.5);
+              doc.setTextColor(100, 116, 139);
+
+              doc.text(
+                "Documento gerado pela Plataforma da Escola da Saúde 2.0",
+                marginX,
+                pageH - 7
+              );
+
+              doc.text(`Página ${pageNumber}`, pageW - marginX, pageH - 7, {
+                align: "right",
+              });
+            },
           });
         });
 
-        doc.save(`lista_assinatura_turma_${turmaId}.pdf`);
-        notifySuccess("Lista de assinatura gerada.");
+        const arquivoEvento = nomeArquivoSeguro(eventoNome, "evento");
+        doc.save(`lista_presenca_turma_${turmaId}_${arquivoEvento}.pdf`);
+
+        notifySuccess("Lista de presença em paisagem gerada.");
       } catch (error) {
         console.error("[organizadorPresenca] erro ao gerar lista:", error);
-        notifyError("Erro ao gerar lista de assinatura.");
+        notifyError("Erro ao gerar lista de presença.");
       }
     },
-    [inscritosPorTurma, obterDatasReais, turmas]
+    [inscritosPorTurma, nome, obterDatasReais, turmas]
   );
 
-const gerarQrCodePresencaPDF = useCallback(
-  async (turmaIdRaw, nomeEvento = "Evento") => {
-    const turmaId = toPositiveInt(turmaIdRaw);
+  const gerarQrCodePresencaPDF = useCallback(
+    async (turmaIdRaw, nomeEvento = "Evento") => {
+      const turmaId = toPositiveInt(turmaIdRaw);
 
-    if (!turmaId) {
-      notifyError("Turma inválida para QR Code.");
-      return;
-    }
-
-    try {
-      const [{ default: jsPDF }, { QRCodeCanvas }] = await Promise.all([
-        import("jspdf"),
-        import("qrcode.react"),
-      ]);
-
-      const { createRoot } = await import("react-dom/client");
-      const turma = turmas.find((item) => Number(item.id) === turmaId);
-
-      if (!turma) {
-        notifyError("Turma não encontrada.");
+      if (!turmaId) {
+        notifyError("Turma inválida para QR Code.");
         return;
       }
 
-      const base =
-        typeof window !== "undefined" && window.location?.origin
-          ? window.location.origin
-          : "https://escoladasaude.vercel.app";
+      try {
+        const [{ default: jsPDF }, { QRCodeCanvas }] = await Promise.all([
+          import("jspdf"),
+          import("qrcode.react"),
+        ]);
 
-      const url = `${base.replace(/\/+$/, "")}/presenca?turma=${encodeURIComponent(
-        turmaId
-      )}`;
+        const { createRoot } = await import("react-dom/client");
+        const turma = turmas.find((item) => Number(item.id) === turmaId);
 
-      const container = document.createElement("div");
-      container.style.position = "fixed";
-      container.style.left = "-99999px";
-      container.style.top = "-99999px";
-      container.style.width = "460px";
-      container.style.height = "460px";
-      container.style.background = "#ffffff";
-      document.body.appendChild(container);
+        if (!turma) {
+          notifyError("Turma não encontrada.");
+          return;
+        }
 
-      const root = createRoot(container);
+        const base =
+          typeof window !== "undefined" && window.location?.origin
+            ? window.location.origin
+            : "https://escoladasaude.vercel.app";
 
-      root.render(
-        <QRCodeCanvas
-          value={url}
-          size={420}
-          level="H"
-          includeMargin
-          bgColor="#ffffff"
-          fgColor="#000000"
-        />
-      );
+        const url = `${base.replace(/\/+$/, "")}/presenca?turma=${encodeURIComponent(
+          turmaId
+        )}`;
 
-      await new Promise((resolve) => window.setTimeout(resolve, 120));
+        const container = document.createElement("div");
+        container.style.position = "fixed";
+        container.style.left = "-99999px";
+        container.style.top = "-99999px";
+        container.style.width = "460px";
+        container.style.height = "460px";
+        container.style.background = "#ffffff";
+        document.body.appendChild(container);
 
-      const canvas = container.querySelector("canvas");
-      const dataUrl = canvas?.toDataURL?.("image/png");
+        const root = createRoot(container);
 
-      root.unmount();
-      container.remove();
+        root.render(
+          <QRCodeCanvas
+            value={url}
+            size={420}
+            level="H"
+            includeMargin
+            bgColor="#ffffff"
+            fgColor="#000000"
+          />
+        );
 
-      if (!dataUrl) {
-        notifyError("Erro ao gerar imagem do QR Code.");
-        return;
+        await new Promise((resolve) => window.setTimeout(resolve, 120));
+
+        const canvas = container.querySelector("canvas");
+        const dataUrl = canvas?.toDataURL?.("image/png");
+
+        root.unmount();
+        container.remove();
+
+        if (!dataUrl) {
+          notifyError("Erro ao gerar imagem do QR Code.");
+          return;
+        }
+
+        const doc = new jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: "a4",
+        });
+
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+
+        const eventoTitulo = String(
+          nomeEvento || turma?.evento?.nome || turma?.evento_nome || "Evento"
+        ).trim();
+
+        const turmaNome = String(turma?.nome || `Turma ${turmaId}`).trim();
+
+        const local = String(
+          turma?.evento?.local || turma?.evento_local || turma?.local || ""
+        ).trim();
+
+        const dataInicio = turma?.data_inicio ? formatDateBr(turma.data_inicio) : "";
+        const dataFim = turma?.data_fim ? formatDateBr(turma.data_fim) : "";
+
+        const periodo =
+          dataInicio && dataFim && dataInicio !== dataFim
+            ? `${dataInicio} a ${dataFim}`
+            : dataInicio || dataFim || "Data a confirmar";
+
+        const horario =
+          turma?.horario_inicio && turma?.horario_fim
+            ? `${turma.horario_inicio} às ${turma.horario_fim}`
+            : "Horário a confirmar";
+
+        const organizadorNome = String(nome || "Organizador").trim();
+
+        doc.setFillColor(248, 250, 252);
+        doc.rect(0, 0, pageW, pageH, "F");
+
+        doc.setFillColor(15, 23, 42);
+        doc.roundedRect(10, 10, pageW - 20, pageH - 20, 8, 8, "F");
+
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(14, 14, pageW - 28, pageH - 28, 7, 7, "F");
+
+        doc.setFillColor(234, 88, 12);
+        doc.rect(14, 14, pageW - 28, 7, "F");
+
+        doc.setTextColor(15, 23, 42);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("ESCOLA MUNICIPAL DE SAÚDE PÚBLICA", 24, 33);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105);
+        doc.text("Secretaria Municipal de Saúde — Prefeitura de Santos", 24, 39);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(31);
+        doc.setTextColor(15, 23, 42);
+
+        const tituloLinhas = doc.splitTextToSize(eventoTitulo, 160);
+        doc.text(tituloLinhas, 24, 64);
+
+        let y = 64 + tituloLinhas.length * 12 + 8;
+
+        doc.setFontSize(16);
+        doc.setTextColor(51, 65, 85);
+        doc.text(turmaNome, 24, y);
+
+        y += 9;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(13);
+        doc.text(`${periodo} • ${horario}`, 24, y);
+
+        if (local) {
+          y += 8;
+          const localLinhas = doc.splitTextToSize(local, 155);
+          doc.text(localLinhas, 24, y);
+        }
+
+        doc.setFillColor(234, 88, 12);
+        doc.roundedRect(24, 137, 150, 18, 4, 4, "F");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(255, 255, 255);
+        doc.text("REGISTRE SUA PRESENÇA PELO QR CODE", 99, 148.5, {
+          align: "center",
+        });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text("Abra a câmera do celular, escaneie o código e faça login.", 24, 165);
+        doc.text("A presença será vinculada automaticamente a esta turma.", 24, 171);
+
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.6);
+        doc.roundedRect(190, 41, 78, 78, 5, 5, "FD");
+
+        const qrW = 62;
+        doc.addImage(dataUrl, "PNG", 198, 49, qrW, qrW);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.setTextColor(15, 23, 42);
+        doc.text("ESCANEIE AQUI", 229, 133, { align: "center" });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text("Confirmação de presença", 229, 140, { align: "center" });
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(24, 184, pageW - 24, 184);
+
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Organizador: ${organizadorNome}`, 24, 193);
+        doc.text(`Plataforma Escola da Saúde 2.0 • Turma ${turmaId}`, pageW - 24, 193, {
+          align: "right",
+        });
+
+        doc.save(`qr_presenca_turma_${turmaId}.pdf`);
+        notifySuccess("QR Code de presença gerado.");
+      } catch (error) {
+        console.error("[organizadorPresenca] erro ao gerar QR Code:", error);
+        notifyError("Erro ao gerar QR Code.");
       }
-
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-
-      const eventoTitulo = String(
-        nomeEvento || turma?.evento?.nome || turma?.evento_nome || "Evento"
-      ).trim();
-
-      const turmaNome = String(turma?.nome || `Turma ${turmaId}`).trim();
-
-      const local = String(
-        turma?.evento?.local || turma?.evento_local || turma?.local || ""
-      ).trim();
-
-      const dataInicio = turma?.data_inicio ? formatDateBr(turma.data_inicio) : "";
-      const dataFim = turma?.data_fim ? formatDateBr(turma.data_fim) : "";
-
-      const periodo =
-        dataInicio && dataFim && dataInicio !== dataFim
-          ? `${dataInicio} a ${dataFim}`
-          : dataInicio || dataFim || "Data a confirmar";
-
-      const horario =
-        turma?.horario_inicio && turma?.horario_fim
-          ? `${turma.horario_inicio} às ${turma.horario_fim}`
-          : "Horário a confirmar";
-
-      const organizadorNome = String(nome || "Organizador").trim();
-
-      doc.setFillColor(248, 250, 252);
-      doc.rect(0, 0, pageW, pageH, "F");
-
-      doc.setFillColor(15, 23, 42);
-      doc.roundedRect(10, 10, pageW - 20, pageH - 20, 8, 8, "F");
-
-      doc.setFillColor(255, 255, 255);
-      doc.roundedRect(14, 14, pageW - 28, pageH - 28, 7, 7, "F");
-
-      doc.setFillColor(234, 88, 12);
-      doc.rect(14, 14, pageW - 28, 7, "F");
-
-      doc.setTextColor(15, 23, 42);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text("ESCOLA MUNICIPAL DE SAÚDE PÚBLICA", 24, 33);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Secretaria Municipal de Saúde — Prefeitura de Santos", 24, 39);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(31);
-      doc.setTextColor(15, 23, 42);
-
-      const tituloLinhas = doc.splitTextToSize(eventoTitulo, 160);
-      doc.text(tituloLinhas, 24, 64);
-
-      let y = 64 + tituloLinhas.length * 12 + 8;
-
-      doc.setFontSize(16);
-      doc.setTextColor(51, 65, 85);
-      doc.text(turmaNome, 24, y);
-
-      y += 9;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(13);
-      doc.text(`${periodo} • ${horario}`, 24, y);
-
-      if (local) {
-        y += 8;
-        const localLinhas = doc.splitTextToSize(local, 155);
-        doc.text(localLinhas, 24, y);
-      }
-
-      doc.setFillColor(234, 88, 12);
-      doc.roundedRect(24, 137, 150, 18, 4, 4, "F");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(255, 255, 255);
-      doc.text("REGISTRE SUA PRESENÇA PELO QR CODE", 99, 148.5, {
-        align: "center",
-      });
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Abra a câmera do celular, escaneie o código e faça login.", 24, 165);
-      doc.text("A presença será vinculada automaticamente a esta turma.", 24, 171);
-
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(203, 213, 225);
-      doc.setLineWidth(0.6);
-      doc.roundedRect(190, 41, 78, 78, 5, 5, "FD");
-
-      const qrW = 62;
-      doc.addImage(dataUrl, "PNG", 198, 49, qrW, qrW);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(15);
-      doc.setTextColor(15, 23, 42);
-      doc.text("ESCANEIE AQUI", 229, 133, { align: "center" });
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Confirmação de presença", 229, 140, { align: "center" });
-
-      doc.setDrawColor(226, 232, 240);
-      doc.line(24, 184, pageW - 24, 184);
-
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Organizador: ${organizadorNome}`, 24, 193);
-      doc.text(`Plataforma Escola da Saúde 2.0 • Turma ${turmaId}`, pageW - 24, 193, {
-        align: "right",
-      });
-
-      doc.save(`qr_presenca_turma_${turmaId}.pdf`);
-      notifySuccess("QR Code de presença gerado.");
-    } catch (error) {
-      console.error("[organizadorPresenca] erro ao gerar QR Code:", error);
-      notifyError("Erro ao gerar QR Code.");
-    }
-  },
-  [nome, turmas]
-);
+    },
+    [nome, turmas]
+  );
 
   const hoje = useMemo(() => todayYMD(), []);
 
@@ -953,10 +1184,10 @@ const gerarQrCodePresencaPDF = useCallback(
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
       <HeaderHero
-  titulo="Presenças do organizador"
-  subtitulo="Gerencie suas turmas, listas de presença, relatórios, assinaturas e QR Codes."
-  icon={Presentation}
-/>
+        titulo="Presenças do organizador"
+        subtitulo="Gerencie suas turmas, listas de presença, relatórios, assinaturas e QR Codes."
+        icon={Presentation}
+      />
 
       <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
 
@@ -975,82 +1206,82 @@ const gerarQrCodePresencaPDF = useCallback(
         className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6"
       >
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
-  <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
-    <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
-      Status da assinatura
-    </p>
+          <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
+              Status da assinatura
+            </p>
 
-    <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      {!assinatura ? (
-        <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800 ring-1 ring-amber-200">
-          <XCircle className="h-4 w-4" />
-          Sem assinatura cadastrada
-        </span>
-      ) : (
-        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 ring-1 ring-emerald-200">
-          <CheckCircle2 className="h-4 w-4" />
-          Assinatura cadastrada
-        </span>
-      )}
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {!assinatura ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800 ring-1 ring-amber-200">
+                  <XCircle className="h-4 w-4" />
+                  Sem assinatura cadastrada
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 ring-1 ring-emerald-200">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Assinatura cadastrada
+                </span>
+              )}
 
-      <button
-        type="button"
-        onClick={() => setModalAssinaturaAberto(true)}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
-      >
-        <PenLine className="h-4 w-4" />
-        Gerenciar assinatura
-      </button>
-    </div>
-  </div>
+              <button
+                type="button"
+                onClick={() => setModalAssinaturaAberto(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+              >
+                <PenLine className="h-4 w-4" />
+                Gerenciar assinatura
+              </button>
+            </div>
+          </div>
 
-  <button
-    type="button"
-    onClick={carregarTurmas}
-    disabled={carregando}
-    className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
-  >
-    <RefreshCw className={cx("h-4 w-4", carregando && "animate-spin")} />
-    {carregando ? "Atualizando..." : "Atualizar turmas"}
-  </button>
-</section>
+          <button
+            type="button"
+            onClick={carregarTurmas}
+            disabled={carregando}
+            className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
+          >
+            <RefreshCw className={cx("h-4 w-4", carregando && "animate-spin")} />
+            {carregando ? "Atualizando..." : "Atualizar turmas"}
+          </button>
+        </section>
 
-<section
-  aria-label="Resumo das turmas do organizador"
-  className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
->
-  <MiniStat
-    icon={CalendarDays}
-    label="Total"
-    value={kpis.total}
-    description="Turmas vinculadas"
-    tone="violet"
-  />
+        <section
+          aria-label="Resumo das turmas do organizador"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <MiniStat
+            icon={CalendarDays}
+            label="Total"
+            value={kpis.total}
+            description="Turmas vinculadas"
+            tone="violet"
+          />
 
-  <MiniStat
-    icon={CalendarClock}
-    label="Programadas"
-    value={kpis.programadas}
-    description="Aguardando início"
-    tone="cyan"
-  />
+          <MiniStat
+            icon={CalendarClock}
+            label="Programadas"
+            value={kpis.programadas}
+            description="Aguardando início"
+            tone="cyan"
+          />
 
-  <MiniStat
-    icon={CheckCircle2}
-    label="Em andamento"
-    value={kpis.andamento}
-    description="Turmas ativas hoje"
-    tone="emerald"
-  />
+          <MiniStat
+            icon={CheckCircle2}
+            label="Em andamento"
+            value={kpis.andamento}
+            description="Turmas ativas hoje"
+            tone="emerald"
+          />
 
-  <MiniStat
-    icon={CalendarCheck2}
-    label="Realizadas"
-    value={kpis.realizadas}
-    description="Turmas encerradas"
-    tone="amber"
-  />
-</section>
+          <MiniStat
+            icon={CalendarCheck2}
+            label="Realizadas"
+            value={kpis.realizadas}
+            description="Turmas encerradas"
+            tone="amber"
+          />
+        </section>
 
         <section
           aria-label="Filtros de turmas"

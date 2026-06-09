@@ -83,10 +83,12 @@ const MAX_ASSINANTES_TURMA = 3;
 const TIPO_CERTIFICADO = Object.freeze({
   USUARIO: "usuario",
   ORGANIZADOR: "organizador",
-  PALESTRANTE: "palestrante",
 });
 
-const TIPOS_CERTIFICADO_VALIDOS = new Set(Object.values(TIPO_CERTIFICADO));
+const TIPOS_CERTIFICADO_VALIDOS = new Set([
+  TIPO_CERTIFICADO.USUARIO,
+  TIPO_CERTIFICADO.ORGANIZADOR,
+]);
 
 let gerarNotificacaoDeCertificado = null;
 
@@ -703,22 +705,6 @@ async function organizadorVinculadoATurma(db, usuarioId, turmaId) {
   return result.rows?.[0]?.vinculado === true;
 }
 
-async function palestranteVinculadoATurma(db, usuarioId, turmaId) {
-  const result = await db.query(
-    `
-    SELECT EXISTS (
-      SELECT 1
-      FROM turma_palestrante tp
-      WHERE tp.turma_id = $2
-        AND tp.usuario_id = $1
-    ) AS vinculado
-    `,
-    [usuarioId, turmaId]
-  );
-
-  return result.rows?.[0]?.vinculado === true;
-}
-
 async function obterContextoTurmaCertificado(db, eventoId, turmaId) {
   const result = await db.query(
     `
@@ -980,15 +966,11 @@ async function gerarPdfFisico({
 
   let textoPrincipal;
 
-  if (tipo === TIPO_CERTIFICADO.ORGANIZADOR) {
-    textoPrincipal = mesmoDia
-      ? `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
-      : `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
-  } else if (tipo === TIPO_CERTIFICADO.PALESTRANTE) {
-    textoPrincipal = mesmoDia
-      ? `Participou como palestrante do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
-      : `Participou como palestrante do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
-  } else {
+if (tipo === TIPO_CERTIFICADO.ORGANIZADOR) {
+  textoPrincipal = mesmoDia
+    ? `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
+    : `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
+} else {
     textoPrincipal = mesmoDia
       ? `Participou do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
       : `Participou do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
@@ -1002,11 +984,7 @@ async function gerarPdfFisico({
   };
 
   desenharCertificadoCompletoV2(doc, {
-    modelo:
-      tipo === TIPO_CERTIFICADO.ORGANIZADOR ||
-      tipo === TIPO_CERTIFICADO.PALESTRANTE
-        ? "organizador"
-        : "padrao",
+modelo: tipo === TIPO_CERTIFICADO.ORGANIZADOR ? "organizador" : "padrao",
     nome: nomeUsuario,
     identificadorTexto: cpfMask ? `Identificador: ${cpfMask}` : null,
     textoPrincipal,
@@ -1350,15 +1328,15 @@ async function gerarCertificado(req, res) {
     );
   }
 
-  if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
-    return responderErro(
-      res,
-      400,
-      "Tipo de certificado inválido.",
-      "CERTIFICADO_TIPO_INVALIDO",
-      "tipo deve ser usuario, organizador ou palestrante."
-    );
-  }
+if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
+  return responderErro(
+    res,
+    400,
+    "Tipo de certificado inválido.",
+    "CERTIFICADO_TIPO_INVALIDO",
+    "tipo deve ser usuario ou organizador."
+  );
+}
 
   try {
     const contextoTurma = await obterContextoTurmaCertificado(
@@ -1419,20 +1397,6 @@ async function gerarCertificado(req, res) {
           "Usuário não está vinculado como organizador nesta turma.",
           "CERTIFICADO_ORGANIZADOR_NAO_VINCULADO",
           "Não há vínculo em turma_responsavel com papel organizador."
-        );
-      }
-    }
-
-    if (tipo === TIPO_CERTIFICADO.PALESTRANTE) {
-      const vinculado = await palestranteVinculadoATurma(db, usuarioId, turmaId);
-
-      if (!vinculado) {
-        return responderErro(
-          res,
-          403,
-          "Usuário não está vinculado como palestrante cadastrado nesta turma.",
-          "CERTIFICADO_PALESTRANTE_NAO_VINCULADO",
-          "Palestrante externo sem usuario_id não pode gerar certificado interno automático."
         );
       }
     }
@@ -2473,22 +2437,6 @@ async function listarElegiveisPorTurma(req, res) {
       [turmaId]
     );
 
-    const palestrantes = await db.query(
-      `
-      SELECT
-        u.id AS usuario_id,
-        u.nome,
-        u.email,
-        'palestrante' AS tipo
-      FROM turma_palestrante tp
-      JOIN usuarios u ON u.id = tp.usuario_id
-      WHERE tp.turma_id = $1
-        AND tp.usuario_id IS NOT NULL
-      ORDER BY u.nome ASC
-      `,
-      [turmaId]
-    );
-
     const certificados = await db.query(
       `
       SELECT usuario_id, tipo, status, id, numero_certificado, codigo_validacao
@@ -2504,11 +2452,10 @@ async function listarElegiveisPorTurma(req, res) {
       certMap.set(`${cert.usuario_id}:${cert.tipo}`, cert);
     }
 
-    const lista = [
-      ...(participantes.rows || []),
-      ...(organizadores.rows || []),
-      ...(palestrantes.rows || []),
-    ].map((item) => {
+const lista = [
+  ...(participantes.rows || []),
+  ...(organizadores.rows || []),
+].map((item) => {
       const certificado = certMap.get(`${item.usuario_id}:${item.tipo}`) || null;
 
       return {
@@ -2954,5 +2901,4 @@ module.exports = {
   usuarioEstaInscrito,
   usuarioFezAvaliacao,
   organizadorVinculadoATurma,
-  palestranteVinculadoATurma,
 };

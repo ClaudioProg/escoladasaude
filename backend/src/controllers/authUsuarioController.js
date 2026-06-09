@@ -709,6 +709,89 @@ async function cadastrar(req, res) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function montarEmailRecuperacaoSenha({ link }) {
+  const linkSeguro = escapeHtml(link);
+
+  const text =
+    `Recuperação de senha - Escola da Saúde\n\n` +
+    `Recebemos uma solicitação para redefinir a senha de acesso à Plataforma da Escola da Saúde.\n\n` +
+    `Para criar uma nova senha, acesse o link abaixo:\n` +
+    `${link}\n\n` +
+    `Este link é válido por 1 hora.\n\n` +
+    `Se você não solicitou a redefinição de senha, ignore esta mensagem. Nenhuma alteração será feita sem o acesso ao link.\n\n` +
+    `Secretaria Municipal de Saúde — Escola da Saúde`;
+
+  const html = `
+  <div style="margin:0;padding:0;background:#f3f6f9;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+    <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
+      <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #dde5ee;box-shadow:0 10px 30px rgba(15,23,42,0.08);">
+        
+        <div style="background:#0f7f73;padding:28px 32px;color:#ffffff;">
+          <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:700;">
+            Recuperação de senha
+          </h1>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.5;opacity:0.95;">
+            Plataforma da Escola da Saúde
+          </p>
+        </div>
+
+        <div style="padding:28px 32px 24px;">
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#1f2937;">
+            Recebemos uma solicitação para redefinir a senha de acesso à Plataforma da Escola da Saúde.
+          </p>
+
+          <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#1f2937;">
+            Para criar uma nova senha, clique no botão abaixo. Por segurança, este link é válido por <strong>1 hora</strong>.
+          </p>
+
+          <div style="text-align:center;margin:28px 0;">
+            <a href="${linkSeguro}"
+               style="display:inline-block;background:#0f7f73;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 24px;border-radius:999px;box-shadow:0 8px 18px rgba(15,127,115,0.25);">
+              Redefinir minha senha
+            </a>
+          </div>
+
+          <div style="background:#eef6ff;border:1px solid #cfe3ff;border-radius:14px;padding:18px 20px;margin:0 0 24px;">
+            <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Não conseguiu clicar no botão?</strong>
+            </p>
+            <p style="margin:0;font-size:12px;line-height:1.6;color:#374151;word-break:break-all;">
+              Copie e cole este endereço no navegador:<br>
+              <a href="${linkSeguro}" style="color:#0f766e;text-decoration:underline;">${linkSeguro}</a>
+            </p>
+          </div>
+
+          <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#374151;">
+            Se você não solicitou a redefinição de senha, ignore esta mensagem. Nenhuma alteração será feita sem o acesso ao link.
+          </p>
+
+          <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
+            Esta é uma mensagem automática. Não responda este e-mail.
+          </p>
+        </div>
+
+        <div style="border-top:1px solid #e5e7eb;padding:16px 32px;background:#f8fafc;text-align:center;">
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#64748b;">
+            Secretaria Municipal de Saúde — Escola da Saúde
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+
+  return { text, html };
+}
+
 /* ─────────────────────────────────────────────────────────────
    POST /api/auth/esqueci-senha
 ────────────────────────────────────────────────────────────── */
@@ -793,35 +876,33 @@ async function recuperarSenha(req, res) {
       signOpts
     );
 
-    const link = buildPasswordResetLink(req, token);
+const link = buildPasswordResetLink(req, token);
 
-    try {
-      await enviarEmail({
-        to: email,
-        subject: "Recuperação de senha - Escola da Saúde",
-        text:
-          `Você solicitou redefinição de senha.\n\n` +
-          `Acesse o link abaixo para criar uma nova senha:\n` +
-          `${link}\n\n` +
-          `Este link é válido por 1 hora.\n` +
-          `Se você não fez essa solicitação, ignore esta mensagem.`,
-      });
+try {
+  const emailRecuperacaoSenha = montarEmailRecuperacaoSenha({ link });
 
-      console.log("[authUsuarioController.recuperarSenha] e-mail enviado", {
-        usuarioId,
-        emailPreview: safePreview(email),
-        frontendBase: getFrontendBaseFromRequest(req),
-      });
-    } catch (mailErr) {
-      console.error("[authUsuarioController.recuperarSenha] erro ao enviar e-mail", {
-        message: mailErr?.message,
-        emailPreview: safePreview(email),
-        usuarioId,
-        frontendBase: getFrontendBaseFromRequest(req),
-      });
-    }
+  await enviarEmail({
+    to: email,
+    subject: "Recuperação de senha — Escola da Saúde",
+    text: emailRecuperacaoSenha.text,
+    html: emailRecuperacaoSenha.html,
+  });
 
-    return res.status(200).json(respostaIdempotente);
+  console.log("[authUsuarioController.recuperarSenha] e-mail enviado", {
+    usuarioId,
+    emailPreview: safePreview(email),
+    frontendBase: getFrontendBaseFromRequest(req),
+  });
+} catch (mailErr) {
+  console.error("[authUsuarioController.recuperarSenha] erro ao enviar e-mail", {
+    message: mailErr?.message,
+    emailPreview: safePreview(email),
+    usuarioId,
+    frontendBase: getFrontendBaseFromRequest(req),
+  });
+}
+
+return res.status(200).json(respostaIdempotente);
   } catch (err) {
     console.error("[authUsuarioController.recuperarSenha] ERRO", {
       message: err?.message,

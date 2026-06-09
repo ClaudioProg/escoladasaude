@@ -810,13 +810,17 @@ exports.listarMinhas = async (req, res, next) => {
 =========================================================================== */
 
 function guessMimeByExt(filename = "") {
-  const ext = String(filename).toLowerCase().split(".").pop();
+  const ext = String(filename || "").toLowerCase().split(".").pop();
 
   if (ext === "png") return "image/png";
   if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
   if (ext === "gif") return "image/gif";
   if (ext === "webp") return "image/webp";
   if (ext === "pdf") return "application/pdf";
+  if (ext === "ppt") return "application/vnd.ms-powerpoint";
+  if (ext === "pptx") {
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  }
 
   return "application/octet-stream";
 }
@@ -866,62 +870,78 @@ exports.baixarPoster = async (req, res, next) => {
       code: "ACESSO_NEGADO",
     });
 
+    assert(submissao.poster_arquivo_id, "Nenhum arquivo associado a esta submissão.", 404, {
+      code: "POSTER_NAO_ENCONTRADO",
+      adminHint:
+        "A submissão não possui poster_arquivo_id preenchido em trabalhos_submissoes.",
+    });
+
     const arquivo = await queryOne(
       req,
       `
       SELECT
         a.id,
-        a.caminho,
+        a.submissao_id,
         a.nome_original,
-        a.mime_type
+        a.mime_type,
+        a.tamanho_bytes,
+        a.arquivo
       FROM trabalhos_arquivos a
       WHERE a.id = $1
+        AND a.submissao_id = $2
+      LIMIT 1
       `,
-      [submissao.poster_arquivo_id]
+      [submissao.poster_arquivo_id, submissaoId]
     );
 
     assert(arquivo, "Nenhum arquivo associado a esta submissão.", 404, {
       code: "POSTER_NAO_ENCONTRADO",
-    });
-
-    const absPath = resolverCaminhoUpload(arquivo.caminho);
-
-    assert(absPath, "Caminho de arquivo inválido.", 400, {
-      code: "CAMINHO_ARQUIVO_INVALIDO",
       adminHint:
-        "O caminho salvo em trabalhos_arquivos.caminho não está dentro do diretório uploads.",
+        "poster_arquivo_id existe na submissão, mas não há registro correspondente em trabalhos_arquivos para esta submissão.",
     });
 
-    const stat = await fsp.stat(absPath).catch(() => null);
-
-    assert(stat?.isFile(), "Arquivo ausente no servidor.", 404, {
-      code: "ARQUIVO_AUSENTE",
+    assert(arquivo.arquivo, "Arquivo ausente no banco de dados.", 404, {
+      code: "ARQUIVO_AUSENTE_BANCO",
       adminHint:
-        "Há registro em trabalhos_arquivos, mas o arquivo físico não foi localizado.",
+        "Há registro em trabalhos_arquivos, mas o campo trabalhos_arquivos.arquivo está vazio.",
+      details: {
+        arquivo_id: arquivo.id,
+        submissao_id: submissaoId,
+      },
     });
 
-    const mime = arquivo.mime_type || guessMimeByExt(arquivo.nome_original || absPath);
+    const buffer = Buffer.isBuffer(arquivo.arquivo)
+      ? arquivo.arquivo
+      : Buffer.from(arquivo.arquivo);
 
-    res.setHeader("Content-Type", mime || "application/octet-stream");
+    assert(buffer.length > 0, "Arquivo vazio no banco de dados.", 404, {
+      code: "ARQUIVO_VAZIO_BANCO",
+      adminHint:
+        "O campo trabalhos_arquivos.arquivo existe, mas não possui bytes úteis.",
+      details: {
+        arquivo_id: arquivo.id,
+        submissao_id: submissaoId,
+      },
+    });
+
+    const nomeArquivo = safeBasename(
+      arquivo.nome_original || `poster_submissao_${submissaoId}`
+    );
+
+    const mime =
+      arquivo.mime_type ||
+      guessMimeByExt(arquivo.nome_original || nomeArquivo) ||
+      "application/octet-stream";
+
+    res.setHeader("Content-Type", mime);
     res.setHeader(
       "Content-Disposition",
-      `inline; filename*=UTF-8''${encodeURIComponent(
-        safeBasename(arquivo.nome_original || `poster_${submissaoId}`)
-      )}`
+      `inline; filename*=UTF-8''${encodeURIComponent(nomeArquivo)}`
     );
-    res.setHeader("Content-Length", String(stat.size));
+    res.setHeader("Content-Length", String(buffer.length));
+    res.setHeader("Cache-Control", "no-store");
 
-    const stream = fs.createReadStream(absPath);
-
-    stream.on("error", (error) => {
-      logError(req, "Erro no stream do poster.", error);
-
-      if (!res.headersSent) {
-        res.status(500).end();
-      }
-    });
-
-    return stream.pipe(res);
+    return res.status(200).send(buffer);
   } catch (error) {
     logError(req, "Erro ao baixar poster da submissão.", error);
     return next(error);

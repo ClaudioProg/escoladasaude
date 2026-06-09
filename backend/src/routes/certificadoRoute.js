@@ -35,7 +35,6 @@
  * - Download autenticado por id.
  * - Participante: tipo "usuario".
  * - Organizador: tipo "organizador".
- * - Palestrante: tipo "palestrante".
  * - Organizadores vêm de turma_responsavel.
  * - Palestrantes vinculados vêm de turma_palestrante.
  * - Assinantes de turma vêm de turma_certificado_assinante.
@@ -600,7 +599,7 @@ router.get(
  *
  * Função:
  * - Lista elegíveis para certificado na turma.
- * - Inclui participantes, organizadores e palestrantes vinculados.
+ * - Inclui participantes e organizadores vinculados.
  */
 router.get(
   "/turma/:turma_id/elegivel",
@@ -634,7 +633,6 @@ router.get(
  * Tipos oficiais:
  * - usuario
  * - organizador
- * - palestrante
  */
 router.post(
   "/gerar",
@@ -653,8 +651,8 @@ router.post(
       .withMessage("turma_id inválido.")
       .toInt(),
     body("tipo")
-      .isIn(["usuario", "organizador", "palestrante"])
-      .withMessage("tipo deve ser usuario, organizador ou palestrante."),
+  .isIn(["usuario", "organizador"])
+  .withMessage("tipo deve ser usuario ou organizador."),
   ],
   validate,
   ensureBodySelfOrAdmin,

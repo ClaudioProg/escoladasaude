@@ -591,6 +591,107 @@ async function conflitoHorario(q, usuarioId, turmaId, { somenteMesmoEvento = fal
  * Notificação e e-mail best-effort
  * ───────────────────────────────────────────────────────────── */
 
+function montarEmailInscricaoConfirmada({
+  nomeUsuario,
+  eventoTitulo,
+  turmaNome,
+  periodo,
+  horario,
+  carga,
+  local,
+}) {
+  const nomeSeguro = escapeHtml(nomeUsuario || "participante");
+  const eventoSeguro = escapeHtml(eventoTitulo || "Evento");
+  const turmaSeguro = escapeHtml(turmaNome || "Turma");
+  const periodoSeguro = escapeHtml(periodo || "A definir");
+  const horarioSeguro = escapeHtml(horario || "A definir");
+  const cargaSeguro = escapeHtml(carga ?? "—");
+  const localSeguro = escapeHtml(local || "A definir");
+
+  const text = `Olá, ${nomeUsuario || "participante"}!
+
+Sua inscrição foi confirmada com sucesso na Plataforma da Escola da Saúde.
+
+Detalhes da inscrição:
+Evento: ${eventoTitulo || "Evento"}
+Turma: ${turmaNome || "Turma"}
+Período: ${periodo || "A definir"}
+Horário: ${horario || "A definir"}
+Carga horária: ${carga ?? "—"} horas
+Local: ${local || "A definir"}
+
+Recomendamos que você confira as informações com antecedência e acompanhe suas inscrições pela Plataforma da Escola da Saúde.
+
+Em caso de dúvidas, entre em contato com a equipe da Escola da Saúde.
+
+Secretaria Municipal de Saúde — Escola da Saúde`;
+
+  const html = `
+  <div style="margin:0;padding:0;background:#f3f6f9;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+    <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
+      <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #dde5ee;box-shadow:0 10px 30px rgba(15,23,42,0.08);">
+        
+        <div style="background:#0f7f73;padding:28px 32px;color:#ffffff;">
+          <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:700;">
+            Inscrição confirmada
+          </h1>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.5;opacity:0.95;">
+            Plataforma da Escola da Saúde
+          </p>
+        </div>
+
+        <div style="padding:28px 32px 24px;">
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#1f2937;">
+            Olá, <strong>${nomeSeguro}</strong>.
+          </p>
+
+          <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#1f2937;">
+            Sua inscrição foi confirmada com sucesso. Confira abaixo os detalhes da sua participação:
+          </p>
+
+          <div style="background:#eef6ff;border:1px solid #cfe3ff;border-radius:14px;padding:20px 22px;margin:0 0 24px;">
+            <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Evento:</strong> ${eventoSeguro}
+            </p>
+            <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Turma:</strong> ${turmaSeguro}
+            </p>
+            <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Período:</strong> ${periodoSeguro}
+            </p>
+            <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Horário:</strong> ${horarioSeguro}
+            </p>
+            <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Carga horária:</strong> ${cargaSeguro} horas
+            </p>
+            <p style="margin:0;font-size:13px;line-height:1.5;color:#1f2937;">
+              <strong>Local:</strong> ${localSeguro}
+            </p>
+          </div>
+
+          <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">
+            Recomendamos que você confira as informações com antecedência e acompanhe suas inscrições pela Plataforma da Escola da Saúde.
+          </p>
+
+          <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+            Em caso de dúvidas, entre em contato com a equipe da Escola da Saúde.
+          </p>
+        </div>
+
+        <div style="border-top:1px solid #e5e7eb;padding:16px 32px;background:#f8fafc;text-align:center;">
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#64748b;">
+            Secretaria Municipal de Saúde — Escola da Saúde
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+
+  return { text, html };
+}
+
 async function notificarInscricaoConfirmada({
   rid,
   usuarioId,
@@ -667,37 +768,17 @@ async function notificarInscricaoConfirmada({
 
     const nomeUser = usuario.nome || "participante";
 
-    const html = `
-      <h2>Olá, ${escapeHtml(nomeUser)}!</h2>
-      <p>Sua inscrição foi confirmada com sucesso.</p>
+const emailInscricaoConfirmada = montarEmailInscricaoConfirmada({
+  nomeUsuario: nomeUser,
+  eventoTitulo,
+  turmaNome,
+  periodo,
+  horario,
+  carga,
+  local,
+});
 
-      <h3>Detalhes da inscrição</h3>
-      <p>
-        <strong>Evento:</strong> ${escapeHtml(eventoTitulo)}<br/>
-        <strong>Turma:</strong> ${escapeHtml(turmaNome)}<br/>
-        <strong>Período:</strong> ${escapeHtml(periodo)}<br/>
-        <strong>Horário:</strong> ${escapeHtml(horario)}<br/>
-        <strong>Carga horária:</strong> ${escapeHtml(carga)} horas<br/>
-        <strong>Local:</strong> ${escapeHtml(local)}
-      </p>
-
-      <p>Em caso de dúvidas, entre em contato com a equipe da Escola da Saúde.</p>
-      <p>Atenciosamente,<br/><strong>Equipe da Escola da Saúde</strong></p>
-    `;
-
-    const text = `Olá, ${nomeUser}!
-
-Sua inscrição foi confirmada com sucesso.
-
-Evento: ${eventoTitulo}
-Turma: ${turmaNome}
-Período: ${periodo}
-Horário: ${horario}
-Carga horária: ${carga} horas
-Local: ${local}
-
-Atenciosamente,
-Equipe da Escola da Saúde`;
+const { text, html } = emailInscricaoConfirmada;
 
     await enviarEmail({
       to: usuario.email,

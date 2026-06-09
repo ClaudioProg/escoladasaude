@@ -110,7 +110,7 @@ const Interacoes = lazy(() => import("./pages/Interacoes"));
 const MensagemUsuario = lazy(() => import("./pages/MensagemUsuario"));
 
 const RepositorioTrabalhos = lazy(() => import("./pages/RepositorioTrabalhos"));
-const UsuarioSubmissao = lazy(() => import("./pages/UsuarioSubmissao"));
+const SubmissaoTrabalhos = lazy(() => import("./pages/SubmissaoTrabalhos"));
 const ManualUsuario = lazy(() => import("./pages/Manual"));
 const Scanner = lazy(() => import("./pages/Scanner"));
 
@@ -120,7 +120,7 @@ const Scanner = lazy(() => import("./pages/Scanner"));
 
 const DashboardOrganizador = lazy(() => import("./pages/DashboardOrganizador"));
 const AgendaOrganizador = lazy(() => import("./pages/AgendaOrganizador"));
-const OrganizadorPresenca = lazy(() => import("./pages/OrganizadorPresenca"));
+const PresencaOrganizador = lazy(() => import("./pages/PresencaOrganizador"));
 const CertificadosOrganizador = lazy(() =>
   import("./pages/CertificadosOrganizador")
 );
@@ -590,7 +590,7 @@ function UsuarioRoutes() {
       <Route path="pesquisa" element={<Pesquisas />} />
       <Route path="interacao" element={<Interacoes />} />
       <Route path="mensagem" element={<MensagemUsuario />} />
-      <Route path="submissao" element={<UsuarioSubmissao />} />
+      <Route path="submissao" element={<SubmissaoTrabalhos />} />
       <Route path="trabalho" element={<RepositorioTrabalhos />} />
       <Route path="manual" element={<ManualUsuario />} />
       <Route path="scanner" element={<Scanner />} />
@@ -632,7 +632,7 @@ function OrganizadorRoutes() {
         element={
           <ProtectedPage
             permitido={PERFIL_PERMITIDO.organizador}
-            element={<OrganizadorPresenca />}
+            element={<PresencaOrganizador />}
           />
         }
       />

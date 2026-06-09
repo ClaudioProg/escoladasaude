@@ -1,4 +1,4 @@
-// 📁 src/pages/UsuarioSubmissao.jsx
+// 📁 src/pages/SubmissaoTrabalhos.jsx
 // Atualizado em: 15/05/2026
 //
 // Plataforma Escola da Saúde — v2.0
@@ -31,6 +31,7 @@
 // em seguida para garantir contrato v2.0 completo.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -426,7 +427,7 @@ async function baixarPosterSubmissao(submissaoId, filenameFallback) {
    Regras
 =========================================================================== */
 
-function RegrasEDicasSection() {
+function ModalRegrasEDicas({ open, onClose }) {
   const itens = [
     {
       titulo: "Submissão e arquivo principal",
@@ -445,33 +446,122 @@ function RegrasEDicasSection() {
     },
   ];
 
-  return (
-    <GlassCard className="p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-violet-600" />
-        <h2 className="text-lg font-black text-slate-900 dark:text-white">
-          Regras & Dicas
-        </h2>
-      </div>
+  useEffect(() => {
+    if (!open) return undefined;
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {itens.map((item, index) => (
-          <div
-            key={item.titulo}
-            className="rounded-3xl border border-violet-100 bg-violet-50/70 p-4 dark:border-violet-900 dark:bg-violet-950/20"
-          >
-            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-violet-700 text-sm font-black text-white">
-              {index + 1}
+    function onKeyDown(event) {
+      if (event.key === "Escape") onClose?.();
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+return createPortal(
+  <div
+    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
+    role="presentation"
+    onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose?.();
+    }}
+  >
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-regras-dicas-title"
+      className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:rounded-[2rem]"
+      style={{
+        maxHeight: "calc(100dvh - 3rem)",
+      }}
+    >
+      <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-gradient-to-br from-violet-700 via-fuchsia-600 to-indigo-700 p-4 text-white sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.20),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,.16),transparent_35%)]" />
+
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5" />
+              Orientações
             </div>
-            <h3 className="font-black text-slate-900 dark:text-white">{item.titulo}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              {item.texto}
+
+            <h2
+              id="modal-regras-dicas-title"
+              className="text-lg font-black leading-tight tracking-tight sm:text-2xl"
+            >
+              Regras & Dicas
+            </h2>
+
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/85">
+              Consulte as principais orientações antes de submeter, editar ou
+              acompanhar seus trabalhos.
             </p>
           </div>
-        ))}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white/85 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70"
+            aria-label="Fechar modal"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          {itens.map((item, index) => (
+            <div
+              key={item.titulo}
+              className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm dark:border-violet-900 dark:bg-slate-900"
+            >
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-700 text-sm font-black text-white">
+                {index + 1}
+              </div>
+
+              <h3 className="font-black text-slate-900 dark:text-white">
+                {item.titulo}
+              </h3>
+
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                {item.texto}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+          <p className="font-black">Atenção ao edital</p>
+          <p className="mt-1 leading-relaxed">
+            As regras específicas da chamada prevalecem sobre as orientações
+            gerais. Antes de enviar seu trabalho, leia o edital completo e
+            confira prazo, formato, critérios de avaliação e modelos oficiais.
+          </p>
+        </div>
       </div>
-    </GlassCard>
-  );
+
+      <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            Use estas orientações como apoio antes de realizar sua submissão.
+          </p>
+
+          <Button tone="primary" icon={CheckCircle2} onClick={onClose}>
+            Entendi
+          </Button>
+        </div>
+      </footer>
+    </div>
+  </div>,
+  document.body
+);
 }
 
 /* =========================================================================
@@ -709,7 +799,7 @@ function SubmissionCard({
    Página principal
 =========================================================================== */
 
-export default function UsuarioSubmissao() {
+export default function SubmissaoTrabalhos() {
   const reduceMotion = useReducedMotion();
 
   const [loading, setLoading] = useState(true);
@@ -724,9 +814,10 @@ export default function UsuarioSubmissao() {
   const [baixandoBannerMap, setBaixandoBannerMap] = useState({});
   const [baixandoOralMap, setBaixandoOralMap] = useState({});
 
-  const [modalEdital, setModalEdital] = useState(null);
-  const [modalInscricao, setModalInscricao] = useState(null);
-  const [confirmacao, setConfirmacao] = useState(null);
+const [modalEdital, setModalEdital] = useState(null);
+const [modalInscricao, setModalInscricao] = useState(null);
+const [modalRegras, setModalRegras] = useState(false);
+const [confirmacao, setConfirmacao] = useState(null);
   const [excluindoId, setExcluindoId] = useState(null);
 
   const [q, setQ] = useState("");
@@ -937,6 +1028,11 @@ export default function UsuarioSubmissao() {
         </p>
       </ModalConfirmacao>
 
+      <ModalRegrasEDicas
+  open={modalRegras}
+  onClose={() => setModalRegras(false)}
+/>
+
       <HeaderHero
   icone={FileText}
   etiqueta="Submissão de trabalhos"
@@ -955,6 +1051,7 @@ export default function UsuarioSubmissao() {
     </p>
   </div>
 
+  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
   <Button
     tone="success"
     icon={RefreshCcw}
@@ -963,6 +1060,15 @@ export default function UsuarioSubmissao() {
   >
     {refreshing ? "Atualizando..." : "Atualizar dados"}
   </Button>
+
+  <Button
+    tone="slate"
+    icon={Sparkles}
+    onClick={() => setModalRegras(true)}
+  >
+    Regras & Dicas
+  </Button>
+</div>
 </section>
  {erro ? (
           <GlassCard className="p-4">
@@ -1031,8 +1137,6 @@ export default function UsuarioSubmissao() {
             </GlassCard>
           </div>
         </section>
-
-        <RegrasEDicasSection />
 
         <section aria-labelledby="chamadas-abertas" className="space-y-4">
           <div className="flex flex-col gap-2 text-center">

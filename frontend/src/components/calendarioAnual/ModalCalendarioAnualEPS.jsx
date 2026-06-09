@@ -32,6 +32,7 @@
 // - acessível.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -799,10 +800,10 @@ export default function ModalCalendarioAnualEPS({
 
   if (!aberto) return null;
 
-  return (
-    <AnimatePresence>
-      <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
+return createPortal(
+  <AnimatePresence>
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
         role="presentation"
         onMouseDown={(event) => {
           if (salvando) return;
@@ -812,18 +813,21 @@ export default function ModalCalendarioAnualEPS({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descId}
-className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950"          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+<motion.div
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby={titleId}
+  aria-describedby={descId}
+  className="flex w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl outline-none dark:bg-slate-950 sm:rounded-[2rem]"
+  style={{
+    maxHeight: "calc(100dvh - 3rem)",
+  }}
+  initial={{ opacity: 0, y: 18, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 30, scale: 0.98 }}
+          exit={{ opacity: 0, y: 18, scale: 0.98 }}
           transition={{ duration: 0.18 }}
         >
-          <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
+<header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
 
             <div className="relative flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -867,7 +871,7 @@ className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[
             {a11y}
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
             {erro ? (
               <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
                 <div className="flex gap-2">
@@ -1266,8 +1270,9 @@ className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[
             </form>
           </div>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              Campos com <span className="font-bold text-rose-500">*</span> são
+<footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+  <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  Campos com <span className="font-bold text-rose-500">*</span> são
               obrigatórios.
             </p>
 
@@ -1296,6 +1301,7 @@ className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[
           </footer>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+        </AnimatePresence>,
+    document.body
   );
 }

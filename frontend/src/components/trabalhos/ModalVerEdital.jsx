@@ -23,12 +23,12 @@
 // - dark mode.
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import PropTypes from "prop-types";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import {
   Award,
-  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Download,
@@ -455,303 +455,331 @@ export default function ModalVerEdital({ isOpen = true, chamadaId, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
-    <AnimatePresence>
+return createPortal(
+  <AnimatePresence>
+    <motion.div
+className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose?.();
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
       <motion.div
-        className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) onClose?.();
-        }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
+className="flex w-full max-w-6xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl outline-none dark:bg-slate-950 sm:rounded-[2rem]"
+style={{
+  maxHeight: "calc(100dvh - 3rem)",
+}}        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 18, scale: 0.98 }}
+        transition={{ duration: 0.18 }}
       >
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descId}
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"          initial={{ opacity: 0, y: 30, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 30, scale: 0.98 }}
-          transition={{ duration: 0.18 }}
-        >
-          <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(139,92,246,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
+        <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-4 text-white sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(139,92,246,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
 
-            <div className="relative flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <div className="mb-3 flex flex-wrap gap-2">
-                  <Badge tone="violet">
-                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    Edital institucional
-                  </Badge>
-                  {chamada?.publicado ? (
-                    <Badge tone="emerald">Publicado</Badge>
-                  ) : (
-                    <Badge tone="slate">Não publicado</Badge>
-                  )}
-                </div>
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 flex flex-wrap gap-2">
+                <Badge tone="violet">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  Edital institucional
+                </Badge>
 
-                <h2
-                  id={titleId}
-                  className="flex items-center gap-2 text-xl font-black tracking-tight sm:text-2xl"
-                >
-                  <FileText className="h-5 w-5" aria-hidden="true" />
-                  Edital da chamada
-                </h2>
-
-                <p
-                  id={descId}
-                  className="mt-2 line-clamp-2 max-w-4xl text-sm leading-relaxed text-white/75"
-                >
-                  {chamada?.titulo || "Carregando chamada..."}
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/80">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
-                    Prazo final: <strong>{prazoFinal}</strong>
-                  </span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
-                    Experiência: <strong>{periodoExperiencia}</strong>
-                  </span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
-                    Coautores: <strong>{minis.coautores}</strong>
-                  </span>
-                </div>
+                {chamada?.publicado ? (
+                  <Badge tone="emerald">Publicado</Badge>
+                ) : (
+                  <Badge tone="slate">Não publicado</Badge>
+                )}
               </div>
 
-              <button
-                type="button"
-                ref={closeButtonRef}
-                onClick={onClose}
-                className="rounded-2xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
-                aria-label="Fechar edital"
+              <h2
+                id={titleId}
+                className="flex items-center gap-2 text-lg font-black leading-tight tracking-tight sm:text-2xl"
               >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
+                <FileText className="h-5 w-5 shrink-0" aria-hidden="true" />
+                Edital da chamada
+              </h2>
+
+              <p
+                id={descId}
+                className="mt-2 line-clamp-2 max-w-4xl text-sm leading-relaxed text-white/75"
+              >
+                {chamada?.titulo || "Carregando chamada..."}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/80">
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                  Prazo final: <strong>{prazoFinal}</strong>
+                </span>
+
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                  Experiência: <strong>{periodoExperiencia}</strong>
+                </span>
+
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                  Coautores: <strong>{minis.coautores}</strong>
+                </span>
+              </div>
             </div>
-          </header>
 
-          <div aria-live="polite" className="sr-only">
-            {loading ? "Carregando edital." : erro ? erro : "Edital carregado."}
+            <button
+              type="button"
+              ref={closeButtonRef}
+              onClick={onClose}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white/85 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+              aria-label="Fechar edital"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
           </div>
+        </header>
 
-          {loading ? (
-            <div className="flex min-h-[360px] items-center justify-center bg-slate-50 p-8 dark:bg-slate-950">
+        <div aria-live="polite" className="sr-only">
+          {loading ? "Carregando edital." : erro ? erro : "Edital carregado."}
+        </div>
+
+        {loading ? (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+            <div className="flex min-h-[320px] items-center justify-center">
               <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-600" />
+
                 <p className="mt-4 text-sm font-semibold text-slate-600 dark:text-slate-300">
                   Carregando edital...
                 </p>
               </div>
             </div>
-          ) : erro ? (
-            <div className="bg-slate-50 p-5 dark:bg-slate-950 sm:p-6">
+          </div>
+        ) : erro ? (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
               <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
                 <strong className="block text-base">Não foi possível carregar</strong>
                 <span className="mt-1 block">{erro}</span>
               </div>
+            </div>
 
-              <div className="mt-5 flex justify-end">
+            <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex justify-end">
                 <Button tone="primary" onClick={onClose}>
                   Fechar
                 </Button>
               </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <MiniStat
-                    label="Linhas temáticas"
-                    value={minis.linhas}
-                    icon={Layers}
-                    tone="violet"
-                  />
-                  <MiniStat
-                    label="Critérios escritos"
-                    value={minis.escrita}
-                    icon={CheckCircle2}
-                    tone="emerald"
-                  />
-                  <MiniStat
-                    label="Critérios orais"
-                    value={minis.oral}
-                    icon={Mic}
-                    tone="amber"
-                  />
-                  <MiniStat
-                    label="Arquivo/pôster"
-                    value={minis.aceitaPoster ? "Sim" : "Não"}
-                    icon={ClipboardList}
-                    tone="cyan"
-                  />
-                </div>
+            </footer>
+          </>
+        ) : (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MiniStat
+                  label="Linhas temáticas"
+                  value={minis.linhas}
+                  icon={Layers}
+                  tone="violet"
+                />
 
-                <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_340px]">
-                  <main className="space-y-5">
-                    {chamada?.descricao_markdown ? (
-                      <Section title="Normas e descrição" icon={ScrollText} tone="violet">
-                        <MarkdownBox>{chamada.descricao_markdown}</MarkdownBox>
-                      </Section>
-                    ) : null}
+                <MiniStat
+                  label="Critérios escritos"
+                  value={minis.escrita}
+                  icon={CheckCircle2}
+                  tone="emerald"
+                />
 
-                    {hasArrayItems(linhas) ? (
-                      <Section title="Linhas temáticas" icon={Layers} tone="violet">
-                        <div className="space-y-3">
-                          {linhas.map((linha, index) => (
-                            <div
-                              key={linha?.id || `${linha?.nome || "linha"}-${index}`}
-                              className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60"
-                            >
-                              <h4 className="font-black text-slate-900 dark:text-white">
-                                {linha?.nome || `Linha ${index + 1}`}
-                              </h4>
-                              {linha?.descricao ? (
-                                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                  {linha.descricao}
-                                </p>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      </Section>
-                    ) : null}
+                <MiniStat
+                  label="Critérios orais"
+                  value={minis.oral}
+                  icon={Mic}
+                  tone="amber"
+                />
 
-                    {hasArrayItems(criterios) ? (
-                      <Section
-                        title="Critérios de avaliação escrita"
-                        icon={CheckCircle2}
-                        tone="emerald"
-                      >
-                        <CriteriaList criterios={criterios} />
-                      </Section>
-                    ) : null}
-
-                    {hasArrayItems(criteriosOrais) ? (
-                      <Section
-                        title="Critérios de apresentação oral"
-                        icon={Mic}
-                        tone="amber"
-                      >
-                        <CriteriaList criterios={criteriosOrais} />
-                      </Section>
-                    ) : null}
-
-                    {chamada?.premiacao_texto ? (
-                      <Section title="Premiação" icon={Award} tone="rose">
-                        <MarkdownBox>{chamada.premiacao_texto}</MarkdownBox>
-                      </Section>
-                    ) : null}
-
-                    {chamada?.disposicao_finais_texto ? (
-                      <Section title="Disposições finais" icon={FileText} tone="slate">
-                        <MarkdownBox>{chamada.disposicao_finais_texto}</MarkdownBox>
-                      </Section>
-                    ) : null}
-                  </main>
-
-                  <aside className="space-y-4">
-                    <Section title="Informações rápidas" icon={Info} tone="blue">
-                      <dl className="space-y-3 text-sm">
-                        <InfoRow label="Prazo final" value={prazoFinal} />
-                        <InfoRow label="Período da experiência" value={periodoExperiencia} />
-                        <InfoRow
-                          label="Aceita arquivo/pôster"
-                          value={minis.aceitaPoster ? "Sim" : "Não"}
-                        />
-                        <InfoRow label="Máximo de coautores" value={minis.coautores} />
-                      </dl>
-                    </Section>
-
-                    {Object.keys(limites).length > 0 ? (
-                      <Section title="Limites do formulário" icon={ListChecks} tone="violet">
-                        <div className="grid gap-2">
-                          {Object.entries(limites).map(([key, value]) => (
-                            <div
-                              key={key}
-                              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950/60"
-                            >
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                {formatLimitKey(key)}
-                              </span>
-                              <span className="text-slate-500 dark:text-slate-400">
-                                {value} caracteres
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </Section>
-                    ) : null}
-
-                    <Section title="Modelos oficiais" icon={Download} tone="violet">
-                      <div className="space-y-2">
-                        <Button
-                          tone="violet"
-                          icon={Download}
-                          loading={baixandoBanner}
-                          onClick={baixarModeloBanner}
-                          className="w-full"
-                        >
-                          Modelo de pôster
-                        </Button>
-
-                        <Button
-                          tone="amber"
-                          icon={Download}
-                          loading={baixandoOral}
-                          onClick={baixarModeloOral}
-                          className="w-full"
-                        >
-                          Modelo de apresentação oral
-                        </Button>
-
-                        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                          Caso algum modelo ainda não tenha sido importado pela administração,
-                          o sistema exibirá uma mensagem de indisponibilidade.
-                        </p>
-                      </div>
-                    </Section>
-
-                    <Section title="Orientação" icon={Sparkles} tone="cyan">
-                      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                        Leia as normas antes de submeter. Após o trabalho entrar em avaliação,
-                        alterações pelo autor podem ficar bloqueadas para preservar a rastreabilidade.
-                      </p>
-                    </Section>
-                  </aside>
-                </div>
+                <MiniStat
+                  label="Arquivo/pôster"
+                  value={minis.aceitaPoster ? "Sim" : "Não"}
+                  icon={ClipboardList}
+                  tone="cyan"
+                />
               </div>
 
-              <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-end">
-                <Button tone="ghost" onClick={onClose}>
-                  Fechar
-                </Button>
-                <Button
-                  tone="violet"
-                  icon={Download}
-                  loading={baixandoBanner}
-                  onClick={baixarModeloBanner}
-                >
-                  Modelo pôster
-                </Button>
-                <Button
-                  tone="amber"
-                  icon={Download}
-                  loading={baixandoOral}
-                  onClick={baixarModeloOral}
-                >
-                  Modelo oral
-                </Button>
-              </footer>
-            </>
-          )}
-        </motion.div>
+              <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_340px]">
+                <main className="space-y-5">
+                  {chamada?.descricao_markdown ? (
+                    <Section title="Normas e descrição" icon={ScrollText} tone="violet">
+                      <MarkdownBox>{chamada.descricao_markdown}</MarkdownBox>
+                    </Section>
+                  ) : null}
+
+                  {hasArrayItems(linhas) ? (
+                    <Section title="Linhas temáticas" icon={Layers} tone="violet">
+                      <div className="space-y-3">
+                        {linhas.map((linha, index) => (
+                          <div
+                            key={linha?.id || `${linha?.nome || "linha"}-${index}`}
+                            className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60"
+                          >
+                            <h4 className="font-black text-slate-900 dark:text-white">
+                              {linha?.nome || `Linha ${index + 1}`}
+                            </h4>
+
+                            {linha?.descricao ? (
+                              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                                {linha.descricao}
+                              </p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </Section>
+                  ) : null}
+
+                  {hasArrayItems(criterios) ? (
+                    <Section
+                      title="Critérios de avaliação escrita"
+                      icon={CheckCircle2}
+                      tone="emerald"
+                    >
+                      <CriteriaList criterios={criterios} />
+                    </Section>
+                  ) : null}
+
+                  {hasArrayItems(criteriosOrais) ? (
+                    <Section
+                      title="Critérios de apresentação oral"
+                      icon={Mic}
+                      tone="amber"
+                    >
+                      <CriteriaList criterios={criteriosOrais} />
+                    </Section>
+                  ) : null}
+
+                  {chamada?.premiacao_texto ? (
+                    <Section title="Premiação" icon={Award} tone="rose">
+                      <MarkdownBox>{chamada.premiacao_texto}</MarkdownBox>
+                    </Section>
+                  ) : null}
+
+                  {chamada?.disposicao_finais_texto ? (
+                    <Section title="Disposições finais" icon={FileText} tone="slate">
+                      <MarkdownBox>{chamada.disposicao_finais_texto}</MarkdownBox>
+                    </Section>
+                  ) : null}
+                </main>
+
+                <aside className="space-y-4">
+                  <Section title="Informações rápidas" icon={Info} tone="blue">
+                    <dl className="space-y-3 text-sm">
+                      <InfoRow label="Prazo final" value={prazoFinal} />
+                      <InfoRow label="Período da experiência" value={periodoExperiencia} />
+                      <InfoRow
+                        label="Aceita arquivo/pôster"
+                        value={minis.aceitaPoster ? "Sim" : "Não"}
+                      />
+                      <InfoRow label="Máximo de coautores" value={minis.coautores} />
+                    </dl>
+                  </Section>
+
+                  {Object.keys(limites).length > 0 ? (
+                    <Section title="Limites do formulário" icon={ListChecks} tone="violet">
+                      <div className="grid gap-2">
+                        {Object.entries(limites).map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950/60"
+                          >
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">
+                              {formatLimitKey(key)}
+                            </span>
+
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {value} caracteres
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </Section>
+                  ) : null}
+
+                  <Section title="Modelos oficiais" icon={Download} tone="violet">
+                    <div className="space-y-2">
+                      <Button
+                        tone="violet"
+                        icon={Download}
+                        loading={baixandoBanner}
+                        onClick={baixarModeloBanner}
+                        className="w-full"
+                      >
+                        Modelo de pôster
+                      </Button>
+
+                      <Button
+                        tone="amber"
+                        icon={Download}
+                        loading={baixandoOral}
+                        onClick={baixarModeloOral}
+                        className="w-full"
+                      >
+                        Modelo de apresentação oral
+                      </Button>
+
+                      <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                        Caso algum modelo ainda não tenha sido importado pela administração,
+                        o sistema exibirá uma mensagem de indisponibilidade.
+                      </p>
+                    </div>
+                  </Section>
+
+                  <Section title="Orientação" icon={Sparkles} tone="cyan">
+                    <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                      Leia as normas antes de submeter. Após o trabalho entrar em avaliação,
+                      alterações pelo autor podem ficar bloqueadas para preservar a rastreabilidade.
+                    </p>
+                  </Section>
+                </aside>
+              </div>
+            </div>
+
+            <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  Confira o edital completo antes de submeter ou editar seu trabalho.
+                </p>
+
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                  <Button tone="ghost" onClick={onClose}>
+                    Fechar
+                  </Button>
+
+                  <Button
+                    tone="violet"
+                    icon={Download}
+                    loading={baixandoBanner}
+                    onClick={baixarModeloBanner}
+                  >
+                    Modelo pôster
+                  </Button>
+
+                  <Button
+                    tone="amber"
+                    icon={Download}
+                    loading={baixandoOral}
+                    onClick={baixarModeloOral}
+                  >
+                    Modelo oral
+                  </Button>
+                </div>
+              </div>
+            </footer>
+          </>
+        )}
       </motion.div>
-    </AnimatePresence>
-  );
+    </motion.div>
+  </AnimatePresence>,
+  document.body
+);
 }
 
 function CriteriaList({ criterios }) {
