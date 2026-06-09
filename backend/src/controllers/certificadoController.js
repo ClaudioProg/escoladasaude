@@ -802,7 +802,8 @@ async function resumoDatasTurma(db, turmaId, usuarioId) {
   return fallback.rows?.[0] || {};
 }
 
-async function obterAssinantesDaTurma(db, turmaId) {
+async function obterAssinantesDaTurma(db, turmaId, options = {}) {
+  const excluirUsuarioId = toPositiveInt(options?.excluirUsuarioId);
   const result = await db.query(
     `
     SELECT
@@ -823,18 +824,23 @@ async function obterAssinantesDaTurma(db, turmaId) {
   );
 
   const assinantes = (result.rows || [])
-    .map((row) => ({
-      id: Number(row.id),
-      usuario_id: Number(row.usuario_id),
-      ordem: Number(row.ordem),
-      nome: row.nome || "",
-      email: row.email || null,
-      perfil: row.perfil || null,
-      imagem_base64: row.imagem_base64 || null,
-      cargo: cargoAssinantePorId(row.usuario_id, "Assinante"),
-      origem: "turma_certificado_assinante",
-    }))
-    .filter((item) => item.id && item.nome);
+  .map((row) => ({
+    id: Number(row.id),
+    usuario_id: Number(row.usuario_id),
+    ordem: Number(row.ordem),
+    nome: row.nome || "",
+    email: row.email || null,
+    perfil: row.perfil || null,
+    imagem_base64: row.imagem_base64 || null,
+    cargo: cargoAssinantePorId(row.usuario_id, "Assinante"),
+    origem: "turma_certificado_assinante",
+  }))
+  .filter((item) => item.id && item.nome)
+  .filter((item) => {
+    if (!excluirUsuarioId) return true;
+
+    return Number(item.usuario_id) !== Number(excluirUsuarioId);
+  });
 
   const ids = assinantes.map((item) => Number(item.id));
 
@@ -941,7 +947,9 @@ async function gerarPdfFisico({
 
   const linkValidacao = urlValidacaoPublica(codigo_validacao);
   const qrDataURL = await tryQRCodeDataURL(linkValidacao);
-  const assinantes = await obterAssinantesDaTurma(db, turma_id);
+  const assinantes = await obterAssinantesDaTurma(db, turma_id, {
+  excluirUsuarioId: usuario_id,
+});
 
   const doc = new PDFDocument({
     size: "A4",
