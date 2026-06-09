@@ -32,6 +32,7 @@
 // - estados loading/vazio/erro.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -1401,9 +1402,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (salvando) return;
@@ -1415,8 +1416,8 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
         aria-modal="true"
         aria-labelledby="modal-nuvem-title"
         aria-describedby="modal-nuvem-desc"
-className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
->
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2rem]"
+      >
 <header className="shrink-0 relative overflow-hidden border-b border-white/10 bg-slate-950 p-4 text-white sm:p-5">          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,.34),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(6,182,212,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
 
           <div className="relative flex items-start justify-between gap-4">
@@ -1767,7 +1768,8 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

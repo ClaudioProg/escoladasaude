@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/Interacoes.jsx — v2.0
-// Atualizado em: 19/05/2026
+// ✅ frontend/src/pages/Interacoes.jsx — v2.1
+// Atualizado em: 09/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -432,27 +432,26 @@ export default function Interacoes() {
     }
   }
 
-  function handleRespondida(interacaoId, respostaTipo) {
+    function handleRespondida(interacaoId, respostaTipo) {
     setInteracoes((current) =>
       current.map((item) =>
         String(item.id) === String(interacaoId)
           ? {
               ...item,
-              respondida:
-                item.tipo === TIPO.quiz ? item.respondida : true,
+              respondida: item.tipo === TIPO.quiz ? item.respondida : true,
               total_respostas: Number(item.total_respostas || 0) + 1,
             }
           : item
       )
     );
 
-    setModalInteracao(null);
-
     if (respostaTipo === TIPO.quiz) {
-      setMensagem("Resposta enviada com sucesso.");
-    } else {
-      setMensagem("Participação registrada com sucesso. Obrigado!");
+      setMensagem("");
+      return;
     }
+
+    setModalInteracao(null);
+    setMensagem("Participação registrada com sucesso. Obrigado!");
   }
 
   return (
@@ -846,26 +845,38 @@ function LoadingGrid() {
    Modal de resposta
 =========================================================================== */
 
-function ResponderInteracaoModal({ interacao, onClose, onRespondida }) {
+function ResponderInteracaoModal({
+  interacao: interacaoOriginal,
+  onClose,
+  onRespondida,
+}) {
+  const [interacaoAtual, setInteracaoAtual] = useState(null);
   const [valor, setValor] = useState("");
   const [anonima, setAnonima] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [respostaEnviada, setRespostaEnviada] = useState(false);
   const [erro, setErro] = useState("");
   const [a11y, setA11y] = useState("");
   const startedAtRef = useRef(null);
   const firstRef = useRef(null);
 
+  const interacao = interacaoAtual || interacaoOriginal;
   const pergunta = useMemo(() => obterPerguntaAtiva(interacao), [interacao]);
   const info = tipoInfo(interacao?.tipo);
 
   useEffect(() => {
-    if (!interacao) return undefined;
+    if (!interacaoOriginal) {
+      setInteracaoAtual(null);
+      return undefined;
+    }
 
+    setInteracaoAtual(interacaoOriginal);
     setValor("");
     setAnonima(false);
     setErro("");
     setA11y("");
     setSalvando(false);
+    setRespostaEnviada(false);
     startedAtRef.current = Date.now();
 
     const timer = window.setTimeout(() => {
@@ -886,7 +897,47 @@ function ResponderInteracaoModal({ interacao, onClose, onRespondida }) {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [interacao, onClose, salvando]);
+  }, [interacaoOriginal, onClose, salvando]);
+
+  useEffect(() => {
+    if (!interacao?.id || interacao.tipo !== TIPO.quiz) return undefined;
+
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await api.interacao.obter(interacao.id);
+        const completa = unwrapData(response);
+
+        if (!completa?.id) return;
+
+        const perguntaAnteriorId = Number(pergunta?.id || 0);
+        const proximaPergunta = obterPerguntaAtiva(completa);
+        const proximaPerguntaId = Number(proximaPergunta?.id || 0);
+
+        setInteracaoAtual(completa);
+
+        if (
+          proximaPerguntaId &&
+          perguntaAnteriorId &&
+          proximaPerguntaId !== perguntaAnteriorId
+        ) {
+          setValor("");
+          setErro("");
+          setRespostaEnviada(false);
+          setA11y("Nova pergunta disponível.");
+          startedAtRef.current = Date.now();
+        }
+
+        if (completa.status === "encerrada") {
+          setRespostaEnviada(true);
+          setA11y("Quiz finalizado.");
+        }
+      } catch {
+        // Polling silencioso: não deve quebrar a experiência do usuário.
+      }
+    }, 2500);
+
+    return () => window.clearInterval(timer);
+  }, [interacao?.id, interacao?.tipo, pergunta?.id]);
 
   if (!interacao) return null;
 
@@ -976,7 +1027,15 @@ function ResponderInteracaoModal({ interacao, onClose, onRespondida }) {
     try {
       const payload = await montarPayload();
 
-      await api.interacao.responder(interacao.id, payload);
+            await api.interacao.responder(interacao.id, payload);
+
+      if (interacao.tipo === TIPO.quiz) {
+        setValor("");
+        setRespostaEnviada(true);
+        setA11y("Resposta enviada. Aguarde a próxima pergunta.");
+        onRespondida?.(interacao.id, interacao.tipo);
+        return;
+      }
 
       setA11y("Resposta enviada com sucesso.");
       onRespondida?.(interacao.id, interacao.tipo);
@@ -1070,10 +1129,27 @@ style={{
         className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6"
       >
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
-        ) : null}
+  <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+) : null}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+{interacao.tipo === TIPO.quiz && respostaEnviada ? (
+  <AlertBox
+    tone="emerald"
+    icon={Loader2}
+    title={
+      interacao.status === "encerrada"
+        ? "Quiz finalizado"
+        : "Resposta enviada"
+    }
+    message={
+      interacao.status === "encerrada"
+        ? "O quiz foi encerrado. Você já pode fechar esta janela."
+        : "Aguarde a próxima pergunta ser liberada pelo administrador."
+    }
+  />
+) : null}
+
+<section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
               {pergunta?.status
@@ -1111,7 +1187,11 @@ style={{
                     value={opcao.id}
                     checked={String(valor) === String(opcao.id)}
                     onChange={() => setValor(String(opcao.id))}
-                    disabled={salvando}
+                    disabled={
+  salvando ||
+  (interacao.tipo === TIPO.quiz && respostaEnviada) ||
+  interacao.status === "encerrada"
+}
                     className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
                   />
 
@@ -1207,22 +1287,36 @@ style={{
             </button>
 
             <button
-              type="submit"
-              form="form-responder-interacao"
-              disabled={salvando}
+  type="submit"
+  form="form-responder-interacao"
+  disabled={
+    salvando ||
+    (interacao.tipo === TIPO.quiz && respostaEnviada) ||
+    interacao.status === "encerrada"
+  }
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {salvando ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  Enviar resposta
-                </>
-              )}
+  <>
+    <Loader2 className="h-4 w-4 animate-spin" />
+    Enviando...
+  </>
+) : interacao.status === "encerrada" ? (
+  <>
+    <CheckCircle2 className="h-4 w-4" />
+    Quiz finalizado
+  </>
+) : interacao.tipo === TIPO.quiz && respostaEnviada ? (
+  <>
+    <Loader2 className="h-4 w-4 animate-spin" />
+    Aguardando próxima
+  </>
+) : (
+  <>
+    <Send className="h-4 w-4" />
+    Enviar resposta
+  </>
+)}
             </button>
           </div>
         </div>

@@ -643,7 +643,7 @@ function criarSecoes() {
           resumo_chave: "avaliacao_pendente",
         },
         {
-          label: "Trabalhos atribuídos",
+          label: "Banca avaliadora",
           path: ROTA.organizadorSubmissao,
           icon: FolderOpenDot,
           resumo_chave: "trabalho_pendente",

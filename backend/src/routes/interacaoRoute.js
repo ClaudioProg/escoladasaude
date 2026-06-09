@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/routes/interacaoRoute.js — v2.0
- * Atualizado em: 19/05/2026
+ * ✅ backend/src/routes/interacaoRoute.js — v2.1
+ * Atualizado em: 09/06/2026
  *
  * Plataforma Escola da Saúde
  *
@@ -31,6 +31,7 @@
  *
  * Contratos oficiais — execução ao vivo:
  * - POST  /api/interacao/admin/:id/execucao/iniciar
+ * - POST  /api/interacao/admin/:id/pergunta/avancar
  * - POST  /api/interacao/admin/:id/pergunta/abrir
  * - POST  /api/interacao/admin/:id/pergunta/fechar
  * - POST  /api/interacao/admin/:id/pergunta/gabarito
@@ -65,6 +66,7 @@ const {
   excluirAdmin,
 
   iniciarExecucaoAdmin,
+  avancarPerguntaAdmin,
   abrirPerguntaAdmin,
   fecharPerguntaAdmin,
   exibirGabaritoAdmin,
@@ -94,6 +96,7 @@ for (const [nome, handler] of Object.entries({
   excluirAdmin,
 
   iniciarExecucaoAdmin,
+  avancarPerguntaAdmin,
   abrirPerguntaAdmin,
   fecharPerguntaAdmin,
   exibirGabaritoAdmin,
@@ -289,6 +292,24 @@ router.post(
   "/admin/:id/execucao/iniciar",
   validarIdParam,
   wrap(iniciarExecucaoAdmin)
+);
+
+/**
+ * Avança o quiz para a próxima pergunta.
+ *
+ * Fluxo oficial:
+ * - se não houver pergunta atual, abre a primeira;
+ * - se houver pergunta atual, fecha a atual e abre a próxima;
+ * - se não houver próxima, encerra o quiz.
+ *
+ * Usos:
+ * - modo manual: chamado pelo administrador;
+ * - modo automático: chamado pela rotina/validação de expiração.
+ */
+router.post(
+  "/admin/:id/pergunta/avancar",
+  validarIdParam,
+  wrap(avancarPerguntaAdmin)
 );
 
 /**

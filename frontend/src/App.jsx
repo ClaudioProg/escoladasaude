@@ -125,7 +125,7 @@ const CertificadosOrganizador = lazy(() =>
   import("./pages/CertificadosOrganizador")
 );
 const AvaliacaoOrganizador = lazy(() => import("./pages/AvaliacaoOrganizador"));
-const AvaliadorSubmissao = lazy(() => import("./pages/AvaliadorSubmissao"));
+const BancaAvaliadora = lazy(() => import("./pages/BancaAvaliadora"));
 const PresencasPorTurma = lazy(() => import("./pages/PresencasPorTurma"));
 
 /* ─────────────────────────────────────────────────────────────
@@ -672,7 +672,7 @@ function OrganizadorRoutes() {
         element={
           <ProtectedPage
             permitido={PERFIL_PERMITIDO.organizador}
-            element={<AvaliadorSubmissao />}
+            element={<BancaAvaliadora />}
           />
         }
       />

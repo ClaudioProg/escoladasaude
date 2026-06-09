@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/InteracoesQuizAdmin.jsx — v2.0
-// Atualizado em: 19/05/2026
+// ✅ frontend/src/pages/InteracoesQuizAdmin.jsx — v2.1
+// Atualizado em: 09/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -16,6 +16,7 @@
 // - PATCH  /api/interacao/admin/:id/status
 // - DELETE /api/interacao/admin/:id
 // - POST   /api/interacao/admin/:id/execucao/iniciar
+// - POST   /api/interacao/admin/:id/pergunta/avancar
 // - POST   /api/interacao/admin/:id/pergunta/abrir
 // - POST   /api/interacao/admin/:id/pergunta/fechar
 // - POST   /api/interacao/admin/:id/pergunta/gabarito
@@ -37,6 +38,7 @@
 // - estados loading/vazio/erro.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -96,6 +98,8 @@ const FORM_INICIAL = {
   contexto: "geral",
   evento_id: "",
   turma_id: "",
+
+  modo_execucao_quiz: "manual",
 
   exige_inscricao_ou_presenca: false,
   permite_anonima: false,
@@ -254,6 +258,8 @@ function normalizeFormFromInteracao(interacao) {
       interacao.turma_id !== null && interacao.turma_id !== undefined
         ? String(interacao.turma_id)
         : "",
+
+    modo_execucao_quiz: interacao.modo_execucao_quiz || "manual",
 
     exige_inscricao_ou_presenca: Boolean(interacao.exige_inscricao_ou_presenca),
     permite_anonima: Boolean(interacao.permite_anonima),
@@ -595,19 +601,13 @@ export default function InteracoesQuizAdmin() {
 
     try {
       if (tipo === "iniciar") {
-  await api.interacao.iniciarExecucao(interacaoId);
+        await api.interacao.iniciarExecucao(interacaoId);
+        await api.interacao.avancarPergunta(interacaoId);
+      }
 
-  const completoResponse = await api.interacao.obterAdmin(interacaoId);
-  const completo = unwrapData(completoResponse);
-
-  const primeiraPergunta = Array.isArray(completo?.perguntas)
-    ? completo.perguntas.find((pergunta) => pergunta?.id)
-    : null;
-
-  if (primeiraPergunta?.id) {
-    await api.interacao.abrirPergunta(interacaoId, primeiraPergunta.id);
-  }
-}
+      if (tipo === "avancar") {
+        await api.interacao.avancarPergunta(interacaoId);
+      }
 
       if (tipo === "abrir") {
         await api.interacao.abrirPergunta(interacaoId, perguntaId);
@@ -1408,6 +1408,8 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
       exige_inscricao_ou_presenca: Boolean(form.exige_inscricao_ou_presenca),
       exige_geolocalizacao: false,
 
+      modo_execucao_quiz: form.modo_execucao_quiz || "manual",
+
       permite_anonima: Boolean(form.permite_anonima),
       uma_resposta_por_usuario: false,
       mostrar_resultado_usuario: Boolean(form.mostrar_resultado_usuario),
@@ -1443,8 +1445,8 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
       })),
 
       // O quiz ao vivo não depende de janela de disponibilidade.
-      // A abertura/fechamento é controlada pelo administrador pergunta a pergunta.
-      janelas: [],
+// A execução é sequencial: manual pelo administrador ou automática pelo tempo definido.
+janelas: [],
     };
   }
 
@@ -1489,9 +1491,9 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (salvando) return;
@@ -1503,7 +1505,8 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
         aria-modal="true"
         aria-labelledby="modal-quiz-title"
         aria-describedby="modal-quiz-desc"
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"      >
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2rem]"
+      >
         <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(124,58,237,.34),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(217,70,239,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.18),transparent_35%)]" />
 
@@ -1628,6 +1631,20 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                   />
                 </Field>
               ) : null}
+
+                           <Field label="Modo de execução" required>
+                <select
+                  value={form.modo_execucao_quiz}
+                  onChange={(event) =>
+                    setCampo("modo_execucao_quiz", event.target.value)
+                  }
+                  className={inputClass()}
+                  disabled={salvando}
+                >
+                  <option value="manual">Manual — administrador avança</option>
+                  <option value="automatico">Automático — avança pelo tempo</option>
+                </select>
+              </Field>
 
               <Field label="Tempo padrão por pergunta (segundos)" required>
                 <input
@@ -1943,8 +1960,9 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
         </form>
 
 <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-            O quiz será aplicado ao vivo pelo administrador, liberando uma
-            pergunta por vez.
+                        O quiz será aplicado em sequência. No modo manual, o administrador
+            avança pergunta por pergunta. No modo automático, a plataforma
+            avança conforme o tempo definido.
           </p>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
@@ -1978,7 +1996,8 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1992,6 +2011,60 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
   const interacao = painel.completo || painel.interacao;
   const ranking = painel.resultado?.ranking || [];
   const perguntas = Array.isArray(interacao?.perguntas) ? interacao.perguntas : [];
+
+  const modoExecucao = interacao?.modo_execucao_quiz || "manual";
+  const tempoPadrao = Number(interacao?.tempo_por_pergunta_segundos || 0);
+  const perguntaAtualId = Number(interacao?.pergunta_atual_id || 0);
+
+  const perguntaAtualIndex = perguntas.findIndex((pergunta) => {
+    if (perguntaAtualId && Number(pergunta.id) === perguntaAtualId) return true;
+    return pergunta.status === "aberta";
+  });
+
+  const perguntaAtual =
+    perguntaAtualIndex >= 0 ? perguntas[perguntaAtualIndex] : null;
+
+  const quizEncerrado = interacao?.status === "encerrada";
+  const quizEmAndamento = interacao?.status === "em_andamento";
+
+  const iniciando = acaoAoVivo === `iniciar-${interacao?.id}-execucao`;
+  const avancando = acaoAoVivo === `avancar-${interacao?.id}-execucao`;
+
+  function statusPerguntaInfo(pergunta, index) {
+    const status = String(pergunta?.status || "aguardando").toLowerCase();
+    const isAtual =
+      Number(pergunta?.id) === perguntaAtualId || status === "aberta";
+
+    if (isAtual) {
+      return {
+        label: "Aberta agora",
+        className:
+          "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
+      };
+    }
+
+    if (status === "fechada" || status === "gabarito_exibido") {
+      return {
+        label: status === "gabarito_exibido" ? "Gabarito exibido" : "Encerrada",
+        className:
+          "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
+      };
+    }
+
+    if (perguntaAtualIndex >= 0 && index < perguntaAtualIndex) {
+      return {
+        label: "Encerrada",
+        className:
+          "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
+      };
+    }
+
+    return {
+      label: "Aguardando",
+      className:
+        "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
+    };
+  }
 
   return (
     <div
@@ -2021,7 +2094,8 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
               </h2>
 
               <p className="mt-1 text-sm text-white/70">
-                Libere perguntas, exiba gabarito e acompanhe o ranking.
+                Execute o quiz em sequência, acompanhe a pergunta atual e veja o
+                ranking em tempo real.
               </p>
             </div>
 
@@ -2055,31 +2129,103 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
             <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
               <section className="space-y-4">
                 <div className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                        Controle das perguntas
+                        Execução sequencial
                       </h3>
+
                       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Abra a pergunta, aguarde as respostas, feche e exiba o
-                        gabarito.
+                        {modoExecucao === "automatico"
+                          ? "Modo automático: a plataforma avançará conforme o tempo definido."
+                          : "Modo manual: o administrador avança pergunta por pergunta."}
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => onAcao?.("iniciar", interacao.id)}
-                      disabled={Boolean(acaoAoVivo)}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
-                    >
-                      {acaoAoVivo === `iniciar-${interacao.id}-execucao` ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                      Iniciar execução
-                    </button>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => onAcao?.("iniciar", interacao.id)}
+                        disabled={Boolean(acaoAoVivo) || quizEmAndamento || quizEncerrado}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
+                      >
+                        {iniciando ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )}
+                        Iniciar execução
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onAcao?.("avancar", interacao.id)}
+                        disabled={Boolean(acaoAoVivo) || quizEncerrado || perguntas.length === 0}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
+                      >
+                        {avancando ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        {modoExecucao === "automatico"
+                          ? "Avançar agora"
+                          : "Avançar pergunta"}
+                      </button>
+                    </div>
                   </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <InfoBox
+                      icon={ShieldCheck}
+                      title="Modo"
+                      value={
+                        modoExecucao === "automatico"
+                          ? "Automático"
+                          : "Manual"
+                      }
+                    />
+
+                    <InfoBox
+                      icon={Clock}
+                      title="Tempo padrão"
+                      value={tempoPadrao ? `${tempoPadrao}s` : "—"}
+                    />
+
+                    <InfoBox
+                      icon={FileQuestion}
+                      title="Pergunta atual"
+                      value={
+                        perguntaAtual
+                          ? `${perguntaAtualIndex + 1} de ${perguntas.length}`
+                          : quizEncerrado
+                            ? "Quiz finalizado"
+                            : "Nenhuma aberta"
+                      }
+                    />
+
+                    <InfoBox
+                      icon={Target}
+                      title="Respostas"
+                      value={String(interacao?.total_respostas || 0)}
+                    />
+                  </div>
+
+                  {perguntaAtual ? (
+                    <div className="mt-4 rounded-3xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-900 dark:bg-violet-950/30">
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-700 dark:text-violet-200">
+                        Aberta agora
+                      </p>
+
+                      <p className="mt-2 text-2xl font-black text-violet-900 dark:text-violet-100">
+                        Pergunta {perguntaAtualIndex + 1} de {perguntas.length}
+                      </p>
+
+                      <p className="mt-2 text-sm font-semibold leading-relaxed text-violet-800 dark:text-violet-100">
+                        {perguntaAtual.enunciado}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 {perguntas.length === 0 ? (
@@ -2087,93 +2233,74 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                     Nenhuma pergunta cadastrada.
                   </div>
                 ) : (
-                  perguntas.map((pergunta, index) => (
-                    <div
-                      key={pergunta.id || pergunta.local_id}
-                      className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-                    >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-xs font-black uppercase tracking-wide text-violet-600 dark:text-violet-300">
-                            Pergunta {index + 1} · {pergunta.status || "aguardando"}
-                          </p>
+                  perguntas.map((pergunta, index) => {
+                    const statusInfoPergunta = statusPerguntaInfo(pergunta, index);
 
-                          <h4 className="mt-1 text-base font-black text-slate-900 dark:text-white">
-                            {pergunta.enunciado}
-                          </h4>
+                    return (
+                      <div
+                        key={pergunta.id || pergunta.local_id}
+                        className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                      >
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-xs font-black uppercase tracking-wide text-violet-600 dark:text-violet-300">
+                                Pergunta {index + 1}
+                              </p>
 
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {(pergunta.opcoes || []).map((opcao) => (
                               <span
-                                key={opcao.id}
                                 className={cx(
-                                  "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold",
-                                  opcao.correta
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-                                    : "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                  "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
+                                  statusInfoPergunta.className
                                 )}
                               >
-                                {opcao.texto}
+                                {statusInfoPergunta.label}
                               </span>
-                            ))}
+                            </div>
+
+                            <h4 className="mt-2 text-base font-black text-slate-900 dark:text-white">
+                              {pergunta.enunciado}
+                            </h4>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {(pergunta.opcoes || []).map((opcao) => (
+                                <span
+                                  key={opcao.id}
+                                  className={cx(
+                                    "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold",
+                                    opcao.correta
+                                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
+                                      : "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                  )}
+                                >
+                                  {opcao.texto}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2 lg:w-48">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onAcao?.("gabarito", interacao.id, pergunta.id)
+                              }
+                              disabled={Boolean(acaoAoVivo)}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
+                            >
+                              {acaoAoVivo ===
+                              `gabarito-${interacao.id}-${pergunta.id}` ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                              Exibir gabarito
+                            </button>
                           </div>
                         </div>
-
-                        <div className="grid gap-2 sm:grid-cols-3 lg:w-[420px]">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onAcao?.("abrir", interacao.id, pergunta.id)
-                            }
-                            disabled={Boolean(acaoAoVivo)}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-800 transition hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200"
-                          >
-                            {acaoAoVivo ===
-                            `abrir-${interacao.id}-${pergunta.id}` ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                            Abrir
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onAcao?.("fechar", interacao.id, pergunta.id)
-                            }
-                            disabled={Boolean(acaoAoVivo)}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black text-blue-800 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200"
-                          >
-                            {acaoAoVivo ===
-                            `fechar-${interacao.id}-${pergunta.id}` ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <StopCircle className="h-4 w-4" />
-                            )}
-                            Fechar
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onAcao?.("gabarito", interacao.id, pergunta.id)
-                            }
-                            disabled={Boolean(acaoAoVivo)}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-                          >
-                            {acaoAoVivo ===
-                            `gabarito-${interacao.id}-${pergunta.id}` ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            Gabarito
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </section>
 

@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/interacaoController.js — v2.0
- * Atualizado em: 19/05/2026
+ * ✅ backend/src/controllers/interacaoController.js — v2.1
+ * Atualizado em: 09/06/2026
  *
  * Plataforma Escola da Saúde
  *
@@ -92,9 +92,17 @@ const STATUS_EXECUCAO = Object.freeze({
   encerrada: "encerrada",
 });
 
+const MODO_EXECUCAO_QUIZ = Object.freeze({
+  manual: "manual",
+  automatico: "automatico",
+});
+
 const TIPOS_OFICIAIS = new Set(Object.values(TIPO));
 const STATUS_OFICIAIS = new Set(Object.values(STATUS));
 const CONTEXTOS_OFICIAIS = new Set(Object.values(CONTEXTO));
+const MODOS_EXECUCAO_QUIZ_OFICIAIS = new Set(
+  Object.values(MODO_EXECUCAO_QUIZ)
+);
 
 const TIPO_LABEL = Object.freeze({
   votacao: "Votação",
@@ -279,6 +287,13 @@ function normalizarStatus(value, fallback = STATUS.rascunho) {
 
 function normalizarContexto(value, fallback = CONTEXTO.geral) {
   return normalizarEnum(value, CONTEXTOS_OFICIAIS, fallback);
+}
+
+function normalizarModoExecucaoQuiz(
+  value,
+  fallback = MODO_EXECUCAO_QUIZ.manual
+) {
+  return normalizarEnum(value, MODOS_EXECUCAO_QUIZ_OFICIAIS, fallback);
 }
 
 function validarIdParam(req) {
@@ -648,10 +663,16 @@ function validarPayloadInteracao(body = {}) {
   const mostrar_resultado_admin = toBool(body.mostrar_resultado_admin, true);
   const exibir_ranking = toBool(body.exibir_ranking, true);
 
-  const tempo_por_pergunta_segundos = toIntOrNull(
-    body.tempo_por_pergunta_segundos
-  );
-  const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
+const tempo_por_pergunta_segundos = toIntOrNull(
+  body.tempo_por_pergunta_segundos
+);
+
+const modo_execucao_quiz = normalizarModoExecucaoQuiz(
+  body.modo_execucao_quiz,
+  MODO_EXECUCAO_QUIZ.manual
+);
+
+const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
   const embaralhar_opcoes = toBool(body.embaralhar_opcoes, false);
   const tentativas_max = toIntOrNull(body.tentativas_max);
   const nota_minima = toNumberOrNull(body.nota_minima);
@@ -698,6 +719,15 @@ function validarPayloadInteracao(body = {}) {
       code: "CONTEXTO_INVALIDO",
     };
   }
+
+  if (!modo_execucao_quiz) {
+  return {
+    ok: false,
+    message: "Modo de execução do quiz inválido.",
+    code: "QUIZ_MODO_EXECUCAO_INVALIDO",
+    adminHint: "Valores oficiais: manual ou automatico.",
+  };
+}
 
   if (contexto === CONTEXTO.geral && (evento_id || turma_id)) {
     return {
@@ -850,11 +880,15 @@ function validarPayloadInteracao(body = {}) {
       mostrar_resultado_admin,
       exibir_ranking,
 
-      tempo_por_pergunta_segundos:
-        tempo_por_pergunta_segundos === undefined
-          ? null
-          : tempo_por_pergunta_segundos,
-      mostrar_gabarito,
+tempo_por_pergunta_segundos:
+  tempo_por_pergunta_segundos === undefined
+    ? null
+    : tempo_por_pergunta_segundos,
+
+modo_execucao_quiz:
+  tipo === TIPO.quiz ? modo_execucao_quiz : MODO_EXECUCAO_QUIZ.manual,
+
+mostrar_gabarito,
       embaralhar_opcoes,
       tentativas_max: tentativas_max === undefined ? null : tentativas_max,
       nota_minima: nota_minima === undefined ? null : nota_minima,
@@ -1499,9 +1533,10 @@ async function criarAdmin(req, res) {
             mostrar_resultado_usuario,
             mostrar_resultado_admin,
             exibir_ranking,
-            tempo_por_pergunta_segundos,
-            mostrar_gabarito,
-            embaralhar_opcoes,
+tempo_por_pergunta_segundos,
+modo_execucao_quiz,
+mostrar_gabarito,
+embaralhar_opcoes,
             tentativas_max,
             nota_minima,
             atualizar_automaticamente,
@@ -1517,8 +1552,8 @@ async function criarAdmin(req, res) {
             $6, $7, $8, $9,
             $10, $11, $12, $13, $14,
             $15, $16, $17, $18, $19,
-            $20, $21, $22, $23, $24,
-            $25, $26, $27, $28,
+           $20, $21, $22, $23, $24,
+$25, $26, $27, $28, $29,
             CASE WHEN $4 = 'publicada' THEN now() ELSE NULL END,
             CASE WHEN $4 = 'encerrada' THEN now() ELSE NULL END,
             CASE WHEN $4 = 'arquivada' THEN now() ELSE NULL END
@@ -1545,15 +1580,16 @@ async function criarAdmin(req, res) {
           payload.mostrar_resultado_usuario,
           payload.mostrar_resultado_admin,
           payload.exibir_ranking,
-          payload.tempo_por_pergunta_segundos,
-          payload.mostrar_gabarito,
-          payload.embaralhar_opcoes,
-          payload.tentativas_max,
-          payload.nota_minima,
-          payload.atualizar_automaticamente,
-          payload.intervalo_atualizacao_segundos,
-          payload.limite_palavra_caracteres,
-          permissao.usuarioId,
+payload.tempo_por_pergunta_segundos,
+payload.modo_execucao_quiz,
+payload.mostrar_gabarito,
+payload.embaralhar_opcoes,
+payload.tentativas_max,
+payload.nota_minima,
+payload.atualizar_automaticamente,
+payload.intervalo_atualizacao_segundos,
+payload.limite_palavra_caracteres,
+permissao.usuarioId,
         ]
       );
 
@@ -1656,13 +1692,14 @@ async function atualizarAdmin(req, res) {
                  mostrar_resultado_admin = $18,
                  exibir_ranking = $19,
                  tempo_por_pergunta_segundos = $20,
-                 mostrar_gabarito = $21,
-                 embaralhar_opcoes = $22,
-                 tentativas_max = $23,
-                 nota_minima = $24,
-                 atualizar_automaticamente = $25,
-                 intervalo_atualizacao_segundos = $26,
-                 limite_palavra_caracteres = $27,
+modo_execucao_quiz = $21,
+mostrar_gabarito = $22,
+embaralhar_opcoes = $23,
+tentativas_max = $24,
+nota_minima = $25,
+atualizar_automaticamente = $26,
+intervalo_atualizacao_segundos = $27,
+limite_palavra_caracteres = $28,
                  publicada_em = CASE
                    WHEN $4 = 'publicada' THEN COALESCE(publicada_em, now())
                    WHEN $4 = 'rascunho' THEN NULL
@@ -1676,7 +1713,7 @@ async function atualizarAdmin(req, res) {
                    WHEN $4 = 'arquivada' THEN COALESCE(arquivada_em, now())
                    ELSE NULL
                  END
-           WHERE id = $28
+           WHERE id = $29
         `,
         [
           payload.titulo,
@@ -1699,14 +1736,15 @@ async function atualizarAdmin(req, res) {
           payload.mostrar_resultado_admin,
           payload.exibir_ranking,
           payload.tempo_por_pergunta_segundos,
-          payload.mostrar_gabarito,
-          payload.embaralhar_opcoes,
-          payload.tentativas_max,
-          payload.nota_minima,
-          payload.atualizar_automaticamente,
-          payload.intervalo_atualizacao_segundos,
-          payload.limite_palavra_caracteres,
-          id,
+payload.modo_execucao_quiz,
+payload.mostrar_gabarito,
+payload.embaralhar_opcoes,
+payload.tentativas_max,
+payload.nota_minima,
+payload.atualizar_automaticamente,
+payload.intervalo_atualizacao_segundos,
+payload.limite_palavra_caracteres,
+id,
         ]
       );
 
@@ -1989,6 +2027,228 @@ async function iniciarExecucaoAdmin(req, res) {
   }
 }
 
+async function avancarPerguntaAdmin(req, res) {
+  const requestId = gerarRequestId();
+  const permissao = validarPermissaoAdmin(req, res, requestId);
+  const id = validarIdParam(req);
+
+  if (!permissao.ok) return permissao.response;
+
+  if (!id) {
+    return falha(res, {
+      status: 400,
+      message: "ID inválido.",
+      code: "ID_INVALIDO",
+      requestId,
+    });
+  }
+
+  try {
+    const data = await withTransaction(async (client) => {
+      const interacao = await carregarInteracaoCompleta(client, id);
+
+      if (!interacao) return null;
+
+      if (interacao.tipo !== TIPO.quiz) {
+        const error = new Error("Avanço sequencial é permitido apenas para quiz.");
+        error.status = 400;
+        error.code = "QUIZ_AVANCO_TIPO_INVALIDO";
+        throw error;
+      }
+
+      const perguntas = Array.isArray(interacao.perguntas)
+        ? [...interacao.perguntas].sort((a, b) => {
+            const ordemA = Number(a.ordem ?? 0);
+            const ordemB = Number(b.ordem ?? 0);
+
+            if (ordemA !== ordemB) return ordemA - ordemB;
+
+            return Number(a.id) - Number(b.id);
+          })
+        : [];
+
+      if (perguntas.length === 0) {
+        const error = new Error("Quiz sem perguntas cadastradas.");
+        error.status = 400;
+        error.code = "QUIZ_SEM_PERGUNTAS";
+        throw error;
+      }
+
+      const perguntaAtualId = Number(interacao.pergunta_atual_id || 0);
+
+      const perguntaAtual =
+        perguntas.find((pergunta) => Number(pergunta.id) === perguntaAtualId) ||
+        perguntas.find((pergunta) => pergunta.status === STATUS_PERGUNTA.aberta) ||
+        null;
+
+      let proximaPergunta = null;
+
+      if (!perguntaAtual) {
+        proximaPergunta = perguntas[0];
+      } else {
+        const indexAtual = perguntas.findIndex(
+          (pergunta) => Number(pergunta.id) === Number(perguntaAtual.id)
+        );
+
+        proximaPergunta = perguntas[indexAtual + 1] || null;
+      }
+
+      if (perguntaAtual?.id) {
+        await client.query(
+          `
+            UPDATE ${TABELA_PERGUNTA}
+               SET status = 'fechada',
+                   fechada_em = COALESCE(fechada_em, now()),
+                   atualizado_em = now()
+             WHERE id = $1
+               AND interacao_id = $2
+          `,
+          [perguntaAtual.id, id]
+        );
+      }
+
+      if (!proximaPergunta?.id) {
+        await client.query(
+          `
+            UPDATE ${TABELA_PERGUNTA}
+               SET status = CASE
+                     WHEN status = 'aberta' THEN 'fechada'
+                     ELSE status
+                   END,
+                   fechada_em = CASE
+                     WHEN status = 'aberta' THEN COALESCE(fechada_em, now())
+                     ELSE fechada_em
+                   END,
+                   atualizado_em = now()
+             WHERE interacao_id = $1
+          `,
+          [id]
+        );
+
+        await client.query(
+          `
+            UPDATE ${TABELA_INTERACAO}
+               SET status = 'encerrada',
+                   pergunta_atual_id = NULL,
+                   encerrada_em = COALESCE(encerrada_em, now()),
+                   atualizado_em = now()
+             WHERE id = $1
+          `,
+          [id]
+        );
+
+        await client.query(
+          `
+            UPDATE ${TABELA_EXECUCAO}
+               SET status = 'encerrada',
+                   pergunta_atual_id = NULL,
+                   encerrada_em = COALESCE(encerrada_em, now()),
+                   atualizado_em = now()
+             WHERE interacao_id = $1
+               AND status = 'em_andamento'
+          `,
+          [id]
+        );
+
+        return carregarInteracaoCompleta(client, id);
+      }
+
+      await client.query(
+        `
+          UPDATE ${TABELA_PERGUNTA}
+             SET status = 'fechada',
+                 fechada_em = COALESCE(fechada_em, now()),
+                 atualizado_em = now()
+           WHERE interacao_id = $1
+             AND status = 'aberta'
+        `,
+        [id]
+      );
+
+      await client.query(
+        `
+          UPDATE ${TABELA_PERGUNTA}
+             SET status = 'aberta',
+                 aberta_em = now(),
+                 fechada_em = NULL,
+                 gabarito_exibido_em = NULL,
+                 atualizado_em = now()
+           WHERE id = $1
+             AND interacao_id = $2
+        `,
+        [proximaPergunta.id, id]
+      );
+
+      await client.query(
+        `
+          UPDATE ${TABELA_INTERACAO}
+             SET status = 'em_andamento',
+                 pergunta_atual_id = $1,
+                 atualizado_em = now()
+           WHERE id = $2
+        `,
+        [proximaPergunta.id, id]
+      );
+
+      await client.query(
+        `
+          UPDATE ${TABELA_EXECUCAO}
+             SET status = 'em_andamento',
+                 pergunta_atual_id = $1,
+                 atualizado_em = now()
+           WHERE interacao_id = $2
+             AND status = 'em_andamento'
+        `,
+        [proximaPergunta.id, id]
+      );
+
+      return carregarInteracaoCompleta(client, id);
+    });
+
+    if (!data) {
+      return falha(res, {
+        status: 404,
+        message: "Interação não encontrada.",
+        code: "INTERACAO_NAO_ENCONTRADA",
+        requestId,
+      });
+    }
+
+    return sucesso(res, {
+      data,
+      message:
+        data.status === STATUS.encerrada
+          ? "Quiz encerrado. Não há próxima pergunta."
+          : "Próxima pergunta aberta com sucesso.",
+      code:
+        data.status === STATUS.encerrada
+          ? "QUIZ_ENCERRADO"
+          : "QUIZ_PERGUNTA_AVANCADA",
+    });
+  } catch (err) {
+    if (err?.status && err?.code) {
+      return falha(res, {
+        status: err.status,
+        message: err.message,
+        code: err.code,
+        requestId,
+      });
+    }
+
+    logErro(requestId, "Erro ao avançar pergunta do quiz", err);
+
+    return falha(res, {
+      status: 500,
+      message: "Erro ao avançar pergunta do quiz.",
+      code: "QUIZ_AVANCAR_PERGUNTA_ERRO",
+      details: {
+        dbCode: err?.code,
+      },
+      requestId,
+    });
+  }
+}
+
 async function abrirPerguntaAdmin(req, res) {
   const requestId = gerarRequestId();
   const permissao = validarPermissaoAdmin(req, res, requestId);
@@ -2096,6 +2356,7 @@ async function abrirPerguntaAdmin(req, res) {
     });
   }
 }
+
 
 async function fecharPerguntaAdmin(req, res) {
   const requestId = gerarRequestId();
@@ -2667,6 +2928,7 @@ module.exports = {
   excluirAdmin,
 
   iniciarExecucaoAdmin,
+  avancarPerguntaAdmin,
   abrirPerguntaAdmin,
   fecharPerguntaAdmin,
   exibirGabaritoAdmin,

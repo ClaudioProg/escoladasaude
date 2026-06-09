@@ -1,5 +1,5 @@
-// ✅ frontend/src/services/api.js — v2.2
-// Atualizado em: 19/05/2026
+// ✅ frontend/src/services/api.js — v2.3
+// Atualizado em: 09/06/2026
 /* eslint-disable no-console */
 /**
  * Plataforma Escola da Saúde
@@ -2861,6 +2861,21 @@ export async function apiInteracaoIniciarExecucao(id, opts = {}) {
   );
 }
 
+export async function apiInteracaoAvancarPergunta(id, opts = {}) {
+  if (!id) throw new Error("id da interação é obrigatório.");
+
+  return apiPost(
+    `/interacao/admin/${id}/pergunta/avancar`,
+    {},
+    {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+    }
+  );
+}
+
 export async function apiInteracaoAbrirPergunta(id, perguntaId, opts = {}) {
   if (!id) throw new Error("id da interação é obrigatório.");
   if (!perguntaId) throw new Error("pergunta_id é obrigatório.");
@@ -3650,14 +3665,15 @@ interacao: {
     apiInteracaoAlterarStatus(id, status, opts),
   excluir: (id, opts) => apiInteracaoExcluir(id, opts),
 
-  iniciarExecucao: (id, opts) => apiInteracaoIniciarExecucao(id, opts),
-  abrirPergunta: (id, perguntaId, opts) =>
-    apiInteracaoAbrirPergunta(id, perguntaId, opts),
-  fecharPergunta: (id, perguntaId, opts) =>
-    apiInteracaoFecharPergunta(id, perguntaId, opts),
-  exibirGabarito: (id, perguntaId, opts) =>
-    apiInteracaoExibirGabarito(id, perguntaId, opts),
-  resultado: (id, opts) => apiInteracaoResultado(id, opts),
+iniciarExecucao: (id, opts) => apiInteracaoIniciarExecucao(id, opts),
+avancarPergunta: (id, opts) => apiInteracaoAvancarPergunta(id, opts),
+abrirPergunta: (id, perguntaId, opts) =>
+  apiInteracaoAbrirPergunta(id, perguntaId, opts),
+fecharPergunta: (id, perguntaId, opts) =>
+  apiInteracaoFecharPergunta(id, perguntaId, opts),
+exibirGabarito: (id, perguntaId, opts) =>
+  apiInteracaoExibirGabarito(id, perguntaId, opts),
+resultado: (id, opts) => apiInteracaoResultado(id, opts),
   resultadoAdmin: (id, opts) => apiInteracaoResultado(id, opts),
   apresentacao: (id, opts) => apiInteracaoApresentacao(id, opts),
 },

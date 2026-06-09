@@ -1,4 +1,4 @@
-// 📁 src/pages/AvaliadorSubmissao.jsx
+// 📁 src/pages/BancaAvaliadora.jsx
 // Atualizado em: 27/05/2026
 //
 // Plataforma Escola da Saúde — v2.0
@@ -27,6 +27,7 @@
 // - avaliação escrita/oral por contrato oficial.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -125,7 +126,7 @@ function normalizarSubmissaoAvaliador(item = {}) {
 }
 
 function normalizarStatus(status) {
-  const value = String(status || "").toLowerCase();
+  const value = String(status || "").trim().toLowerCase();
 
   if (value === "rascunho") return "rascunho";
   if (value === "submetida") return "submetida";
@@ -136,23 +137,37 @@ function normalizarStatus(status) {
   if (value === "reprovada") return "reprovada";
   if (value === "cancelada") return "cancelada";
 
-  return value || "indefinido";
+  if (value === "pendente_avaliacao") return "pendente_avaliacao";
+  if (value === "avaliada") return "avaliada";
+
+  return value || "pendente_avaliacao";
+}
+
+function statusOperacionalAvaliacao(item = {}) {
+  const statusNormalizado = normalizarStatus(item?.status);
+
+  if (statusNormalizado && statusNormalizado !== "pendente_avaliacao") {
+    return statusNormalizado;
+  }
+
+  return item?.avaliada ? "avaliada" : "pendente_avaliacao";
 }
 
 function statusLabel(status) {
   const value = normalizarStatus(status);
 
-  const labels = {
-    rascunho: "Rascunho",
-    submetida: "Submetida",
-    em_avaliacao: "Em avaliação",
-    aprovada_exposicao: "Aprovada para exposição",
-    aprovada_oral: "Aprovada para oral",
-    aprovada: "Aprovada",
-    reprovada: "Reprovada",
-    cancelada: "Cancelada",
-    indefinido: "Indefinido",
-  };
+const labels = {
+  rascunho: "Rascunho",
+  submetida: "Submetida",
+  em_avaliacao: "Em avaliação",
+  aprovada_exposicao: "Aprovada para exposição",
+  aprovada_oral: "Aprovada para oral",
+  aprovada: "Aprovada",
+  reprovada: "Reprovada",
+  cancelada: "Cancelada",
+  pendente_avaliacao: "Aguardando avaliação",
+  avaliada: "Avaliada",
+};
 
   return labels[value] || value;
 }
@@ -239,7 +254,7 @@ function exportarCSV({ escopo, itens, notasMap }) {
         csvCell(item.chamada_titulo),
         csvCell(item.linha_tematica_nome),
         csvCell(tipo),
-        csvCell(statusLabel(item.status)),
+        csvCell(statusLabel(statusOperacionalAvaliacao(item))),
         csvCell(item.avaliada ? "Sim" : "Não"),
         csvCell(Number.isFinite(notaEscrita) ? notaEscrita.toFixed(1) : ""),
         csvCell(Number.isFinite(notaOral) ? notaOral.toFixed(1) : ""),
@@ -453,19 +468,28 @@ function Badge({ children, tone = "slate", icon: Icon }) {
 function StatusBadge({ status }) {
   const value = normalizarStatus(status);
 
-  const config = {
-    rascunho: { label: "Rascunho", tone: "slate", icon: FileText },
-    submetida: { label: "Submetida", tone: "blue", icon: ClipboardList },
-    em_avaliacao: { label: "Em avaliação", tone: "amber", icon: Loader2 },
-    aprovada_exposicao: { label: "Exposição", tone: "emerald", icon: CheckCircle2 },
-    aprovada_oral: { label: "Oral", tone: "teal", icon: Mic },
-    aprovada: { label: "Aprovada", tone: "emerald", icon: CheckCircle2 },
-    reprovada: { label: "Reprovada", tone: "rose", icon: AlertCircle },
-    cancelada: { label: "Cancelada", tone: "rose", icon: X },
-    indefinido: { label: "Indefinido", tone: "slate", icon: AlertCircle },
-  };
+const config = {
+  rascunho: { label: "Rascunho", tone: "slate", icon: FileText },
+  submetida: { label: "Submetida", tone: "blue", icon: ClipboardList },
+  em_avaliacao: { label: "Em avaliação", tone: "amber", icon: Loader2 },
+  aprovada_exposicao: { label: "Exposição", tone: "emerald", icon: CheckCircle2 },
+  aprovada_oral: { label: "Oral", tone: "teal", icon: Mic },
+  aprovada: { label: "Aprovada", tone: "emerald", icon: CheckCircle2 },
+  reprovada: { label: "Reprovada", tone: "rose", icon: AlertCircle },
+  cancelada: { label: "Cancelada", tone: "rose", icon: X },
+  pendente_avaliacao: {
+    label: "Aguardando avaliação",
+    tone: "amber",
+    icon: Loader2,
+  },
+  avaliada: {
+    label: "Avaliada",
+    tone: "emerald",
+    icon: CheckCircle2,
+  },
+};
 
-  const item = config[value] || config.indefinido;
+const item = config[value] || config.pendente_avaliacao;
 
   return (
     <Badge tone={item.tone} icon={item.icon}>
@@ -514,6 +538,7 @@ function MetricCard({ label, value, icon: Icon, tone = "emerald", description = 
 
 function SubmissaoCard({ item, notasMap, onAbrir }) {
   const tipo = String(item.tipo || "escrita").toLowerCase();
+  const statusCard = statusOperacionalAvaliacao(item);
   const notaEscrita = notasMap[`${item.id}-escrita`];
   const notaOral = notasMap[`${item.id}-oral`];
 
@@ -535,7 +560,7 @@ function SubmissaoCard({ item, notasMap, onAbrir }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap gap-2">
-              <StatusBadge status={item.status} />
+              <StatusBadge status={statusCard} />
               <Badge tone={tipo === "oral" ? "teal" : "emerald"} icon={tipo === "oral" ? Mic : FileText}>
                 {tipo === "oral" ? "Avaliação oral" : "Avaliação escrita"}
               </Badge>
@@ -772,72 +797,87 @@ function DrawerAvaliacao({ open, onClose, submissaoId, tipo }) {
     }
   }
 
-  if (!open) return null;
+ if (!open || typeof document === "undefined") return null;
 
-  return (
+return createPortal(
+  <motion.div
+    className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="avaliacao-title"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <button
+      type="button"
+      className="absolute inset-0 cursor-default"
+      aria-label="Fechar"
+      onClick={() => onClose?.()}
+    />
+
     <motion.div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="avaliacao-title"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:max-h-[calc(100dvh-3rem)] sm:rounded-[2rem]"
+      initial={{ y: 20, opacity: 0, scale: 0.98 }}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      exit={{ y: 20, opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.18 }}
     >
-      <button
-        type="button"
-        className="absolute inset-0 cursor-default"
-        aria-label="Fechar"
-        onClick={() => onClose?.()}
-      />
+      <header className="relative z-10 shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.28),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.26),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(245,158,11,.22),transparent_35%)]" />
 
-      <motion.div
-        className="relative flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[2rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:rounded-[2rem]"
-        initial={{ y: 32, opacity: 0, scale: 0.98 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 32, opacity: 0, scale: 0.98 }}
-        transition={{ duration: 0.18 }}
-      >
-        <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.28),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.26),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(245,158,11,.22),transparent_35%)]" />
-
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Badge tone={tipo === "oral" ? "teal" : "emerald"} icon={tipo === "oral" ? Mic : FileText}>
-                  {tipo === "oral" ? "Avaliação oral" : "Avaliação escrita"}
-                </Badge>
-                {submissao?.status ? <StatusBadge status={submissao.status} /> : null}
-              </div>
-
-              <h2 id="avaliacao-title" className="line-clamp-2 text-xl font-black tracking-tight sm:text-2xl">
-                {fmt(submissao?.titulo, "Avaliação da submissão")}
-              </h2>
-
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/70">
-                {fmt(submissao?.chamada_titulo)} · {fmt(submissao?.linha_tematica_nome)} · Início {fmt(submissao?.inicio_experiencia)}
-              </p>
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Badge tone={tipo === "oral" ? "teal" : "emerald"} icon={tipo === "oral" ? Mic : FileText}>
+                {tipo === "oral" ? "Avaliação oral" : "Avaliação escrita"}
+              </Badge>
+              {submissao ? (
+                <StatusBadge
+                  status={statusOperacionalAvaliacao({
+                    status: submissao?.status,
+                    avaliada: Boolean(
+                      Array.isArray(itens) &&
+                        itens.some((item) => item.nota !== "" && item.nota != null)
+                    ),
+                  })}
+                />
+              ) : null}
             </div>
 
-            <button
-              type="button"
-              ref={closeButtonRef}
-              onClick={() => onClose?.()}
-              className="rounded-2xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-300"
-              aria-label="Fechar avaliação"
+            <h2
+              id="avaliacao-title"
+              className="line-clamp-2 text-xl font-black tracking-tight sm:text-2xl"
             >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
+              {tipo === "oral" ? "Avaliação oral" : "Avaliação escrita"}
+              {submissao?.titulo ? ` — ${submissao.titulo}` : ""}
+            </h2>
 
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/70">
+              {fmt(submissao?.chamada_titulo)} · {fmt(submissao?.linha_tematica_nome)} · Início {fmt(submissao?.inicio_experiencia)}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            ref={closeButtonRef}
+            onClick={() => onClose?.()}
+            className="rounded-2xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            aria-label="Fechar avaliação"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
         {loading ? (
-          <div className="flex items-center gap-3 p-8 text-sm text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
             <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
             Carregando avaliação...
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+          <>
             {erro ? (
               <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
                 <div className="flex gap-2">
@@ -975,27 +1015,35 @@ function DrawerAvaliacao({ open, onClose, submissaoId, tipo }) {
                 </GlassCard>
               </aside>
             </div>
-          </div>
+          </>
         )}
+      </div>
 
-        <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:justify-end">
-          <Button tone="ghost" onClick={() => onClose?.()}>
-            Fechar
-          </Button>
-          <Button tone="primary" icon={Check} loading={saving} onClick={salvar}>
-            Salvar avaliação
-          </Button>
-        </footer>
-      </motion.div>
+      <footer className="relative z-10 flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:justify-end">
+        <Button tone="ghost" onClick={() => onClose?.()} disabled={saving}>
+          Cancelar
+        </Button>
+        <Button
+          tone="primary"
+          icon={Check}
+          loading={saving}
+          onClick={salvar}
+          disabled={loading || criterios.length === 0}
+        >
+          Salvar avaliação
+        </Button>
+      </footer>
     </motion.div>
-  );
+  </motion.div>,
+  document.body
+);
 }
 
 /* =========================================================================
    Página principal
 =========================================================================== */
 
-export default function AvaliadorSubmissao() {
+export default function BancaAvaliadora() {
   const searchRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
