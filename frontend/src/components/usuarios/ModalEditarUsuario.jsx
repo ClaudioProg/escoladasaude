@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   BadgeCheck,
   Building2,
+  CalendarDays,
   CheckCircle2,
   GraduationCap,
   IdCard,
@@ -79,6 +80,12 @@ function normEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normYmd(value) {
+  const ymd = String(value || "").slice(0, 10);
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd : "";
+}
+
 function validarEmail(value) {
   return EMAIL_RE.test(normEmail(value));
 }
@@ -133,11 +140,19 @@ function iconByPerfil(value) {
   return Users;
 }
 
-function montarSnapshot({ nome, email, celular, unidade_id, perfil }) {
+function montarSnapshot({
+  nome,
+  email,
+  celular,
+  data_nascimento,
+  unidade_id,
+  perfil,
+}) {
   return {
     nome: normText(nome),
     email: normEmail(email),
     celular: onlyDigits(celular),
+    data_nascimento: normYmd(data_nascimento),
     unidade_id: Number(unidade_id) || "",
     perfil: perfilOficial(perfil),
   };
@@ -211,17 +226,19 @@ export default function ModalEditarUsuario({
   const errorId = `modal-editar-usuario-error-${uid}`;
 
   const dialogRef = useRef(null);
-  const refNome = useRef(null);
-  const refEmail = useRef(null);
-  const refCelular = useRef(null);
-  const refUnidade = useRef(null);
-  const refSalvar = useRef(null);
+const refNome = useRef(null);
+const refEmail = useRef(null);
+const refCelular = useRef(null);
+const refDataNascimento = useRef(null);
+const refUnidade = useRef(null);
+const refSalvar = useRef(null);
 
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [celular, setCelular] = useState("");
-  const [unidadeId, setUnidadeId] = useState("");
-  const [perfil, setPerfil] = useState("");
+const [nome, setNome] = useState("");
+const [email, setEmail] = useState("");
+const [celular, setCelular] = useState("");
+const [dataNascimento, setDataNascimento] = useState("");
+const [unidadeId, setUnidadeId] = useState("");
+const [perfil, setPerfil] = useState("");
 
   const [salvando, setSalvando] = useState(false);
   const [errors, setErrors] = useState({});
@@ -246,26 +263,29 @@ export default function ModalEditarUsuario({
     if (!isOpen) return;
 
     const nomeInicial = usuario?.nome || "";
-    const emailInicial = usuario?.email || "";
-    const celularInicial = usuario?.celular || "";
-    const unidadeInicial = usuario?.unidade_id || "";
-    const perfilInicial = perfilOficial(usuario?.perfil) || "usuario";
+const emailInicial = usuario?.email || "";
+const celularInicial = usuario?.celular || "";
+const dataNascimentoInicial = normYmd(usuario?.data_nascimento);
+const unidadeInicial = usuario?.unidade_id || "";
+const perfilInicial = perfilOficial(usuario?.perfil) || "usuario";
 
-    setNome(nomeInicial);
-    setEmail(emailInicial);
-    setCelular(aplicarMascaraCelular(celularInicial));
-    setUnidadeId(String(unidadeInicial || ""));
-    setPerfil(perfilInicial);
+setNome(nomeInicial);
+setEmail(emailInicial);
+setCelular(aplicarMascaraCelular(celularInicial));
+setDataNascimento(dataNascimentoInicial);
+setUnidadeId(String(unidadeInicial || ""));
+setPerfil(perfilInicial);
 
-    setBaseline(
-      montarSnapshot({
-        nome: nomeInicial,
-        email: emailInicial,
-        celular: celularInicial,
-        unidade_id: unidadeInicial,
-        perfil: perfilInicial,
-      })
-    );
+setBaseline(
+  montarSnapshot({
+    nome: nomeInicial,
+    email: emailInicial,
+    celular: celularInicial,
+    data_nascimento: dataNascimentoInicial,
+    unidade_id: unidadeInicial,
+    perfil: perfilInicial,
+  })
+);
 
     setErrors({});
     setErroGeral("");
@@ -275,16 +295,17 @@ export default function ModalEditarUsuario({
   }, [isOpen, usuario]);
 
   const snapshotAtual = useMemo(
-    () =>
-      montarSnapshot({
-        nome,
-        email,
-        celular,
-        unidade_id: unidadeId,
-        perfil,
-      }),
-    [celular, email, nome, perfil, unidadeId]
-  );
+  () =>
+    montarSnapshot({
+      nome,
+      email,
+      celular,
+      data_nascimento: dataNascimento,
+      unidade_id: unidadeId,
+      perfil,
+    }),
+  [celular, dataNascimento, email, nome, perfil, unidadeId]
+);
 
   const dirty = useMemo(() => {
     if (!baseline) return false;
@@ -359,11 +380,12 @@ export default function ModalEditarUsuario({
 
   function focarPrimeiroErro(fields = {}) {
     const ordem = [
-      ["nome", refNome],
-      ["email", refEmail],
-      ["celular", refCelular],
-      ["unidade_id", refUnidade],
-    ];
+  ["nome", refNome],
+  ["email", refEmail],
+  ["celular", refCelular],
+  ["data_nascimento", refDataNascimento],
+  ["unidade_id", refUnidade],
+];
 
     const item = ordem.find(([field]) => fields[field]);
 
@@ -387,12 +409,19 @@ export default function ModalEditarUsuario({
     }
 
     if (!validarCelularOpcional(celular)) {
-      fields.celular = "Celular inválido. Informe DDD + número.";
-    }
+  fields.celular = "Celular inválido. Informe DDD + número.";
+}
 
-    if (!snapshotAtual.unidade_id) {
-      fields.unidade_id = "Selecione a unidade do usuário.";
-    }
+if (
+  dataNascimento &&
+  !/^\d{4}-\d{2}-\d{2}$/.test(String(dataNascimento).slice(0, 10))
+) {
+  fields.data_nascimento = "Informe uma data de nascimento válida.";
+}
+
+if (!snapshotAtual.unidade_id) {
+  fields.unidade_id = "Selecione a unidade do usuário.";
+}
 
     if (!snapshotAtual.perfil) {
       fields.perfil = "Selecione um perfil oficial.";
@@ -438,12 +467,13 @@ export default function ModalEditarUsuario({
       setMsgA11y("Salvando alterações do usuário...");
 
       await onSalvar(usuario.id, {
-        nome: snapshotAtual.nome,
-        email: snapshotAtual.email,
-        celular: snapshotAtual.celular,
-        unidade_id: snapshotAtual.unidade_id,
-        perfil: snapshotAtual.perfil,
-      });
+  nome: snapshotAtual.nome,
+  email: snapshotAtual.email,
+  celular: snapshotAtual.celular,
+  data_nascimento: snapshotAtual.data_nascimento || null,
+  unidade_id: snapshotAtual.unidade_id,
+  perfil: snapshotAtual.perfil,
+});
 
       toast.success("Usuário atualizado com sucesso.");
       setMsgA11y("Usuário atualizado com sucesso.");
@@ -713,6 +743,58 @@ return createPortal(
             </div>
 
             <div>
+  <label
+    htmlFor={`edt-data-nascimento-${uid}`}
+    className="block text-sm font-semibold"
+  >
+    Data de nascimento
+  </label>
+
+  <div className="relative mt-1">
+    <CalendarDays
+      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-zinc-400"
+      aria-hidden="true"
+    />
+
+    <input
+      ref={refDataNascimento}
+      id={`edt-data-nascimento-${uid}`}
+      type="date"
+      value={dataNascimento}
+      onChange={(event) => {
+        setDataNascimento(event.target.value);
+        setErrors((old) => ({ ...old, data_nascimento: "" }));
+      }}
+      disabled={salvando}
+      aria-invalid={!!errors.data_nascimento}
+      aria-describedby={
+        errors.data_nascimento
+          ? `erro-data-nascimento-${uid}`
+          : `dica-data-nascimento-${uid}`
+      }
+      autoComplete="bday"
+      className={cx(
+        "w-full rounded-2xl border px-4 py-3 pl-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/70",
+        "bg-white text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+        errors.data_nascimento
+          ? "border-rose-400 ring-2 ring-rose-500/60"
+          : "border-slate-300"
+      )}
+    />
+  </div>
+
+  {errors.data_nascimento ? (
+    <FieldError id={`erro-data-nascimento-${uid}`}>
+      {errors.data_nascimento}
+    </FieldError>
+  ) : (
+    <FieldHint id={`dica-data-nascimento-${uid}`}>
+      Campo opcional. Usado para cálculo de idade e qualificação cadastral.
+    </FieldHint>
+  )}
+</div>
+
+            <div>
               <label
                 htmlFor={`edt-unidade-${uid}`}
                 className="block text-sm font-semibold"
@@ -914,8 +996,8 @@ return createPortal(
                   aria-hidden="true"
                 />
                 <p>
-                  CPF permanece somente leitura. Nome, e-mail, celular, unidade
-                  e perfil podem ser atualizados neste fluxo administrativo.
+                  CPF permanece somente leitura. Nome, e-mail, celular, data de nascimento,
+unidade e perfil podem ser atualizados neste fluxo administrativo.
                 </p>
               </div>
             </div>
@@ -982,14 +1064,15 @@ ModalEditarUsuario.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func,
   usuario: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    nome: PropTypes.string,
-    email: PropTypes.string,
-    celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    unidade_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    perfil: PropTypes.string,
-  }).isRequired,
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  nome: PropTypes.string,
+  email: PropTypes.string,
+  celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  data_nascimento: PropTypes.string,
+  unidade_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  perfil: PropTypes.string,
+}).isRequired,
   unidades: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,

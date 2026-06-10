@@ -32,15 +32,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Accessibility,
   AlertCircle,
   BadgeCheck,
+  Brain,
   CalendarDays,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
   Clock,
   Download,
+  Ear,
+  Eye,
+  Infinity,
   RefreshCw,
+  Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
@@ -270,9 +276,14 @@ function normalizeDetalhePresenca(response, turma) {
     .filter((item) => item.data)
     .sort((a, b) => a.data.localeCompare(b.data));
 
-  const usuarios = Array.isArray(data?.usuarios) ? data.usuarios : [];
+const usuarios = Array.isArray(data?.usuarios)
+  ? data.usuarios.map((usuario) => ({
+      ...usuario,
+      deficiencia_nome: obterDeficienciaUsuario(usuario),
+    }))
+  : [];
 
-  const presencas = [];
+const presencas = [];
 
   for (const usuario of usuarios) {
     const usuario_id = toPositiveInt(usuario?.usuario_id || usuario?.id);
@@ -312,6 +323,142 @@ function getPresencaMap(presencas = []) {
   }
 
   return map;
+}
+
+function normalizarTextoBusca(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function obterDeficienciaUsuario(usuario = {}) {
+  const candidatos = [
+    usuario?.deficiencia_nome,
+    usuario?.deficiencia,
+    usuario?.tipo_deficiencia,
+    usuario?.deficiencia_tipo,
+    usuario?.pcd_tipo,
+    usuario?.necessidade_especial,
+  ];
+
+  for (const candidato of candidatos) {
+    const texto = String(candidato || "").trim();
+
+    if (texto) return texto;
+  }
+
+  return "";
+}
+
+function obterConfigDeficiencia(deficiencia) {
+  const textoOriginal = String(deficiencia || "").trim();
+  const texto = normalizarTextoBusca(textoOriginal);
+
+  if (
+    !texto ||
+    [
+      "nao possui",
+      "nao informado",
+      "nenhuma",
+      "sem deficiencia",
+      "nao",
+    ].includes(texto)
+  ) {
+    return null;
+  }
+
+  if (texto.includes("fisica") || texto.includes("motora")) {
+    return {
+      label: "Deficiência física",
+      Icon: Accessibility,
+      className:
+        "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    };
+  }
+
+  if (texto.includes("visual") || texto.includes("visao")) {
+    return {
+      label: "Deficiência visual",
+      Icon: Eye,
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (
+    texto.includes("auditiva") ||
+    texto.includes("surdez") ||
+    texto.includes("surdo")
+  ) {
+    return {
+      label: "Deficiência auditiva",
+      Icon: Ear,
+      className:
+        "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
+    };
+  }
+
+  if (texto.includes("intelectual")) {
+    return {
+      label: "Deficiência intelectual",
+      Icon: Brain,
+      className:
+        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    };
+  }
+
+  if (
+    texto.includes("autismo") ||
+    texto.includes("autista") ||
+    texto.includes("tea") ||
+    texto.includes("espectro")
+  ) {
+    return {
+      label: "Transtorno do Espectro Autista",
+      Icon: Infinity,
+      className:
+        "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    };
+  }
+
+  if (texto.includes("multipla") || texto.includes("múltipla")) {
+    return {
+      label: "Deficiência múltipla",
+      Icon: Sparkles,
+      className:
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
+    };
+  }
+
+  return {
+    label: textoOriginal,
+    Icon: AlertCircle,
+    className:
+      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+  };
+}
+
+function IconeDeficienciaUsuario({ usuario }) {
+  const config = obterConfigDeficiencia(obterDeficienciaUsuario(usuario));
+
+  if (!config) return null;
+
+  const Icon = config.Icon;
+
+  return (
+    <span
+      className={classNames(
+        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+        config.className
+      )}
+      title={config.label}
+      aria-label={config.label}
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+    </span>
+  );
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -494,15 +641,20 @@ function VisaoPorData({
               return (
                 <tr key={usuario_id || inscrito?.email || inscrito?.nome}>
                   <td className="px-3 py-3 text-slate-950 dark:text-white">
-                    <div className="font-semibold">
-                      {inscrito?.nome || "Participante"}
-                    </div>
-                    {inscrito?.email ? (
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {inscrito.email}
-                      </div>
-                    ) : null}
-                  </td>
+  <div className="flex items-center gap-2 font-semibold">
+    <span className="break-words">
+      {inscrito?.nome || "Participante"}
+    </span>
+
+    <IconeDeficienciaUsuario usuario={inscrito} />
+  </div>
+
+  {inscrito?.email ? (
+    <div className="text-xs text-slate-500 dark:text-slate-400">
+      {inscrito.email}
+    </div>
+  ) : null}
+</td>
 
                   <td className="px-3 py-3">
                     <StatusPresencaBadge
@@ -1126,6 +1278,9 @@ export default function ListaTurmasPresenca({
 /* ─────────────────────────────────────────────────────────────
  * PropTypes
  * ───────────────────────────────────────────────────────────── */
+IconeDeficienciaUsuario.propTypes = {
+  usuario: PropTypes.object,
+};
 
 StatPill.propTypes = {
   icon: PropTypes.elementType,

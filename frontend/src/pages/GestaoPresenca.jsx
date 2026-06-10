@@ -326,8 +326,11 @@ function normalizeDetalhePresenca(response, turma) {
     .filter((item) => item.data)
     .sort((a, b) => a.data.localeCompare(b.data));
 
-  const usuarios = Array.isArray(data?.usuarios) ? data.usuarios : [];
-  const presencas = [];
+  const usuarios = Array.isArray(data?.usuarios)
+  ? data.usuarios.map(normalizarParticipanteComDeficiencia)
+  : [];
+
+const presencas = [];
 
   for (const usuario of usuarios) {
     const usuarioId = toPositiveInt(usuario?.usuario_id || usuario?.id);
@@ -359,6 +362,57 @@ function normalizeDetalhePresenca(response, turma) {
 
 function getParticipanteId(item) {
   return toPositiveInt(item?.usuario_id || item?.id);
+}
+
+function normalizarTextoBusca(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function obterDeficienciaUsuario(usuario = {}) {
+  const candidatos = [
+    usuario?.deficiencia_nome,
+    usuario?.deficiencia,
+    usuario?.tipo_deficiencia,
+    usuario?.deficiencia_tipo,
+    usuario?.pcd_tipo,
+    usuario?.necessidade_especial,
+  ];
+
+  for (const candidato of candidatos) {
+    const texto = String(candidato || "").trim();
+
+    if (texto) return texto;
+  }
+
+  return "";
+}
+
+function temDeficienciaInformada(usuario = {}) {
+  const texto = normalizarTextoBusca(obterDeficienciaUsuario(usuario));
+
+  if (!texto) return false;
+
+  return ![
+    "nao possui",
+    "nao informado",
+    "nenhuma",
+    "sem deficiencia",
+    "nao",
+  ].includes(texto);
+}
+
+function normalizarParticipanteComDeficiencia(item = {}) {
+  const deficiencia = obterDeficienciaUsuario(item);
+
+  return {
+    ...item,
+    deficiencia_nome: deficiencia,
+    tem_deficiencia: temDeficienciaInformada(item),
+  };
 }
 
 function calcularResumoPresenca({ evento, inscritosPorTurma, detalhesPorTurma }) {
@@ -729,42 +783,42 @@ export default function PaginaGestaoPresencas() {
     carregarEventos();
   }, [carregarEventos]);
 
-  const carregarInscritos = useCallback(
-    async (turma_id) => {
-      const turmaId = toPositiveInt(turma_id);
+const carregarInscritos = useCallback(
+  async (turma_id) => {
+    const turmaId = toPositiveInt(turma_id);
 
-      if (!turmaId) {
-        notifyError("turma_id inválido para carregar inscritos.");
-        return [];
-      }
+    if (!turmaId) {
+      notifyError("turma_id inválido para carregar inscritos.");
+      return [];
+    }
 
-      try {
-        setLive(`Carregando inscritos da turma ${turmaId}.`);
+    try {
+      setLive(`Carregando inscritos da turma ${turmaId}.`);
 
-        const response = await api.inscricao.listarPorTurma(turmaId, {
-          on403: "silent",
-        });
+      const response = await api.inscricao.listarPorTurma(turmaId, {
+        on403: "silent",
+      });
 
-        const lista = unwrapArray(response);
+      const lista = unwrapArray(response).map(normalizarParticipanteComDeficiencia);
 
-        if (!mountedRef.current) return [];
+      if (!mountedRef.current) return [];
 
-        setInscritosPorTurma((prev) => ({
-          ...prev,
-          [turmaId]: lista,
-        }));
+      setInscritosPorTurma((prev) => ({
+        ...prev,
+        [turmaId]: lista,
+      }));
 
-        setLive(`Inscritos da turma ${turmaId} carregados.`);
+      setLive(`Inscritos da turma ${turmaId} carregados.`);
 
-        return lista;
-      } catch (error) {
-        notifyError(getErrorMessage(error, "Erro ao carregar inscritos."));
-        setLive("Falha ao carregar inscritos.");
-        return [];
-      }
-    },
-    [setLive]
-  );
+      return lista;
+    } catch (error) {
+      notifyError(getErrorMessage(error, "Erro ao carregar inscritos."));
+      setLive("Falha ao carregar inscritos.");
+      return [];
+    }
+  },
+  [setLive]
+);
 
   const carregarAvaliacao = useCallback(
     async (turma_id) => {

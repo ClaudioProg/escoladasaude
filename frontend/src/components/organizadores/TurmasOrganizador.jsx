@@ -6,14 +6,20 @@ import PropTypes from "prop-types";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
 import {
+  Accessibility,
   AlertCircle,
+  Brain,
   CalendarDays,
   CheckCircle2,
   Clock,
   Download,
+  Ear,
+  Eye,
   FileText,
+  Infinity,
   MapPin,
   QrCode,
+  Sparkles,
   Star,
   Users,
   XCircle,
@@ -163,6 +169,138 @@ function formatarDocumento(value) {
   return value || "—";
 }
 
+function normalizarTextoBusca(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function obterDeficienciaUsuario(usuario = {}) {
+  const candidatos = [
+    usuario?.deficiencia_nome,
+    usuario?.deficiencia,
+    usuario?.tipo_deficiencia,
+    usuario?.deficiencia_tipo,
+    usuario?.pcd_tipo,
+    usuario?.necessidade_especial,
+  ];
+
+  for (const candidato of candidatos) {
+    const texto = String(candidato || "").trim();
+
+    if (texto) return texto;
+  }
+
+  return "";
+}
+
+function obterConfigDeficiencia(deficiencia) {
+  const textoOriginal = String(deficiencia || "").trim();
+  const texto = normalizarTextoBusca(textoOriginal);
+
+  if (
+    !texto ||
+    [
+      "nao possui",
+      "nao informado",
+      "nenhuma",
+      "sem deficiencia",
+      "nao",
+    ].includes(texto)
+  ) {
+    return null;
+  }
+
+  if (texto.includes("fisica") || texto.includes("motora")) {
+    return {
+      label: "Deficiência física",
+      Icon: Accessibility,
+      className:
+        "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    };
+  }
+
+  if (texto.includes("visual") || texto.includes("visao")) {
+    return {
+      label: "Deficiência visual",
+      Icon: Eye,
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (texto.includes("auditiva") || texto.includes("surdez") || texto.includes("surdo")) {
+    return {
+      label: "Deficiência auditiva",
+      Icon: Ear,
+      className:
+        "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
+    };
+  }
+
+  if (texto.includes("intelectual")) {
+    return {
+      label: "Deficiência intelectual",
+      Icon: Brain,
+      className:
+        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    };
+  }
+
+  if (
+    texto.includes("autismo") ||
+    texto.includes("autista") ||
+    texto.includes("tea") ||
+    texto.includes("espectro")
+  ) {
+    return {
+      label: "Transtorno do Espectro Autista",
+      Icon: Infinity,
+      className:
+        "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    };
+  }
+
+  if (texto.includes("multipla") || texto.includes("múltipla")) {
+    return {
+      label: "Deficiência múltipla",
+      Icon: Sparkles,
+      className:
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
+    };
+  }
+
+  return {
+    label: textoOriginal,
+    Icon: AlertCircle,
+    className:
+      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+  };
+}
+
+function IconeDeficienciaUsuario({ usuario }) {
+  const config = obterConfigDeficiencia(obterDeficienciaUsuario(usuario));
+
+  if (!config) return null;
+
+  const Icon = config.Icon;
+
+  return (
+    <span
+      className={cx(
+        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+        config.className
+      )}
+      title={config.label}
+      aria-label={config.label}
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+    </span>
+  );
+}
+
 function statusFromTurma(turma) {
   const inicio = ymd(turma?.data_inicio);
   const fim = ymd(turma?.data_fim);
@@ -264,12 +402,16 @@ function montarMapaUsuarios(inscritos, presencasDetalhadas) {
 
     if (!usuarioId) continue;
 
-    map.set(usuarioId, {
-      id: usuarioId,
-      nome: safeText(inscrito?.nome, "—"),
-      cpf: safeText(inscrito?.cpf),
-      presencas: new Map(),
-    });
+    const deficiencia = obterDeficienciaUsuario(inscrito);
+
+map.set(usuarioId, {
+  ...inscrito,
+  id: usuarioId,
+  nome: safeText(inscrito?.nome, "—"),
+  cpf: safeText(inscrito?.cpf),
+  deficiencia_nome: deficiencia,
+  presencas: new Map(),
+});
   }
 
   for (const usuario of safeArray(presencasDetalhadas?.usuarios)) {
@@ -278,8 +420,13 @@ function montarMapaUsuarios(inscritos, presencasDetalhadas) {
     if (!usuarioId || !map.has(usuarioId)) continue;
 
     const alvo = map.get(usuarioId);
+const deficiencia = obterDeficienciaUsuario(usuario);
 
-    for (const presenca of safeArray(usuario?.presencas)) {
+if (deficiencia && !obterDeficienciaUsuario(alvo)) {
+  alvo.deficiencia_nome = deficiencia;
+}
+
+for (const presenca of safeArray(usuario?.presencas)) {
       const data = ymd(presenca?.data_presenca || presenca?.data);
 
       if (data) {
@@ -1101,8 +1248,11 @@ export default function Turmasorganizador({
                                                     className="border-t border-slate-200 dark:border-zinc-800"
                                                   >
                                                     <td className="px-3 py-3 font-semibold text-slate-950 dark:text-white">
-                                                      {usuario.nome}
-                                                    </td>
+  <span className="inline-flex max-w-full items-center gap-2">
+    <span className="break-words">{usuario.nome}</span>
+    <IconeDeficienciaUsuario usuario={usuario} />
+  </span>
+</td>
 
                                                     <td className="px-3 py-3 text-slate-600 dark:text-zinc-300">
                                                       {formatarDocumento(
@@ -1181,9 +1331,10 @@ export default function Turmasorganizador({
                                               >
                                                 <div className="flex flex-col gap-2">
                                                   <div>
-                                                    <p className="font-black text-slate-950 dark:text-white">
-                                                      {usuario.nome}
-                                                    </p>
+                                                    <p className="flex items-center gap-2 font-black text-slate-950 dark:text-white">
+  <span className="break-words">{usuario.nome}</span>
+  <IconeDeficienciaUsuario usuario={usuario} />
+</p>
                                                     <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
                                                       {formatarDocumento(
                                                         usuario.cpf
@@ -1269,6 +1420,10 @@ export default function Turmasorganizador({
     </section>
   );
 }
+
+IconeDeficienciaUsuario.propTypes = {
+  usuario: PropTypes.object,
+};
 
 Turmasorganizador.propTypes = {
   turmas: PropTypes.arrayOf(

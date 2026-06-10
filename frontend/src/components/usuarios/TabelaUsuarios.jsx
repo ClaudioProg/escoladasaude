@@ -413,24 +413,6 @@ const perfil = perfilOficial(usuario?.perfil);
   )}
 </div>
 
-<div className="mt-1 flex items-center gap-2 text-sm">
-  <Phone
-    className="h-4 w-4 text-zinc-500 dark:text-zinc-300"
-    aria-hidden="true"
-  />
-  {celular && celular !== "—" ? (
-    <a
-      href={`tel:${onlyDigits(celular)}`}
-      className="text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
-      title={`Ligar para ${nome}`}
-    >
-      {celular}
-    </a>
-  ) : (
-    <span className="text-zinc-500 dark:text-zinc-400">Celular não informado</span>
-  )}
-</div>
-
 <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="sr-only">Perfil:</span>
                     <span

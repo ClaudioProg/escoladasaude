@@ -145,6 +145,9 @@ function formatDateTime(value) {
 function sanitizeHtml(html = "") {
   return DOMPurify.sanitize(String(html || ""), {
     USE_PROFILES: { html: true },
+    ADD_ATTR: ["style", "target", "rel"],
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   });
 }
 
@@ -716,9 +719,23 @@ function PublicationCard({ item }) {
         <div className="mt-5 h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10" />
 
         <div
-          className="prose prose-sm mt-5 max-w-none dark:prose-invert prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-headings:font-extrabold prose-a:break-all"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+  className={cx(
+    "prose prose-sm mt-5 max-w-none dark:prose-invert",
+    "prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1",
+    "prose-headings:font-extrabold",
+    "prose-a:break-all prose-a:font-bold prose-a:text-sky-700 prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-sky-900",
+    "dark:prose-a:text-sky-300 dark:hover:prose-a:text-sky-200",
+    "[&_p[style*='text-align:center']]:text-center",
+    "[&_p[style*='text-align:_center']]:text-center",
+    "[&_p[style*='text-align:right']]:text-right",
+    "[&_p[style*='text-align:_right']]:text-right",
+    "[&_div[style*='text-align:center']]:text-center",
+    "[&_div[style*='text-align:right']]:text-right",
+    "[&_span[style*='color']]:font-semibold",
+    "[&_a]:cursor-pointer"
+  )}
+  dangerouslySetInnerHTML={{ __html: html }}
+/>
       </div>
     </motion.article>
   );

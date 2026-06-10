@@ -142,14 +142,45 @@ function hhmm(value, fallback = "") {
   return /^\d{2}:\d{2}/.test(text) ? text.slice(0, 5) : fallback;
 }
 
-function formatarDocumento(value) {
-  const digits = String(value || "").replace(/\D+/g, "");
+function normalizarTextoBusca(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
-  if (digits.length === 11) {
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+function obterDeficienciaUsuario(usuario = {}) {
+  const candidatos = [
+    usuario?.deficiencia_nome,
+    usuario?.deficiencia,
+    usuario?.tipo_deficiencia,
+    usuario?.deficiencia_tipo,
+    usuario?.pcd_tipo,
+    usuario?.necessidade_especial,
+  ];
+
+  for (const candidato of candidatos) {
+    const texto = String(candidato || "").trim();
+
+    if (texto) return texto;
   }
 
-  return value || "—";
+  return "";
+}
+
+function temDeficienciaInformada(usuario = {}) {
+  const texto = normalizarTextoBusca(obterDeficienciaUsuario(usuario));
+
+  if (!texto) return false;
+
+  return ![
+    "nao possui",
+    "nao informado",
+    "nenhuma",
+    "sem deficiencia",
+    "nao",
+  ].includes(texto);
 }
 
 function getUsuarioLogado() {
@@ -243,13 +274,18 @@ function calcularFrequenciaResumo(detalhes) {
     const presentes = presencas.filter((presenca) => presenca?.presente === true).length;
     const frequencia = totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
 
-    return {
-      usuario_id: usuario?.id,
-      nome: usuario?.nome,
-      cpf: usuario?.cpf,
-      presente: frequencia >= 75,
-      frequencia: `${frequencia}%`,
-    };
+    const deficiencia = obterDeficienciaUsuario(usuario);
+
+return {
+  ...usuario,
+  usuario_id: usuario?.id,
+  nome: usuario?.nome,
+  cpf: usuario?.cpf,
+  deficiencia_nome: deficiencia,
+  tem_deficiencia: temDeficienciaInformada(usuario),
+  presente: frequencia >= 75,
+  frequencia: `${frequencia}%`,
+};
   });
 }
 
@@ -503,9 +539,17 @@ export default function organizadorPresenca() {
       const data = extrairData(response);
 
       setInscritosPorTurma((prev) => ({
-        ...prev,
-        [turmaId]: safeArray(data),
-      }));
+  ...prev,
+  [turmaId]: safeArray(data).map((item) => {
+    const deficiencia = obterDeficienciaUsuario(item);
+
+    return {
+      ...item,
+      deficiencia_nome: deficiencia,
+      tem_deficiencia: temDeficienciaInformada(item),
+    };
+  }),
+}));
     } catch (error) {
       notifyError(obterMensagemErro(error, "Erro ao carregar inscritos."));
     }

@@ -694,12 +694,13 @@ export default function GestaoUsuarios() {
     }
   }
 
-  async function salvarUsuarioEditado(id, payload = {}) {
+async function salvarUsuarioEditado(id, payload = {}) {
   const perfilNovo = perfilOficial(payload.perfil);
   const nomeNovo = String(payload.nome || "").trim();
   const emailNovo = String(payload.email || "").trim();
   const celularNovo = onlyDigits(payload.celular);
   const unidadeIdNovo = Number(payload.unidade_id) || null;
+  const dataNascimentoNova = String(payload.data_nascimento || "").slice(0, 10);
 
   if (!nomeNovo) {
     toast.error("Informe o nome completo do usuário.");
@@ -723,10 +724,11 @@ export default function GestaoUsuarios() {
 
   try {
     await apiUsuarioAtualizarBasico(id, {
-      nome: nomeNovo,
-      email: emailNovo,
-      celular: celularNovo,
-    });
+  nome: nomeNovo,
+  email: emailNovo,
+  celular: celularNovo,
+  data_nascimento: dataNascimentoNova || null,
+});
 
    await apiUsuarioAtualizarDadosAdministrativos(id, {
   unidade_id: unidadeIdNovo,

@@ -104,6 +104,14 @@ const MAX_FOLDER_BYTES = MAX_FOLDER_MB * 1024 * 1024;
 const MAX_PROGRAMACAO_MB = 15;
 const MAX_PROGRAMACAO_BYTES = MAX_PROGRAMACAO_MB * 1024 * 1024;
 
+const EVENTO_LIMITES = Object.freeze({
+  titulo: 150,
+  local: 100,
+  descricao: 5000,
+  publico_alvo: 200,
+  conteudo_programatico: 6000,
+});
+
 const RESTRICAO_UI = Object.freeze({
   TODOS_SERVIDORES: "todos_servidores",
   LISTA_REGISTROS: "lista_registros",
@@ -543,6 +551,28 @@ function FieldLabel({ htmlFor, children, required = false }) {
       {children} {required && <span className="text-rose-600">*</span>}
     </label>
   );
+}
+
+function CampoContador({ value, max }) {
+  const atual = String(value || "").length;
+  const percentual = max > 0 ? atual / max : 0;
+
+  const cor =
+    atual >= max
+      ? "text-rose-600 dark:text-rose-400"
+      : percentual >= 0.85
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-zinc-500 dark:text-zinc-400";
+
+  return (
+    <p className={`mt-1 text-right text-[11px] font-black ${cor}`}>
+      {atual}/{max}
+    </p>
+  );
+}
+
+function limitarTexto(value, max) {
+  return String(value || "").slice(0, max);
 }
 
 function SelectInput(props) {
@@ -1429,12 +1459,44 @@ useEffect(() => {
     setConfirmTurma({ open: false, idx: null, turma: null });
   }, [confirmTurma, onTurmaRemovida]);
 
-  const validarFormulario = useCallback(() => {
-    if (!String(titulo || "").trim()) return "Informe o título do evento.";
-    if (!String(tipo || "").trim()) return "Selecione o tipo do evento.";
-    if (!TIPOS_EVENTO.includes(tipo)) return "Tipo de evento inválido.";
-    if (!String(local || "").trim()) return "Informe o local do evento.";
-    if (!toPositiveIntOrNull(unidadeId)) return "Selecione a unidade.";
+const validarFormulario = useCallback(() => {
+  const tituloLimpo = String(titulo || "").trim();
+  const localLimpo = String(local || "").trim();
+  const descricaoLimpa = String(descricao || "").trim();
+  const publicoAlvoLimpo = String(publicoAlvo || "").trim();
+  const conteudoProgramaticoLimpo = String(conteudoProgramatico || "").trim();
+
+  if (!tituloLimpo) return "Informe o título do evento.";
+
+  if (tituloLimpo.length > EVENTO_LIMITES.titulo) {
+    return `O título ultrapassou o limite de ${EVENTO_LIMITES.titulo} caracteres.`;
+  }
+
+  if (!String(tipo || "").trim()) return "Selecione o tipo do evento.";
+  if (!TIPOS_EVENTO.includes(tipo)) return "Tipo de evento inválido.";
+
+  if (!localLimpo) return "Informe o local do evento.";
+
+  if (localLimpo.length > EVENTO_LIMITES.local) {
+    return `O local ultrapassou o limite de ${EVENTO_LIMITES.local} caracteres.`;
+  }
+
+  if (descricaoLimpa.length > EVENTO_LIMITES.descricao) {
+    return `A descrição ultrapassou o limite de ${EVENTO_LIMITES.descricao} caracteres.`;
+  }
+
+  if (publicoAlvoLimpo.length > EVENTO_LIMITES.publico_alvo) {
+    return `O público-alvo ultrapassou o limite de ${EVENTO_LIMITES.publico_alvo} caracteres.`;
+  }
+
+  if (
+    conteudoProgramaticoLimpo.length >
+    EVENTO_LIMITES.conteudo_programatico
+  ) {
+    return `O conteúdo programático ultrapassou o limite de ${EVENTO_LIMITES.conteudo_programatico} caracteres.`;
+  }
+
+  if (!toPositiveIntOrNull(unidadeId)) return "Selecione a unidade.";
 
     if (!Array.isArray(turmas) || !turmas.length) {
       return "Adicione ao menos uma turma.";
@@ -1493,17 +1555,20 @@ if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
 
     return "";
   }, [
-    cargosPermitidos.length,
-    local,
-    registrosPermitidos.length,
-    restricaoUi,
-    restrito,
-    tipo,
-    titulo,
-    turmas,
-    unidadeId,
-    unidadesPermitidas.length,
-  ]);
+  cargosPermitidos.length,
+  conteudoProgramatico,
+  descricao,
+  local,
+  publicoAlvo,
+  registrosPermitidos.length,
+  restricaoUi,
+  restrito,
+  tipo,
+  titulo,
+  turmas,
+  unidadeId,
+  unidadesPermitidas.length,
+]);
 
   const handleSubmit = useCallback(
     (event) => {
@@ -2020,13 +2085,18 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           Título
                         </FieldLabel>
                         <TextInput
-                          id={`evento-titulo-${uid}`}
-                          icon={FileText}
-                          value={titulo}
-                          onChange={(e) => setTitulo(e.target.value)}
-                          placeholder="Ex.: Curso de Atualização em Urgência"
-                          required
-                        />
+  id={`evento-titulo-${uid}`}
+  icon={FileText}
+  value={titulo}
+  maxLength={EVENTO_LIMITES.titulo}
+  onChange={(e) =>
+    setTitulo(limitarTexto(e.target.value, EVENTO_LIMITES.titulo))
+  }
+  placeholder="Ex.: Curso de Atualização em Urgência"
+  required
+/>
+
+<CampoContador value={titulo} max={EVENTO_LIMITES.titulo} />
                       </div>
 
                       <div className="grid gap-1 sm:col-span-2">
@@ -2034,12 +2104,17 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           Descrição
                         </FieldLabel>
                         <TextArea
-                          id={`evento-descricao-${uid}`}
-                          icon={FileText}
-                          value={descricao}
-                          onChange={(e) => setDescricao(e.target.value)}
-                          placeholder="Contexto, objetivos, orientações e observações do evento."
-                        />
+  id={`evento-descricao-${uid}`}
+  icon={FileText}
+  value={descricao}
+  maxLength={EVENTO_LIMITES.descricao}
+  onChange={(e) =>
+    setDescricao(limitarTexto(e.target.value, EVENTO_LIMITES.descricao))
+  }
+  placeholder="Contexto, objetivos, orientações e observações do evento."
+/>
+
+<CampoContador value={descricao} max={EVENTO_LIMITES.descricao} />
                       </div>
 
                       <div className="grid gap-1 sm:col-span-2">
@@ -2047,21 +2122,34 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           Conteúdo programático
                         </FieldLabel>
                         <TextArea
-                          id={`evento-conteudo-programatico-${uid}`}
-                          icon={ClipboardList}
-                          value={conteudoProgramatico}
-                          onChange={(e) => setConteudoProgramatico(e.target.value)}
-                          placeholder={
-                            "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
-                          }
-                          rows={6}
-                          className="min-h-36"
-                        />
+  id={`evento-conteudo-programatico-${uid}`}
+  icon={ClipboardList}
+  value={conteudoProgramatico}
+  maxLength={EVENTO_LIMITES.conteudo_programatico}
+  onChange={(e) =>
+    setConteudoProgramatico(
+      limitarTexto(
+        e.target.value,
+        EVENTO_LIMITES.conteudo_programatico
+      )
+    )
+  }
+  placeholder={
+    "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
+  }
+  rows={6}
+  className="min-h-36"
+/>
 
-                        <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-                          Campo opcional. Quando preenchido, será impresso no verso do certificado,
-                          preservando as quebras de linha informadas.
-                        </p>
+<CampoContador
+  value={conteudoProgramatico}
+  max={EVENTO_LIMITES.conteudo_programatico}
+/>
+
+<p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+  Campo opcional. Quando preenchido, será impresso no verso do certificado,
+  preservando as quebras de linha informadas.
+</p>
                       </div>
 
                       <div className="grid gap-1 sm:col-span-2">
@@ -2069,12 +2157,19 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           Público-alvo
                         </FieldLabel>
                         <TextInput
-                          id={`evento-publico-${uid}`}
-                          icon={Info}
-                          value={publicoAlvo}
-                          onChange={(e) => setPublicoAlvo(e.target.value)}
-                          placeholder="Ex.: Profissionais da APS, enfermeiros, médicos"
-                        />
+  id={`evento-publico-${uid}`}
+  icon={Info}
+  value={publicoAlvo}
+  maxLength={EVENTO_LIMITES.publico_alvo}
+  onChange={(e) =>
+    setPublicoAlvo(
+      limitarTexto(e.target.value, EVENTO_LIMITES.publico_alvo)
+    )
+  }
+  placeholder="Ex.: Profissionais da APS, enfermeiros, médicos"
+/>
+
+<CampoContador value={publicoAlvo} max={EVENTO_LIMITES.publico_alvo} />
                       </div>
 
                       <div className="grid gap-1">
@@ -2082,13 +2177,18 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
                           Local
                         </FieldLabel>
                         <TextInput
-                          id={`evento-local-${uid}`}
-                          icon={MapPin}
-                          value={local}
-                          onChange={(e) => setLocal(e.target.value)}
-                          placeholder="Ex.: Auditório da Escola da Saúde"
-                          required
-                        />
+  id={`evento-local-${uid}`}
+  icon={MapPin}
+  value={local}
+  maxLength={EVENTO_LIMITES.local}
+  onChange={(e) =>
+    setLocal(limitarTexto(e.target.value, EVENTO_LIMITES.local))
+  }
+  placeholder="Ex.: Auditório da Escola da Saúde"
+  required
+/>
+
+<CampoContador value={local} max={EVENTO_LIMITES.local} />
                       </div>
 
                       <div className="grid gap-1">

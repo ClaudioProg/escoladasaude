@@ -40,6 +40,9 @@ import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
+  Accessibility,
+  AlertCircle,
+  Brain,
   User2,
   Mail,
   BadgeCheck,
@@ -48,6 +51,10 @@ import {
   XCircle,
   CalendarDays,
   Timer,
+  Ear,
+  Eye,
+  Infinity,
+  Sparkles,
 } from "lucide-react";
 
 import { api } from "../../services/api";
@@ -246,6 +253,142 @@ function obterRegraPrazoConfirmacao({
   };
 }
 
+function normalizarTextoBusca(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function obterDeficienciaUsuario(usuario = {}) {
+  const candidatos = [
+    usuario?.deficiencia_nome,
+    usuario?.deficiencia,
+    usuario?.tipo_deficiencia,
+    usuario?.deficiencia_tipo,
+    usuario?.pcd_tipo,
+    usuario?.necessidade_especial,
+  ];
+
+  for (const candidato of candidatos) {
+    const texto = String(candidato || "").trim();
+
+    if (texto) return texto;
+  }
+
+  return "";
+}
+
+function obterConfigDeficiencia(deficiencia) {
+  const textoOriginal = String(deficiencia || "").trim();
+  const texto = normalizarTextoBusca(textoOriginal);
+
+  if (
+    !texto ||
+    [
+      "nao possui",
+      "nao informado",
+      "nenhuma",
+      "sem deficiencia",
+      "nao",
+    ].includes(texto)
+  ) {
+    return null;
+  }
+
+  if (texto.includes("fisica") || texto.includes("motora")) {
+    return {
+      label: "Deficiência física",
+      Icon: Accessibility,
+      className:
+        "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    };
+  }
+
+  if (texto.includes("visual") || texto.includes("visao")) {
+    return {
+      label: "Deficiência visual",
+      Icon: Eye,
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (
+    texto.includes("auditiva") ||
+    texto.includes("surdez") ||
+    texto.includes("surdo")
+  ) {
+    return {
+      label: "Deficiência auditiva",
+      Icon: Ear,
+      className:
+        "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
+    };
+  }
+
+  if (texto.includes("intelectual")) {
+    return {
+      label: "Deficiência intelectual",
+      Icon: Brain,
+      className:
+        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    };
+  }
+
+  if (
+    texto.includes("autismo") ||
+    texto.includes("autista") ||
+    texto.includes("tea") ||
+    texto.includes("espectro")
+  ) {
+    return {
+      label: "Transtorno do Espectro Autista",
+      Icon: Infinity,
+      className:
+        "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    };
+  }
+
+  if (texto.includes("multipla")) {
+    return {
+      label: "Deficiência múltipla",
+      Icon: Sparkles,
+      className:
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
+    };
+  }
+
+  return {
+    label: textoOriginal,
+    Icon: AlertCircle,
+    className:
+      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+  };
+}
+
+function IconeDeficienciaUsuario({ usuario }) {
+  const config = obterConfigDeficiencia(obterDeficienciaUsuario(usuario));
+
+  if (!config) return null;
+
+  const Icon = config.Icon;
+
+  return (
+    <span
+      className={classNames(
+        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+        config.className
+      )}
+      title={config.label}
+      aria-label={config.label}
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+    </span>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────
  * UI local
  * ───────────────────────────────────────────────────────────── */
@@ -276,6 +419,10 @@ function Pill({ tone = "slate", icon: Icon, children }) {
     </span>
   );
 }
+
+IconeDeficienciaUsuario.propTypes = {
+  usuario: PropTypes.object,
+};
 
 Pill.propTypes = {
   tone: PropTypes.oneOf(["emerald", "amber", "rose", "indigo", "slate"]),
@@ -605,9 +752,10 @@ export default function ControlePresencaInscritos({
                         >
                           <td className="px-4 py-3 align-middle">
                             <div className="min-w-0">
-                              <p className="break-words font-black text-slate-950 dark:text-white">
-                                {nome}
-                              </p>
+                              <p className="flex items-center gap-2 break-words font-black text-slate-950 dark:text-white">
+  <span>{nome}</span>
+  <IconeDeficienciaUsuario usuario={inscrito} />
+</p>
 
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                                 <span>{email}</span>
@@ -692,9 +840,10 @@ export default function ControlePresencaInscritos({
                         </span>
 
                         <div className="min-w-0">
-                          <p className="break-words font-semibold text-slate-900 dark:text-white">
-                            {nome}
-                          </p>
+                          <p className="flex items-center gap-2 break-words font-semibold text-slate-900 dark:text-white">
+  <span>{nome}</span>
+  <IconeDeficienciaUsuario usuario={inscrito} />
+</p>
 
                           <p className="inline-flex break-all text-sm text-slate-600 dark:text-slate-300">
                             <Mail
@@ -908,15 +1057,21 @@ export default function ControlePresencaInscritos({
  * ───────────────────────────────────────────────────────────── */
 
 ControlePresencaInscritos.propTypes = {
-  inscritos: PropTypes.arrayOf(
-    PropTypes.shape({
-      usuario_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
-        .isRequired,
-      nome: PropTypes.string,
-      email: PropTypes.string,
-      cpf: PropTypes.string,
-    })
-  ),
+inscritos: PropTypes.arrayOf(
+  PropTypes.shape({
+    usuario_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+      .isRequired,
+    nome: PropTypes.string,
+    email: PropTypes.string,
+    cpf: PropTypes.string,
+    deficiencia_nome: PropTypes.string,
+    deficiencia: PropTypes.string,
+    tipo_deficiencia: PropTypes.string,
+    deficiencia_tipo: PropTypes.string,
+    pcd_tipo: PropTypes.string,
+    necessidade_especial: PropTypes.string,
+  })
+),
   turma: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     turma_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),

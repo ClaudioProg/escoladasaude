@@ -5,6 +5,7 @@
 // HeaderHero limpo: sem botões, stats, filtros, trilhas ou badges.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   addDays,
   addMonths,
@@ -833,7 +834,12 @@ function EventoDetalheModalLocal({ evento, onClose }) {
   const closeRef = useRef(null);
 
   useEffect(() => {
+    if (!evento) return undefined;
+
     closeRef.current?.focus();
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -843,8 +849,11 @@ function EventoDetalheModalLocal({ evento, onClose }) {
 
     document.addEventListener("keydown", onKeyDown);
 
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [evento, onClose]);
 
   if (!evento) return null;
 
@@ -854,127 +863,140 @@ function EventoDetalheModalLocal({ evento, onClose }) {
     ? evento.organizadores
     : [];
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/55 px-3 py-6 backdrop-blur-sm sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="agenda-admin-modal-titulo"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/55 px-3 py-4 backdrop-blur-sm"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
+      }}
     >
-      <div className="relative my-auto w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-zinc-900 dark:ring-white/10">
-        <div className={`h-1.5 bg-gradient-to-r ${config.gradient}`} />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="agenda-admin-modal-titulo"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-zinc-900 dark:ring-white/10"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className={`h-1.5 shrink-0 bg-gradient-to-r ${config.gradient}`} />
 
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-zinc-700">
-          <div className="min-w-0">
-            <StatusChip status={status} />
+        <header className="shrink-0 border-b border-slate-200 px-5 py-4 dark:border-zinc-700">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <StatusChip status={status} />
 
-            <h2
-              id="agenda-admin-modal-titulo"
-              className="mt-3 break-words text-lg font-extrabold text-slate-950 dark:text-white sm:text-xl"
+              <h2
+                id="agenda-admin-modal-titulo"
+                className="mt-3 break-words text-lg font-extrabold text-slate-950 dark:text-white sm:text-xl"
+              >
+                {evento.evento_titulo || evento.titulo || "Evento"}
+              </h2>
+
+              {evento.turma_nome ? (
+                <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-zinc-300">
+                  Turma: {evento.turma_nome}
+                </p>
+              ) : null}
+            </div>
+
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              aria-label="Fechar detalhes do evento"
             >
-              {evento.evento_titulo || evento.titulo || "Evento"}
-            </h2>
-
-            {evento.turma_nome ? (
-              <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-zinc-300">
-                Turma: {evento.turma_nome}
-              </p>
-            ) : null}
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
           </div>
+        </header>
 
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            aria-label="Fechar detalhes do evento"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Data inicial
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
+                  {formatarDataBR(evento.data_inicio)}
+                </p>
+              </div>
 
-        <div className="space-y-4 px-5 py-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
-              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Data inicial
-              </p>
-              <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
-                {formatarDataBR(evento.data_inicio)}
-              </p>
+              <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Data final
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
+                  {formatarDataBR(evento.data_fim)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Horário
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
+                  {formatarHorario(evento.horario_inicio, evento.horario_fim)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Local
+                </p>
+                <p className="mt-1 break-words text-sm font-bold text-slate-950 dark:text-white">
+                  {evento.local || "Não informado"}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Evento ID
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
+                  {evento.evento_id || "—"}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Turma ID
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
+                  {evento.turma_id || evento.id || "—"}
+                </p>
+              </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
+            <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Data final
+                Organizadores vinculados
               </p>
-              <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
-                {formatarDataBR(evento.data_fim)}
-              </p>
+
+              {organizadores.length ? (
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {organizadores.map((organizador) => (
+                    <li
+                      key={organizador?.id || organizador?.nome}
+                      className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-900 ring-1 ring-indigo-100 dark:bg-indigo-950/35 dark:text-indigo-100 dark:ring-indigo-800/60"
+                    >
+                      {organizador?.nome || "Organizador"}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+                  Nenhum organizador informado.
+                </p>
+              )}
             </div>
-
-            <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
-              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Horário
-              </p>
-              <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
-                {formatarHorario(evento.horario_inicio, evento.horario_fim)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
-              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Local
-              </p>
-              <p className="mt-1 break-words text-sm font-bold text-slate-950 dark:text-white">
-                {evento.local || "Não informado"}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
-              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Evento ID
-              </p>
-              <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
-                {evento.evento_id || "—"}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-zinc-800 dark:ring-zinc-700">
-              <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Turma ID
-              </p>
-              <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">
-                {evento.turma_id || evento.id || "—"}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-              Organizadores vinculados
-            </p>
-
-            {organizadores.length ? (
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {organizadores.map((organizador) => (
-                  <li
-                    key={organizador?.id || organizador?.nome}
-                    className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-900 ring-1 ring-indigo-100 dark:bg-indigo-950/35 dark:text-indigo-100 dark:ring-indigo-800/60"
-                  >
-                    {organizador?.nome || "Organizador"}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-                Nenhum organizador informado.
-              </p>
-            )}
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-slate-200 px-5 py-4 dark:border-zinc-700">
+        <footer className="shrink-0 flex justify-end border-t border-slate-200 px-5 py-4 dark:border-zinc-700">
           <button
             type="button"
             onClick={onClose}
@@ -982,9 +1004,10 @@ function EventoDetalheModalLocal({ evento, onClose }) {
           >
             Fechar
           </button>
-        </div>
-      </div>
-    </div>
+        </footer>
+      </section>
+    </div>,
+    document.body
   );
 }
 

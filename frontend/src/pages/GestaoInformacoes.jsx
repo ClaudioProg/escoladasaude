@@ -412,12 +412,17 @@ function BarraAcoesPagina({ onCriar, onAtualizar, loading, hint }) {
    Editor rico leve
 =========================================================================== */
 
-function ToolbarButton({ icon: Icon, label, onClick }) {
+function ToolbarButton({ icon: Icon, label, onMouseDown, active = false }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+      onMouseDown={onMouseDown}
+      className={cx(
+        "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition",
+        active
+          ? "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200"
+          : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+      )}
       title={label}
       aria-label={label}
     >
@@ -433,80 +438,269 @@ function RichTextEditorLite({ value, onChange }) {
   useEffect(() => {
     if (!editorRef.current) return;
 
-    if (editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || "<p></p>";
+    const html = value || "<p><br></p>";
+
+    if (editorRef.current.innerHTML !== html) {
+      editorRef.current.innerHTML = html;
     }
   }, [value]);
 
-  function exec(command, commandValue = null) {
-    editorRef.current?.focus();
-    document.execCommand(command, false, commandValue);
-    onChange(editorRef.current?.innerHTML || "<p></p>");
+  useEffect(() => {
+    try {
+      document.execCommand("styleWithCSS", false, true);
+      document.execCommand("defaultParagraphSeparator", false, "p");
+    } catch {
+      // Alguns navegadores podem ignorar esses comandos.
+    }
+  }, []);
+
+  function emitChange() {
+    const html = editorRef.current?.innerHTML || "<p><br></p>";
+    onChange(html);
   }
 
-  function onLink() {
-    const url = window.prompt("Cole o link:");
+  function focusEditor() {
+    editorRef.current?.focus();
 
-    if (!url) return;
+    try {
+      document.execCommand("styleWithCSS", false, true);
+      document.execCommand("defaultParagraphSeparator", false, "p");
+    } catch {
+      // Ignora navegadores que não suportem.
+    }
+  }
 
-    exec("createLink", url);
+  function exec(command, commandValue = null) {
+    focusEditor();
+
+    try {
+      document.execCommand(command, false, commandValue);
+    } finally {
+      emitChange();
+    }
+  }
+
+  function execMouse(event, command, commandValue = null) {
+    event.preventDefault();
+    exec(command, commandValue);
+  }
+
+function getSelectedText() {
+  const selection = window.getSelection?.();
+
+  if (!selection || selection.rangeCount === 0) return "";
+
+  return String(selection.toString() || "").trim();
+}
+
+function normalizarUrlLink(url) {
+  const value = String(url || "").trim();
+
+  if (!value) return "";
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("mailto:") ||
+    value.startsWith("tel:")
+  ) {
+    return value;
+  }
+
+  return `https://${value}`;
+}
+
+function onLink(event) {
+  event.preventDefault();
+
+  focusEditor();
+
+  const textoSelecionado = getSelectedText();
+
+  const urlDigitada = window.prompt("Cole o link:");
+
+  if (!urlDigitada) return;
+
+  const href = normalizarUrlLink(urlDigitada);
+
+  if (!href) return;
+
+  if (textoSelecionado) {
+    exec("createLink", href);
+
+    const links = editorRef.current?.querySelectorAll(`a[href="${href}"]`) || [];
+
+    links.forEach((link) => {
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
+      link.style.color = "#0369a1";
+      link.style.textDecoration = "underline";
+      link.style.fontWeight = "700";
+    });
+
+    emitChange();
+    return;
+  }
+
+  const textoLink = window.prompt("Qual texto deve aparecer no link?", href);
+
+  if (!textoLink) return;
+
+  const safeText = String(textoLink)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  exec(
+    "insertHTML",
+    `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:#0369a1;text-decoration:underline;font-weight:700;">${safeText}</a>`
+  );
+}
+
+  function onColorMouseDown(event) {
+    event.preventDefault();
+    colorRef.current?.click();
+  }
+
+  function aplicarCor(event) {
+    const cor = event.target.value;
+
+    if (!cor) return;
+
+    exec("foreColor", cor);
+  }
+
+  function onKeyDown(event) {
+    if (event.key !== "Enter") return;
+
+    /**
+     * Mantém o Enter como quebra de parágrafo real.
+     * Shift + Enter continua funcionando como quebra simples.
+     */
+    if (event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    exec("insertHTML", "<p><br></p>");
+  }
+
+  function onPaste(event) {
+    event.preventDefault();
+
+    const text = event.clipboardData?.getData("text/plain") || "";
+
+    if (!text) return;
+
+    const linhas = text
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n");
+
+    const html = linhas
+      .map((linha) => {
+        const conteudo = linha
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
+        return `<p>${conteudo || "<br>"}</p>`;
+      })
+      .join("");
+
+    exec("insertHTML", html);
   }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex flex-wrap gap-2 border-b border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-        <ToolbarButton icon={Bold} label="Negrito" onClick={() => exec("bold")} />
-        <ToolbarButton icon={Italic} label="Itálico" onClick={() => exec("italic")} />
+        <ToolbarButton
+          icon={Bold}
+          label="Negrito"
+          onMouseDown={(event) => execMouse(event, "bold")}
+        />
+
+        <ToolbarButton
+          icon={Italic}
+          label="Itálico"
+          onMouseDown={(event) => execMouse(event, "italic")}
+        />
+
         <ToolbarButton
           icon={Underline}
           label="Sublinhado"
-          onClick={() => exec("underline")}
+          onMouseDown={(event) => execMouse(event, "underline")}
         />
+
         <ToolbarButton
           icon={List}
           label="Lista"
-          onClick={() => exec("insertUnorderedList")}
+          onMouseDown={(event) => execMouse(event, "insertUnorderedList")}
         />
+
         <ToolbarButton
           icon={ListOrdered}
           label="Lista numerada"
-          onClick={() => exec("insertOrderedList")}
+          onMouseDown={(event) => execMouse(event, "insertOrderedList")}
         />
+
         <ToolbarButton
           icon={AlignLeft}
           label="Alinhar à esquerda"
-          onClick={() => exec("justifyLeft")}
+          onMouseDown={(event) => execMouse(event, "justifyLeft")}
         />
+
         <ToolbarButton
           icon={AlignCenter}
           label="Centralizar"
-          onClick={() => exec("justifyCenter")}
+          onMouseDown={(event) => execMouse(event, "justifyCenter")}
         />
+
         <ToolbarButton
           icon={AlignRight}
           label="Alinhar à direita"
-          onClick={() => exec("justifyRight")}
+          onMouseDown={(event) => execMouse(event, "justifyRight")}
         />
-        <ToolbarButton icon={LinkIcon} label="Inserir link" onClick={onLink} />
 
-        <label className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
+        <ToolbarButton
+          icon={LinkIcon}
+          label="Inserir link"
+          onMouseDown={onLink}
+        />
+
+        <button
+          type="button"
+          onMouseDown={onColorMouseDown}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+          title="Escolher cor do texto"
+          aria-label="Escolher cor do texto"
+        >
           <Palette className="h-4 w-4" aria-hidden="true" />
-          <span className="sr-only">Escolher cor do texto</span>
+
           <input
             ref={colorRef}
             type="color"
             className="sr-only"
-            onChange={(event) => exec("foreColor", event.target.value)}
+            onChange={aplicarCor}
+            tabIndex={-1}
           />
-        </label>
+        </button>
       </div>
 
       <div
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        className="prose prose-sm min-h-[220px] max-w-none p-4 text-sm text-zinc-800 outline-none dark:prose-invert dark:text-zinc-100"
-        onInput={() => onChange(editorRef.current?.innerHTML || "<p></p>")}
+        className={cx(
+  "min-h-[220px] max-w-none p-4 text-sm text-zinc-800 outline-none dark:text-zinc-100",
+  "[&_p]:my-2 [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1",
+  "[&_a]:font-bold [&_a]:text-sky-700 [&_a]:underline [&_a]:underline-offset-2",
+  "dark:[&_a]:text-sky-300"
+)}
+        onInput={emitChange}
+        onBlur={emitChange}
+        onKeyDown={onKeyDown}
+        onPaste={onPaste}
         role="textbox"
         aria-multiline="true"
         aria-label="Conteúdo formatado da publicação"
@@ -514,7 +708,6 @@ function RichTextEditorLite({ value, onChange }) {
     </div>
   );
 }
-
 /* =========================================================================
    Modal confirmação de exclusão
 =========================================================================== */
@@ -1214,9 +1407,13 @@ export default function GestaoInformacoes() {
       return "A data final não pode ser menor que a data inicial.";
     }
 
-    if (!stripHtml(form.conteudo_html || "").trim()) {
-      return "Informe o conteúdo da publicação.";
-    }
+if (!stripHtml(form.conteudo_html || "").trim()) {
+  return "Informe o conteúdo da publicação.";
+}
+
+if (String(form.conteudo_html || "").length > 50000) {
+  return "O conteúdo da publicação está muito extenso.";
+}
 
     return null;
   }

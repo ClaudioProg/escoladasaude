@@ -190,6 +190,10 @@ function modalidadeSemCarga(modalidade) {
   return MODALIDADES_SEM_CARGA.includes(modalidade);
 }
 
+function modalidadeExigeCargaHoraria(modalidade) {
+  return !modalidadeSemCarga(modalidade);
+}
+
 function normalizarBusca(value) {
   return String(value || "")
     .normalize("NFD")
@@ -528,9 +532,10 @@ function FormularioCertificado({
   assinaturasCarregando,
   assinaturaAdicionalNome,
 }) {
-  const modalidade = form.modalidade || "participante";
-  const exigeTitulo = modalidadeExigeTitulo(modalidade);
-  const semCarga = modalidadeSemCarga(modalidade);
+ const modalidade = form.modalidade || "participante";
+const exigeTitulo = modalidadeExigeTitulo(modalidade);
+const semCarga = modalidadeSemCarga(modalidade);
+const exigeCargaHoraria = modalidadeExigeCargaHoraria(modalidade);
 
   const handleChange = useCallback(
     (event) => {
@@ -716,25 +721,32 @@ setForm((prev) => ({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Campo
-            label="Carga horária"
-            htmlFor="carga_horaria"
-            hint={
-              semCarga
-                ? "Não se aplica à modalidade escolhida."
-                : "Obrigatória nas modalidades em que houver carga horária."
-            }
-          >
+  label="Carga horária"
+  htmlFor="carga_horaria"
+  required={exigeCargaHoraria}
+  hint={
+    semCarga
+      ? "Não se aplica à modalidade escolhida."
+      : "Obrigatória para a modalidade selecionada."
+  }
+>
             <input
-              id="carga_horaria"
-              name="carga_horaria"
-              type="number"
-              min={1}
-              step={1}
-              value={form.carga_horaria}
-              onChange={handleChange}
-              disabled={salvando || semCarga}
-              className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950"
-            />
+  id="carga_horaria"
+  name="carga_horaria"
+  type="number"
+  min={1}
+  step={1}
+  value={form.carga_horaria}
+  onChange={handleChange}
+  required={exigeCargaHoraria}
+  disabled={salvando || semCarga}
+  className={cx(
+    "w-full rounded-2xl border bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950",
+    exigeCargaHoraria && !form.carga_horaria
+      ? "border-amber-300 dark:border-amber-700"
+      : "border-slate-300 dark:border-zinc-700"
+  )}
+/>
           </Campo>
 
           <Campo label="Data de início" htmlFor="data_inicio">
@@ -1498,13 +1510,19 @@ const assinaturaAdicionalNome = useMemo(() => {
         return;
       }
 
-      if (!semCarga && payload.carga_horaria !== null) {
-        if (!Number.isFinite(payload.carga_horaria) || payload.carga_horaria <= 0) {
-          notifyWarning("Informe uma carga horária válida ou deixe em branco.");
-          setLive("Carga horária inválida.");
-          return;
-        }
-      }
+      if (!semCarga && payload.carga_horaria === null) {
+  notifyWarning("Informe a carga horária para a modalidade selecionada.");
+  setLive("Carga horária obrigatória ausente.");
+  return;
+}
+
+if (!semCarga) {
+  if (!Number.isFinite(payload.carga_horaria) || payload.carga_horaria <= 0) {
+    notifyWarning("Informe uma carga horária válida.");
+    setLive("Carga horária inválida.");
+    return;
+  }
+}
 
       if (exigeTitulo && !payload.titulo_trabalho) {
         notifyWarning("Informe o título do trabalho/oficina.");

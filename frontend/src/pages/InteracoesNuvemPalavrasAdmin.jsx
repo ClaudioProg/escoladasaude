@@ -287,49 +287,23 @@ function normalizeFormFromInteracao(interacao) {
 }
 
 const WORD_CLOUD_COLORS = [
-  "#0f766e", // verde petróleo
-  "#0369a1", // azul institucional
   "#7c2d12", // cobre
-  "#9a3412", // laranja queimado
-  "#166534", // verde
-  "#4338ca", // índigo
+  "#0369a1", // azul institucional
+  "#0f766e", // verde petróleo
   "#9d174d", // vinho
+  "#4338ca", // índigo
   "#a16207", // dourado discreto
+  "#166534", // verde
+  "#9a3412", // laranja queimado
+  "#be185d", // rosa/vinho
+  "#0891b2", // ciano institucional
+  "#6d28d9", // violeta
+  "#15803d", // verde forte
 ];
 
-const WORD_CLOUD_POSITIONS = [
-  { top: 50, left: 50, rotate: 0 },
-
-  { top: 36, left: 50, rotate: 0 },
-  { top: 63, left: 50, rotate: 0 },
-  { top: 50, left: 34, rotate: 0 },
-  { top: 50, left: 66, rotate: 0 },
-
-  { top: 29, left: 35, rotate: -5 },
-  { top: 29, left: 65, rotate: 5 },
-  { top: 71, left: 35, rotate: 5 },
-  { top: 71, left: 65, rotate: -5 },
-
-  { top: 20, left: 50, rotate: 0 },
-  { top: 80, left: 50, rotate: 0 },
-  { top: 50, left: 20, rotate: 0 },
-  { top: 50, left: 80, rotate: 0 },
-
-  { top: 19, left: 25, rotate: -7 },
-  { top: 19, left: 75, rotate: 7 },
-  { top: 81, left: 25, rotate: 7 },
-  { top: 81, left: 75, rotate: -7 },
-
-  { top: 12, left: 50, rotate: 0 },
-  { top: 88, left: 50, rotate: 0 },
-  { top: 50, left: 10, rotate: -5 },
-  { top: 50, left: 90, rotate: 5 },
-
-  { top: 12, left: 18, rotate: 6 },
-  { top: 12, left: 82, rotate: -6 },
-  { top: 88, left: 18, rotate: -6 },
-  { top: 88, left: 82, rotate: 6 },
-];
+const WORD_CLOUD_WIDTH = 980;
+const WORD_CLOUD_HEIGHT = 440;
+const WORD_CLOUD_MAX_TERMS = 28;
 
 function normalizarPalavrasNuvem(palavras) {
   if (!Array.isArray(palavras)) return [];
@@ -340,41 +314,149 @@ function normalizarPalavrasNuvem(palavras) {
       total: Number(item?.total || 0),
     }))
     .filter((item) => item.palavra && item.total > 0)
-    .sort((a, b) => b.total - a.total || a.palavra.localeCompare(b.palavra))
-    .slice(0, WORD_CLOUD_POSITIONS.length);
+    .sort((a, b) => b.total - a.total || a.palavra.localeCompare(b.palavra, "pt-BR"))
+    .slice(0, WORD_CLOUD_MAX_TERMS);
+}
+
+function obterCorPalavra(index) {
+  return WORD_CLOUD_COLORS[index % WORD_CLOUD_COLORS.length];
 }
 
 function calcularTamanhoPalavra(total, maiorTotal, index = 0) {
-  const min = 16;
-  const max = 84;
+  const min = 18;
+  const max = 78;
 
   if (!maiorTotal || maiorTotal <= 0) return min;
 
   const ratio = Math.sqrt(Number(total || 0) / maiorTotal);
-  const destaque = index === 0 ? 1.25 : index === 1 ? 1.1 : 1;
+  const destaque = index === 0 ? 1.18 : index === 1 ? 1.06 : 1;
 
   return Math.round(
     Math.min(max, Math.max(min, min + (max - min) * ratio * destaque))
   );
 }
 
-function obterCorPalavra(index, total, maiorTotal) {
-  const peso = maiorTotal > 0 ? Number(total || 0) / maiorTotal : 0;
+function estimarLarguraTexto(texto, fontSize) {
+  const normalizado = String(texto || "").trim();
 
-  if (peso >= 0.9) return "#7c2d12";
-  if (peso >= 0.7) return "#9a3412";
-  if (peso >= 0.5) return "#0369a1";
+  const fator = normalizado.length <= 5 ? 0.68 : 0.58;
 
-  return WORD_CLOUD_COLORS[index % WORD_CLOUD_COLORS.length];
+  return Math.max(42, normalizado.length * fontSize * fator);
 }
 
-function obterRotacaoPalavra(index, total, maiorTotal) {
-  const peso = maiorTotal > 0 ? Number(total || 0) / maiorTotal : 0;
+function boxesColidem(a, b, margem = 10) {
+  return !(
+    a.x + a.w + margem < b.x ||
+    a.x > b.x + b.w + margem ||
+    a.y + a.h + margem < b.y ||
+    a.y > b.y + b.h + margem
+  );
+}
 
-  if (peso >= 0.7) return 0;
+function boxDentroDaArea(box, largura, altura, margem = 18) {
+  return (
+    box.x >= margem &&
+    box.y >= margem &&
+    box.x + box.w <= largura - margem &&
+    box.y + box.h <= altura - margem
+  );
+}
 
-  const rotacoes = [-8, 6, -5, 4, -6, 7, -4, 5];
-  return rotacoes[index % rotacoes.length];
+function calcularLayoutNuvemPalavras(
+  palavras,
+  largura = WORD_CLOUD_WIDTH,
+  altura = WORD_CLOUD_HEIGHT
+) {
+  const lista = normalizarPalavrasNuvem(palavras);
+
+  if (!lista.length) return [];
+
+  const maiorTotal = Math.max(
+    ...lista.map((item) => Number(item.total || 0)),
+    1
+  );
+
+  const centroX = largura / 2;
+  const centroY = altura / 2;
+  const ocupados = [];
+  const resultado = [];
+
+  lista.forEach((item, index) => {
+    const totalItem = Number(item.total || 0);
+    let fontSize = calcularTamanhoPalavra(totalItem, maiorTotal, index);
+
+    let posicao = null;
+
+    for (let tentativaFonte = 0; tentativaFonte < 4 && !posicao; tentativaFonte += 1) {
+      const larguraTexto = estimarLarguraTexto(item.palavra, fontSize);
+      const alturaTexto = fontSize * 1.08;
+
+      if (index === 0) {
+        const boxCentral = {
+          x: centroX - larguraTexto / 2,
+          y: centroY - alturaTexto / 2,
+          w: larguraTexto,
+          h: alturaTexto,
+        };
+
+        if (boxDentroDaArea(boxCentral, largura, altura)) {
+          posicao = boxCentral;
+        }
+      } else {
+        const raioInicial = 38;
+        const raioMaximo = Math.max(largura, altura);
+        const passoRaio = 10;
+        const passoAngulo = 14;
+
+        for (let raio = raioInicial; raio <= raioMaximo && !posicao; raio += passoRaio) {
+          for (let angulo = 0; angulo < 360; angulo += passoAngulo) {
+            const rad = (angulo * Math.PI) / 180;
+
+            const x = centroX + Math.cos(rad) * raio - larguraTexto / 2;
+            const y = centroY + Math.sin(rad) * raio - alturaTexto / 2;
+
+            const box = {
+              x,
+              y,
+              w: larguraTexto,
+              h: alturaTexto,
+            };
+
+            const temColisao = ocupados.some((ocupado) =>
+              boxesColidem(box, ocupado)
+            );
+
+            if (boxDentroDaArea(box, largura, altura) && !temColisao) {
+              posicao = box;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!posicao) {
+        fontSize = Math.max(16, Math.round(fontSize * 0.88));
+      }
+    }
+
+    if (!posicao) {
+      return;
+    }
+
+    ocupados.push(posicao);
+
+    resultado.push({
+      palavra: item.palavra,
+      total: item.total,
+      x: posicao.x + posicao.w / 2,
+      y: posicao.y + posicao.h / 2,
+      fontSize,
+      cor: obterCorPalavra(index),
+      destaque: index === 0,
+    });
+  });
+
+  return resultado;
 }
 
 /* =========================================================================
@@ -1781,10 +1863,10 @@ function PainelNuvemDrawer({ painel, loading, onClose, onRefresh }) {
   const intervaloRef = useRef(null);
 
   const interacao = painel?.resultado?.interacao || painel?.interacao;
-  const palavras = normalizarPalavrasNuvem(painel?.resultado?.palavras || []);
+const palavras = normalizarPalavrasNuvem(painel?.resultado?.palavras || []);
 const intervalo = Number(interacao?.intervalo_atualizacao_segundos || 3);
 const total = palavras.reduce((acc, item) => acc + Number(item.total || 0), 0);
-const maiorTotal = Math.max(...palavras.map((item) => Number(item.total || 0)), 1);
+const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
 
   useEffect(() => {
     if (!painel?.interacao?.id) return undefined;
@@ -1931,34 +2013,32 @@ const maiorTotal = Math.max(...palavras.map((item) => Number(item.total || 0)), 
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-3xl border border-amber-100 bg-[radial-gradient(circle_at_center,#fffdf8_0%,#fff9ef_46%,#ffffff_100%)] p-4 shadow-inner dark:border-slate-800 dark:bg-[radial-gradient(circle_at_center,rgba(30,41,59,.92)_0%,rgba(15,23,42,1)_100%)] sm:p-6">
-  <div className="relative min-h-[360px] overflow-hidden rounded-[2rem] border border-dashed border-amber-200/70 p-6 dark:border-slate-700 sm:min-h-[440px]">
-  {palavras.map((item, index) => {
-    const totalItem = Number(item.total || 0);
-    const posicao = WORD_CLOUD_POSITIONS[index];
-    const fontSize = calcularTamanhoPalavra(totalItem, maiorTotal, index);
-    const cor = obterCorPalavra(index, totalItem, maiorTotal);
-
-    return (
-      <span
-        key={`${item.palavra}-${index}`}
-        className="absolute select-none whitespace-nowrap font-black leading-none tracking-tight transition-transform duration-200 hover:scale-105"
-        style={{
-          top: `${posicao.top}%`,
-          left: `${posicao.left}%`,
-          fontSize: `${fontSize}px`,
-          color: cor,
-          transform: `translate(-50%, -50%) rotate(${posicao.rotate}deg)`,
-          opacity: index <= 4 ? 1 : 0.86,
-          zIndex: WORD_CLOUD_POSITIONS.length - index,
-        }}
-        title={item.palavra}
-      >
-        {item.palavra}
-      </span>
-    );
-  })}
-</div>
+<div className="rounded-3xl border border-amber-100 bg-[radial-gradient(circle_at_center,#fffdf8_0%,#fff9ef_46%,#ffffff_100%)] p-4 shadow-inner dark:border-slate-800 dark:bg-[radial-gradient(circle_at_center,rgba(30,41,59,.92)_0%,rgba(15,23,42,1)_100%)] sm:p-6">
+  <div className="overflow-hidden rounded-[2rem] border border-dashed border-amber-200/70 bg-white/40 p-2 dark:border-slate-700 dark:bg-slate-950/20">
+    <svg
+      viewBox={`0 0 ${WORD_CLOUD_WIDTH} ${WORD_CLOUD_HEIGHT}`}
+      className="block h-auto min-h-[360px] w-full sm:min-h-[440px]"
+      role="img"
+      aria-label="Nuvem de palavras em tempo real"
+    >
+      {layoutNuvem.map((item, index) => (
+        <text
+          key={`${item.palavra}-${index}`}
+          x={item.x}
+          y={item.y}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={item.fontSize}
+          fontWeight={item.destaque ? 950 : 850}
+          fill={item.cor}
+          opacity={index <= 4 ? 1 : 0.88}
+          className="select-none transition-transform duration-200"
+        >
+          {item.palavra}
+        </text>
+      ))}
+    </svg>
+  </div>
 
   <div className="mt-3 flex justify-end">
     <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-bold text-amber-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
