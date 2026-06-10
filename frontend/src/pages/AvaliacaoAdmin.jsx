@@ -1,4 +1,4 @@
-// ✅ frontend/src/pages/AdminAvaliacao.jsx — v2.1
+// ✅ frontend/src/pages/AvaliacaoAdmin.jsx — v2.1
 // Atualizado em: 02/06/2026
 // Plataforma Escola da Saúde
 //
@@ -736,7 +736,7 @@ function QuadroComentarios({ titulo, itens }) {
  * Página
  * ───────────────────────────────────────────── */
 
-export default function AdminAvaliacao() {
+export default function AvaliacaoAdmin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const reduceMotion = useReducedMotion();
@@ -854,7 +854,7 @@ export default function AdminAvaliacao() {
       setPayload(dados);
       setLive("Avaliações do evento carregadas.");
     } catch (error) {
-      console.error("[AdminAvaliacao] erro ao carregar página:", error);
+      console.error("[AvaliacaoAdmin] erro ao carregar página:", error);
 
       const message = getErrorMessage(
         error,
@@ -954,7 +954,7 @@ export default function AdminAvaliacao() {
 
       notifySuccess("CSV gerado com sucesso.");
     } catch (error) {
-      console.error("[AdminAvaliacao] erro ao exportar CSV:", error);
+      console.error("[AvaliacaoAdmin] erro ao exportar CSV:", error);
       notifyError("Não foi possível exportar o CSV.");
     }
   }

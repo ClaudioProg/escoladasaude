@@ -1223,6 +1223,40 @@ function validarGeolocalizacaoInteracao(interacao, body = {}) {
   };
 }
 
+function obterTempoPerguntaSegundos(interacao, pergunta) {
+  const tempoDaPergunta = Number(pergunta?.tempo_segundos || 0);
+
+  if (Number.isInteger(tempoDaPergunta) && tempoDaPergunta > 0) {
+    return tempoDaPergunta;
+  }
+
+  const tempoDaInteracao = Number(interacao?.tempo_por_pergunta_segundos || 0);
+
+  if (Number.isInteger(tempoDaInteracao) && tempoDaInteracao > 0) {
+    return tempoDaInteracao;
+  }
+
+  return null;
+}
+
+function perguntaEstaAbertaParaResposta(pergunta) {
+  if (!pergunta) return false;
+
+  if (pergunta.status !== STATUS_PERGUNTA.aberta) {
+    return false;
+  }
+
+  if (!pergunta.aberta_em) {
+    return false;
+  }
+
+  if (!pergunta.fechada_em) {
+    return true;
+  }
+
+  return new Date(pergunta.fechada_em).getTime() >= Date.now();
+}
+
 function validarRespostaUsuario(interacao, body = {}) {
   const perguntaId = Number(body.pergunta_id);
   const opcaoId =
@@ -2165,19 +2199,28 @@ async function avancarPerguntaAdmin(req, res) {
         [id]
       );
 
-      await client.query(
-        `
-          UPDATE ${TABELA_PERGUNTA}
-             SET status = 'aberta',
-                 aberta_em = now(),
-                 fechada_em = NULL,
-                 gabarito_exibido_em = NULL,
-                 atualizado_em = now()
-           WHERE id = $1
-             AND interacao_id = $2
-        `,
-        [proximaPergunta.id, id]
-      );
+      const tempoProximaPerguntaSegundos = obterTempoPerguntaSegundos(
+  interacao,
+  proximaPergunta
+);
+
+await client.query(
+  `
+    UPDATE ${TABELA_PERGUNTA}
+       SET status = 'aberta',
+           aberta_em = now(),
+           fechada_em = CASE
+             WHEN $3::int IS NOT NULL AND $3::int > 0
+               THEN now() + ($3::int * interval '1 second')
+             ELSE NULL
+           END,
+           gabarito_exibido_em = NULL,
+           atualizado_em = now()
+     WHERE id = $1
+       AND interacao_id = $2
+  `,
+  [proximaPergunta.id, id, tempoProximaPerguntaSegundos]
+);
 
       await client.query(
         `
@@ -2190,17 +2233,22 @@ async function avancarPerguntaAdmin(req, res) {
         [proximaPergunta.id, id]
       );
 
-      await client.query(
-        `
-          UPDATE ${TABELA_EXECUCAO}
-             SET status = 'em_andamento',
-                 pergunta_atual_id = $1,
-                 atualizado_em = now()
-           WHERE interacao_id = $2
-             AND status = 'em_andamento'
-        `,
-        [proximaPergunta.id, id]
-      );
+await client.query(
+  `
+    UPDATE ${TABELA_EXECUCAO}
+       SET status = 'em_andamento',
+           pergunta_atual_id = $1,
+           codigo_acesso_expira_em = CASE
+             WHEN $3::int IS NOT NULL AND $3::int > 0
+               THEN now() + ($3::int * interval '1 second')
+             ELSE NULL
+           END,
+           atualizado_em = now()
+     WHERE interacao_id = $2
+       AND status = 'em_andamento'
+  `,
+  [proximaPergunta.id, id, tempoProximaPerguntaSegundos]
+);
 
       return carregarInteracaoCompleta(client, id);
     });
@@ -2272,9 +2320,11 @@ async function abrirPerguntaAdmin(req, res) {
 
       if (!interacao) return null;
 
-      const pertence = interacao.perguntas.some(
-        (pergunta) => Number(pergunta.id) === perguntaId
-      );
+      const perguntaAlvo = interacao.perguntas.find(
+  (pergunta) => Number(pergunta.id) === perguntaId
+);
+
+const pertence = Boolean(perguntaAlvo);
 
       if (!pertence) {
         const error = new Error("Pergunta não pertence à interação.");
@@ -2294,17 +2344,45 @@ async function abrirPerguntaAdmin(req, res) {
         [id]
       );
 
-      await client.query(
-        `
-          UPDATE ${TABELA_PERGUNTA}
-             SET status = 'aberta',
-                 aberta_em = now(),
-                 fechada_em = NULL,
-                 gabarito_exibido_em = NULL
-           WHERE id = $1
-        `,
-        [perguntaId]
-      );
+      const tempoPerguntaSegundos = obterTempoPerguntaSegundos(
+  interacao,
+  perguntaAlvo
+);
+
+await client.query(
+  `
+    UPDATE ${TABELA_PERGUNTA}
+       SET status = 'aberta',
+           aberta_em = now(),
+           fechada_em = CASE
+             WHEN $3::int IS NOT NULL AND $3::int > 0
+               THEN now() + ($3::int * interval '1 second')
+             ELSE NULL
+           END,
+           gabarito_exibido_em = NULL,
+           atualizado_em = now()
+     WHERE id = $1
+       AND interacao_id = $2
+  `,
+  [perguntaId, id, tempoPerguntaSegundos]
+);
+
+await client.query(
+  `
+    UPDATE ${TABELA_EXECUCAO}
+       SET status = 'em_andamento',
+           pergunta_atual_id = $1,
+           codigo_acesso_expira_em = CASE
+             WHEN $3::int IS NOT NULL AND $3::int > 0
+               THEN now() + ($3::int * interval '1 second')
+             ELSE NULL
+           END,
+           atualizado_em = now()
+     WHERE interacao_id = $2
+       AND status = 'em_andamento'
+  `,
+  [perguntaId, id, tempoPerguntaSegundos]
+);
 
       await client.query(
         `
@@ -2699,11 +2777,68 @@ async function obterPublicadaPorId(req, res) {
       });
     }
 
-    const respondida = await usuarioJaRespondeuInteracao({ query }, id, usuarioId);
+    const respostasResult = await query(
+      `
+        SELECT
+          id,
+          pergunta_id,
+          opcao_id,
+          correta,
+          pontuacao,
+          tempo_resposta_ms,
+          enviada_em
+        FROM ${TABELA_RESPOSTA}
+        WHERE interacao_id = $1
+          AND usuario_id = $2
+        ORDER BY enviada_em ASC, id ASC
+      `,
+      [id, usuarioId]
+    );
+
+    const respostasUsuario = respostasResult.rows || [];
+    const respostasPorPergunta = new Map(
+      respostasUsuario.map((resposta) => [
+        Number(resposta.pergunta_id),
+        resposta,
+      ])
+    );
+
+    const perguntas = Array.isArray(interacao.perguntas)
+      ? interacao.perguntas.map((pergunta) => {
+          const respostaUsuario = respostasPorPergunta.get(Number(pergunta.id));
+
+          return {
+            ...pergunta,
+            respondida: Boolean(respostaUsuario),
+            resposta_usuario: respostaUsuario || null,
+            aberta_para_resposta: perguntaEstaAbertaParaResposta(pergunta),
+          };
+        })
+      : [];
+
+    const perguntaAtual =
+      perguntas.find(
+        (pergunta) => Number(pergunta.id) === Number(interacao.pergunta_atual_id)
+      ) ||
+      perguntas.find((pergunta) => pergunta.status === STATUS_PERGUNTA.aberta) ||
+      null;
+
+    const respondida =
+      interacao.tipo === TIPO.quiz
+        ? Boolean(
+            perguntaAtual &&
+              respostasPorPergunta.has(Number(perguntaAtual.id))
+          )
+        : respostasUsuario.length > 0;
 
     return sucesso(res, {
       data: {
         ...interacao,
+        perguntas,
+        pergunta_atual: perguntaAtual,
+        pergunta_atual_respondida:
+          interacao.tipo === TIPO.quiz ? respondida : null,
+        respostas_usuario: respostasUsuario,
         respondida,
       },
       message: "Interação carregada com sucesso.",
@@ -2821,14 +2956,103 @@ async function responderPublicada(req, res) {
         throw error;
       }
 
-      const respostaValidada = validarRespostaUsuario(interacao, req.body || {});
+const respostaValidada = validarRespostaUsuario(interacao, req.body || {});
 
-      if (!respostaValidada.ok) {
-        const error = new Error(respostaValidada.message);
-        error.status = 400;
-        error.code = respostaValidada.code;
-        throw error;
-      }
+if (!respostaValidada.ok) {
+  const error = new Error(respostaValidada.message);
+  error.status = 400;
+  error.code = respostaValidada.code;
+  throw error;
+}
+
+let tempoRespostaMsFinal = toIntOrNull(req.body?.tempo_resposta_ms);
+
+if (interacao.tipo === TIPO.quiz) {
+  if (
+    Number(interacao.pergunta_atual_id || 0) !==
+    Number(respostaValidada.pergunta.id)
+  ) {
+    const error = new Error("Esta pergunta não está aberta para resposta.");
+    error.status = 409;
+    error.code = "QUIZ_PERGUNTA_NAO_ATIVA";
+    throw error;
+  }
+
+  const prazoResult = await client.query(
+    `
+      SELECT
+        p.id,
+        p.status,
+        p.aberta_em,
+        p.fechada_em,
+        now() AS agora,
+        (
+          p.status = 'aberta'
+          AND p.aberta_em IS NOT NULL
+          AND (
+            p.fechada_em IS NULL
+            OR now() <= p.fechada_em
+          )
+        ) AS dentro_prazo,
+        GREATEST(
+          0,
+          FLOOR(EXTRACT(EPOCH FROM (now() - p.aberta_em)) * 1000)
+        )::int AS tempo_resposta_ms,
+        EXISTS (
+          SELECT 1
+          FROM ${TABELA_RESPOSTA} r
+          WHERE r.interacao_id = $2
+            AND r.pergunta_id = p.id
+            AND r.usuario_id = $3
+        ) AS ja_respondida
+      FROM ${TABELA_PERGUNTA} p
+      WHERE p.id = $1
+        AND p.interacao_id = $2
+      LIMIT 1
+    `,
+    [respostaValidada.pergunta.id, id, usuarioId]
+  );
+
+  const prazo = prazoResult.rows?.[0];
+
+  if (!prazo) {
+    const error = new Error("Pergunta não encontrada.");
+    error.status = 404;
+    error.code = "PERGUNTA_NAO_ENCONTRADA";
+    throw error;
+  }
+
+  if (prazo.ja_respondida) {
+    const error = new Error("Você já respondeu esta pergunta.");
+    error.status = 409;
+    error.code = "QUIZ_PERGUNTA_JA_RESPONDIDA";
+    throw error;
+  }
+
+  if (!prazo.dentro_prazo) {
+    await client.query(
+      `
+        UPDATE ${TABELA_PERGUNTA}
+           SET status = CASE
+                 WHEN status = 'aberta' THEN 'fechada'
+                 ELSE status
+               END,
+               fechada_em = COALESCE(fechada_em, now()),
+               atualizado_em = now()
+         WHERE id = $1
+           AND interacao_id = $2
+      `,
+      [respostaValidada.pergunta.id, id]
+    );
+
+    const error = new Error("Tempo encerrado para responder esta pergunta.");
+    error.status = 409;
+    error.code = "QUIZ_TEMPO_ENCERRADO";
+    throw error;
+  }
+
+  tempoRespostaMsFinal = Number(prazo.tempo_resposta_ms || 0);
+}
 
       const anonima = Boolean(req.body?.anonima) && Boolean(interacao.permite_anonima);
 
@@ -2874,7 +3098,7 @@ async function responderPublicada(req, res) {
           anonima,
           correta,
           pontuacao,
-          toIntOrNull(req.body?.tempo_resposta_ms),
+          tempoRespostaMsFinal,
           geo.latitude_usuario,
           geo.longitude_usuario,
           geo.distancia_metros,

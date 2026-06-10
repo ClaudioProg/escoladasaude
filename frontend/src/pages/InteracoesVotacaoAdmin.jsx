@@ -1479,6 +1479,55 @@ function LoadingList() {
 }
 
 /* =========================================================================
+   Helpers visuais de formulário
+=========================================================================== */
+
+function Field({ label, required = false, hint = "", children }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+        {required ? (
+          <span className="ml-1 text-rose-600 dark:text-rose-300">*</span>
+        ) : null}
+      </span>
+
+      {children}
+
+      {hint ? (
+        <span className="block text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+          {hint}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+function CheckboxField({ label, checked, onChange, disabled = false }) {
+  return (
+    <label className="inline-flex items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200">
+      <input
+        type="checkbox"
+        checked={Boolean(checked)}
+        onChange={(event) => onChange?.(event.target.checked)}
+        disabled={disabled}
+        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+      />
+
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function inputClass() {
+  return "h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900";
+}
+
+function textareaClass() {
+  return "w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900";
+}
+
+/* =========================================================================
    Modal de criação/edição
 =========================================================================== */
 
@@ -1774,15 +1823,15 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (salvando) return;
-        if (event.target === event.currentTarget) onClose?.();
-      }}
-    >
+    return createPortal(
+  <div
+    className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+    role="presentation"
+    onMouseDown={(event) => {
+      if (salvando) return;
+      if (event.target === event.currentTarget) onClose?.();
+    }}
+  >
       <div
         role="dialog"
         aria-modal="true"
@@ -2221,6 +2270,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -436,6 +436,16 @@ function criterioTablePorTipo(tipo) {
     : "trabalhos_chamada_criterios";
 }
 
+function avaliacaoItemTablePorTipo(tipo) {
+  return tipo === "oral"
+    ? "trabalhos_apresentacoes_orais_itens"
+    : "trabalhos_avaliacoes_itens";
+}
+
+function criterioIdColumnPorTipo(tipo) {
+  return tipo === "oral" ? "criterio_oral_id" : "criterio_id";
+}
+
 /* =========================================================================
    Notas
 =========================================================================== */
@@ -470,7 +480,10 @@ async function calcularTotaisDaSubmissaoTx(submissaoId, tx) {
 }
 
 async function calcularNotaPorTipoTx(submissaoId, tipo, tx) {
-  const criterioTable = criterioTablePorTipo(tipo);
+  const tipoOficial = normalizarTipoAvaliacao(tipo);
+  const criterioTable = criterioTablePorTipo(tipoOficial);
+  const avaliacaoTable = avaliacaoItemTablePorTipo(tipoOficial);
+  const criterioColumn = criterioIdColumnPorTipo(tipoOficial);
 
   const row = await tx.one(
     `
@@ -487,8 +500,8 @@ async function calcularNotaPorTipoTx(submissaoId, tipo, tx) {
       SELECT
         ai.avaliador_id,
         AVG(ai.nota)::numeric AS media_avaliador
-      FROM trabalhos_avaliacoes_itens ai
-      JOIN criterios_tipo ct ON ct.id = ai.criterio_id
+      FROM ${avaliacaoTable} ai
+      JOIN criterios_tipo ct ON ct.id = ai.${criterioColumn}
       WHERE ai.submissao_id = $1
       GROUP BY ai.avaliador_id
     )
@@ -522,36 +535,35 @@ async function atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx) {
   const notaEscrita = await calcularNotaPorTipoTx(submissaoId, "escrita", tx);
   const notaOral = await calcularNotaPorTipoTx(submissaoId, "oral", tx);
 
-  let notaFinal = null;
-
-  if (notaEscrita != null && notaOral != null) {
-    notaFinal = Number(((notaEscrita + notaOral) / 2).toFixed(2));
-  } else if (notaEscrita != null) {
-    notaFinal = notaEscrita;
-  } else if (notaOral != null) {
-    notaFinal = notaOral;
-  } else {
-    notaFinal = totais.nota_media;
-  }
+  /*
+    Regra oficial:
+    - nota_escrita classifica/seleciona para a etapa oral;
+    - nota_oral define o ranking final/premiação;
+    - nota_final NÃO é média entre escrita e oral;
+    - trabalhos_submissoes não possui coluna nota_media.
+  */
+  const notaFinal = notaOral != null ? notaOral : notaEscrita;
 
   await tx.none(
     `
     UPDATE trabalhos_submissoes
-       SET nota_media = $2,
-           nota_escrita = $3,
-           nota_oral = $4,
-           nota_final = $5,
+       SET nota_escrita = $2,
+           nota_oral = $3,
+           nota_final = $4,
            atualizado_em = NOW()
      WHERE id = $1
     `,
-    [submissaoId, totais.nota_media, notaEscrita, notaOral, notaFinal]
+    [submissaoId, notaEscrita, notaOral, notaFinal]
   );
 
   return {
     ...totais,
+    nota_media: totais.nota_media, // apenas resposta da API, não grava no banco
     nota_escrita: notaEscrita,
     nota_oral: notaOral,
     nota_final: notaFinal,
+    regra_classificacao:
+      "nota_escrita seleciona para oral; nota_oral define ranking final",
   };
 }
 
@@ -674,52 +686,198 @@ exports.resumoAvaliadores = async (req, res, next) => {
   try {
     requireAdmin(req);
 
+    const chamadaId = req.query.chamada_id
+      ? toId(req.query.chamada_id, "chamada_id")
+      : null;
+
+    const params = [];
+    const where = ["tsa.revoked_at IS NULL"];
+
+    if (chamadaId) {
+      params.push(chamadaId);
+      where.push(`s.chamada_id = $${params.length}`);
+    }
+
     const rows = await queryMany(
       req,
       `
       WITH atribuicoes AS (
-        SELECT DISTINCT
+        SELECT
           tsa.avaliador_id,
-          tsa.submissao_id
+          tsa.submissao_id,
+          tsa.tipo,
+          s.status,
+          s.status_escrita,
+          s.status_oral,
+          s.nota_escrita,
+          s.nota_oral
         FROM trabalhos_submissoes_avaliadores tsa
-        WHERE tsa.revoked_at IS NULL
+        JOIN trabalhos_submissoes s ON s.id = tsa.submissao_id
+        WHERE ${where.join(" AND ")}
       ),
-      avaliacoes AS (
+      escrita_concluida AS (
         SELECT DISTINCT
           ai.avaliador_id,
           ai.submissao_id
         FROM trabalhos_avaliacoes_itens ai
+      ),
+      oral_concluida AS (
+        SELECT DISTINCT
+          aoi.avaliador_id,
+          aoi.submissao_id
+        FROM trabalhos_apresentacoes_orais_itens aoi
+      ),
+      status_final AS (
+        SELECT
+          at.*,
+
+          CASE
+            WHEN at.tipo = 'escrita' THEN
+              ec.submissao_id IS NOT NULL
+              OR COALESCE(at.status_escrita, '') = 'aprovado'
+              OR COALESCE(at.status, '') IN (
+                'aprovada_exposicao',
+                'aprovada_oral',
+                'aprovada'
+              )
+
+            WHEN at.tipo = 'oral' THEN
+              oc.submissao_id IS NOT NULL
+              OR COALESCE(at.status_oral, '') = 'aprovado'
+              OR COALESCE(at.status, '') IN (
+                'aprovado_oral',
+                'aprovada_oral',
+                'aprovada'
+              )
+
+            ELSE false
+          END AS finalizada
+
+        FROM atribuicoes at
+
+        LEFT JOIN escrita_concluida ec
+          ON ec.avaliador_id = at.avaliador_id
+         AND ec.submissao_id = at.submissao_id
+
+        LEFT JOIN oral_concluida oc
+          ON oc.avaliador_id = at.avaliador_id
+         AND oc.submissao_id = at.submissao_id
       )
       SELECT
         u.id,
         COALESCE(u.nome, '') AS nome,
         COALESCE(u.email, '') AS email,
-        COUNT(*) FILTER (WHERE av.avaliador_id IS NULL)::int AS pendentes,
-        COUNT(*) FILTER (WHERE av.avaliador_id IS NOT NULL)::int AS avaliados
-      FROM atribuicoes at
-      JOIN usuarios u ON u.id = at.avaliador_id
-      LEFT JOIN avaliacoes av
-        ON av.avaliador_id = at.avaliador_id
-       AND av.submissao_id = at.submissao_id
+
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE sf.tipo = 'escrita')::int AS total_escrita,
+        COUNT(*) FILTER (WHERE sf.tipo = 'oral')::int AS total_oral,
+
+        COUNT(*) FILTER (WHERE sf.finalizada)::int AS avaliados,
+        COUNT(*) FILTER (WHERE NOT sf.finalizada)::int AS pendentes,
+
+        COUNT(*) FILTER (
+          WHERE sf.tipo = 'escrita'
+            AND sf.finalizada
+        )::int AS avaliados_escrita,
+
+        COUNT(*) FILTER (
+          WHERE sf.tipo = 'oral'
+            AND sf.finalizada
+        )::int AS avaliados_oral,
+
+        COUNT(*) FILTER (
+          WHERE sf.tipo = 'escrita'
+            AND NOT sf.finalizada
+        )::int AS pendentes_escrita,
+
+        COUNT(*) FILTER (
+          WHERE sf.tipo = 'oral'
+            AND NOT sf.finalizada
+        )::int AS pendentes_oral
+
+      FROM status_final sf
+      JOIN usuarios u ON u.id = sf.avaliador_id
+
       GROUP BY u.id, u.nome, u.email
       ORDER BY
-        COUNT(*) FILTER (WHERE av.avaliador_id IS NULL) DESC,
+        COUNT(*) FILTER (WHERE NOT sf.finalizada) DESC,
+        COUNT(*) DESC,
         u.nome ASC
-      `
+      `,
+      params
     );
 
-    const data = rows.map((row) => ({
-      id: row.id,
-      nome: row.nome,
-      email: row.email,
-      pendentes: Number(row.pendentes || 0),
-      avaliados: Number(row.avaliados || 0),
-      total: Number(row.pendentes || 0) + Number(row.avaliados || 0),
-    }));
+    const data = rows.map((row) => {
+      const total = Number(row.total || 0);
+      const avaliados = Number(row.avaliados || 0);
+      const pendentes = Number(row.pendentes || 0);
+      const percentual = total > 0 ? Math.round((avaliados / total) * 100) : 0;
 
-    return responder(res, {
-      avaliadores: data,
+      const totalEscrita = Number(row.total_escrita || 0);
+      const avaliadosEscrita = Number(row.avaliados_escrita || 0);
+      const pendentesEscrita = Number(row.pendentes_escrita || 0);
+
+      const totalOral = Number(row.total_oral || 0);
+      const avaliadosOral = Number(row.avaliados_oral || 0);
+      const pendentesOral = Number(row.pendentes_oral || 0);
+
+      return {
+        id: row.id,
+        avaliador_id: row.id,
+        nome: row.nome,
+        email: row.email,
+
+        total,
+        pendentes,
+        finalizadas: avaliados,
+        progresso: percentual,
+        percentual,
+
+        distribuidas: total,
+        avaliados,
+        concluidas: avaliados,
+        percentual_concluido: percentual,
+
+        escrita: {
+          total: totalEscrita,
+          distribuidas: totalEscrita,
+          avaliados: avaliadosEscrita,
+          concluidas: avaliadosEscrita,
+          finalizadas: avaliadosEscrita,
+          pendentes: pendentesEscrita,
+          percentual:
+            totalEscrita > 0
+              ? Math.round((avaliadosEscrita / totalEscrita) * 100)
+              : 0,
+        },
+
+        oral: {
+          total: totalOral,
+          distribuidas: totalOral,
+          avaliados: avaliadosOral,
+          concluidas: avaliadosOral,
+          finalizadas: avaliadosOral,
+          pendentes: pendentesOral,
+          percentual:
+            totalOral > 0
+              ? Math.round((avaliadosOral / totalOral) * 100)
+              : 0,
+        },
+      };
     });
+
+    return responder(
+      res,
+      {
+        avaliadores: data,
+      },
+      {
+        chamada_id: chamadaId,
+        total: data.length,
+        regra:
+          "Para avaliações atuais, considera itens individuais. Para legado encerrado, status aprovado também encerra pendência.",
+      }
+    );
   } catch (error) {
     logError(req, "Erro ao gerar resumo de avaliadores.", error);
     return next(error);
@@ -789,7 +947,6 @@ exports.listarMinhas = async (req, res, next) => {
 
     const data = rows.map((row) => ({
       ...row,
-      nota_media: row.nota_visivel ? row.nota_media : null,
       nota_escrita: row.nota_visivel ? row.nota_escrita : null,
       nota_oral: row.nota_visivel ? row.nota_oral : null,
       nota_final: row.nota_visivel ? row.nota_final : null,
@@ -1220,31 +1377,45 @@ exports.listarAvaliacaoDaSubmissao = async (req, res, next) => {
         ai.avaliador_id,
         u.nome AS avaliador_nome,
         ai.criterio_id,
-        COALESCE(ce.titulo, co.titulo) AS criterio_titulo,
-        CASE
-          WHEN ce.id IS NOT NULL THEN 'escrita'
-          WHEN co.id IS NOT NULL THEN 'oral'
-          ELSE NULL
-        END AS tipo,
+        ce.titulo AS criterio_titulo,
+        'escrita' AS tipo,
         ai.nota,
         ai.comentarios,
         ai.criado_em
       FROM trabalhos_avaliacoes_itens ai
       LEFT JOIN usuarios u ON u.id = ai.avaliador_id
       LEFT JOIN trabalhos_chamada_criterios ce ON ce.id = ai.criterio_id
-      LEFT JOIN trabalhos_chamada_criterios_orais co ON co.id = ai.criterio_id
       WHERE ai.submissao_id = $1
+
+      UNION ALL
+
+      SELECT
+        aoi.id,
+        aoi.submissao_id,
+        aoi.avaliador_id,
+        u.nome AS avaliador_nome,
+        aoi.criterio_oral_id AS criterio_id,
+        co.titulo AS criterio_titulo,
+        'oral' AS tipo,
+        aoi.nota,
+        aoi.comentarios,
+        aoi.criado_em
+      FROM trabalhos_apresentacoes_orais_itens aoi
+      LEFT JOIN usuarios u ON u.id = aoi.avaliador_id
+      LEFT JOIN trabalhos_chamada_criterios_orais co ON co.id = aoi.criterio_oral_id
+      WHERE aoi.submissao_id = $1
+
       ORDER BY
-        tipo ASC NULLS LAST,
+        tipo ASC,
         avaliador_nome ASC NULLS LAST,
-        ai.criterio_id ASC,
-        ai.criado_em ASC
+        criterio_id ASC,
+        criado_em ASC
       `,
       [submissaoId]
     );
 
     const totais = await transaction(req, async (tx) =>
-      calcularTotaisDaSubmissaoTx(submissaoId, tx)
+      atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx)
     );
 
     const data = {
@@ -1304,6 +1475,8 @@ async function registrarAvaliacao(req, res, next, tipo) {
     });
 
     const criterioTable = criterioTablePorTipo(tipoOficial);
+    const avaliacaoTable = avaliacaoItemTablePorTipo(tipoOficial);
+    const criterioColumn = criterioIdColumnPorTipo(tipoOficial);
     const criterioIds = itens.map((item) => item.criterio_id);
 
     const criteriosValidos = await queryMany(
@@ -1328,10 +1501,10 @@ async function registrarAvaliacao(req, res, next, tipo) {
     const resultado = await transaction(req, async (tx) => {
       await tx.none(
         `
-        DELETE FROM trabalhos_avaliacoes_itens
+        DELETE FROM ${avaliacaoTable}
         WHERE submissao_id = $1
           AND avaliador_id = $2
-          AND criterio_id IN (
+          AND ${criterioColumn} IN (
             SELECT id
             FROM ${criterioTable}
             WHERE chamada_id = $3
@@ -1343,11 +1516,11 @@ async function registrarAvaliacao(req, res, next, tipo) {
       for (const item of itens) {
         await tx.none(
           `
-          INSERT INTO trabalhos_avaliacoes_itens
+          INSERT INTO ${avaliacaoTable}
             (
               submissao_id,
               avaliador_id,
-              criterio_id,
+              ${criterioColumn},
               nota,
               comentarios,
               criado_em
@@ -1489,30 +1662,90 @@ exports.consolidarClassificacao = async (req, res, next) => {
     const rows = await queryMany(
       req,
       `
+      WITH base AS (
+        SELECT
+          s.id,
+          s.titulo,
+          s.status,
+          s.status_escrita,
+          s.status_oral,
+          s.nota_escrita,
+          s.nota_oral,
+          s.nota_final,
+          s.usuario_id,
+          s.criado_em,
+          u.nome AS autor_nome,
+          tcl.nome AS linha_tematica_nome
+        FROM trabalhos_submissoes s
+        LEFT JOIN usuarios u ON u.id = s.usuario_id
+        LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
+        WHERE s.chamada_id = $1
+          AND s.status NOT IN ('rascunho', 'cancelada')
+      )
       SELECT
-        s.id,
-        s.titulo,
-        s.status,
-        s.nota_escrita,
-        s.nota_oral,
-        s.nota_final,
-        s.usuario_id,
-        u.nome AS autor_nome,
-        tcl.nome AS linha_tematica_nome,
+        id,
+        titulo,
+        status,
+        status_escrita,
+        status_oral,
+        nota_escrita,
+        nota_oral,
+
+        CASE
+          WHEN nota_oral IS NOT NULL THEN nota_oral
+          ELSE nota_escrita
+        END AS nota_final,
+
+        usuario_id,
+        autor_nome,
+        linha_tematica_nome,
+
         ROW_NUMBER() OVER (
           ORDER BY
-            s.nota_final DESC NULLS LAST,
-            s.nota_media DESC NULLS LAST,
-            s.criado_em ASC NULLS LAST,
-            s.id ASC
-        )::int AS classificacao_geral
-      FROM trabalhos_submissoes s
-      LEFT JOIN usuarios u ON u.id = s.usuario_id
-      LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
-      WHERE s.chamada_id = $1
-        AND s.status NOT IN ('rascunho', 'cancelada')
+            nota_escrita DESC NULLS LAST,
+            criado_em ASC NULLS LAST,
+            id ASC
+        )::int AS classificacao_escrita,
+
+        CASE
+          WHEN nota_oral IS NOT NULL THEN
+            ROW_NUMBER() OVER (
+              PARTITION BY (nota_oral IS NOT NULL)
+              ORDER BY
+                nota_oral DESC NULLS LAST,
+                nota_escrita DESC NULLS LAST,
+                criado_em ASC NULLS LAST,
+                id ASC
+            )::int
+          ELSE NULL
+        END AS classificacao_oral,
+
+        CASE
+          WHEN nota_oral IS NOT NULL THEN
+            ROW_NUMBER() OVER (
+              PARTITION BY (nota_oral IS NOT NULL)
+              ORDER BY
+                nota_oral DESC NULLS LAST,
+                nota_escrita DESC NULLS LAST,
+                criado_em ASC NULLS LAST,
+                id ASC
+            )::int
+          ELSE NULL
+        END AS classificacao_geral,
+
+        CASE
+          WHEN nota_oral IS NOT NULL THEN 'ranking_final_oral'
+          WHEN nota_escrita IS NOT NULL THEN 'classificacao_escrita'
+          ELSE 'sem_nota'
+        END AS etapa_classificacao
+
+      FROM base
       ORDER BY
-        classificacao_geral ASC
+        CASE WHEN nota_oral IS NOT NULL THEN 0 ELSE 1 END,
+        nota_oral DESC NULLS LAST,
+        nota_escrita DESC NULLS LAST,
+        criado_em ASC NULLS LAST,
+        id ASC
       `,
       [chamadaId]
     );
@@ -1520,6 +1753,8 @@ exports.consolidarClassificacao = async (req, res, next) => {
     return responder(res, rows, {
       chamada_id: chamadaId,
       total: rows.length,
+      regra:
+        "A escrita classifica para a etapa oral; o ranking final é definido pela nota oral.",
     });
   } catch (error) {
     logError(req, "Erro ao consolidar classificação.", error);
@@ -1549,12 +1784,23 @@ exports.listarAtribuidas = async (req, res, next) => {
         s.chamada_id,
         c.titulo AS chamada_titulo,
         u.nome AS autor_nome,
-        EXISTS (
-          SELECT 1
-          FROM trabalhos_avaliacoes_itens ai
-          WHERE ai.submissao_id = tsa.submissao_id
-            AND ai.avaliador_id = tsa.avaliador_id
-        ) AS avaliada
+
+        CASE
+          WHEN tsa.tipo = 'escrita' THEN EXISTS (
+            SELECT 1
+            FROM trabalhos_avaliacoes_itens ai
+            WHERE ai.submissao_id = tsa.submissao_id
+              AND ai.avaliador_id = tsa.avaliador_id
+          )
+          WHEN tsa.tipo = 'oral' THEN EXISTS (
+            SELECT 1
+            FROM trabalhos_apresentacoes_orais_itens aoi
+            WHERE aoi.submissao_id = tsa.submissao_id
+              AND aoi.avaliador_id = tsa.avaliador_id
+          )
+          ELSE false
+        END AS avaliada
+
       FROM trabalhos_submissoes_avaliadores tsa
       JOIN trabalhos_submissoes s ON s.id = tsa.submissao_id
       LEFT JOIN trabalhos_chamadas c ON c.id = s.chamada_id
@@ -1600,11 +1846,26 @@ exports.listarPendentes = async (req, res, next) => {
       LEFT JOIN usuarios u ON u.id = s.usuario_id
       WHERE tsa.avaliador_id = $1
         AND tsa.revoked_at IS NULL
-        AND NOT EXISTS (
-          SELECT 1
-          FROM trabalhos_avaliacoes_itens ai
-          WHERE ai.submissao_id = tsa.submissao_id
-            AND ai.avaliador_id = tsa.avaliador_id
+        AND NOT (
+          (
+            tsa.tipo = 'escrita'
+            AND EXISTS (
+              SELECT 1
+              FROM trabalhos_avaliacoes_itens ai
+              WHERE ai.submissao_id = tsa.submissao_id
+                AND ai.avaliador_id = tsa.avaliador_id
+            )
+          )
+          OR
+          (
+            tsa.tipo = 'oral'
+            AND EXISTS (
+              SELECT 1
+              FROM trabalhos_apresentacoes_orais_itens aoi
+              WHERE aoi.submissao_id = tsa.submissao_id
+                AND aoi.avaliador_id = tsa.avaliador_id
+            )
+          )
         )
       ORDER BY tsa.created_at DESC NULLS LAST, tsa.submissao_id DESC
       LIMIT 500
@@ -1630,22 +1891,82 @@ exports.minhasContagens = async (req, res, next) => {
       `
       SELECT
         COUNT(*)::int AS total,
+
         COUNT(*) FILTER (
-          WHERE NOT EXISTS (
-            SELECT 1
-            FROM trabalhos_avaliacoes_itens ai
-            WHERE ai.submissao_id = tsa.submissao_id
-              AND ai.avaliador_id = tsa.avaliador_id
+          WHERE tsa.tipo = 'escrita'
+        )::int AS total_escrita,
+
+        COUNT(*) FILTER (
+          WHERE tsa.tipo = 'oral'
+        )::int AS total_oral,
+
+        COUNT(*) FILTER (
+          WHERE NOT (
+            (
+              tsa.tipo = 'escrita'
+              AND EXISTS (
+                SELECT 1
+                FROM trabalhos_avaliacoes_itens ai
+                WHERE ai.submissao_id = tsa.submissao_id
+                  AND ai.avaliador_id = tsa.avaliador_id
+              )
+            )
+            OR
+            (
+              tsa.tipo = 'oral'
+              AND EXISTS (
+                SELECT 1
+                FROM trabalhos_apresentacoes_orais_itens aoi
+                WHERE aoi.submissao_id = tsa.submissao_id
+                  AND aoi.avaliador_id = tsa.avaliador_id
+              )
+            )
           )
         )::int AS pendentes,
+
         COUNT(*) FILTER (
-          WHERE EXISTS (
-            SELECT 1
-            FROM trabalhos_avaliacoes_itens ai
-            WHERE ai.submissao_id = tsa.submissao_id
-              AND ai.avaliador_id = tsa.avaliador_id
-          )
-        )::int AS finalizadas
+          WHERE
+            (
+              tsa.tipo = 'escrita'
+              AND EXISTS (
+                SELECT 1
+                FROM trabalhos_avaliacoes_itens ai
+                WHERE ai.submissao_id = tsa.submissao_id
+                  AND ai.avaliador_id = tsa.avaliador_id
+              )
+            )
+            OR
+            (
+              tsa.tipo = 'oral'
+              AND EXISTS (
+                SELECT 1
+                FROM trabalhos_apresentacoes_orais_itens aoi
+                WHERE aoi.submissao_id = tsa.submissao_id
+                  AND aoi.avaliador_id = tsa.avaliador_id
+              )
+            )
+        )::int AS finalizadas,
+
+        COUNT(*) FILTER (
+          WHERE tsa.tipo = 'escrita'
+            AND EXISTS (
+              SELECT 1
+              FROM trabalhos_avaliacoes_itens ai
+              WHERE ai.submissao_id = tsa.submissao_id
+                AND ai.avaliador_id = tsa.avaliador_id
+            )
+        )::int AS finalizadas_escrita,
+
+        COUNT(*) FILTER (
+          WHERE tsa.tipo = 'oral'
+            AND EXISTS (
+              SELECT 1
+              FROM trabalhos_apresentacoes_orais_itens aoi
+              WHERE aoi.submissao_id = tsa.submissao_id
+                AND aoi.avaliador_id = tsa.avaliador_id
+            )
+        )::int AS finalizadas_oral
+
       FROM trabalhos_submissoes_avaliadores tsa
       WHERE tsa.avaliador_id = $1
         AND tsa.revoked_at IS NULL
@@ -1657,11 +1978,29 @@ exports.minhasContagens = async (req, res, next) => {
       total: Number(row?.total || 0),
       pendentes: Number(row?.pendentes || 0),
       finalizadas: Number(row?.finalizadas || 0),
+
+      escrita: {
+        total: Number(row?.total_escrita || 0),
+        finalizadas: Number(row?.finalizadas_escrita || 0),
+        pendentes:
+          Number(row?.total_escrita || 0) -
+          Number(row?.finalizadas_escrita || 0),
+      },
+
+      oral: {
+        total: Number(row?.total_oral || 0),
+        finalizadas: Number(row?.finalizadas_oral || 0),
+        pendentes:
+          Number(row?.total_oral || 0) -
+          Number(row?.finalizadas_oral || 0),
+      },
     });
   } catch (error) {
     logError(req, "Erro ao obter contagens do avaliador.", error);
     return next(error);
   }
 };
+
+exports.paraMim = exports.listarAtribuidas;
 
 exports.paraMim = exports.listarAtribuidas;

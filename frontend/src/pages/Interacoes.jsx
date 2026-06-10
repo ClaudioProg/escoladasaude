@@ -222,6 +222,25 @@ function obterPerguntaAtiva(interacao) {
   return perguntas[0] || null;
 }
 
+function calcularRestanteSegundos(pergunta, agoraMs = Date.now()) {
+  if (!pergunta?.fechada_em) return null;
+
+  const fimMs = new Date(pergunta.fechada_em).getTime();
+
+  if (Number.isNaN(fimMs)) return null;
+
+  return Math.max(0, Math.ceil((fimMs - agoraMs) / 1000));
+}
+
+function getErrorCode(error) {
+  return (
+    error?.response?.data?.code ||
+    error?.data?.code ||
+    error?.code ||
+    ""
+  );
+}
+
 function getGeolocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -854,15 +873,45 @@ function ResponderInteracaoModal({
   const [valor, setValor] = useState("");
   const [anonima, setAnonima] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [respostaEnviada, setRespostaEnviada] = useState(false);
-  const [erro, setErro] = useState("");
-  const [a11y, setA11y] = useState("");
-  const startedAtRef = useRef(null);
-  const firstRef = useRef(null);
+const [respostaEnviada, setRespostaEnviada] = useState(false);
+const [erro, setErro] = useState("");
+const [a11y, setA11y] = useState("");
+const [agoraMs, setAgoraMs] = useState(Date.now());
 
-  const interacao = interacaoAtual || interacaoOriginal;
-  const pergunta = useMemo(() => obterPerguntaAtiva(interacao), [interacao]);
-  const info = tipoInfo(interacao?.tipo);
+const startedAtRef = useRef(null);
+const firstRef = useRef(null);
+
+const interacao = interacaoAtual || interacaoOriginal;
+const pergunta = useMemo(() => obterPerguntaAtiva(interacao), [interacao]);
+const info = tipoInfo(interacao?.tipo);
+
+const tempoRestanteSegundos = useMemo(
+  () => calcularRestanteSegundos(pergunta, agoraMs),
+  [pergunta, agoraMs]
+);
+
+const perguntaAtualRespondida = Boolean(
+  interacao?.tipo === TIPO.quiz &&
+    (
+      respostaEnviada ||
+      interacao?.pergunta_atual_respondida ||
+      pergunta?.respondida ||
+      pergunta?.resposta_usuario
+    )
+);
+
+const tempoEncerrado = Boolean(
+  interacao?.tipo === TIPO.quiz &&
+    pergunta?.status === "aberta" &&
+    pergunta?.fechada_em &&
+    tempoRestanteSegundos === 0 &&
+    !perguntaAtualRespondida
+);
+
+const quizBloqueado = Boolean(
+  interacao?.tipo === TIPO.quiz &&
+    (perguntaAtualRespondida || tempoEncerrado || interacao?.status === "encerrada")
+);
 
   useEffect(() => {
     if (!interacaoOriginal) {
@@ -876,8 +925,21 @@ function ResponderInteracaoModal({
     setErro("");
     setA11y("");
     setSalvando(false);
-    setRespostaEnviada(false);
-    startedAtRef.current = Date.now();
+const perguntaInicial = obterPerguntaAtiva(interacaoOriginal);
+
+setRespostaEnviada(
+  Boolean(
+    interacaoOriginal?.tipo === TIPO.quiz &&
+      (
+        interacaoOriginal?.pergunta_atual_respondida ||
+        perguntaInicial?.respondida ||
+        perguntaInicial?.resposta_usuario
+      )
+  )
+);
+
+setAgoraMs(Date.now());
+startedAtRef.current = Date.now();
 
     const timer = window.setTimeout(() => {
       firstRef.current?.focus?.();
@@ -900,6 +962,20 @@ function ResponderInteracaoModal({
   }, [interacaoOriginal, onClose, salvando]);
 
   useEffect(() => {
+  if (!interacao?.id || interacao.tipo !== TIPO.quiz || !pergunta?.fechada_em) {
+    return undefined;
+  }
+
+  setAgoraMs(Date.now());
+
+  const timer = window.setInterval(() => {
+    setAgoraMs(Date.now());
+  }, 500);
+
+  return () => window.clearInterval(timer);
+}, [interacao?.id, interacao?.tipo, pergunta?.id, pergunta?.fechada_em]);
+
+  useEffect(() => {
     if (!interacao?.id || interacao.tipo !== TIPO.quiz) return undefined;
 
     const timer = window.setInterval(async () => {
@@ -915,22 +991,38 @@ function ResponderInteracaoModal({
 
         setInteracaoAtual(completa);
 
-        if (
-          proximaPerguntaId &&
-          perguntaAnteriorId &&
-          proximaPerguntaId !== perguntaAnteriorId
-        ) {
-          setValor("");
-          setErro("");
-          setRespostaEnviada(false);
-          setA11y("Nova pergunta disponível.");
-          startedAtRef.current = Date.now();
-        }
+const novaPerguntaRespondida = Boolean(
+  completa?.pergunta_atual_respondida ||
+    proximaPergunta?.respondida ||
+    proximaPergunta?.resposta_usuario
+);
 
-        if (completa.status === "encerrada") {
-          setRespostaEnviada(true);
-          setA11y("Quiz finalizado.");
-        }
+if (
+  proximaPerguntaId &&
+  perguntaAnteriorId &&
+  proximaPerguntaId !== perguntaAnteriorId
+) {
+  setValor("");
+  setErro("");
+  setRespostaEnviada(novaPerguntaRespondida);
+  setA11y(
+    novaPerguntaRespondida
+      ? "Esta pergunta já foi respondida."
+      : "Nova pergunta disponível."
+  );
+  setAgoraMs(Date.now());
+  startedAtRef.current = Date.now();
+  return;
+}
+
+if (novaPerguntaRespondida) {
+  setRespostaEnviada(true);
+}
+
+if (completa.status === "encerrada") {
+  setRespostaEnviada(true);
+  setA11y("Quiz finalizado.");
+}
       } catch {
         // Polling silencioso: não deve quebrar a experiência do usuário.
       }
@@ -948,9 +1040,17 @@ function ResponderInteracaoModal({
       return "Esta interação ainda não possui pergunta disponível.";
     }
 
-    if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
-      return "Esta pergunta ainda não está aberta para resposta.";
-    }
+if (interacao.tipo === TIPO.quiz && perguntaAtualRespondida) {
+  return "Resposta já enviada. Aguarde a próxima pergunta.";
+}
+
+if (interacao.tipo === TIPO.quiz && tempoEncerrado) {
+  return "Tempo encerrado para responder esta pergunta.";
+}
+
+if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
+  return "Esta pergunta ainda não está aberta para resposta.";
+}
 
     if (interacao.tipo === TIPO.votacao || interacao.tipo === TIPO.quiz) {
       if (!valor) return "Selecione uma opção para enviar.";
@@ -1039,15 +1139,37 @@ function ResponderInteracaoModal({
 
       setA11y("Resposta enviada com sucesso.");
       onRespondida?.(interacao.id, interacao.tipo);
-    } catch (error) {
-      const message = getErrorMessage(
-        error,
-        "Não foi possível enviar sua resposta."
-      );
+} catch (error) {
+  const code = getErrorCode(error);
+  const message = getErrorMessage(
+    error,
+    "Não foi possível enviar sua resposta."
+  );
 
-      setErro(message);
-      setA11y(message);
-    } finally {
+  if (
+    interacao.tipo === TIPO.quiz &&
+    code === "QUIZ_PERGUNTA_JA_RESPONDIDA"
+  ) {
+    setValor("");
+    setRespostaEnviada(true);
+    setErro("");
+    setA11y("Resposta já registrada. Aguarde a próxima pergunta.");
+    onRespondida?.(interacao.id, interacao.tipo);
+    return;
+  }
+
+  if (
+    interacao.tipo === TIPO.quiz &&
+    code === "QUIZ_TEMPO_ENCERRADO"
+  ) {
+    setErro("Tempo encerrado para responder esta pergunta.");
+    setA11y("Tempo encerrado para responder esta pergunta.");
+    return;
+  }
+
+  setErro(message);
+  setA11y(message);
+} finally {
       setSalvando(false);
     }
   }
@@ -1132,36 +1254,62 @@ style={{
   <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
 ) : null}
 
-{interacao.tipo === TIPO.quiz && respostaEnviada ? (
+{interacao.tipo === TIPO.quiz && perguntaAtualRespondida ? (
+  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
+    <div className="flex items-start gap-3">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-100">
+        <CheckCircle2 className="h-6 w-6" />
+      </div>
+
+      <div>
+        <h3 className="text-lg font-black">
+          {interacao.status === "encerrada"
+            ? "Quiz finalizado"
+            : "Resposta enviada com sucesso"}
+        </h3>
+
+        <p className="mt-1 text-sm font-semibold leading-relaxed">
+          {interacao.status === "encerrada"
+            ? "O quiz foi encerrado. Você já pode fechar esta janela."
+            : "Aguarde a próxima pergunta ser liberada pelo administrador."}
+        </p>
+      </div>
+    </div>
+  </section>
+) : null}
+
+{interacao.tipo === TIPO.quiz && tempoEncerrado ? (
   <AlertBox
-    tone="emerald"
-    icon={Loader2}
-    title={
-      interacao.status === "encerrada"
-        ? "Quiz finalizado"
-        : "Resposta enviada"
-    }
-    message={
-      interacao.status === "encerrada"
-        ? "O quiz foi encerrado. Você já pode fechar esta janela."
-        : "Aguarde a próxima pergunta ser liberada pelo administrador."
-    }
+    tone="rose"
+    icon={Clock}
+    title="Tempo encerrado"
+    message="O prazo para responder esta pergunta terminou. Aguarde a próxima pergunta."
   />
 ) : null}
 
-<section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+
+{!perguntaAtualRespondida && !tempoEncerrado ? (
+<section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5">          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
               {pergunta?.status
                 ? `Status: ${pergunta.status}`
                 : "Pergunta disponível"}
             </span>
 
-            {interacao.tipo === TIPO.quiz && pergunta?.tempo_segundos ? (
-              <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">
-                Tempo: {pergunta.tempo_segundos}s
-              </span>
-            ) : null}
+            {interacao.tipo === TIPO.quiz ? (
+  <span
+    className={cx(
+      "inline-flex rounded-full px-2.5 py-1 text-xs font-black",
+      tempoEncerrado
+        ? "bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200"
+        : "bg-violet-50 text-violet-800 dark:bg-violet-950/30 dark:text-violet-200"
+    )}
+  >
+    {tempoRestanteSegundos !== null
+      ? `Tempo restante: ${tempoRestanteSegundos}s`
+      : `Tempo: ${pergunta?.tempo_segundos || interacao.tempo_por_pergunta_segundos || "—"}s`}
+  </span>
+) : null}
           </div>
 
           <h3 className="text-lg font-black text-slate-900 dark:text-white">
@@ -1189,7 +1337,7 @@ style={{
                     onChange={() => setValor(String(opcao.id))}
                     disabled={
   salvando ||
-  (interacao.tipo === TIPO.quiz && respostaEnviada) ||
+  quizBloqueado ||
   interacao.status === "encerrada"
 }
                     className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
@@ -1225,6 +1373,7 @@ style={{
             </div>
           ) : null}
         </section>
+        ) : null}
 
         {interacao.permite_anonima ? (
           <label className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
@@ -1289,11 +1438,11 @@ style={{
             <button
   type="submit"
   form="form-responder-interacao"
-  disabled={
-    salvando ||
-    (interacao.tipo === TIPO.quiz && respostaEnviada) ||
-    interacao.status === "encerrada"
-  }
+ disabled={
+  salvando ||
+  quizBloqueado ||
+  interacao.status === "encerrada"
+}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {salvando ? (
@@ -1306,10 +1455,15 @@ style={{
     <CheckCircle2 className="h-4 w-4" />
     Quiz finalizado
   </>
-) : interacao.tipo === TIPO.quiz && respostaEnviada ? (
+) : interacao.tipo === TIPO.quiz && perguntaAtualRespondida ? (
   <>
-    <Loader2 className="h-4 w-4 animate-spin" />
-    Aguardando próxima
+    <CheckCircle2 className="h-4 w-4" />
+    Resposta enviada
+  </>
+) : interacao.tipo === TIPO.quiz && tempoEncerrado ? (
+  <>
+    <Clock className="h-4 w-4" />
+    Tempo encerrado
   </>
 ) : (
   <>

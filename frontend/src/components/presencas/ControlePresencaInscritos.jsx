@@ -262,6 +262,17 @@ function normalizarTextoBusca(value) {
 }
 
 function obterDeficienciaUsuario(usuario = {}) {
+  const codigo = String(usuario?.deficiencia_codigo || "").trim().toUpperCase();
+  const id = Number(usuario?.deficiencia_id);
+
+  if (codigo && codigo !== "0") {
+    return codigo;
+  }
+
+  if (Number.isInteger(id) && id > 1) {
+    return String(id);
+  }
+
   const candidatos = [
     usuario?.deficiencia_nome,
     usuario?.deficiencia,
@@ -283,21 +294,43 @@ function obterDeficienciaUsuario(usuario = {}) {
 function obterConfigDeficiencia(deficiencia) {
   const textoOriginal = String(deficiencia || "").trim();
   const texto = normalizarTextoBusca(textoOriginal);
+  const codigo = textoOriginal.toUpperCase();
 
   if (
     !texto ||
     [
-      "nao possui",
-      "nao informado",
-      "nenhuma",
-      "sem deficiencia",
+      "0",
+      "1",
+      "false",
       "nao",
+      "não",
+      "n",
+      "nenhuma",
+      "nenhum",
+      "nao possuo",
+      "não possuo",
+      "nao possui",
+      "não possui",
+      "nao possui deficiencia",
+      "não possui deficiência",
+      "sem deficiencia",
+      "sem deficiência",
+      "nao informado",
+      "não informado",
+      "nao informada",
+      "não informada",
     ].includes(texto)
   ) {
     return null;
   }
 
-  if (texto.includes("fisica") || texto.includes("motora")) {
+  if (
+    codigo === "DF" ||
+    texto === "2" ||
+    texto.includes("fisica") ||
+    texto.includes("física") ||
+    texto.includes("motora")
+  ) {
     return {
       label: "Deficiência física",
       Icon: Accessibility,
@@ -306,19 +339,13 @@ function obterConfigDeficiencia(deficiencia) {
     };
   }
 
-  if (texto.includes("visual") || texto.includes("visao")) {
-    return {
-      label: "Deficiência visual",
-      Icon: Eye,
-      className:
-        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    };
-  }
-
   if (
+    codigo === "DA" ||
+    texto === "3" ||
     texto.includes("auditiva") ||
     texto.includes("surdez") ||
-    texto.includes("surdo")
+    texto.includes("surdo") ||
+    texto.includes("libras")
   ) {
     return {
       label: "Deficiência auditiva",
@@ -328,7 +355,27 @@ function obterConfigDeficiencia(deficiencia) {
     };
   }
 
-  if (texto.includes("intelectual")) {
+  if (
+    codigo === "DV" ||
+    texto === "4" ||
+    texto.includes("visual") ||
+    texto.includes("visao") ||
+    texto.includes("visão")
+  ) {
+    return {
+      label: "Deficiência visual",
+      Icon: Eye,
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (
+    codigo === "DI" ||
+    texto === "5" ||
+    texto.includes("intelectual") ||
+    texto.includes("cognitiva")
+  ) {
     return {
       label: "Deficiência intelectual",
       Icon: Brain,
@@ -338,6 +385,22 @@ function obterConfigDeficiencia(deficiencia) {
   }
 
   if (
+    codigo === "DM" ||
+    texto === "6" ||
+    texto.includes("multipla") ||
+    texto.includes("múltipla")
+  ) {
+    return {
+      label: "Deficiência múltipla",
+      Icon: Sparkles,
+      className:
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
+    };
+  }
+
+  if (
+    codigo === "TEA" ||
+    texto === "7" ||
     texto.includes("autismo") ||
     texto.includes("autista") ||
     texto.includes("tea") ||
@@ -351,21 +414,7 @@ function obterConfigDeficiencia(deficiencia) {
     };
   }
 
-  if (texto.includes("multipla")) {
-    return {
-      label: "Deficiência múltipla",
-      Icon: Sparkles,
-      className:
-        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
-    };
-  }
-
-  return {
-    label: textoOriginal,
-    Icon: AlertCircle,
-    className:
-      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
-  };
+  return null;
 }
 
 function IconeDeficienciaUsuario({ usuario }) {

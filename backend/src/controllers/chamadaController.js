@@ -13,9 +13,9 @@
  * - listar chamadas públicas ativas;
  * - obter detalhes públicos de uma chamada;
  * - listar chamadas para administração;
- * - criar chamada;
- * - atualizar chamada;
- * - publicar/despublicar chamada;
+ * - criar mostra;
+ * - atualizar mostra;
+ * - publicar/despublicar mostra;
  * - remover chamada somente quando não houver submissões vinculadas;
  * - exportar modelo padrão de banner;
  * - gerenciar modelo de banner/oral vinculado à chamada.
@@ -716,21 +716,128 @@ exports.obterChamada = async (req, res, next) => {
 
 exports.listarAdmin = async (req, res, next) => {
   try {
+    requireAdmin(req);
+
+    const chamadaId = req.params.chamadaId
+      ? toId(req.params.chamadaId, "chamadaId")
+      : req.query.chamada_id
+        ? toId(req.query.chamada_id, "chamada_id")
+        : null;
+
+    const status = req.query.status
+      ? normalizarStatusSubmissao(req.query.status)
+      : null;
+
+    const params = [];
+    const where = [];
+
+    if (chamadaId) {
+      params.push(chamadaId);
+      where.push(`s.chamada_id = $${params.length}`);
+    }
+
+    if (status) {
+      params.push(status);
+      where.push(`s.status = $${params.length}`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
     const rows = await queryMany(
       req,
       `
-      ${SELECT_CHAMADA_BASE}
-      ORDER BY c.criado_em DESC, c.id DESC
-      `
+      SELECT
+        s.id,
+        s.titulo,
+        s.status,
+        s.status_escrita,
+        s.status_oral,
+        s.chamada_id,
+        s.usuario_id,
+        s.criado_em AS submetido_em,
+        s.atualizado_em,
+        s.nota_escrita,
+        s.nota_oral,
+        s.nota_final,
+        COALESCE(s.nota_visivel, false) AS nota_visivel,
+        c.titulo AS chamada_titulo,
+        tcl.nome AS linha_tematica_nome,
+        u.nome AS autor_nome,
+        u.email AS autor_email,
+
+        (
+          SELECT COUNT(*)::int
+          FROM trabalhos_submissoes_avaliadores tsa
+          WHERE tsa.submissao_id = s.id
+            AND tsa.revoked_at IS NULL
+        ) AS total_avaliadores,
+
+        (
+          SELECT COUNT(*)::int
+          FROM trabalhos_submissoes_avaliadores tsa
+          WHERE tsa.submissao_id = s.id
+            AND tsa.revoked_at IS NULL
+            AND tsa.tipo = 'escrita'
+        ) AS total_avaliadores_escrita,
+
+        (
+          SELECT COUNT(*)::int
+          FROM trabalhos_submissoes_avaliadores tsa
+          WHERE tsa.submissao_id = s.id
+            AND tsa.revoked_at IS NULL
+            AND tsa.tipo = 'oral'
+        ) AS total_avaliadores_oral,
+
+        (
+          SELECT COUNT(*)::int
+          FROM trabalhos_submissoes_avaliadores tsa
+          WHERE tsa.submissao_id = s.id
+            AND tsa.revoked_at IS NULL
+            AND (
+              (
+                tsa.tipo = 'escrita'
+                AND EXISTS (
+                  SELECT 1
+                  FROM trabalhos_avaliacoes_itens ai
+                  WHERE ai.submissao_id = tsa.submissao_id
+                    AND ai.avaliador_id = tsa.avaliador_id
+                )
+              )
+              OR
+              (
+                tsa.tipo = 'oral'
+                AND EXISTS (
+                  SELECT 1
+                  FROM trabalhos_apresentacoes_orais_itens aoi
+                  WHERE aoi.submissao_id = tsa.submissao_id
+                    AND aoi.avaliador_id = tsa.avaliador_id
+                )
+              )
+            )
+        ) AS total_avaliadores_com_nota
+
+      FROM trabalhos_submissoes s
+      LEFT JOIN trabalhos_chamadas c ON c.id = s.chamada_id
+      LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
+      LEFT JOIN usuarios u ON u.id = s.usuario_id
+      ${whereSql}
+      ORDER BY s.criado_em DESC NULLS LAST, s.id DESC
+      `,
+      params
     );
 
-    logInfo(req, "Chamadas administrativas listadas.", { total: rows.length });
+    const data = rows.map((row) => ({
+      ...row,
+      ...derivarFlagsAprovacao(row),
+    }));
 
-    return responder(res, rows, {
-      total: rows.length,
+    return responder(res, data, {
+      total: data.length,
+      chamada_id: chamadaId,
+      status,
     });
   } catch (error) {
-    logError(req, "Erro ao listar chamadas administrativas.", error);
+    logError(req, "Erro ao listar submissões administrativas.", error);
     return next(error);
   }
 };
@@ -855,7 +962,7 @@ exports.criar = async (req, res, next) => {
 
     return responder(res, nova, null, 201);
   } catch (error) {
-    logError(req, "Erro ao criar chamada.", error);
+    logError(req, "Erro ao criar mostra.", error);
     return next(error);
   }
 };
@@ -1004,7 +1111,7 @@ exports.atualizar = async (req, res, next) => {
 
     return responder(res, atualizado);
   } catch (error) {
-    logError(req, "Erro ao atualizar chamada.", error);
+    logError(req, "Erro ao atualizar mostra.", error);
     return next(error);
   }
 };

@@ -209,6 +209,28 @@ function brDateTime(value) {
   }
 }
 
+function calcularRestanteSegundos(pergunta, agoraMs = Date.now()) {
+  if (!pergunta?.fechada_em) return null;
+
+  const fimMs = new Date(pergunta.fechada_em).getTime();
+
+  if (Number.isNaN(fimMs)) return null;
+
+  return Math.max(0, Math.ceil((fimMs - agoraMs) / 1000));
+}
+
+function formatarTempo(segundos) {
+  if (segundos === null || segundos === undefined) return "—";
+
+  const total = Math.max(0, Number(segundos) || 0);
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+
+  if (min <= 0) return `${sec}s`;
+
+  return `${min}:${String(sec).padStart(2, "0")}`;
+}
+
 function statusInfo(status) {
   const value = String(status || "").toLowerCase();
 
@@ -2006,10 +2028,11 @@ janelas: [],
 =========================================================================== */
 
 function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
-  if (!painel) return null;
+  const [agoraMs, setAgoraMs] = useState(Date.now());
+  const autoAvancoRef = useRef("");
 
-  const interacao = painel.completo || painel.interacao;
-  const ranking = painel.resultado?.ranking || [];
+  const interacao = painel?.completo || painel?.interacao || null;
+  const ranking = painel?.resultado?.ranking || [];
   const perguntas = Array.isArray(interacao?.perguntas) ? interacao.perguntas : [];
 
   const modoExecucao = interacao?.modo_execucao_quiz || "manual";
@@ -2029,6 +2052,59 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
 
   const iniciando = acaoAoVivo === `iniciar-${interacao?.id}-execucao`;
   const avancando = acaoAoVivo === `avancar-${interacao?.id}-execucao`;
+
+  const tempoRestanteSegundos = calcularRestanteSegundos(
+    perguntaAtual,
+    agoraMs
+  );
+
+  const perguntaAtualAberta = perguntaAtual?.status === "aberta";
+
+  useEffect(() => {
+    if (!painel) return undefined;
+
+    setAgoraMs(Date.now());
+
+    const timer = window.setInterval(() => {
+      setAgoraMs(Date.now());
+    }, 500);
+
+    return () => window.clearInterval(timer);
+  }, [painel]);
+
+  useEffect(() => {
+    autoAvancoRef.current = "";
+  }, [interacao?.id, perguntaAtual?.id]);
+
+  useEffect(() => {
+    if (!painel) return;
+    if (!interacao?.id) return;
+    if (modoExecucao !== "automatico") return;
+    if (loading || acaoAoVivo) return;
+    if (quizEncerrado) return;
+    if (!perguntaAtual?.id || !perguntaAtualAberta) return;
+    if (tempoRestanteSegundos === null || tempoRestanteSegundos > 0) return;
+
+    const chave = `${interacao.id}-${perguntaAtual.id}`;
+
+    if (autoAvancoRef.current === chave) return;
+
+    autoAvancoRef.current = chave;
+    onAcao?.("avancar", interacao.id);
+  }, [
+    painel,
+    interacao?.id,
+    modoExecucao,
+    loading,
+    acaoAoVivo,
+    quizEncerrado,
+    perguntaAtual?.id,
+    perguntaAtualAberta,
+    tempoRestanteSegundos,
+    onAcao,
+  ]);
+
+  if (!painel) return null;
 
   function statusPerguntaInfo(pergunta, index) {
     const status = String(pergunta?.status || "aguardando").toLowerCase();
@@ -2169,8 +2245,8 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                           <Send className="h-4 w-4" />
                         )}
                         {modoExecucao === "automatico"
-                          ? "Avançar agora"
-                          : "Avançar pergunta"}
+  ? "Avançar agora"
+  : "Avançar pergunta"}
                       </button>
                     </div>
                   </div>
@@ -2187,10 +2263,16 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                     />
 
                     <InfoBox
-                      icon={Clock}
-                      title="Tempo padrão"
-                      value={tempoPadrao ? `${tempoPadrao}s` : "—"}
-                    />
+  icon={Clock}
+  title={perguntaAtualAberta ? "Tempo restante" : "Tempo padrão"}
+  value={
+    perguntaAtualAberta && tempoRestanteSegundos !== null
+      ? formatarTempo(tempoRestanteSegundos)
+      : tempoPadrao
+        ? `${tempoPadrao}s`
+        : "—"
+  }
+/>
 
                     <InfoBox
                       icon={FileQuestion}
@@ -2218,12 +2300,19 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                       </p>
 
                       <p className="mt-2 text-2xl font-black text-violet-900 dark:text-violet-100">
-                        Pergunta {perguntaAtualIndex + 1} de {perguntas.length}
-                      </p>
+  Pergunta {perguntaAtualIndex + 1} de {perguntas.length}
+</p>
 
-                      <p className="mt-2 text-sm font-semibold leading-relaxed text-violet-800 dark:text-violet-100">
-                        {perguntaAtual.enunciado}
-                      </p>
+<p className="mt-2 text-sm font-semibold leading-relaxed text-violet-800 dark:text-violet-100">
+  {perguntaAtual.enunciado}
+</p>
+
+<div className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-sm font-black text-violet-900 ring-1 ring-violet-200 dark:bg-slate-950/40 dark:text-violet-100 dark:ring-violet-900">
+  <Clock className="h-4 w-4" />
+  {tempoRestanteSegundos !== null
+    ? `Tempo restante: ${formatarTempo(tempoRestanteSegundos)}`
+    : "Sem tempo definido"}
+</div>
                     </div>
                   ) : null}
                 </div>

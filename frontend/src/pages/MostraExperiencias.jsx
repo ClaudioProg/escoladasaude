@@ -1,4 +1,4 @@
-// ✅ frontend/src/pages/AdminChamadaForm.jsx — v2.1
+// ✅ frontend/src/pages/MostraExperiencias.jsx — v2.1
 // Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde — v2.1
@@ -40,6 +40,7 @@ import React, {
   useState,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -496,12 +497,20 @@ function Counter({ value, max }) {
    Modal
 =========================================================================== */
 
-function Modal({ open, onClose, title, subtitle, children, footer, size = "max-w-6xl" }) {
+function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+  size = "max-w-6xl",
+}) {
   const dialogRef = useRef(null);
   const lastFocusRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
     lastFocusRef.current = document.activeElement;
     document.body.style.overflow = "hidden";
@@ -524,6 +533,7 @@ function Modal({ open, onClose, title, subtitle, children, footer, size = "max-w
     }
 
     document.addEventListener("keydown", onKeyDown);
+
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
@@ -531,23 +541,30 @@ function Modal({ open, onClose, title, subtitle, children, footer, size = "max-w
     if (event.target === event.currentTarget) onClose?.();
   }
 
-  return (
+  const portalTarget =
+    typeof document !== "undefined" && document.body ? document.body : null;
+
+  if (!portalTarget) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-title"
+          role="presentation"
           onMouseDown={onBackdrop}
         >
           <motion.div
             ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
             className={cx(
-              "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-[2rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950",
+              "flex h-[100dvh] w-full flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950",
+              "sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20",
               size
             )}
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -555,17 +572,23 @@ function Modal({ open, onClose, title, subtitle, children, footer, size = "max-w
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
             transition={{ duration: 0.18 }}
           >
-            <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
+            <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,.25),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(139,92,246,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.22),transparent_35%)]" />
+
               <div className="relative flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Gestão institucional v2.0
                   </div>
-                  <h2 id="modal-title" className="text-xl font-black tracking-tight sm:text-2xl">
+
+                  <h2
+                    id="modal-title"
+                    className="text-xl font-black tracking-tight sm:text-2xl"
+                  >
                     {title}
                   </h2>
+
                   {subtitle ? (
                     <p className="mt-1 max-w-3xl text-sm leading-relaxed text-white/70">
                       {subtitle}
@@ -585,17 +608,20 @@ function Modal({ open, onClose, title, subtitle, children, footer, size = "max-w
               </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
               {children}
             </div>
 
-            <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-              {footer}
+            <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                {footer}
+              </div>
             </footer>
           </motion.div>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    portalTarget
   );
 }
 
@@ -725,7 +751,7 @@ function Hero({ counts, onNova }) {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Button tone="primary" icon={Plus} onClick={onNova} size="lg">
-                Nova chamada
+                Nova mostra
               </Button>
 
               <div className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur">
@@ -790,7 +816,7 @@ function PainelOperacionalChamadas({ counts, onNova, onAtualizar }) {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button tone="primary" icon={Plus} onClick={onNova}>
-              Nova chamada
+              Nova mostra
             </Button>
 
             <Button tone="slate" icon={RefreshCw} onClick={onAtualizar}>
@@ -1186,7 +1212,7 @@ return (
           onClick={onNova}
           className="w-full sm:w-auto"
         >
-          Nova chamada
+          Nova mostra
         </Button>
       </div>
     </div>
@@ -1254,11 +1280,11 @@ return (
               Nenhuma chamada encontrada
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-              Ajuste os filtros ou crie uma nova chamada institucional para iniciar o fluxo de submissão.
+              Ajuste os filtros ou crie uma nova mostra de experiências institucional para iniciar o fluxo de submissão.
             </p>
             <div className="mt-5">
               <Button tone="primary" icon={Plus} onClick={onNova}>
-                Criar chamada
+                Criar mostra
               </Button>
             </div>
           </GlassCard>
@@ -1282,7 +1308,7 @@ return (
 
      <ConfirmDialog
         open={confirmId != null}
-        title="Excluir chamada?"
+        title="Excluir mostra?"
         description="A exclusão física só é permitida quando não há submissões vinculadas."
         busy={busyId === confirmId}
         onCancel={() => setConfirmId(null)}
@@ -1649,7 +1675,7 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? "Editar chamada" : "Nova chamada"}
+      title={isEdit ? "Editar mostra" : "Nova mostra"}
       subtitle="Defina normas, prazos, linhas temáticas, critérios e modelos oficiais de apresentação."
       footer={
         <>
@@ -1665,7 +1691,7 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
             Cancelar
           </Button>
           <Button tone="primary" icon={Save} loading={saving} onClick={salvar}>
-            {saving ? "Salvando..." : "Salvar chamada"}
+            {saving ? "Salvando..." : "Salvar mostra"}
           </Button>
         </>
       }
@@ -2095,7 +2121,7 @@ function ModeloBox({ title, description, meta, disabled, busy, onUpload, onDownl
    Página
 =========================================================================== */
 
-export default function AdminChamadaForm() {
+export default function MostraExperiencias() {
   const params = useParams();
   const routeId = params?.chamadaId || null;
 

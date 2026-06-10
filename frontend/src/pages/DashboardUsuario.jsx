@@ -1056,6 +1056,11 @@ useEffect(() => {
 
   const responderPesquisa = useCallback(
   (item) => {
+    if (!item?.id) {
+      toast.error("Pesquisa inválida ou indisponível.");
+      return;
+    }
+
     if (item?.tipo === "externa" && item?.link_externo) {
       window.open(item.link_externo, "_blank", "noopener,noreferrer");
       return;

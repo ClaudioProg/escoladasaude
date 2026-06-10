@@ -742,7 +742,7 @@ function criarSecoes() {
           resumo_chave: "interacao_votacao_publicada",
         },
         {
-          label: "Criar chamada de trabalhos",
+          label: "Criar mostra de trabalhos",
           path: ROTA.chamadaNova,
           icon: PlusCircle,
         },

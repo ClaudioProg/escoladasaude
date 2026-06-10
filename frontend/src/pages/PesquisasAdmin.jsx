@@ -2435,7 +2435,8 @@ function ResultadoDrawer({ painel, loading, onClose }) {
           )}
         </div>
       </aside>
-    </div>
+    </div>,
+        document.body
   );
 }
 
@@ -2546,8 +2547,7 @@ function RespostaItem({ resposta }) {
           </div>
         ))}
       </div>
-    </details>,
-    document.body
+    </details>
   );
 }
 

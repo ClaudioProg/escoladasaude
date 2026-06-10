@@ -1,4 +1,4 @@
-// 📁 src/pages/AdminSubmissao.jsx
+// 📁 src/pages/SubmissaoAdmin.jsx
 // Atualizado em: 01/06/2026
 //
 // Plataforma Escola da Saúde — v2.2
@@ -601,7 +601,7 @@ function MetricCard({ label, value, icon: Icon, tone = "amber" }) {
    Página
 =========================================================================== */
 
-export default function AdminSubmissao() {
+export default function SubmissaoAdmin() {
   const { get, set } = useUrlState();
   const url = get();
 
@@ -860,6 +860,25 @@ export default function AdminSubmissao() {
     );
   }
 
+  const handleDetectAnexo = useCallback((id, has) => {
+  if (!has) return;
+
+  setSubmissoes((current) =>
+    current.map((item) => {
+      if (Number(item.id) !== Number(id)) return item;
+
+      if (item._hasAnexo === true) {
+        return item;
+      }
+
+      return {
+        ...item,
+        _hasAnexo: true,
+      };
+    })
+  );
+}, []);
+
   if (loading) {
     return (
       <PageShell>
@@ -950,22 +969,15 @@ export default function AdminSubmissao() {
             <AnimatePresence>
               {detalheOpen ? (
                 <ModalDetalhesSubmissao
-                  key="detalhe-submissao-modal"
-                  open={detalheOpen}
-                  onClose={() => {
-                    setDetalheOpen(false);
-                    setSelecionada(null);
-                  }}
-                  submissao={selecionada}
-                  onDetectAnexo={(id, has) => {
-                    if (!has) return;
-                    setSubmissoes((current) =>
-                      current.map((item) =>
-                        item.id === id ? { ...item, _hasAnexo: true } : item
-                      )
-                    );
-                  }}
-                />
+  key="detalhe-submissao-modal"
+  open={detalheOpen}
+  onClose={() => {
+    setDetalheOpen(false);
+    setSelecionada(null);
+  }}
+  submissao={selecionada}
+  onDetectAnexo={handleDetectAnexo}
+/>
               ) : null}
 
               {atribOpen ? (
@@ -1059,77 +1071,88 @@ function Toolbar({
         </Badge>
       </div>
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto]">
-        <select
-          value={filtroChamada}
-          onChange={(event) => setFiltroChamada(event.target.value)}
-          className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-          aria-label="Filtrar por chamada"
+<div className="mt-5 space-y-3">
+  <div className="grid gap-3 lg:grid-cols-2">
+    <select
+      value={filtroChamada}
+      onChange={(event) => setFiltroChamada(event.target.value)}
+      className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+      aria-label="Filtrar por chamada"
+    >
+      <option value="">Todas as chamadas</option>
+      {chamadas.map((item) => (
+        <option key={item.id} value={item.id}>
+          {item.titulo}
+        </option>
+      ))}
+    </select>
+
+    <select
+      value={filtroStatus}
+      onChange={(event) => setFiltroStatus(event.target.value)}
+      className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+      aria-label="Filtrar por status"
+    >
+      <option value="">Todos os status</option>
+      <option value="rascunho">Rascunho</option>
+      <option value="submetida">Submetida</option>
+      <option value="em_avaliacao">Em avaliação</option>
+      <option value="aprovada_exposicao">Aprovada para exposição</option>
+      <option value="aprovada_oral">Aprovada para oral</option>
+      <option value="aprovada">Aprovada</option>
+      <option value="reprovada">Reprovada</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+  </div>
+
+  <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(320px,1.4fr)_auto] lg:items-center">
+    <select
+      value={filtroLinha}
+      onChange={(event) => setFiltroLinha(event.target.value)}
+      className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+      aria-label="Filtrar por linha temática"
+    >
+      <option value="">Todas as linhas</option>
+      {linhasTematicas.map((item) => (
+        <option key={item.id} value={item.id}>
+          {item.nome}
+        </option>
+      ))}
+    </select>
+
+    <div className="relative min-w-0">
+      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+      <input
+        value={busca}
+        onChange={(event) => setBusca(event.target.value)}
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+        placeholder="Buscar título, autor, e-mail, chamada..."
+        aria-label="Buscar"
+      />
+
+      {busca ? (
+        <button
+          type="button"
+          onClick={() => setBusca("")}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+          aria-label="Limpar busca"
         >
-          <option value="">Todas as chamadas</option>
-          {chamadas.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.titulo}
-            </option>
-          ))}
-        </select>
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+    </div>
 
-        <select
-          value={filtroStatus}
-          onChange={(event) => setFiltroStatus(event.target.value)}
-          className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-          aria-label="Filtrar por status"
-        >
-          <option value="">Todos os status</option>
-          <option value="rascunho">Rascunho</option>
-          <option value="submetida">Submetida</option>
-          <option value="em_avaliacao">Em avaliação</option>
-          <option value="aprovada_exposicao">Aprovada para exposição</option>
-          <option value="aprovada_oral">Aprovada para oral</option>
-          <option value="aprovada">Aprovada</option>
-          <option value="reprovada">Reprovada</option>
-          <option value="cancelada">Cancelada</option>
-        </select>
-
-        <select
-          value={filtroLinha}
-          onChange={(event) => setFiltroLinha(event.target.value)}
-          className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-          aria-label="Filtrar por linha temática"
-        >
-          <option value="">Todas as linhas</option>
-          {linhasTematicas.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.nome}
-            </option>
-          ))}
-        </select>
-
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-            placeholder="Buscar título, autor, e-mail, chamada..."
-            aria-label="Buscar"
-          />
-          {busca ? (
-            <button
-              type="button"
-              onClick={() => setBusca("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-              aria-label="Limpar busca"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-
-        <Button tone="ghost" icon={RotateCcw} onClick={onClear}>
-          Limpar
-        </Button>
-      </div>
+    <Button
+      tone="ghost"
+      icon={RotateCcw}
+      onClick={onClear}
+      className="w-full lg:w-auto"
+    >
+      Limpar
+    </Button>
+  </div>
+</div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
         <span>

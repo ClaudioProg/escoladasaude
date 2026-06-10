@@ -106,6 +106,7 @@ const AgendaSalasUsuario = lazy(() => import("./pages/AgendaSalasUsuario"));
 const CalendarioAnualEPS = lazy(() => import("./pages/CalendarioAnualEPS"));
 const CursosOnline = lazy(() => import("./pages/CursosOnline"));
 const Pesquisas = lazy(() => import("./pages/Pesquisas"));
+const ResponderPesquisa = lazy(() => import("./pages/ResponderPesquisa"));
 const Interacoes = lazy(() => import("./pages/Interacoes"));
 const MensagemUsuario = lazy(() => import("./pages/MensagemUsuario"));
 
@@ -179,9 +180,9 @@ const RelatoriosCustomizados = lazy(() =>
   import("./pages/RelatoriosCustomizados")
 );
 
-const AdminAvaliacao = lazy(() => import("./pages/AdminAvaliacao"));
-const AdminChamadaForm = lazy(() => import("./pages/AdminChamadaForm"));
-const AdminSubmissao = lazy(() => import("./pages/AdminSubmissao"));
+const AvaliacaoAdmin = lazy(() => import("./pages/AvaliacaoAdmin"));
+const MostraExperiencias = lazy(() => import("./pages/MostraExperiencias"));
+const SubmissaoAdmin = lazy(() => import("./pages/SubmissaoAdmin"));
 
 const CancelarInscricaoAdmin = lazy(() =>
   import("./pages/CancelarInscricaoAdmin")
@@ -349,14 +350,14 @@ function ScrollToTop() {
 function AdminChamadaFormWrapper() {
   const { id } = useParams();
 
-  return <AdminChamadaForm chamadaId={id} />;
+  return <MostraExperiencias chamadaId={id} />;
 }
 
 function AdminSubmissaoRouteWrapper() {
   const { chamadaId } = useParams();
 
   return (
-    <AdminSubmissao chamadaId={chamadaId ? Number(chamadaId) : undefined} />
+    <SubmissaoAdmin chamadaId={chamadaId ? Number(chamadaId) : undefined} />
   );
 }
 
@@ -588,6 +589,7 @@ function UsuarioRoutes() {
       <Route path="calendario-eps" element={<CalendarioAnualEPS />} />
       <Route path="curso-online" element={<CursosOnline />} />
       <Route path="pesquisa" element={<Pesquisas />} />
+      <Route path="pesquisa/:id/responder" element={<ResponderPesquisa />} />
       <Route path="interacao" element={<Interacoes />} />
       <Route path="mensagem" element={<MensagemUsuario />} />
       <Route path="submissao" element={<SubmissaoTrabalhos />} />
@@ -921,7 +923,7 @@ function AdministradorRoutes() {
         element={
           <ProtectedPage
             permitido={PERFIL_PERMITIDO.administrador}
-            element={<AdminAvaliacao />}
+            element={<AvaliacaoAdmin />}
           />
         }
       />
@@ -971,7 +973,7 @@ function AdministradorRoutes() {
         element={
           <ProtectedPage
             permitido={PERFIL_PERMITIDO.administrador}
-            element={<AdminChamadaForm />}
+            element={<MostraExperiencias />}
           />
         }
       />
