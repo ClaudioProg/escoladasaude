@@ -98,8 +98,12 @@ function nowSPComparable() {
 function normalizeYMD(value) {
   const safe = String(value || "").trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) return safe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) return safe.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) {
+    return safe.slice(0, 10);
+  }
 
   return "";
 }
@@ -107,8 +111,12 @@ function normalizeYMD(value) {
 function normalizeHHMM(value, fallback = "00:00") {
   const safe = String(value || "").trim();
 
-  if (/^\d{2}:\d{2}$/.test(safe)) return safe;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) return safe.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) {
+    return safe.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -116,7 +124,9 @@ function normalizeHHMM(value, fallback = "00:00") {
 function formatarDataBR(value) {
   const data = normalizeYMD(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
@@ -141,16 +151,26 @@ function getTurmaStatus(turma) {
   const end = turmaEndComparable(turma);
   const now = nowSPComparable();
 
-  if (!start || !end) return "programado";
-  if (now < start) return "programado";
-  if (now > end) return "encerrado";
+  if (!start || !end) {
+    return "programado";
+  }
+  if (now < start) {
+    return "programado";
+  }
+  if (now > end) {
+    return "encerrado";
+  }
 
   return "andamento";
 }
 
 function labelStatusTurma(status) {
-  if (status === "andamento") return "Em andamento";
-  if (status === "encerrado") return "Encerrada";
+  if (status === "andamento") {
+    return "Em andamento";
+  }
+  if (status === "encerrado") {
+    return "Encerrada";
+  }
   return "Programada";
 }
 
@@ -171,17 +191,21 @@ function sortTurmasAsc(turmas = []) {
     const dataA = turmaStartComparable(a);
     const dataB = turmaStartComparable(b);
 
-    if (dataA !== dataB) return dataA.localeCompare(dataB);
+    if (dataA !== dataB) {
+      return dataA.localeCompare(dataB);
+    }
 
     return String(a?.id || a?.turma_id || "").localeCompare(
-      String(b?.id || b?.turma_id || "")
+      String(b?.id || b?.turma_id || ""),
     );
   });
 }
 
 function isAbortLike(error) {
   const name = String(error?.name || "");
-  const message = String(error?.message || error || "").trim().toLowerCase();
+  const message = String(error?.message || error || "")
+    .trim()
+    .toLowerCase();
 
   return (
     name === "AbortError" ||
@@ -211,8 +235,12 @@ function unwrapData(response) {
 function unwrapEventosAdministrativos(response) {
   const data = unwrapData(response);
 
-  if (Array.isArray(data?.eventos)) return data.eventos;
-  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.eventos)) {
+    return data.eventos;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
 
   return [];
 }
@@ -235,7 +263,9 @@ function sanitizeFileName(value) {
 }
 
 function tituloEvento(evento) {
-  return String(evento?.titulo || `Evento #${evento?.evento_id || evento?.id || "—"}`)
+  return String(
+    evento?.titulo || `Evento #${evento?.evento_id || evento?.id || "—"}`,
+  )
     .trim()
     .slice(0, 220);
 }
@@ -243,14 +273,18 @@ function tituloEvento(evento) {
 function normalizarEventoPresenca(evento) {
   const eventoId = toPositiveInt(evento?.evento_id || evento?.id);
 
-  if (!eventoId) return null;
+  if (!eventoId) {
+    return null;
+  }
 
   const turmas = sortTurmasAsc(
     (Array.isArray(evento?.turmas) ? evento.turmas : [])
       .map((turma) => {
         const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
 
-        if (!turmaId) return null;
+        if (!turmaId) {
+          return null;
+        }
 
         return {
           ...turma,
@@ -263,7 +297,7 @@ function normalizarEventoPresenca(evento) {
           horario_fim: normalizeHHMM(turma?.horario_fim, ""),
         };
       })
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
   return {
@@ -286,12 +320,16 @@ function periodoEventoTexto(evento) {
     .filter(Boolean)
     .sort();
 
-  if (!datas.length) return "Período não informado";
+  if (!datas.length) {
+    return "Período não informado";
+  }
 
   const inicio = datas[0];
   const fim = datas[datas.length - 1];
 
-  if (!fim || inicio === fim) return formatarDataBR(inicio);
+  if (!fim || inicio === fim) {
+    return formatarDataBR(inicio);
+  }
 
   return `${formatarDataBR(inicio)} a ${formatarDataBR(fim)}`;
 }
@@ -316,33 +354,37 @@ function normalizeDetalhePresenca(response, turma) {
       data: normalizeYMD(item?.data || item),
       horario_inicio: normalizeHHMM(
         item?.horario_inicio || item?.inicio || turma?.horario_inicio,
-        ""
+        "",
       ),
       horario_fim: normalizeHHMM(
         item?.horario_fim || item?.fim || turma?.horario_fim,
-        ""
+        "",
       ),
     }))
     .filter((item) => item.data)
     .sort((a, b) => a.data.localeCompare(b.data));
 
   const usuarios = Array.isArray(data?.usuarios)
-  ? data.usuarios.map(normalizarParticipanteComDeficiencia)
-  : [];
+    ? data.usuarios.map(normalizarParticipanteComDeficiencia)
+    : [];
 
-const presencas = [];
+  const presencas = [];
 
   for (const usuario of usuarios) {
     const usuarioId = toPositiveInt(usuario?.usuario_id || usuario?.id);
 
-    if (!usuarioId) continue;
+    if (!usuarioId) {
+      continue;
+    }
 
     for (const presenca of usuario?.presencas || []) {
       const dataPresenca = normalizeYMD(
-        presenca?.data_presenca || presenca?.data
+        presenca?.data_presenca || presenca?.data,
       );
 
-      if (!dataPresenca) continue;
+      if (!dataPresenca) {
+        continue;
+      }
 
       presencas.push({
         usuario_id: usuarioId,
@@ -374,8 +416,8 @@ function normalizarTextoBusca(value) {
 
 function obterDeficienciaUsuario(usuario = {}) {
   const candidatos = [
+    usuario?.deficiencia_descricao,
     usuario?.deficiencia_nome,
-    usuario?.deficiencia,
     usuario?.tipo_deficiencia,
     usuario?.deficiencia_tipo,
     usuario?.pcd_tipo,
@@ -385,7 +427,9 @@ function obterDeficienciaUsuario(usuario = {}) {
   for (const candidato of candidatos) {
     const texto = String(candidato || "").trim();
 
-    if (texto) return texto;
+    if (texto) {
+      return texto;
+    }
   }
 
   return "";
@@ -394,14 +438,21 @@ function obterDeficienciaUsuario(usuario = {}) {
 function temDeficienciaInformada(usuario = {}) {
   const texto = normalizarTextoBusca(obterDeficienciaUsuario(usuario));
 
-  if (!texto) return false;
+  if (!texto) {
+    return false;
+  }
 
   return ![
+    "nao possuo",
     "nao possui",
     "nao informado",
     "nenhuma",
     "sem deficiencia",
+    "sem deficiência",
     "nao",
+    "não",
+    "false",
+    "true",
   ].includes(texto);
 }
 
@@ -415,12 +466,16 @@ function normalizarParticipanteComDeficiencia(item = {}) {
   };
 }
 
-function calcularResumoPresenca({ evento, inscritosPorTurma, detalhesPorTurma }) {
+function calcularResumoPresenca({
+  evento,
+  inscritosPorTurma,
+  detalhesPorTurma,
+}) {
   const turmas = Array.isArray(evento?.turmas) ? evento.turmas : [];
 
   const usuarioGlobalSet = new Set();
 
-  let totalTurmas = turmas.length;
+  const totalTurmas = turmas.length;
   let totalDias = 0;
   let totalInscritosPorTurma = 0;
   let totalPossivel = 0;
@@ -429,7 +484,9 @@ function calcularResumoPresenca({ evento, inscritosPorTurma, detalhesPorTurma })
   for (const turma of turmas) {
     const turmaId = getTurmaId(turma);
 
-    if (!turmaId) continue;
+    if (!turmaId) {
+      continue;
+    }
 
     const inscritos = Array.isArray(inscritosPorTurma?.[turmaId])
       ? inscritosPorTurma[turmaId]
@@ -467,9 +524,13 @@ function calcularResumoPresenca({ evento, inscritosPorTurma, detalhesPorTurma })
 
     for (const presenca of detalhe.presencas || []) {
       const usuarioId = getParticipanteId(presenca);
-      const dataPresenca = normalizeYMD(presenca?.data_presenca || presenca?.data);
+      const dataPresenca = normalizeYMD(
+        presenca?.data_presenca || presenca?.data,
+      );
 
-      if (!usuarioId || !dataPresenca) continue;
+      if (!usuarioId || !dataPresenca) {
+        continue;
+      }
 
       if (permitidoUsuarios.size && !permitidoUsuarios.has(String(usuarioId))) {
         continue;
@@ -526,7 +587,7 @@ function ActionButton({
       disabled={disabled}
       className={classNames(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       {children}
@@ -539,7 +600,7 @@ function Pill({ children, className = "" }) {
     <span
       className={classNames(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
-        className
+        className,
       )}
     >
       {children}
@@ -551,14 +612,11 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
   const tones = {
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100",
-    teal:
-      "border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/40 dark:bg-teal-950/25 dark:text-teal-100",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
+    teal: "border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/40 dark:bg-teal-950/25 dark:text-teal-100",
+    sky: "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-100",
+    rose: "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-100",
     slate:
       "border-slate-200 bg-white text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100",
   };
@@ -566,11 +624,11 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
   return (
     <article className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="p-4 sm:p-5">
-  <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4">
           <span
             className={classNames(
               "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
-              tones[tone] || tones.emerald
+              tones[tone] || tones.emerald,
             )}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
@@ -622,8 +680,8 @@ function ContextoAusente({ onVoltar }) {
           </h2>
 
           <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
-            O endereço precisa conter um <strong>evento_id</strong> válido para
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor. O
+            endereço precisa conter um <strong>evento_id</strong> válido para
             carregar as turmas, inscritos, presenças e relatórios do evento
             específico.
           </p>
@@ -650,7 +708,7 @@ export default function PaginaGestaoPresencas() {
 
   const eventoIdParam = useMemo(
     () => toPositiveInt(searchParams.get("evento_id")),
-    [searchParams]
+    [searchParams],
   );
 
   const [evento, setEvento] = useState(null);
@@ -697,128 +755,138 @@ export default function PaginaGestaoPresencas() {
     };
   }, []);
 
- const carregarEventos = useCallback(async () => {
-  try {
-    abortRef.current?.abort?.("nova-requisicao");
-  } catch {
-    // noop
-  }
+  const carregarEventos = useCallback(async () => {
+    try {
+      abortRef.current?.abort?.("nova-requisicao");
+    } catch {
+      // noop
+    }
 
-  const controller = new AbortController();
-  abortRef.current = controller;
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-  dadosAutomaticosRef.current = new Set();
+    dadosAutomaticosRef.current = new Set();
 
-  setCarregando(true);
-  setErro("");
-  setEvento(null);
-  setEventosProcessados([]);
-  setInscritosPorTurma({});
-  setAvaliacaoPorTurma({});
-  setDetalhesPresencaPorTurma({});
-  setLive("Carregando gestão de presenças do evento.");
+    setCarregando(true);
+    setErro("");
+    setEvento(null);
+    setEventosProcessados([]);
+    setInscritosPorTurma({});
+    setAvaliacaoPorTurma({});
+    setDetalhesPresencaPorTurma({});
+    setLive("Carregando gestão de presenças do evento.");
 
-  if (!eventoIdParam) {
-    setCarregando(false);
-    setLive("Contexto ausente.");
-    return;
-  }
-
-  try {
-    const response = await api.presenca.administrador({
-      signal: controller.signal,
-    });
-
-    if (!mountedRef.current || controller.signal.aborted) return;
-
-    const listaEventos = unwrapEventosAdministrativos(response)
-      .map(normalizarEventoPresenca)
-      .filter(Boolean);
-
-    const eventoEncontrado =
-      listaEventos.find(
-        (item) => Number(item?.evento_id || item?.id) === eventoIdParam
-      ) || null;
-
-    if (!eventoEncontrado) {
-      setErro(
-        "O evento informado no link não foi encontrado na gestão de presenças."
-      );
-      setLive("Evento não encontrado.");
+    if (!eventoIdParam) {
+      setCarregando(false);
+      setLive("Contexto ausente.");
       return;
     }
 
-    const eventoFinal = {
-      ...eventoEncontrado,
-      turmas: sortTurmasAsc(eventoEncontrado.turmas || []),
-    };
+    try {
+      const response = await api.presenca.administrador({
+        signal: controller.signal,
+      });
 
-    setEvento(eventoFinal);
-    setEventosProcessados([eventoFinal]);
-    setLive(
-      `Evento carregado com ${eventoFinal.turmas.length} turma(s) para gestão de presenças.`
-    );
-  } catch (error) {
-    if (isAbortLike(error)) return;
-    if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
-    const message = getErrorMessage(
-      error,
-      "Erro ao carregar gestão de presenças do evento."
-    );
+      const listaEventos = unwrapEventosAdministrativos(response)
+        .map(normalizarEventoPresenca)
+        .filter(Boolean);
 
-    setErro(message);
-    setEvento(null);
-    setEventosProcessados([]);
-    notifyError(message);
-    setLive("Falha ao carregar gestão de presenças.");
-  } finally {
-    if (mountedRef.current && !controller.signal.aborted) {
-      setCarregando(false);
+      const eventoEncontrado =
+        listaEventos.find(
+          (item) => Number(item?.evento_id || item?.id) === eventoIdParam,
+        ) || null;
+
+      if (!eventoEncontrado) {
+        setErro(
+          "O evento informado no link não foi encontrado na gestão de presenças.",
+        );
+        setLive("Evento não encontrado.");
+        return;
+      }
+
+      const eventoFinal = {
+        ...eventoEncontrado,
+        turmas: sortTurmasAsc(eventoEncontrado.turmas || []),
+      };
+
+      setEvento(eventoFinal);
+      setEventosProcessados([eventoFinal]);
+      setLive(
+        `Evento carregado com ${eventoFinal.turmas.length} turma(s) para gestão de presenças.`,
+      );
+    } catch (error) {
+      if (isAbortLike(error)) {
+        return;
+      }
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
+
+      const message = getErrorMessage(
+        error,
+        "Erro ao carregar gestão de presenças do evento.",
+      );
+
+      setErro(message);
+      setEvento(null);
+      setEventosProcessados([]);
+      notifyError(message);
+      setLive("Falha ao carregar gestão de presenças.");
+    } finally {
+      if (mountedRef.current && !controller.signal.aborted) {
+        setCarregando(false);
+      }
     }
-  }
-}, [eventoIdParam, setLive]);
+  }, [eventoIdParam, setLive]);
 
   useEffect(() => {
     carregarEventos();
   }, [carregarEventos]);
 
-const carregarInscritos = useCallback(
-  async (turma_id) => {
-    const turmaId = toPositiveInt(turma_id);
+  const carregarInscritos = useCallback(
+    async (turma_id) => {
+      const turmaId = toPositiveInt(turma_id);
 
-    if (!turmaId) {
-      notifyError("turma_id inválido para carregar inscritos.");
-      return [];
-    }
+      if (!turmaId) {
+        notifyError("turma_id inválido para carregar inscritos.");
+        return [];
+      }
 
-    try {
-      setLive(`Carregando inscritos da turma ${turmaId}.`);
+      try {
+        setLive(`Carregando inscritos da turma ${turmaId}.`);
 
-      const response = await api.inscricao.listarPorTurma(turmaId, {
-        on403: "silent",
-      });
+        const response = await api.inscricao.listarPorTurma(turmaId, {
+          on403: "silent",
+        });
 
-      const lista = unwrapArray(response).map(normalizarParticipanteComDeficiencia);
+        const lista = unwrapArray(response).map(
+          normalizarParticipanteComDeficiencia,
+        );
 
-      if (!mountedRef.current) return [];
+        if (!mountedRef.current) {
+          return [];
+        }
 
-      setInscritosPorTurma((prev) => ({
-        ...prev,
-        [turmaId]: lista,
-      }));
+        setInscritosPorTurma((prev) => ({
+          ...prev,
+          [turmaId]: lista,
+        }));
 
-      setLive(`Inscritos da turma ${turmaId} carregados.`);
+        setLive(`Inscritos da turma ${turmaId} carregados.`);
 
-      return lista;
-    } catch (error) {
-      notifyError(getErrorMessage(error, "Erro ao carregar inscritos."));
-      setLive("Falha ao carregar inscritos.");
-      return [];
-    }
-  },
-  [setLive]
-);
+        return lista;
+      } catch (error) {
+        notifyError(getErrorMessage(error, "Erro ao carregar inscritos."));
+        setLive("Falha ao carregar inscritos.");
+        return [];
+      }
+    },
+    [setLive],
+  );
 
   const carregarAvaliacao = useCallback(
     async (turma_id) => {
@@ -846,7 +914,9 @@ const carregarInscritos = useCallback(
 
         const lista = unwrapArray(response);
 
-        if (!mountedRef.current) return [];
+        if (!mountedRef.current) {
+          return [];
+        }
 
         setAvaliacaoPorTurma((prev) => ({
           ...prev,
@@ -862,7 +932,7 @@ const carregarInscritos = useCallback(
         return [];
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const carregarDetalhePresenca = useCallback(
@@ -883,7 +953,9 @@ const carregarInscritos = useCallback(
 
         const detalhe = normalizeDetalhePresenca(response, turma);
 
-        if (!mountedRef.current) return null;
+        if (!mountedRef.current) {
+          return null;
+        }
 
         setDetalhesPresencaPorTurma((prev) => ({
           ...prev,
@@ -895,7 +967,7 @@ const carregarInscritos = useCallback(
         return detalhe;
       } catch (error) {
         notifyError(
-          getErrorMessage(error, "Erro ao carregar presenças da turma.")
+          getErrorMessage(error, "Erro ao carregar presenças da turma."),
         );
 
         const vazio = {
@@ -916,26 +988,36 @@ const carregarInscritos = useCallback(
         return vazio;
       }
     },
-    [setLive]
+    [setLive],
   );
 
   useEffect(() => {
-    if (carregando) return;
-    if (!evento?.turmas?.length) return;
+    if (carregando) {
+      return;
+    }
+    if (!evento?.turmas?.length) {
+      return;
+    }
 
     let cancelado = false;
 
     async function carregarDadosOperacionais() {
       for (const turma of evento.turmas) {
-        if (cancelado) return;
+        if (cancelado) {
+          return;
+        }
 
         const turmaId = getTurmaId(turma);
 
-        if (!turmaId) continue;
+        if (!turmaId) {
+          continue;
+        }
 
         const chave = String(turmaId);
 
-        if (dadosAutomaticosRef.current.has(chave)) continue;
+        if (dadosAutomaticosRef.current.has(chave)) {
+          continue;
+        }
 
         dadosAutomaticosRef.current.add(chave);
 
@@ -977,7 +1059,7 @@ const carregarInscritos = useCallback(
         downloadBlob(
           filename ||
             `lista_presenca_${sanitizeFileName(turmaNome)}_${turmaId}.pdf`,
-          blob
+          blob,
         );
 
         notifySuccess("PDF gerado com sucesso.");
@@ -987,7 +1069,7 @@ const carregarInscritos = useCallback(
         setLive("Falha ao gerar PDF.");
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const kpis = useMemo(() => {
@@ -1047,7 +1129,10 @@ const carregarInscritos = useCallback(
 
                 {eventoTitulo ? (
                   <Pill className="max-w-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
-                    <ClipboardCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    <ClipboardCheck
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
                     <span className="truncate">{eventoTitulo}</span>
                   </Pill>
                 ) : null}
@@ -1066,7 +1151,10 @@ const carregarInscritos = useCallback(
                 tone="teal"
               >
                 <RefreshCcw
-                  className={classNames("h-4 w-4", carregando && "animate-spin")}
+                  className={classNames(
+                    "h-4 w-4",
+                    carregando && "animate-spin",
+                  )}
                   aria-hidden="true"
                 />
                 Atualizar dados
@@ -1092,9 +1180,9 @@ const carregarInscritos = useCallback(
         ) : (
           <>
             <section
-  className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-  aria-label="Resumo operacional de presenças"
->
+              className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              aria-label="Resumo operacional de presenças"
+            >
               <MetricCard
                 icon={Layers}
                 label="Turmas"
@@ -1201,7 +1289,10 @@ const carregarInscritos = useCallback(
                         </span>
 
                         <span className="inline-flex items-center gap-1.5">
-                          <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                          <CalendarDays
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
                           {periodoEventoTexto(evento)}
                         </span>
 
@@ -1217,7 +1308,10 @@ const carregarInscritos = useCallback(
                         const status = getTurmaStatus(turma);
 
                         return (
-                          <Pill key={turma.turma_id} className={statusChipClass(status)}>
+                          <Pill
+                            key={turma.turma_id}
+                            className={statusChipClass(status)}
+                          >
                             {turma.nome}: {labelStatusTurma(status)}
                           </Pill>
                         );
@@ -1226,7 +1320,10 @@ const carregarInscritos = useCallback(
                   </div>
                 </section>
 
-                <section className="mt-5" aria-label="Lista operacional de presenças">
+                <section
+                  className="mt-5"
+                  aria-label="Lista operacional de presenças"
+                >
                   {!turmas.length ? (
                     <section className="overflow-hidden rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                       <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-zinc-900 dark:text-zinc-300">
@@ -1238,7 +1335,8 @@ const carregarInscritos = useCallback(
                       </p>
 
                       <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-                        Este evento não possui turmas disponíveis para gestão de presença.
+                        Este evento não possui turmas disponíveis para gestão de
+                        presença.
                       </p>
                     </section>
                   ) : (

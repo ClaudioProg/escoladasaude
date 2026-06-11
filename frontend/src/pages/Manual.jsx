@@ -125,7 +125,7 @@ export default function Manual() {
   }, []);
 
   const sections = SECTIONS.filter(([, label]) =>
-    label.toLowerCase().includes(busca.trim().toLowerCase())
+    label.toLowerCase().includes(busca.trim().toLowerCase()),
   );
 
   return (
@@ -166,7 +166,12 @@ export default function Manual() {
               value="12"
               tone="emerald"
             />
-            <Stat icon={ShieldCheck} label="Segurança" value="LGPD" tone="cyan" />
+            <Stat
+              icon={ShieldCheck}
+              label="Segurança"
+              value="LGPD"
+              tone="cyan"
+            />
             <Stat icon={FileCheck2} label="Formato" value="PDF" tone="amber" />
           </div>
         </section>
@@ -216,7 +221,11 @@ export default function Manual() {
               <li>Ao finalizar, use a opção de sair da conta.</li>
             </ul>
 
-            <Callout icon={LockKeyhole} title="Atenção ao acesso" tone="warning">
+            <Callout
+              icon={LockKeyhole}
+              title="Atenção ao acesso"
+              tone="warning"
+            >
               Não compartilhe senha. A conta é pessoal e pode registrar
               inscrições, presenças, avaliações e certificados.
             </Callout>
@@ -248,7 +257,11 @@ export default function Manual() {
               </li>
             </ul>
 
-            <Callout icon={UserRound} title="Certificado depende dos dados" tone="info">
+            <Callout
+              icon={UserRound}
+              title="Certificado depende dos dados"
+              tone="info"
+            >
               Dados incorretos podem aparecer em documentos, listas ou
               certificados. Corrija antes de concluir inscrições.
             </Callout>
@@ -270,7 +283,10 @@ export default function Manual() {
             </ul>
           </Section>
 
-          <Section id="evento" title="4. Eventos, turmas e informações do curso">
+          <Section
+            id="evento"
+            title="4. Eventos, turmas e informações do curso"
+          >
             <p>
               Cada evento pode ter uma ou mais turmas. Antes de se inscrever,
               confira título, descrição, público-alvo, local, datas, horários,
@@ -299,13 +315,19 @@ export default function Manual() {
               <li>Acesse a página de eventos.</li>
               <li>Escolha a turma correta.</li>
               <li>Clique em inscrever-se.</li>
-              <li>Acompanhe o status da inscrição no painel ou na área de eventos.</li>
+              <li>
+                Acompanhe o status da inscrição no painel ou na área de eventos.
+              </li>
               <li>
                 Se não puder comparecer, cancele dentro do prazo disponível.
               </li>
             </ul>
 
-            <Callout icon={Info} title="Responsabilidade do usuário" tone="warning">
+            <Callout
+              icon={Info}
+              title="Responsabilidade do usuário"
+              tone="warning"
+            >
               Inscrever-se e não comparecer pode prejudicar a ocupação das vagas
               e o planejamento da Escola da Saúde.
             </Callout>
@@ -319,7 +341,10 @@ export default function Manual() {
             </p>
 
             <ul className="list-disc pl-5">
-              <li>Quando houver QR Code, leia o código no horário e local indicados.</li>
+              <li>
+                Quando houver QR Code, leia o código no horário e local
+                indicados.
+              </li>
               <li>Permita o uso da câmera no navegador.</li>
               <li>Aguarde a confirmação na tela.</li>
               <li>Em caso de dificuldade, procure o responsável pela turma.</li>
@@ -391,8 +416,8 @@ export default function Manual() {
 
           <Section id="reserva" title="10. Reserva de espaços">
             <p>
-              Quando disponível, o usuário pode solicitar reserva de auditório ou
-              sala de reunião. A reserva depende de análise administrativa e
+              Quando disponível, o usuário pode solicitar reserva de auditório
+              ou sala de reunião. A reserva depende de análise administrativa e
               respeito às regras de uso.
             </p>
 
@@ -428,11 +453,16 @@ export default function Manual() {
               <li>Acesse “Cursos online” no menu.</li>
               <li>Escolha o conteúdo desejado.</li>
               <li>Abra o link oficial indicado.</li>
-              <li>Observe se há orientação adicional ou material complementar.</li>
+              <li>
+                Observe se há orientação adicional ou material complementar.
+              </li>
             </ul>
           </Section>
 
-          <Section id="seguranca" title="12. Segurança, privacidade e uso responsável">
+          <Section
+            id="seguranca"
+            title="12. Segurança, privacidade e uso responsável"
+          >
             <p>
               A plataforma trabalha com dados pessoais e registros
               institucionais. Por isso, o usuário deve agir com cuidado e manter
@@ -447,7 +477,11 @@ export default function Manual() {
               <li>Em computador compartilhado, sempre saia da conta.</li>
             </ul>
 
-            <Callout icon={ShieldCheck} title="Proteção de dados" tone="success">
+            <Callout
+              icon={ShieldCheck}
+              title="Proteção de dados"
+              tone="success"
+            >
               Dados pessoais devem ser tratados com responsabilidade, finalidade
               institucional e respeito à privacidade.
             </Callout>
@@ -455,7 +489,9 @@ export default function Manual() {
 
           <Section id="faq" title="13. Perguntas frequentes">
             <p className="font-black">Não consigo acessar. O que fazer?</p>
-            <p>Confira CPF e senha. Se necessário, use “Esqueci minha senha”.</p>
+            <p>
+              Confira CPF e senha. Se necessário, use “Esqueci minha senha”.
+            </p>
 
             <p className="font-black">Minha inscrição não aparece.</p>
             <p>
@@ -463,7 +499,9 @@ export default function Manual() {
               persistir, envie mensagem à administração.
             </p>
 
-            <p className="font-black">Participei do curso, mas não vejo certificado.</p>
+            <p className="font-black">
+              Participei do curso, mas não vejo certificado.
+            </p>
             <p>
               Verifique presença, avaliação e demais pendências. O certificado
               só aparece quando as regras forem cumpridas.
@@ -475,13 +513,19 @@ export default function Manual() {
               correta e se está dentro do período permitido.
             </p>
 
-            <p className="font-black">Meus dados estão errados no certificado.</p>
+            <p className="font-black">
+              Meus dados estão errados no certificado.
+            </p>
             <p>
               Atualize o cadastro e entre em contato com a administração para
               análise do caso.
             </p>
 
-            <Callout icon={HelpCircle} title="Ainda precisa de ajuda?" tone="info">
+            <Callout
+              icon={HelpCircle}
+              title="Ainda precisa de ajuda?"
+              tone="info"
+            >
               Use a caixa de mensagens ou procure a equipe da Escola da Saúde
               com o máximo de informações possível.
             </Callout>

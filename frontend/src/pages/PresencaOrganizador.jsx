@@ -34,7 +34,11 @@ import ModalAssinatura from "../components/usuarios/ModalAssinatura";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 import { formatDateBr } from "../utils/dateTime";
 
@@ -95,7 +99,9 @@ function safeArray(value) {
 }
 
 function textoSeguro(value, fallback = "") {
-  if (value === null || value === undefined) return fallback;
+  if (value === null || value === undefined) {
+    return fallback;
+  }
 
   if (typeof value === "string" || typeof value === "number") {
     const text = String(value).trim();
@@ -114,7 +120,9 @@ function textoSeguro(value, fallback = "") {
 
     for (const candidato of candidatos) {
       const text = String(candidato ?? "").trim();
-      if (text) return text;
+      if (text) {
+        return text;
+      }
     }
   }
 
@@ -122,7 +130,9 @@ function textoSeguro(value, fallback = "") {
 }
 
 function ymd(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
 
@@ -152,8 +162,8 @@ function normalizarTextoBusca(value) {
 
 function obterDeficienciaUsuario(usuario = {}) {
   const candidatos = [
+    usuario?.deficiencia_descricao,
     usuario?.deficiencia_nome,
-    usuario?.deficiencia,
     usuario?.tipo_deficiencia,
     usuario?.deficiencia_tipo,
     usuario?.pcd_tipo,
@@ -163,7 +173,9 @@ function obterDeficienciaUsuario(usuario = {}) {
   for (const candidato of candidatos) {
     const texto = String(candidato || "").trim();
 
-    if (texto) return texto;
+    if (texto) {
+      return texto;
+    }
   }
 
   return "";
@@ -172,14 +184,20 @@ function obterDeficienciaUsuario(usuario = {}) {
 function temDeficienciaInformada(usuario = {}) {
   const texto = normalizarTextoBusca(obterDeficienciaUsuario(usuario));
 
-  if (!texto) return false;
+  if (!texto) {
+    return false;
+  }
 
   return ![
+    "nao possuo",
     "nao possui",
     "nao informado",
     "nenhuma",
     "sem deficiencia",
+    "sem deficiência",
     "nao",
+    "não",
+    "false",
   ].includes(texto);
 }
 
@@ -198,7 +216,9 @@ function normalizarTurma(turma) {
   const id = toPositiveInt(turma?.id);
   const eventoId = toPositiveInt(turma?.evento?.id || turma?.evento_id);
 
-  if (!id || !eventoId) return null;
+  if (!id || !eventoId) {
+    return null;
+  }
 
   const eventoNome = textoSeguro(
     turma?.evento?.nome ||
@@ -206,12 +226,12 @@ function normalizarTurma(turma) {
       turma?.evento_nome ||
       turma?.evento_titulo ||
       turma?.evento,
-    "Evento"
+    "Evento",
   );
 
   const eventoLocal = textoSeguro(
     turma?.evento?.local || turma?.evento_local || turma?.local,
-    ""
+    "",
   );
 
   return {
@@ -247,7 +267,9 @@ function ordenarTurmasPorDataDesc(turmas) {
 function statusFiltroTurma(turma, hoje) {
   const fim = ymd(turma?.data_fim);
 
-  if (!fim) return "ativos";
+  if (!fim) {
+    return "ativos";
+  }
 
   return fim < hoje ? "encerrados" : "ativos";
 }
@@ -255,7 +277,9 @@ function statusFiltroTurma(turma, hoje) {
 function normalizarDataItem(item, turma) {
   const data = ymd(item?.data || item);
 
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     data,
@@ -271,21 +295,24 @@ function calcularFrequenciaResumo(detalhes) {
 
   return usuarios.map((usuario) => {
     const presencas = safeArray(usuario?.presencas);
-    const presentes = presencas.filter((presenca) => presenca?.presente === true).length;
-    const frequencia = totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
+    const presentes = presencas.filter(
+      (presenca) => presenca?.presente === true,
+    ).length;
+    const frequencia =
+      totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
 
     const deficiencia = obterDeficienciaUsuario(usuario);
 
-return {
-  ...usuario,
-  usuario_id: usuario?.id,
-  nome: usuario?.nome,
-  cpf: usuario?.cpf,
-  deficiencia_nome: deficiencia,
-  tem_deficiencia: temDeficienciaInformada(usuario),
-  presente: frequencia >= 75,
-  frequencia: `${frequencia}%`,
-};
+    return {
+      ...usuario,
+      usuario_id: usuario?.id,
+      nome: usuario?.nome,
+      cpf: usuario?.cpf,
+      deficiencia_nome: deficiencia,
+      tem_deficiencia: temDeficienciaInformada(usuario),
+      presente: frequencia >= 75,
+      frequencia: `${frequencia}%`,
+    };
   });
 }
 
@@ -306,9 +333,12 @@ function nomeArquivoSeguro(value, fallback = "arquivo") {
 function MiniStat({ icon: Icon, label, value, description, tone = "cyan" }) {
   const tones = {
     cyan: "bg-cyan-50 text-cyan-900 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-900",
-    emerald: "bg-emerald-50 text-emerald-900 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-900",
-    amber: "bg-amber-50 text-amber-900 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-900",
-    violet: "bg-violet-50 text-violet-900 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-900",
+    emerald:
+      "bg-emerald-50 text-emerald-900 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-900",
+    amber:
+      "bg-amber-50 text-amber-900 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-900",
+    violet:
+      "bg-violet-50 text-violet-900 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-900",
   };
 
   return (
@@ -343,7 +373,7 @@ function ChipFiltro({ active, onClick, label, count }) {
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
         active
           ? "bg-violet-800 text-white"
-          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-700"
+          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-700",
       )}
     >
       <span>{label}</span>
@@ -353,7 +383,7 @@ function ChipFiltro({ active, onClick, label, count }) {
           "inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px]",
           active
             ? "bg-white/20 text-white"
-            : "bg-white text-slate-700 dark:bg-white/10 dark:text-zinc-200"
+            : "bg-white text-slate-700 dark:bg-white/10 dark:text-zinc-200",
         )}
       >
         {Number(count) || 0}
@@ -391,7 +421,9 @@ export default function organizadorPresenca() {
   const [assinatura, setAssinatura] = useState(null);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message;
+    if (liveRef.current) {
+      liveRef.current.textContent = message;
+    }
   }, []);
 
   useEffect(() => {
@@ -407,10 +439,15 @@ export default function organizadorPresenca() {
     async (turmaIdRaw, { silent = false } = {}) => {
       const turmaId = toPositiveInt(turmaIdRaw);
 
-      if (!turmaId) return;
+      if (!turmaId) {
+        return;
+      }
 
       try {
-        validarFacade("api.presenca.detalhesTurma", api?.presenca?.detalhesTurma);
+        validarFacade(
+          "api.presenca.detalhesTurma",
+          api?.presenca?.detalhesTurma,
+        );
 
         const response = await api.presenca.detalhesTurma(turmaId);
         const data = extrairData(response) || {};
@@ -422,7 +459,9 @@ export default function organizadorPresenca() {
           usuarios,
         });
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         setPresencasPorTurma((prev) => ({
           ...prev,
@@ -437,11 +476,13 @@ export default function organizadorPresenca() {
       } catch (error) {
         if (!silent) {
           notifyError(
-            obterMensagemErro(error, "Erro ao carregar presenças da turma.")
+            obterMensagemErro(error, "Erro ao carregar presenças da turma."),
           );
         }
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         setPresencasPorTurma((prev) => ({
           ...prev,
@@ -455,7 +496,7 @@ export default function organizadorPresenca() {
         }));
       }
     },
-    []
+    [],
   );
 
   const carregarAssinatura = useCallback(async () => {
@@ -465,18 +506,25 @@ export default function organizadorPresenca() {
       const response = await api.assinatura.minha();
       const data = extrairData(response);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setAssinatura(data?.assinatura || data || null);
     } catch {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
       setAssinatura(null);
     }
   }, []);
 
   const carregarTurmas = useCallback(async () => {
     try {
-      validarFacade("api.organizador.minhasTurmas", api?.organizador?.minhasTurmas);
+      validarFacade(
+        "api.organizador.minhasTurmas",
+        api?.organizador?.minhasTurmas,
+      );
 
       setCarregando(true);
       setErro("");
@@ -484,13 +532,13 @@ export default function organizadorPresenca() {
 
       const response = await api.organizador.minhasTurmas({ filtro: "todos" });
       const data = extrairData(response);
-      const lista = safeArray(data)
-        .map(normalizarTurma)
-        .filter(Boolean);
+      const lista = safeArray(data).map(normalizarTurma).filter(Boolean);
 
       const ordenadas = ordenarTurmasPorDataDesc(lista);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setTurmas(ordenadas);
       setLive(`${ordenadas.length} turma(s) carregada(s).`);
@@ -499,15 +547,17 @@ export default function organizadorPresenca() {
         ordenadas.map((turma) =>
           carregarPresencas(turma.id, {
             silent: true,
-          })
-        )
+          }),
+        ),
       );
 
       await carregarAssinatura();
     } catch (error) {
       console.error("[organizadorPresenca] erro ao carregar turmas:", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = obterMensagemErro(error, "Erro ao carregar suas turmas.");
 
@@ -516,7 +566,9 @@ export default function organizadorPresenca() {
       notifyError(message);
       setLive("Erro ao carregar suas turmas.");
     } finally {
-      if (mountedRef.current) setCarregando(false);
+      if (mountedRef.current) {
+        setCarregando(false);
+      }
     }
   }, [carregarAssinatura, carregarPresencas, setLive]);
 
@@ -539,17 +591,17 @@ export default function organizadorPresenca() {
       const data = extrairData(response);
 
       setInscritosPorTurma((prev) => ({
-  ...prev,
-  [turmaId]: safeArray(data).map((item) => {
-    const deficiencia = obterDeficienciaUsuario(item);
+        ...prev,
+        [turmaId]: safeArray(data).map((item) => {
+          const deficiencia = obterDeficienciaUsuario(item);
 
-    return {
-      ...item,
-      deficiencia_nome: deficiencia,
-      tem_deficiencia: temDeficienciaInformada(item),
-    };
-  }),
-}));
+          return {
+            ...item,
+            deficiencia_nome: deficiencia,
+            tem_deficiencia: temDeficienciaInformada(item),
+          };
+        }),
+      }));
     } catch (error) {
       notifyError(obterMensagemErro(error, "Erro ao carregar inscritos."));
     }
@@ -564,7 +616,9 @@ export default function organizadorPresenca() {
         return;
       }
 
-      if (avaliacaoPorTurma[turmaId]) return;
+      if (avaliacaoPorTurma[turmaId]) {
+        return;
+      }
 
       try {
         validarFacade("api.avaliacao.porTurma", api?.avaliacao?.porTurma);
@@ -585,14 +639,16 @@ export default function organizadorPresenca() {
         }));
       }
     },
-    [avaliacaoPorTurma]
+    [avaliacaoPorTurma],
   );
 
   const carregarDatasPorTurma = useCallback(
     async (turmaIdRaw) => {
       const turmaId = toPositiveInt(turmaIdRaw);
 
-      if (!turmaId) return;
+      if (!turmaId) {
+        return;
+      }
 
       try {
         validarFacade("api.turma.datasAuto", api?.turma?.datasAuto);
@@ -605,7 +661,9 @@ export default function organizadorPresenca() {
           .map((item) => normalizarDataItem(item, turma))
           .filter(Boolean);
 
-        const viaPresencas = safeArray(presencasPorTurma[turmaId]?.detalhado?.datas)
+        const viaPresencas = safeArray(
+          presencasPorTurma[turmaId]?.detalhado?.datas,
+        )
           .map((item) => normalizarDataItem(item, turma))
           .filter(Boolean);
 
@@ -620,14 +678,16 @@ export default function organizadorPresenca() {
         }));
       }
     },
-    [presencasPorTurma, turmas]
+    [presencasPorTurma, turmas],
   );
 
   const obterDatasReais = useCallback(
     async (turma) => {
       const turmaId = toPositiveInt(turma?.id);
 
-      if (!turmaId) return [];
+      if (!turmaId) {
+        return [];
+      }
 
       const emEstado = datasPorTurma[turmaId];
 
@@ -647,22 +707,28 @@ export default function organizadorPresenca() {
           .map((item) => normalizarDataItem(item, turma))
           .filter(Boolean);
 
-        if (normalizadas.length) return normalizadas;
+        if (normalizadas.length) {
+          return normalizadas;
+        }
       } catch {
         // usa fontes locais abaixo
       }
 
-      const viaPresencas = safeArray(presencasPorTurma[turmaId]?.detalhado?.datas)
+      const viaPresencas = safeArray(
+        presencasPorTurma[turmaId]?.detalhado?.datas,
+      )
         .map((item) => normalizarDataItem(item, turma))
         .filter(Boolean);
 
-      if (viaPresencas.length) return viaPresencas;
+      if (viaPresencas.length) {
+        return viaPresencas;
+      }
 
       return safeArray(turma?.datas)
         .map((item) => normalizarDataItem(item, turma))
         .filter(Boolean);
     },
-    [datasPorTurma, presencasPorTurma]
+    [datasPorTurma, presencasPorTurma],
   );
 
   const gerarRelatorioPDF = useCallback(async (turmaIdRaw) => {
@@ -696,8 +762,11 @@ export default function organizadorPresenca() {
 
       const linhas = usuarios.map((usuario) => {
         const presencas = safeArray(usuario?.presencas);
-        const presentes = presencas.filter((presenca) => presenca?.presente === true).length;
-        const frequencia = totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
+        const presentes = presencas.filter(
+          (presenca) => presenca?.presente === true,
+        ).length;
+        const frequencia =
+          totalDias > 0 ? Math.round((presentes / totalDias) * 100) : 0;
 
         return [
           usuario?.nome || "—",
@@ -761,22 +830,31 @@ export default function organizadorPresenca() {
         const datasReais = await obterDatasReais(turma);
 
         if (!datasReais.length) {
-          notifyWarning("Nenhuma data encontrada para gerar lista de assinatura.");
+          notifyWarning(
+            "Nenhuma data encontrada para gerar lista de assinatura.",
+          );
           return;
         }
 
         const eventoNome = textoSeguro(turma?.evento?.nome, "Evento");
         const turmaNome = textoSeguro(turma?.nome, `Turma ${turmaId}`);
-        const local = textoSeguro(turma?.evento?.local || turma?.local, "Local não informado");
+        const local = textoSeguro(
+          turma?.evento?.local || turma?.local,
+          "Local não informado",
+        );
         const geradoEm = new Date().toLocaleString("pt-BR");
         const organizadorNome = textoSeguro(nome, "Organizador");
 
         const alunosOrdenados = safeArray(alunos)
           .slice()
           .sort((a, b) =>
-            textoSeguro(a?.nome, "").localeCompare(textoSeguro(b?.nome, ""), "pt-BR", {
-              sensitivity: "base",
-            })
+            textoSeguro(a?.nome, "").localeCompare(
+              textoSeguro(b?.nome, ""),
+              "pt-BR",
+              {
+                sensitivity: "base",
+              },
+            ),
           );
 
         const doc = new jsPDF({
@@ -792,7 +870,9 @@ export default function organizadorPresenca() {
         const contentW = pageW - marginX * 2;
 
         datasReais.forEach((item, index) => {
-          if (index > 0) doc.addPage("a4", "landscape");
+          if (index > 0) {
+            doc.addPage("a4", "landscape");
+          }
 
           const dataFormatada = formatDateBr(item.data);
           const horaInicio = item.horario_inicio || turma.horario_inicio || "";
@@ -858,7 +938,7 @@ export default function organizadorPresenca() {
 
           const turmaLocalLinhas = doc.splitTextToSize(
             `Turma: ${turmaNome}   •   Local: ${local}`,
-            contentW - 12
+            contentW - 12,
           );
 
           doc.text(turmaLocalLinhas, marginX + 2, infoY);
@@ -870,7 +950,7 @@ export default function organizadorPresenca() {
           doc.text(
             `Organizador: ${organizadorNome}   •   Gerado em: ${geradoEm}`,
             marginX + 2,
-            infoY
+            infoY,
           );
 
           const linhas = alunosOrdenados.map((aluno, alunoIndex) => [
@@ -960,7 +1040,7 @@ export default function organizadorPresenca() {
               doc.text(
                 "Documento gerado pela Plataforma da Escola da Saúde 2.0",
                 marginX,
-                pageH - 7
+                pageH - 7,
               );
 
               doc.text(`Página ${pageNumber}`, pageW - marginX, pageH - 7, {
@@ -979,7 +1059,7 @@ export default function organizadorPresenca() {
         notifyError("Erro ao gerar lista de presença.");
       }
     },
-    [inscritosPorTurma, nome, obterDatasReais, turmas]
+    [inscritosPorTurma, nome, obterDatasReais, turmas],
   );
 
   const gerarQrCodePresencaPDF = useCallback(
@@ -1011,7 +1091,7 @@ export default function organizadorPresenca() {
             : "https://escoladasaude.vercel.app";
 
         const url = `${base.replace(/\/+$/, "")}/presenca?turma=${encodeURIComponent(
-          turmaId
+          turmaId,
         )}`;
 
         const container = document.createElement("div");
@@ -1033,7 +1113,7 @@ export default function organizadorPresenca() {
             includeMargin
             bgColor="#ffffff"
             fgColor="#000000"
-          />
+          />,
         );
 
         await new Promise((resolve) => window.setTimeout(resolve, 120));
@@ -1059,16 +1139,18 @@ export default function organizadorPresenca() {
         const pageH = doc.internal.pageSize.getHeight();
 
         const eventoTitulo = String(
-          nomeEvento || turma?.evento?.nome || turma?.evento_nome || "Evento"
+          nomeEvento || turma?.evento?.nome || turma?.evento_nome || "Evento",
         ).trim();
 
         const turmaNome = String(turma?.nome || `Turma ${turmaId}`).trim();
 
         const local = String(
-          turma?.evento?.local || turma?.evento_local || turma?.local || ""
+          turma?.evento?.local || turma?.evento_local || turma?.local || "",
         ).trim();
 
-        const dataInicio = turma?.data_inicio ? formatDateBr(turma.data_inicio) : "";
+        const dataInicio = turma?.data_inicio
+          ? formatDateBr(turma.data_inicio)
+          : "";
         const dataFim = turma?.data_fim ? formatDateBr(turma.data_fim) : "";
 
         const periodo =
@@ -1103,7 +1185,11 @@ export default function organizadorPresenca() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(71, 85, 105);
-        doc.text("Secretaria Municipal de Saúde — Prefeitura de Santos", 24, 39);
+        doc.text(
+          "Secretaria Municipal de Saúde — Prefeitura de Santos",
+          24,
+          39,
+        );
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(31);
@@ -1143,8 +1229,16 @@ export default function organizadorPresenca() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(71, 85, 105);
-        doc.text("Abra a câmera do celular, escaneie o código e faça login.", 24, 165);
-        doc.text("A presença será vinculada automaticamente a esta turma.", 24, 171);
+        doc.text(
+          "Abra a câmera do celular, escaneie o código e faça login.",
+          24,
+          165,
+        );
+        doc.text(
+          "A presença será vinculada automaticamente a esta turma.",
+          24,
+          171,
+        );
 
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(203, 213, 225);
@@ -1170,9 +1264,14 @@ export default function organizadorPresenca() {
         doc.setFontSize(8);
         doc.setTextColor(100, 116, 139);
         doc.text(`Organizador: ${organizadorNome}`, 24, 193);
-        doc.text(`Plataforma Escola da Saúde 2.0 • Turma ${turmaId}`, pageW - 24, 193, {
-          align: "right",
-        });
+        doc.text(
+          `Plataforma Escola da Saúde 2.0 • Turma ${turmaId}`,
+          pageW - 24,
+          193,
+          {
+            align: "right",
+          },
+        );
 
         doc.save(`qr_presenca_turma_${turmaId}.pdf`);
         notifySuccess("QR Code de presença gerado.");
@@ -1181,7 +1280,7 @@ export default function organizadorPresenca() {
         notifyError("Erro ao gerar QR Code.");
       }
     },
-    [nome, turmas]
+    [nome, turmas],
   );
 
   const hoje = useMemo(() => todayYMD(), []);
@@ -1206,7 +1305,9 @@ export default function organizadorPresenca() {
       const inicio = ymd(turma?.data_inicio);
       const fim = ymd(turma?.data_fim);
 
-      if (!inicio || !fim) continue;
+      if (!inicio || !fim) {
+        continue;
+      }
 
       if (inicio > hoje) {
         programadas += 1;
@@ -1233,7 +1334,12 @@ export default function organizadorPresenca() {
         icon={Presentation}
       />
 
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       {carregando ? (
         <div
@@ -1285,7 +1391,9 @@ export default function organizadorPresenca() {
             disabled={carregando}
             className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
           >
-            <RefreshCw className={cx("h-4 w-4", carregando && "animate-spin")} />
+            <RefreshCw
+              className={cx("h-4 w-4", carregando && "animate-spin")}
+            />
             {carregando ? "Atualizando..." : "Atualizar turmas"}
           </button>
         </section>
@@ -1360,7 +1468,9 @@ export default function organizadorPresenca() {
           </div>
         </section>
 
-        {erro ? <ErroCarregamento mensagem={erro} onRetry={carregarTurmas} /> : null}
+        {erro ? (
+          <ErroCarregamento mensagem={erro} onRetry={carregarTurmas} />
+        ) : null}
 
         {carregando && turmasFiltradas.length === 0 ? (
           <section aria-label="Carregando turmas" className="grid gap-4">
