@@ -39,6 +39,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Activity,
   AlertTriangle,
@@ -70,7 +71,6 @@ import Botao from "../components/ui/Botao";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import Modal from "../components/ui/Modal";
 import {
   notifyError,
   notifySuccess,
@@ -1086,121 +1086,167 @@ function ModalEvento({ eventoSelecionado, carregandoDetalhe, onFechar }) {
 
   const evento = eventoSelecionado ? normalizarEvento(eventoSelecionado) : null;
 
-  return (
-    <Modal
-      aberto={Boolean(eventoSelecionado || carregandoDetalhe)}
-      onFechar={onFechar}
-      titulo="Detalhes do evento de auditoria"
-      tamanho="xl"
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-auditoria-titulo"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onFechar();
+        }
+      }}
     >
-      {carregandoDetalhe ? (
-        <CarregandoSkeleton
-          linhas={6}
-          titulo="Carregando detalhe"
-          subtitulo="Buscando informações completas do evento."
-        />
-      ) : evento ? (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Evento #{evento.id}
-                </p>
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Auditoria da plataforma
+            </p>
 
-                <h3 className="mt-1 text-xl font-black text-slate-950 dark:text-white">
-                  {evento.modulo} · {evento.acao}
-                </h3>
+            <h2
+              id="modal-auditoria-titulo"
+              className="mt-1 text-xl font-black text-slate-950 dark:text-white"
+            >
+              Detalhes do evento de auditoria
+            </h2>
+          </div>
 
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  {evento.mensagem || "Sem mensagem institucional registrada."}
-                </p>
-              </div>
+          <button
+            type="button"
+            onClick={onFechar}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+            aria-label="Fechar detalhes do evento de auditoria"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </header>
 
-              <div className="flex flex-wrap gap-2">
-                <BadgeSucesso sucesso={evento.sucesso} />
-                <BadgeSeveridade severidade={evento.severidade} />
-              </div>
-            </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          {carregandoDetalhe ? (
+            <CarregandoSkeleton
+              linhas={6}
+              titulo="Carregando detalhe"
+              subtitulo="Buscando informações completas do evento."
+            />
+          ) : evento ? (
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Evento #{evento.id}
+                    </p>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <DetalheResumo
-                icon={Clock3}
-                label="Data/hora"
-                value={formatarDataHora(evento.criado_em)}
-              />
+                    <h3 className="mt-1 text-xl font-black text-slate-950 dark:text-white">
+                      {evento.modulo} · {evento.acao}
+                    </h3>
 
-              <DetalheResumo
-                icon={UserRound}
-                label="Usuário"
-                value={`${evento.usuario_id || "—"} · ${
-                  evento.perfil_usuario || "sem perfil"
-                }`}
-              />
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                      {evento.mensagem ||
+                        "Sem mensagem institucional registrada."}
+                    </p>
+                  </div>
 
-              <DetalheResumo
-                icon={Layers}
-                label="Entidade"
-                value={`${evento.entidade || "—"} · ${
-                  evento.entidade_id || "sem ID"
-                }`}
-              />
-
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  <Info className="h-3.5 w-3.5" aria-hidden="true" />
-                  Request ID
+                  <div className="flex flex-wrap gap-2">
+                    <BadgeSucesso sucesso={evento.sucesso} />
+                    <BadgeSeveridade severidade={evento.severidade} />
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    copiarTexto(evento.request_id, "Request ID copiado.")
-                  }
-                  className="max-w-full truncate text-left font-mono text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300"
-                >
-                  {evento.request_id || "—"}
-                </button>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <DetalheResumo
+                    icon={Clock3}
+                    label="Data/hora"
+                    value={formatarDataHora(evento.criado_em)}
+                  />
+
+                  <DetalheResumo
+                    icon={UserRound}
+                    label="Usuário"
+                    value={`${evento.usuario_id || "—"} · ${
+                      evento.perfil_usuario || "sem perfil"
+                    }`}
+                  />
+
+                  <DetalheResumo
+                    icon={Layers}
+                    label="Entidade"
+                    value={`${evento.entidade || "—"} · ${
+                      evento.entidade_id || "sem ID"
+                    }`}
+                  />
+
+                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                      Request ID
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copiarTexto(evento.request_id, "Request ID copiado.")
+                      }
+                      className="max-w-full truncate text-left font-mono text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                    >
+                      {evento.request_id || "—"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                  <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <Route className="h-3.5 w-3.5" aria-hidden="true" />
+                    Requisição
+                  </div>
+
+                  <p className="break-words text-sm font-semibold text-slate-900 dark:text-white">
+                    {evento.metodo_http || "—"} {evento.rota || ""}
+                  </p>
+
+                  <p className="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">
+                    IP: {evento.ip || "—"}
+                  </p>
+
+                  <p className="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">
+                    User-Agent: {evento.user_agent || "—"}
+                  </p>
+                </div>
+
+                {evento.admin_hint ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                    <strong>Diagnóstico administrativo:</strong>{" "}
+                    {evento.admin_hint}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <JsonPreview
+                  titulo="Dados anteriores"
+                  valor={evento.dados_anteriores}
+                />
+                <JsonPreview titulo="Dados novos" valor={evento.dados_novos} />
+                <JsonPreview titulo="Detalhes" valor={evento.detalhes} />
               </div>
             </div>
-
-            <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-              <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                <Route className="h-3.5 w-3.5" aria-hidden="true" />
-                Requisição
-              </div>
-
-              <p className="break-words text-sm font-semibold text-slate-900 dark:text-white">
-                {evento.metodo_http || "—"} {evento.rota || ""}
-              </p>
-
-              <p className="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">
-                IP: {evento.ip || "—"}
-              </p>
-
-              <p className="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">
-                User-Agent: {evento.user_agent || "—"}
-              </p>
-            </div>
-
-            {evento.admin_hint ? (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-                <strong>Diagnóstico administrativo:</strong> {evento.admin_hint}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <JsonPreview
-              titulo="Dados anteriores"
-              valor={evento.dados_anteriores}
-            />
-            <JsonPreview titulo="Dados novos" valor={evento.dados_novos} />
-            <JsonPreview titulo="Detalhes" valor={evento.detalhes} />
-          </div>
+          ) : null}
         </div>
-      ) : null}
-    </Modal>
+
+        <footer className="flex shrink-0 justify-end border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-950">
+          <button
+            type="button"
+            onClick={onFechar}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+          >
+            Fechar
+          </button>
+        </footer>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -1625,7 +1671,10 @@ export default function AuditoriaAdmin() {
       <ModalEvento
         eventoSelecionado={eventoSelecionado}
         carregandoDetalhe={carregandoDetalhe}
-        onFechar={() => setEventoSelecionado(null)}
+        onFechar={() => {
+          setEventoSelecionado(null);
+          setCarregandoDetalhe(false);
+        }}
       />
 
       <Footer />
