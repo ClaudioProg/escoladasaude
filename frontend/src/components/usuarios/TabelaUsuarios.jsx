@@ -1,5 +1,5 @@
 // ✅ frontend/src/components/usuarios/TabelaUsuarios.jsx — v2.0
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -26,20 +26,26 @@ import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Accessibility,
+  AlertCircle,
   Award,
+  Brain,
   Briefcase,
   Building2,
   CalendarClock,
   ChevronDown,
   ChevronRight,
+  Ear,
+  Eye,
   GraduationCap,
   Hash,
   IdCard,
+  Infinity,
   Loader2,
   Mail,
   Pencil,
   Phone,
   Shield,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 
@@ -68,13 +74,17 @@ function onlyDigits(value) {
 }
 
 function formatValue(value) {
-  return value === null || value === undefined || value === "" ? "—" : String(value);
+  return value === null || value === undefined || value === ""
+    ? "—"
+    : String(value);
 }
 
 function formatCelular(value) {
   const digits = onlyDigits(value);
 
-  if (!digits) return "—";
+  if (!digits) {
+    return "—";
+  }
 
   if (digits.length === 11) {
     return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
@@ -137,22 +147,130 @@ function maskCpfDefault(cpf, revealed) {
 
   const formatted = digits.replace(
     /^(\d{3})(\d{3})(\d{3})(\d{2})$/,
-    "$1.$2.$3-$4"
+    "$1.$2.$3-$4",
   );
 
-  if (revealed) return formatted;
+  if (revealed) {
+    return formatted;
+  }
 
   return digits.replace(/^(\d{3})\d{3}(\d{3})\d{2}$/, "$1.***.$2-**");
 }
 
+function normalizarTextoBusca(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function obterConfigDeficiencia(deficiencia) {
+  const textoOriginal = String(deficiencia || "").trim();
+  const texto = normalizarTextoBusca(textoOriginal);
+
+  if (
+    !texto ||
+    [
+      "—",
+      "nao possuo",
+      "nao possui",
+      "nao informado",
+      "nenhuma",
+      "sem deficiencia",
+      "sem deficiência",
+      "nao",
+      "não",
+      "false",
+      "true",
+    ].includes(texto)
+  ) {
+    return null;
+  }
+
+  if (texto.includes("fisica") || texto.includes("motora")) {
+    return {
+      label: "Deficiência física",
+      Icon: Accessibility,
+      className:
+        "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    };
+  }
+
+  if (texto.includes("visual") || texto.includes("visao")) {
+    return {
+      label: "Deficiência visual",
+      Icon: Eye,
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (
+    texto.includes("auditiva") ||
+    texto.includes("surdez") ||
+    texto.includes("surdo")
+  ) {
+    return {
+      label: "Deficiência auditiva",
+      Icon: Ear,
+      className:
+        "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
+    };
+  }
+
+  if (texto.includes("intelectual")) {
+    return {
+      label: "Deficiência intelectual",
+      Icon: Brain,
+      className:
+        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    };
+  }
+
+  if (
+    texto.includes("autismo") ||
+    texto.includes("autista") ||
+    texto.includes("tea") ||
+    texto.includes("espectro")
+  ) {
+    return {
+      label: "Transtorno do Espectro Autista",
+      Icon: Infinity,
+      className:
+        "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    };
+  }
+
+  if (texto.includes("multipla") || texto.includes("múltipla")) {
+    return {
+      label: "Deficiência múltipla",
+      Icon: Sparkles,
+      className:
+        "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
+    };
+  }
+
+  return {
+    label: textoOriginal,
+    Icon: AlertCircle,
+    className:
+      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+  };
+}
+
 function calcIdadeSafe(nascimento) {
-  if (!nascimento) return null;
+  if (!nascimento) {
+    return null;
+  }
 
   const ymd = String(nascimento || "")
     .trim()
     .slice(0, 10);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return null;
+  }
 
   const [anoRaw, mesRaw, diaRaw] = ymd.split("-");
   const ano = Number(anoRaw);
@@ -192,7 +310,10 @@ function Pill({ Icon, label, value, title, tone = "violet" }) {
 
   return (
     <div
-      className={cx("inline-flex items-center gap-2 rounded-2xl border px-3 py-2", toneCls)}
+      className={cx(
+        "inline-flex items-center gap-2 rounded-2xl border px-3 py-2",
+        toneCls,
+      )}
       role="group"
       aria-label={label}
       title={title || label}
@@ -276,12 +397,25 @@ function UsuarioItem({
   const [expanded, setExpanded] = useState(false);
 
   const id = usuario?.id;
-  const key = String(usuario?.id ?? usuario?.email ?? usuario?.cpf ?? "usuario");
+  const key = String(
+    usuario?.id ?? usuario?.email ?? usuario?.cpf ?? "usuario",
+  );
   const nome = usuario?.nome || "—";
-const email = usuario?.email || "—";
-const celular = formatCelular(usuario?.celular);
+  const email = usuario?.email || "—";
+  const celular = formatCelular(usuario?.celular);
 
-const perfil = perfilOficial(usuario?.perfil);
+  const deficienciaTexto = formatValue(
+    usuario?.deficiencia_nome ||
+      usuario?.deficiencia_descricao ||
+      usuario?.tipo_deficiencia ||
+      usuario?.deficiencia_tipo ||
+      usuario?.pcd_tipo ||
+      usuario?.necessidade_especial,
+  );
+
+  const configDeficiencia = obterConfigDeficiencia(deficienciaTexto);
+
+  const perfil = perfilOficial(usuario?.perfil);
   const perfilText = perfilLabel(perfil);
 
   const revealed =
@@ -297,15 +431,12 @@ const perfil = perfilOficial(usuario?.perfil);
     usuario?.idade ?? calcIdadeSafe(usuario?.data_nascimento) ?? "—";
 
   const unidade = formatValue(
-    usuario?.unidade_sigla || usuario?.unidade_nome || usuario?.unidade_id
+    usuario?.unidade_sigla || usuario?.unidade_nome || usuario?.unidade_id,
   );
 
   const cargo = formatValue(usuario?.cargo_nome || usuario?.cargo_id);
   const escolaridade = formatValue(
-    usuario?.escolaridade_nome || usuario?.escolaridade_id
-  );
-  const deficiencia = formatValue(
-    usuario?.deficiencia_nome || usuario?.deficiencia_id
+    usuario?.escolaridade_nome || usuario?.escolaridade_id,
   );
 
   const temResumo =
@@ -350,7 +481,7 @@ const perfil = perfilOficial(usuario?.perfil);
         "group relative overflow-hidden rounded-3xl border",
         "border-zinc-200 bg-white/70 shadow-[0_18px_55px_-40px_rgba(2,6,23,0.22)] ring-1 ring-black/5",
         "dark:border-white/10 dark:bg-zinc-900/45 dark:ring-white/10",
-        "supports-[backdrop-filter]:backdrop-blur"
+        "supports-[backdrop-filter]:backdrop-blur",
       )}
       aria-label={`Usuário: ${nome}`}
     >
@@ -384,6 +515,22 @@ const perfil = perfilOficial(usuario?.perfil);
                     />
                     <span className="truncate">{nome}</span>
 
+                    {configDeficiencia ? (
+                      <span
+                        className={cx(
+                          "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+                          configDeficiencia.className,
+                        )}
+                        title={configDeficiencia.label}
+                        aria-label={configDeficiencia.label}
+                      >
+                        <configDeficiencia.Icon
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    ) : null}
+
                     {id !== null && id !== undefined ? (
                       <span
                         className="ml-1 inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
@@ -395,30 +542,12 @@ const perfil = perfilOficial(usuario?.perfil);
                     ) : null}
                   </h2>
 
-                  <div className="mt-1 flex items-center gap-2 text-sm">
-  <Mail
-    className="h-4 w-4 text-zinc-500 dark:text-zinc-300"
-    aria-hidden="true"
-  />
-  {email && email !== "—" ? (
-    <a
-      href={`mailto:${email}`}
-      className="break-all text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
-      title={`Enviar e-mail para ${nome}`}
-    >
-      {email}
-    </a>
-  ) : (
-    <span className="text-zinc-500 dark:text-zinc-400">—</span>
-  )}
-</div>
-
-<div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="sr-only">Perfil:</span>
                     <span
                       className={cx(
                         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-extrabold",
-                        perfilBadgeClass(perfil)
+                        perfilBadgeClass(perfil),
                       )}
                       title={`Perfil: ${perfilText}`}
                       role="status"
@@ -438,7 +567,7 @@ const perfil = perfilOficial(usuario?.perfil);
                       "inline-flex items-center gap-1.5 rounded-2xl border px-3 py-2 text-sm font-extrabold transition",
                       "border-zinc-200 bg-white hover:bg-zinc-50",
                       "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60",
                     )}
                     aria-expanded={expanded ? "true" : "false"}
                     aria-controls={`detalhes-${key}`}
@@ -451,12 +580,14 @@ const perfil = perfilOficial(usuario?.perfil);
                   <button
                     type="button"
                     onClick={() =>
-                      typeof onEditar === "function" ? onEditar(usuario) : undefined
+                      typeof onEditar === "function"
+                        ? onEditar(usuario)
+                        : undefined
                     }
                     className={cx(
                       "inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-extrabold text-white transition",
                       "bg-teal-600 hover:bg-teal-700",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/60"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/60",
                     )}
                     aria-label={`Editar usuário ${nome}`}
                     title="Editar usuário"
@@ -470,25 +601,25 @@ const perfil = perfilOficial(usuario?.perfil);
           </div>
         </div>
 
-       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-    <IconMeta Icon={Phone} label="Celular" value={celular}>
-  {celular && celular !== "—" ? (
-    <a
-      href={`tel:${onlyDigits(celular)}`}
-      className="underline-offset-2 hover:underline"
-      title={`Ligar para ${nome}`}
-    >
-      {celular}
-    </a>
-  ) : (
-    "—"
-  )}
-</IconMeta>
-  </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+            <IconMeta Icon={Phone} label="Celular" value={celular}>
+              {celular && celular !== "—" ? (
+                <a
+                  href={`tel:${onlyDigits(celular)}`}
+                  className="underline-offset-2 hover:underline"
+                  title={`Ligar para ${nome}`}
+                >
+                  {celular}
+                </a>
+              ) : (
+                "—"
+              )}
+            </IconMeta>
+          </div>
 
-  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-    <IconMeta Icon={IdCard} label="CPF" value={cpfRender}>
+          <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+            <IconMeta Icon={IdCard} label="CPF" value={cpfRender}>
               <div className="flex items-center gap-2">
                 <span className="font-mono tabular-nums">{cpfRender}</span>
                 {typeof onToggleCpf === "function" &&
@@ -526,11 +657,27 @@ const perfil = perfilOficial(usuario?.perfil);
           </div>
 
           <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-            <IconMeta Icon={GraduationCap} label="Escolaridade" value={escolaridade} />
+            <IconMeta
+              Icon={GraduationCap}
+              label="Escolaridade"
+              value={escolaridade}
+            />
           </div>
 
           <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 px-3 py-2 dark:border-white/10 dark:bg-white/5 lg:col-span-2">
-            <IconMeta Icon={Accessibility} label="Deficiência" value={deficiencia} />
+            <IconMeta Icon={Mail} label="E-mail" value={email}>
+              {email && email !== "—" ? (
+                <a
+                  href={`mailto:${email}`}
+                  className="break-all underline-offset-2 hover:underline"
+                  title={`Enviar e-mail para ${nome}`}
+                >
+                  {email}
+                </a>
+              ) : (
+                "—"
+              )}
+            </IconMeta>
           </div>
         </div>
 
@@ -587,7 +734,10 @@ export default function TabelaUsuarios({
   hasResumo,
   "data-testid": testId,
 }) {
-  const lista = useMemo(() => (Array.isArray(usuarios) ? usuarios : []), [usuarios]);
+  const lista = useMemo(
+    () => (Array.isArray(usuarios) ? usuarios : []),
+    [usuarios],
+  );
 
   if (loading) {
     return (
@@ -613,7 +763,7 @@ export default function TabelaUsuarios({
         className={cx(
           "mx-auto mt-2 max-w-5xl rounded-2xl border p-4 text-center",
           "border-zinc-200 bg-white/70 dark:border-white/10 dark:bg-zinc-900/40",
-          className
+          className,
         )}
         aria-live="polite"
         data-testid={testId}
@@ -671,11 +821,11 @@ Pill.propTypes = {
 
 UsuarioItem.propTypes = {
   usuario: PropTypes.shape({
-  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  nome: PropTypes.string,
-  email: PropTypes.string,
-  celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    nome: PropTypes.string,
+    email: PropTypes.string,
+    celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     registro: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     data_nascimento: PropTypes.string,
     idade: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -688,8 +838,14 @@ UsuarioItem.propTypes = {
     escolaridade_nome: PropTypes.string,
     deficiencia_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     deficiencia_nome: PropTypes.string,
-    cursos_concluidos_75: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    certificados_emitidos: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    cursos_concluidos_75: PropTypes.oneOfType([
+      PropTypes.number,
+      PropTypes.string,
+    ]),
+    certificados_emitidos: PropTypes.oneOfType([
+      PropTypes.number,
+      PropTypes.string,
+    ]),
     perfil: PropTypes.string,
   }).isRequired,
   onEditar: PropTypes.func,

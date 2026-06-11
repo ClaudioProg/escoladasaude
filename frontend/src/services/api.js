@@ -31,11 +31,15 @@ const IS_DEV = Boolean(import.meta.env.DEV);
 ────────────────────────────────────────────────────────────── */
 
 function logDev(...args) {
-  if (IS_DEV) console.log("[api]", ...args);
+  if (IS_DEV) {
+    console.log("[api]", ...args);
+  }
 }
 
 function errorDev(...args) {
-  if (IS_DEV) console.error("[api]", ...args);
+  if (IS_DEV) {
+    console.error("[api]", ...args);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -61,8 +65,12 @@ function stripTrailingSlash(value) {
 function normalizePath(path) {
   const raw = String(path || "/").trim();
 
-  if (!raw) return "/";
-  if (isAbsoluteUrl(raw)) return raw;
+  if (!raw) {
+    return "/";
+  }
+  if (isAbsoluteUrl(raw)) {
+    return raw;
+  }
 
   return raw.startsWith("/") ? raw : `/${raw}`;
 }
@@ -70,12 +78,16 @@ function normalizePath(path) {
 function computeBase() {
   const envBase = stripTrailingSlash(import.meta.env.VITE_API_BASE_URL || "");
 
-  if (envBase) return envBase;
+  if (envBase) {
+    return envBase;
+  }
 
-  if (IS_DEV) return "";
+  if (IS_DEV) {
+    return "";
+  }
 
   throw new Error(
-    "VITE_API_BASE_URL não configurada. Defina a URL oficial da API no ambiente de produção."
+    "VITE_API_BASE_URL não configurada. Defina a URL oficial da API no ambiente de produção.",
   );
 }
 
@@ -101,7 +113,9 @@ function ensureApi(base, path) {
   const baseNoSlash = stripTrailingSlash(base);
   let normalizedPath = normalizePath(path);
 
-  if (isAbsoluteUrl(normalizedPath)) return normalizedPath;
+  if (isAbsoluteUrl(normalizedPath)) {
+    return normalizedPath;
+  }
 
   const baseHasApi = /\/api$/i.test(baseNoSlash);
   const pathHasApi = /^\/api(\/|$)/i.test(normalizedPath);
@@ -119,7 +133,9 @@ function ensureRoot(base, path) {
   const baseNoSlash = stripTrailingSlash(base);
   const normalizedPath = normalizePath(path);
 
-  if (isAbsoluteUrl(normalizedPath)) return normalizedPath;
+  if (isAbsoluteUrl(normalizedPath)) {
+    return normalizedPath;
+  }
 
   return `${baseNoSlash}${normalizedPath}`;
 }
@@ -141,8 +157,12 @@ function enforceHttpsExternal(url) {
 }
 
 function isBadParamValue(value) {
-  if (value === null || value === undefined || value === "") return true;
-  if (typeof value === "number" && Number.isNaN(value)) return true;
+  if (value === null || value === undefined || value === "") {
+    return true;
+  }
+  if (typeof value === "number" && Number.isNaN(value)) {
+    return true;
+  }
 
   if (typeof value === "string" && value.trim().toLowerCase() === "nan") {
     return true;
@@ -157,7 +177,9 @@ export function qs(params = {}) {
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       value.forEach((item) => {
-        if (!isBadParamValue(item)) query.append(key, item);
+        if (!isBadParamValue(item)) {
+          query.append(key, item);
+        }
       });
       return;
     }
@@ -199,9 +221,15 @@ export function getToken() {
   try {
     const raw = localStorage.getItem(STORAGE_TOKEN_KEY);
 
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
 
-    return String(raw).replace(/^Bearer\s+/i, "").trim() || null;
+    return (
+      String(raw)
+        .replace(/^Bearer\s+/i, "")
+        .trim() || null
+    );
   } catch {
     return null;
   }
@@ -211,7 +239,9 @@ export function getUsuarioLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_USUARIO_KEY);
 
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
 
     const parsed = JSON.parse(raw);
 
@@ -223,14 +253,18 @@ export function getUsuarioLocal() {
 
 export function getPerfilLocal() {
   try {
-    return String(localStorage.getItem(STORAGE_PERFIL_KEY) || "").trim() || null;
+    return (
+      String(localStorage.getItem(STORAGE_PERFIL_KEY) || "").trim() || null
+    );
   } catch {
     return null;
   }
 }
 
 function emitPerfilChange(value = null) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
 
   try {
     window.dispatchEvent(
@@ -239,7 +273,7 @@ function emitPerfilChange(value = null) {
           storageKey: STORAGE_PERFIL_KEY,
           value,
         },
-      })
+      }),
     );
   } catch {
     // noop
@@ -268,7 +302,7 @@ export function clearAuthSession(options = {}) {
           detail: {
             authenticated: false,
           },
-        })
+        }),
       );
     }
 
@@ -283,7 +317,9 @@ export function persistAuthSession(token, usuario = null, options = {}) {
 
   try {
     const normalizedToken = token
-      ? String(token).replace(/^Bearer\s+/i, "").trim()
+      ? String(token)
+          .replace(/^Bearer\s+/i, "")
+          .trim()
       : null;
 
     const prevToken = localStorage.getItem(STORAGE_TOKEN_KEY);
@@ -319,7 +355,7 @@ export function persistAuthSession(token, usuario = null, options = {}) {
             authenticated: true,
             usuario,
           },
-        })
+        }),
       );
     }
 
@@ -359,7 +395,9 @@ function isPublicAppPath(pathname = "") {
 }
 
 function currentPathWithQuery() {
-  if (typeof window === "undefined") return "/";
+  if (typeof window === "undefined") {
+    return "/";
+  }
 
   const { pathname, search, hash } = window.location;
 
@@ -367,7 +405,9 @@ function currentPathWithQuery() {
 }
 
 function redirectToLogin(nextPath = null) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
 
   if (isPublicAppPath(window.location.pathname)) {
     logDev("redirectToLogin ignorado em rota pública", {
@@ -392,7 +432,9 @@ function newRequestId() {
   try {
     const uuid = crypto.randomUUID?.();
 
-    if (uuid) return uuid;
+    if (uuid) {
+      return uuid;
+    }
   } catch {
     // noop
   }
@@ -421,7 +463,7 @@ function todayLocalYMD() {
   const pad = (number) => String(number).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
@@ -457,7 +499,7 @@ function getDebugConflitos() {
 function buildHeaders(
   auth = true,
   extra = {},
-  { contentType = "application/json" } = {}
+  { contentType = "application/json" } = {},
 ) {
   const token = getToken();
 
@@ -560,7 +602,9 @@ export function setPerfilIncompletoFlag(value) {
 }
 
 export function subscribePerfilFlag(callback) {
-  if (typeof callback !== "function") return () => {};
+  if (typeof callback !== "function") {
+    return () => {};
+  }
 
   const windowHandler = (event) => callback(event.detail);
 
@@ -591,22 +635,28 @@ function syncPerfilHeader(response) {
   try {
     const value = response?.headers?.get?.(PERFIL_HEADER);
 
-    if (value === "1") setPerfilIncompletoFlag(true);
-    else if (value === "0") setPerfilIncompletoFlag(false);
-    else setPerfilIncompletoFlag(null);
+    if (value === "1") {
+      setPerfilIncompletoFlag(true);
+    } else if (value === "0") {
+      setPerfilIncompletoFlag(false);
+    } else {
+      setPerfilIncompletoFlag(null);
+    }
   } catch {
     // noop
   }
 }
 
 function inferPerfilIncompleto(usuario) {
-  if (!usuario || typeof usuario !== "object") return true;
+  if (!usuario || typeof usuario !== "object") {
+    return true;
+  }
 
   return REQUIRED_PROFILE_FIELDS.some(
     (key) =>
       usuario?.[key] === null ||
       usuario?.[key] === undefined ||
-      usuario?.[key] === ""
+      usuario?.[key] === "",
   );
 }
 
@@ -654,14 +704,16 @@ async function handle(
     on403 = "silent",
     on404 = "throw",
     suppressGlobalError = false,
-  } = {}
+  } = {},
 ) {
   const url = response?.url || "";
   const status = response?.status;
 
   syncPerfilHeader(response);
 
-  if (status === 404 && on404 === "silent") return null;
+  if (status === 404 && on404 === "silent") {
+    return null;
+  }
 
   let text = "";
   let data = null;
@@ -684,14 +736,11 @@ async function handle(
       redirectToLogin();
     }
 
-    const error = new ApiError(
-      data?.message || "Não autorizado (401)",
-      {
-        status,
-        url,
-        data: data ?? text,
-      }
-    );
+    const error = new ApiError(data?.message || "Não autorizado (401)", {
+      status,
+      url,
+      data: data ?? text,
+    });
 
     error.code = data?.code || "AUTH-401";
     error.sessionExpired = data?.sessionExpired === true;
@@ -725,7 +774,9 @@ async function handle(
 
     error.code = data?.code || `HTTP-${status}`;
 
-    if (suppressGlobalError) error.silenced = true;
+    if (suppressGlobalError) {
+      error.silenced = true;
+    }
 
     throw error;
   }
@@ -736,7 +787,7 @@ async function handle(
 function throwForAuthStatus(
   response,
   url,
-  { on401 = "silent", on403 = "silent" } = {}
+  { on401 = "silent", on403 = "silent" } = {},
 ) {
   syncPerfilHeader(response);
 
@@ -806,7 +857,7 @@ async function rawFetch(
     accept = null,
     contentType = "application/json",
     apiPrefix = true,
-  } = {}
+  } = {},
 ) {
   const safePath = normalizePath(path);
 
@@ -815,7 +866,7 @@ async function rawFetch(
       ? safePath + qs(query)
       : apiPrefix
         ? ensureApi(API_BASE_URL, safePath) + qs(query)
-        : makeRootUrl(safePath, query)
+        : makeRootUrl(safePath, query),
   );
 
   const token = getToken();
@@ -837,7 +888,7 @@ async function rawFetch(
         ...(accept ? { Accept: accept } : {}),
         ...(headers || {}),
       },
-      { contentType }
+      { contentType },
     );
   }
 
@@ -868,13 +919,16 @@ async function rawFetch(
     };
 
     if (signal) {
-      if (signal.aborted) abortFromOuter();
-      else signal.addEventListener("abort", abortFromOuter, { once: true });
+      if (signal.aborted) {
+        abortFromOuter();
+      } else {
+        signal.addEventListener("abort", abortFromOuter, { once: true });
+      }
     }
 
     const timeoutId = setTimeout(
       () => controller.abort(new Error("timeout")),
-      DEFAULT_TIMEOUT_MS
+      DEFAULT_TIMEOUT_MS,
     );
 
     try {
@@ -899,13 +953,16 @@ async function rawFetch(
   } catch (firstError) {
     if (
       firstError?.name === "AbortError" ||
-      String(firstError?.message || "").toLowerCase().includes("aborted") ||
+      String(firstError?.message || "")
+        .toLowerCase()
+        .includes("aborted") ||
       signal?.aborted
     ) {
       throw firstError;
     }
 
-    const reason = firstError?.message || firstError?.name || String(firstError);
+    const reason =
+      firstError?.message || firstError?.name || String(firstError);
 
     logDev("falha na primeira tentativa, executando warmup", {
       method,
@@ -921,7 +978,9 @@ async function rawFetch(
     } catch (secondError) {
       if (
         secondError?.name === "AbortError" ||
-        String(secondError?.message || "").toLowerCase().includes("aborted") ||
+        String(secondError?.message || "")
+          .toLowerCase()
+          .includes("aborted") ||
         signal?.aborted
       ) {
         throw secondError;
@@ -931,7 +990,7 @@ async function rawFetch(
         String(reason).toLowerCase().includes("timeout")
           ? "Tempo de resposta excedido."
           : "Falha de rede ou CORS",
-        { status: 0, url, data: secondError }
+        { status: 0, url, data: secondError },
       );
     }
   }
@@ -963,7 +1022,7 @@ async function doFetch(
     suppressGlobalError = false,
     signal,
     apiPrefix = true,
-  } = {}
+  } = {},
 ) {
   const { res } = await rawFetch(path, {
     method,
@@ -1017,7 +1076,9 @@ export const apiPostPublic = (path, body, opts = {}) =>
    HEAD cache/coalescing
 ────────────────────────────────────────────────────────────── */
 
-const HEAD_CACHE_TTL_MS = Number(import.meta.env.VITE_API_HEAD_TTL_MS || 120_000);
+const HEAD_CACHE_TTL_MS = Number(
+  import.meta.env.VITE_API_HEAD_TTL_MS || 120_000,
+);
 const headCache = new Map();
 const inflightHead = new Map();
 
@@ -1028,7 +1089,9 @@ function headKeyFromPath(path) {
 function headCacheGet(key) {
   const entry = headCache.get(key);
 
-  if (!entry) return undefined;
+  if (!entry) {
+    return undefined;
+  }
 
   if (entry.expires < Date.now()) {
     headCache.delete(key);
@@ -1049,7 +1112,9 @@ export function invalidateHeadPrefix(prefixPath) {
   const prefix = headKeyFromPath(prefixPath);
 
   for (const key of headCache.keys()) {
-    if (key.startsWith(prefix)) headCache.delete(key);
+    if (key.startsWith(prefix)) {
+      headCache.delete(key);
+    }
   }
 }
 
@@ -1067,8 +1132,12 @@ export async function apiHead(path, opts = {}) {
   const key = headKeyFromPath(path);
   const cached = headCacheGet(key);
 
-  if (typeof cached === "boolean") return cached;
-  if (inflightHead.has(key)) return inflightHead.get(key);
+  if (typeof cached === "boolean") {
+    return cached;
+  }
+  if (inflightHead.has(key)) {
+    return inflightHead.get(key);
+  }
 
   const promise = (async () => {
     const { res } = await rawFetch(path, {
@@ -1078,7 +1147,9 @@ export async function apiHead(path, opts = {}) {
       query,
       contentType: null,
     }).catch((error) => {
-      if (!quiet) console.warn("[apiHead] erro:", error?.message || error);
+      if (!quiet) {
+        console.warn("[apiHead] erro:", error?.message || error);
+      }
 
       return {
         res: {
@@ -1126,7 +1197,9 @@ export async function apiHead(path, opts = {}) {
 ────────────────────────────────────────────────────────────── */
 
 function parseContentDispositionFilename(contentDisposition = "") {
-  if (!contentDisposition) return undefined;
+  if (!contentDisposition) {
+    return undefined;
+  }
 
   const star = contentDisposition.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
 
@@ -1142,9 +1215,7 @@ function parseContentDispositionFilename(contentDisposition = "") {
   const normal = contentDisposition.match(/filename=(?:"([^"]+)"|([^;]+))/i);
 
   if (normal) {
-    const raw = (normal[1] || normal[2] || "")
-      .trim()
-      .replace(/^"(.*)"$/, "$1");
+    const raw = (normal[1] || normal[2] || "").trim().replace(/^"(.*)"$/, "$1");
 
     return raw.replace(/^'(.*)'$/, "$1").trim();
   }
@@ -1233,7 +1304,8 @@ export async function apiUpload(path, formDataOrFile, opts = {}) {
   });
 }
 
-export const onlyDigitsString = (value) => String(value ?? "").replace(/\D/g, "");
+export const onlyDigitsString = (value) =>
+  String(value ?? "").replace(/\D/g, "");
 
 export function downloadBlob(filename = "download", blob) {
   const url = URL.createObjectURL(blob);
@@ -1291,15 +1363,17 @@ export async function apiPerfilOpcao(opts = {}) {
     ...opts,
   });
 
-  return response?.data || {
-    cargos: [],
-    unidades: [],
-    generos: [],
-    orientacoes_sexuais: [],
-    cores_racas: [],
-    escolaridades: [],
-    deficiencias: [],
-  };
+  return (
+    response?.data || {
+      cargos: [],
+      unidades: [],
+      generos: [],
+      orientacoes_sexuais: [],
+      cores_racas: [],
+      escolaridades: [],
+      deficiencias: [],
+    }
+  );
 }
 
 export async function apiPerfilMe(opts = {}) {
@@ -1412,7 +1486,9 @@ export async function apiUsuarioListar(params = {}, opts = {}) {
 }
 
 export async function apiUsuarioObter(id, opts = {}) {
-  if (!id) throw new Error("ID do usuário é obrigatório.");
+  if (!id) {
+    throw new Error("ID do usuário é obrigatório.");
+  }
 
   return apiGet(`/usuario/${id}`, {
     auth: true,
@@ -1423,7 +1499,9 @@ export async function apiUsuarioObter(id, opts = {}) {
 }
 
 export async function apiUsuarioAtualizarBasico(id, payload, opts = {}) {
-  if (!id) throw new Error("ID do usuário é obrigatório.");
+  if (!id) {
+    throw new Error("ID do usuário é obrigatório.");
+  }
 
   return apiPatch(`/usuario/${id}/basico`, payload, {
     auth: true,
@@ -1436,9 +1514,11 @@ export async function apiUsuarioAtualizarBasico(id, payload, opts = {}) {
 export async function apiUsuarioAtualizarPerfilInstitucional(
   id,
   payload,
-  opts = {}
+  opts = {},
 ) {
-  if (!id) throw new Error("ID do usuário é obrigatório.");
+  if (!id) {
+    throw new Error("ID do usuário é obrigatório.");
+  }
 
   return apiPatch(`/usuario/${id}/perfil-institucional`, payload, {
     auth: true,
@@ -1451,9 +1531,11 @@ export async function apiUsuarioAtualizarPerfilInstitucional(
 export async function apiUsuarioAtualizarDadosAdministrativos(
   id,
   payload,
-  opts = {}
+  opts = {},
 ) {
-  if (!id) throw new Error("ID do usuário é obrigatório.");
+  if (!id) {
+    throw new Error("ID do usuário é obrigatório.");
+  }
 
   return apiPatch(`/usuario/${id}/dados-administrativos`, payload, {
     auth: true,
@@ -1464,7 +1546,9 @@ export async function apiUsuarioAtualizarDadosAdministrativos(
 }
 
 export async function apiUsuarioAtualizarPerfil(id, payload, opts = {}) {
-  if (!id) throw new Error("ID do usuário é obrigatório.");
+  if (!id) {
+    throw new Error("ID do usuário é obrigatório.");
+  }
 
   return apiPatch(`/usuario/${id}/perfil`, payload, {
     auth: true,
@@ -1494,7 +1578,9 @@ export async function apiUsuarioListarAvaliador(params = {}, opts = {}) {
 }
 
 export async function apiUsuarioResumo(id, opts = {}) {
-  if (!id) throw new Error("ID do usuário é obrigatório.");
+  if (!id) {
+    throw new Error("ID do usuário é obrigatório.");
+  }
 
   return apiGet(`/usuario/${id}/resumo`, {
     auth: true,
@@ -1569,7 +1655,9 @@ export async function apiorganizadorListar(params = {}, opts = {}) {
 }
 
 export async function apiorganizadorEventosAvaliacao(organizadorId, opts = {}) {
-  if (!organizadorId) throw new Error("organizador_id é obrigatório.");
+  if (!organizadorId) {
+    throw new Error("organizador_id é obrigatório.");
+  }
 
   return apiGet(`/organizador/${organizadorId}/eventos-avaliacao`, {
     auth: true,
@@ -1580,7 +1668,9 @@ export async function apiorganizadorEventosAvaliacao(organizadorId, opts = {}) {
 }
 
 export async function apiorganizadorTurmas(organizadorId, opts = {}) {
-  if (!organizadorId) throw new Error("organizador_id é obrigatório.");
+  if (!organizadorId) {
+    throw new Error("organizador_id é obrigatório.");
+  }
 
   return apiGet(`/organizador/${organizadorId}/turmas`, {
     auth: true,
@@ -1637,7 +1727,9 @@ export async function apiNotificacaoResumo(opts = {}) {
 }
 
 export async function apiNotificacaoMarcarLida(id, opts = {}) {
-  if (!id) throw new Error("ID da notificação é obrigatório.");
+  if (!id) {
+    throw new Error("ID da notificação é obrigatório.");
+  }
 
   return apiPatch(
     `/notificacao/${id}/lida`,
@@ -1647,7 +1739,7 @@ export async function apiNotificacaoMarcarLida(id, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -1660,7 +1752,7 @@ export async function apiNotificacaoMarcarTodasLidas(opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -1679,7 +1771,9 @@ export async function apiEventoListarAdministrador(params = {}, opts = {}) {
 }
 
 export async function apiEventoPublicar(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("evento_id é obrigatório.");
+  if (!eventoId) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiPost(
     `/evento/${eventoId}/publicar`,
@@ -1689,12 +1783,14 @@ export async function apiEventoPublicar(eventoId, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiEventoExcluir(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("evento_id é obrigatório.");
+  if (!eventoId) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiDelete(`/evento/${eventoId}`, {
     auth: true,
@@ -1705,7 +1801,9 @@ export async function apiEventoExcluir(eventoId, opts = {}) {
 }
 
 export async function apiEventoFolderResponse(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("eventoId é obrigatório.");
+  if (!eventoId) {
+    throw new Error("eventoId é obrigatório.");
+  }
 
   return apiGetResponse(`/evento/${eventoId}/folder`, {
     auth: false,
@@ -1717,7 +1815,9 @@ export async function apiEventoFolderResponse(eventoId, opts = {}) {
 }
 
 export async function apiEventoProgramacaoResponse(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("eventoId é obrigatório.");
+  if (!eventoId) {
+    throw new Error("eventoId é obrigatório.");
+  }
 
   return apiGetResponse(`/evento/${eventoId}/programacao`, {
     auth: false,
@@ -1729,7 +1829,9 @@ export async function apiEventoProgramacaoResponse(eventoId, opts = {}) {
 }
 
 export async function apiEventoProgramacaoFile(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("eventoId é obrigatório.");
+  if (!eventoId) {
+    throw new Error("eventoId é obrigatório.");
+  }
 
   return apiGetFile(`/evento/${eventoId}/programacao`, {
     auth: false,
@@ -1745,7 +1847,9 @@ export async function apiEventoProgramacaoFile(eventoId, opts = {}) {
 ────────────────────────────────────────────────────────────── */
 
 export async function apiTurmaListarPorEvento(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("evento_id é obrigatório.");
+  if (!eventoId) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiGet(`/turma/evento/${eventoId}`, {
     auth: true,
@@ -1756,7 +1860,9 @@ export async function apiTurmaListarPorEvento(eventoId, opts = {}) {
 }
 
 export async function apiTurmaListarPorEventoSimples(eventoId, opts = {}) {
-  if (!eventoId) throw new Error("evento_id é obrigatório.");
+  if (!eventoId) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiGet(`/turma/evento/${eventoId}/simples`, {
     auth: true,
@@ -1785,7 +1891,9 @@ export async function apiTurmaListarComUsuario(opts = {}) {
 }
 
 export async function apiTurmaObter(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/turma/${turmaId}`, {
     auth: true,
@@ -1805,7 +1913,9 @@ export async function apiTurmaCriar(payload, opts = {}) {
 }
 
 export async function apiTurmaAtualizar(turmaId, payload, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPut(`/turma/${turmaId}`, payload, {
     auth: true,
@@ -1816,7 +1926,9 @@ export async function apiTurmaAtualizar(turmaId, payload, opts = {}) {
 }
 
 export async function apiTurmaExcluir(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiDelete(`/turma/${turmaId}`, {
     auth: true,
@@ -1827,7 +1939,9 @@ export async function apiTurmaExcluir(turmaId, opts = {}) {
 }
 
 export async function apiTurmaDatas(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/turma/${turmaId}/data`, {
     auth: true,
@@ -1838,7 +1952,9 @@ export async function apiTurmaDatas(turmaId, opts = {}) {
 }
 
 export async function apiTurmaOcorrencias(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/turma/${turmaId}/ocorrencia`, {
     auth: true,
@@ -1849,7 +1965,9 @@ export async function apiTurmaOcorrencias(turmaId, opts = {}) {
 }
 
 export async function apiTurmaDetalhe(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/turma/${turmaId}/detalhe`, {
     auth: true,
@@ -1860,7 +1978,9 @@ export async function apiTurmaDetalhe(turmaId, opts = {}) {
 }
 
 export async function apiTurmaListarOrganizadores(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/turma/${turmaId}/organizador`, {
     auth: true,
@@ -1870,8 +1990,14 @@ export async function apiTurmaListarOrganizadores(turmaId, opts = {}) {
   });
 }
 
-export async function apiTurmaAdicionarOrganizador(turmaId, organizadores, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+export async function apiTurmaAdicionarOrganizador(
+  turmaId,
+  organizadores,
+  opts = {},
+) {
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPost(
     `/turma/${turmaId}/organizador`,
@@ -1881,7 +2007,7 @@ export async function apiTurmaAdicionarOrganizador(turmaId, organizadores, opts 
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -1899,7 +2025,9 @@ export async function apiInscricaoMinhas(opts = {}) {
 }
 
 export async function apiInscricaoListarPorTurma(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/inscricao/turma/${turmaId}`, {
     auth: true,
@@ -1910,7 +2038,9 @@ export async function apiInscricaoListarPorTurma(turmaId, opts = {}) {
 }
 
 export async function apiInscricaoCriar(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPost(
     "/inscricao",
@@ -1920,12 +2050,14 @@ export async function apiInscricaoCriar(turmaId, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInscricaoCancelar(inscricaoId, opts = {}) {
-  if (!inscricaoId) throw new Error("inscricao_id é obrigatório.");
+  if (!inscricaoId) {
+    throw new Error("inscricao_id é obrigatório.");
+  }
 
   return apiDelete(`/inscricao/${inscricaoId}`, {
     auth: true,
@@ -1936,7 +2068,9 @@ export async function apiInscricaoCancelar(inscricaoId, opts = {}) {
 }
 
 export async function apiInscricaoCancelarMinhaPorTurma(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiDelete(`/inscricao/minha/turma/${turmaId}`, {
     auth: true,
@@ -1949,10 +2083,14 @@ export async function apiInscricaoCancelarMinhaPorTurma(turmaId, opts = {}) {
 export async function apiInscricaoCancelarUsuarioNaTurma(
   turmaId,
   usuarioId,
-  opts = {}
+  opts = {},
 ) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
-  if (!usuarioId) throw new Error("usuario_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
+  if (!usuarioId) {
+    throw new Error("usuario_id é obrigatório.");
+  }
 
   return apiDelete(`/inscricao/turma/${turmaId}/usuario/${usuarioId}`, {
     auth: true,
@@ -1963,7 +2101,9 @@ export async function apiInscricaoCancelarUsuarioNaTurma(
 }
 
 export async function apiInscricaoConflito(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/inscricao/conflito/${turmaId}`, {
     auth: true,
@@ -1978,7 +2118,9 @@ export async function apiInscricaoConflito(turmaId, opts = {}) {
 ────────────────────────────────────────────────────────────── */
 
 export async function apiAvaliacaoListarPorTurma(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/avaliacao/turma/${turmaId}`, {
     auth: true,
@@ -2008,10 +2150,14 @@ export async function apiQuestionarioDisponiveis(opts = {}) {
 
 export async function apiQuestionarioIniciar(
   { questionario_id, turma_id } = {},
-  opts = {}
+  opts = {},
 ) {
-  if (!questionario_id) throw new Error("questionario_id é obrigatório.");
-  if (!turma_id) throw new Error("turma_id é obrigatório.");
+  if (!questionario_id) {
+    throw new Error("questionario_id é obrigatório.");
+  }
+  if (!turma_id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPost(
     `/questionario/${questionario_id}/iniciar/turma/${turma_id}`,
@@ -2021,31 +2167,42 @@ export async function apiQuestionarioIniciar(
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiQuestionarioResponder(
   { questionario_id, turma_id } = {},
-  opts = {}
+  opts = {},
 ) {
-  if (!questionario_id) throw new Error("questionario_id é obrigatório.");
-  if (!turma_id) throw new Error("turma_id é obrigatório.");
+  if (!questionario_id) {
+    throw new Error("questionario_id é obrigatório.");
+  }
+  if (!turma_id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
-  return apiGet(`/questionario/${questionario_id}/responder/turma/${turma_id}`, {
-    auth: true,
-    on401: "redirect",
-    on403: "silent",
-    ...opts,
-  });
+  return apiGet(
+    `/questionario/${questionario_id}/responder/turma/${turma_id}`,
+    {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+    },
+  );
 }
 
 export async function apiQuestionarioEnviar(
   { questionario_id, turma_id, respostas } = {},
-  opts = {}
+  opts = {},
 ) {
-  if (!questionario_id) throw new Error("questionario_id é obrigatório.");
-  if (!turma_id) throw new Error("turma_id é obrigatório.");
+  if (!questionario_id) {
+    throw new Error("questionario_id é obrigatório.");
+  }
+  if (!turma_id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPost(
     `/questionario/${questionario_id}/enviar/turma/${turma_id}`,
@@ -2055,7 +2212,7 @@ export async function apiQuestionarioEnviar(
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -2107,9 +2264,7 @@ export async function apiPresencaRegistrar(payload = {}, opts = {}) {
 
 export async function apiPresencaConfirmarQr(payload = {}, opts = {}) {
   const source =
-    payload && typeof payload === "object"
-      ? payload
-      : { turma_id: payload };
+    payload && typeof payload === "object" ? payload : { turma_id: payload };
 
   const turmaId = Number(source?.turma_id);
   const dataPresenca = String(source?.data_presenca || "").trim();
@@ -2133,14 +2288,16 @@ export async function apiPresencaConfirmarQr(payload = {}, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiPresencaConfirmarToken(token, opts = {}) {
   const tokenSeguro = String(token || "").trim();
 
-  if (!tokenSeguro) throw new Error("token é obrigatório.");
+  if (!tokenSeguro) {
+    throw new Error("token é obrigatório.");
+  }
 
   return apiPost(
     "/presenca/token",
@@ -2150,7 +2307,7 @@ export async function apiPresencaConfirmarToken(token, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -2164,7 +2321,9 @@ export async function apiPresencaTurmasorganizador(opts = {}) {
 }
 
 export async function apiPresencaTurmaDetalhe(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/presenca/turma/${turmaId}`, {
     auth: true,
@@ -2175,7 +2334,9 @@ export async function apiPresencaTurmaDetalhe(turmaId, opts = {}) {
 }
 
 export async function apiPresencaDetalhesTurma(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/presenca/turma/${turmaId}`, {
     auth: true,
@@ -2186,7 +2347,9 @@ export async function apiPresencaDetalhesTurma(turmaId, opts = {}) {
 }
 
 export async function apiPresencaTurmaFrequencia(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGet(`/presenca/turma/${turmaId}/frequencia`, {
     auth: true,
@@ -2197,7 +2360,9 @@ export async function apiPresencaTurmaFrequencia(turmaId, opts = {}) {
 }
 
 export async function apiPresencasTurmaPDF(turmaId, opts = {}) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiGetFile(`/presenca/turma/${turmaId}/pdf`, {
     auth: true,
@@ -2285,7 +2450,7 @@ export async function apiAssinaturaAuto(opts = {}) {
       on403: "silent",
       suppressGlobalError: true,
       ...opts,
-    }
+    },
   );
 }
 
@@ -2322,7 +2487,9 @@ export async function apiCertAvulsoCriar(payload = {}, opts = {}) {
 }
 
 export async function apiCertAvulsoPDF(id, { assinantes_ids } = {}, opts = {}) {
-  if (!id) throw new Error("ID do certificado é obrigatório.");
+  if (!id) {
+    throw new Error("ID do certificado é obrigatório.");
+  }
 
   return apiGetFile(`/certificado/admin/avulso/${id}/pdf`, {
     query: {
@@ -2335,8 +2502,14 @@ export async function apiCertAvulsoPDF(id, { assinantes_ids } = {}, opts = {}) {
   });
 }
 
-export async function apiCertAvulsoEnviar(id, { assinantes_ids } = {}, opts = {}) {
-  if (!id) throw new Error("ID do certificado é obrigatório.");
+export async function apiCertAvulsoEnviar(
+  id,
+  { assinantes_ids } = {},
+  opts = {},
+) {
+  if (!id) {
+    throw new Error("ID do certificado é obrigatório.");
+  }
 
   return apiPost(
     `/certificado/admin/avulso/${id}/enviar`,
@@ -2348,7 +2521,7 @@ export async function apiCertAvulsoEnviar(id, { assinantes_ids } = {}, opts = {}
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -2364,9 +2537,11 @@ export async function apiCertificadoAdminArvore(params = {}, opts = {}) {
 
 export async function apiCertificadoProcessarPendentesPorTurma(
   turmaId,
-  opts = {}
+  opts = {},
 ) {
-  if (!turmaId) throw new Error("turma_id é obrigatório.");
+  if (!turmaId) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPost(
     `/certificado/admin/turma/${turmaId}/processar-pendentes`,
@@ -2376,12 +2551,14 @@ export async function apiCertificadoProcessarPendentesPorTurma(
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiCertificadoDownload(certificadoId, opts = {}) {
-  if (!certificadoId) throw new Error("certificado_id é obrigatório.");
+  if (!certificadoId) {
+    throw new Error("certificado_id é obrigatório.");
+  }
 
   return apiGetFile(`/certificado/${certificadoId}/download`, {
     auth: true,
@@ -2429,7 +2606,9 @@ async function apiCertificadoElegivelOrganizador(params, opts) {
 export async function apiCertificadoValidarPublico(codigoValidacao, opts = {}) {
   const codigo = String(codigoValidacao || "").trim();
 
-  if (!codigo) throw new Error("codigo_validacao é obrigatório.");
+  if (!codigo) {
+    throw new Error("codigo_validacao é obrigatório.");
+  }
 
   return apiGetPublic(`/certificado/validar/${encodeURIComponent(codigo)}`, {
     on401: "silent",
@@ -2472,10 +2651,14 @@ export async function apiCalendarioEPSTipos(opts = {}) {
 
 export async function apiCalendarioEPSResumoMensal(
   { ano, mes } = {},
-  opts = {}
+  opts = {},
 ) {
-  if (!ano) throw new Error("ano é obrigatório.");
-  if (!mes) throw new Error("mes é obrigatório.");
+  if (!ano) {
+    throw new Error("ano é obrigatório.");
+  }
+  if (!mes) {
+    throw new Error("mes é obrigatório.");
+  }
 
   return apiGet("/calendario-eps/resumo-mensal", {
     auth: true,
@@ -2490,7 +2673,9 @@ export async function apiCalendarioEPSResumoMensal(
 }
 
 export async function apiCalendarioEPSResumoAnual({ ano } = {}, opts = {}) {
-  if (!ano) throw new Error("ano é obrigatório.");
+  if (!ano) {
+    throw new Error("ano é obrigatório.");
+  }
 
   return apiGet("/calendario-eps/resumo-anual", {
     auth: true,
@@ -2513,7 +2698,9 @@ export async function apiCalendarioEPSCriar(payload = {}, opts = {}) {
 }
 
 export async function apiCalendarioEPSAtualizar(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da programação de EPS é obrigatório.");
+  if (!id) {
+    throw new Error("id da programação de EPS é obrigatório.");
+  }
 
   return apiPut(`/calendario-eps/${id}`, payload, {
     auth: true,
@@ -2524,7 +2711,9 @@ export async function apiCalendarioEPSAtualizar(id, payload = {}, opts = {}) {
 }
 
 export async function apiCalendarioEPSExcluir(id, opts = {}) {
-  if (!id) throw new Error("id da programação de EPS é obrigatório.");
+  if (!id) {
+    throw new Error("id da programação de EPS é obrigatório.");
+  }
 
   return apiDelete(`/calendario-eps/${id}`, {
     auth: true,
@@ -2549,7 +2738,9 @@ export async function apiCursoOnlineListarPublicados(params = {}, opts = {}) {
 }
 
 export async function apiCursoOnlineObter(id, opts = {}) {
-  if (!id) throw new Error("id do curso online é obrigatório.");
+  if (!id) {
+    throw new Error("id do curso online é obrigatório.");
+  }
 
   return apiGet(`/curso-online/${id}`, {
     auth: true,
@@ -2579,7 +2770,9 @@ export async function apiCursoOnlineCriar(payload = {}, opts = {}) {
 }
 
 export async function apiCursoOnlineAtualizar(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id do curso online é obrigatório.");
+  if (!id) {
+    throw new Error("id do curso online é obrigatório.");
+  }
 
   return apiPut(`/curso-online/admin/${id}`, payload, {
     auth: true,
@@ -2590,8 +2783,12 @@ export async function apiCursoOnlineAtualizar(id, payload = {}, opts = {}) {
 }
 
 export async function apiCursoOnlineAlterarStatus(id, status, opts = {}) {
-  if (!id) throw new Error("id do curso online é obrigatório.");
-  if (!status) throw new Error("status do curso online é obrigatório.");
+  if (!id) {
+    throw new Error("id do curso online é obrigatório.");
+  }
+  if (!status) {
+    throw new Error("status do curso online é obrigatório.");
+  }
 
   return apiPatch(
     `/curso-online/admin/${id}/status`,
@@ -2601,12 +2798,14 @@ export async function apiCursoOnlineAlterarStatus(id, status, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiCursoOnlineExcluir(id, opts = {}) {
-  if (!id) throw new Error("id do curso online é obrigatório.");
+  if (!id) {
+    throw new Error("id do curso online é obrigatório.");
+  }
 
   return apiDelete(`/curso-online/admin/${id}`, {
     auth: true,
@@ -2631,7 +2830,9 @@ export async function apiPesquisaListarPublicadas(params = {}, opts = {}) {
 }
 
 export async function apiPesquisaObter(id, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiGet(`/pesquisa/${id}`, {
     auth: true,
@@ -2642,7 +2843,9 @@ export async function apiPesquisaObter(id, opts = {}) {
 }
 
 export async function apiPesquisaResponder(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiPost(`/pesquisa/${id}/responder`, payload, {
     auth: true,
@@ -2672,7 +2875,9 @@ export async function apiPesquisaCriar(payload = {}, opts = {}) {
 }
 
 export async function apiPesquisaObterAdmin(id, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiGet(`/pesquisa/admin/${id}`, {
     auth: true,
@@ -2683,7 +2888,9 @@ export async function apiPesquisaObterAdmin(id, opts = {}) {
 }
 
 export async function apiPesquisaAtualizar(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiPut(`/pesquisa/admin/${id}`, payload, {
     auth: true,
@@ -2694,8 +2901,12 @@ export async function apiPesquisaAtualizar(id, payload = {}, opts = {}) {
 }
 
 export async function apiPesquisaAlterarStatus(id, status, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
-  if (!status) throw new Error("status da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
+  if (!status) {
+    throw new Error("status da pesquisa é obrigatório.");
+  }
 
   return apiPatch(
     `/pesquisa/admin/${id}/status`,
@@ -2705,12 +2916,14 @@ export async function apiPesquisaAlterarStatus(id, status, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiPesquisaRespostas(id, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiGet(`/pesquisa/admin/${id}/resposta`, {
     auth: true,
@@ -2721,7 +2934,9 @@ export async function apiPesquisaRespostas(id, opts = {}) {
 }
 
 export async function apiPesquisaResultado(id, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiGet(`/pesquisa/admin/${id}/resultado`, {
     auth: true,
@@ -2732,7 +2947,9 @@ export async function apiPesquisaResultado(id, opts = {}) {
 }
 
 export async function apiPesquisaExcluir(id, opts = {}) {
-  if (!id) throw new Error("id da pesquisa é obrigatório.");
+  if (!id) {
+    throw new Error("id da pesquisa é obrigatório.");
+  }
 
   return apiDelete(`/pesquisa/admin/${id}`, {
     auth: true,
@@ -2757,7 +2974,9 @@ export async function apiInteracaoListarPublicadas(params = {}, opts = {}) {
 }
 
 export async function apiInteracaoObter(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiGet(`/interacao/${id}`, {
     auth: true,
@@ -2768,7 +2987,9 @@ export async function apiInteracaoObter(id, opts = {}) {
 }
 
 export async function apiInteracaoResponder(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiPost(`/interacao/${id}/responder`, payload, {
     auth: true,
@@ -2798,7 +3019,9 @@ export async function apiInteracaoCriar(payload = {}, opts = {}) {
 }
 
 export async function apiInteracaoObterAdmin(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiGet(`/interacao/admin/${id}`, {
     auth: true,
@@ -2809,7 +3032,9 @@ export async function apiInteracaoObterAdmin(id, opts = {}) {
 }
 
 export async function apiInteracaoAtualizar(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiPut(`/interacao/admin/${id}`, payload, {
     auth: true,
@@ -2820,8 +3045,12 @@ export async function apiInteracaoAtualizar(id, payload = {}, opts = {}) {
 }
 
 export async function apiInteracaoAlterarStatus(id, status, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
-  if (!status) throw new Error("status da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
+  if (!status) {
+    throw new Error("status da interação é obrigatório.");
+  }
 
   return apiPatch(
     `/interacao/admin/${id}/status`,
@@ -2831,12 +3060,14 @@ export async function apiInteracaoAlterarStatus(id, status, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInteracaoExcluir(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiDelete(`/interacao/admin/${id}`, {
     auth: true,
@@ -2847,7 +3078,9 @@ export async function apiInteracaoExcluir(id, opts = {}) {
 }
 
 export async function apiInteracaoIniciarExecucao(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiPost(
     `/interacao/admin/${id}/execucao/iniciar`,
@@ -2857,12 +3090,14 @@ export async function apiInteracaoIniciarExecucao(id, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInteracaoAvancarPergunta(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiPost(
     `/interacao/admin/${id}/pergunta/avancar`,
@@ -2872,13 +3107,17 @@ export async function apiInteracaoAvancarPergunta(id, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInteracaoAbrirPergunta(id, perguntaId, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
-  if (!perguntaId) throw new Error("pergunta_id é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
+  if (!perguntaId) {
+    throw new Error("pergunta_id é obrigatório.");
+  }
 
   return apiPost(
     `/interacao/admin/${id}/pergunta/abrir`,
@@ -2888,13 +3127,17 @@ export async function apiInteracaoAbrirPergunta(id, perguntaId, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInteracaoFecharPergunta(id, perguntaId, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
-  if (!perguntaId) throw new Error("pergunta_id é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
+  if (!perguntaId) {
+    throw new Error("pergunta_id é obrigatório.");
+  }
 
   return apiPost(
     `/interacao/admin/${id}/pergunta/fechar`,
@@ -2904,13 +3147,17 @@ export async function apiInteracaoFecharPergunta(id, perguntaId, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInteracaoExibirGabarito(id, perguntaId, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
-  if (!perguntaId) throw new Error("pergunta_id é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
+  if (!perguntaId) {
+    throw new Error("pergunta_id é obrigatório.");
+  }
 
   return apiPost(
     `/interacao/admin/${id}/pergunta/gabarito`,
@@ -2920,12 +3167,14 @@ export async function apiInteracaoExibirGabarito(id, perguntaId, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiInteracaoResultado(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiGet(`/interacao/admin/${id}/resultado`, {
     auth: true,
@@ -2936,7 +3185,9 @@ export async function apiInteracaoResultado(id, opts = {}) {
 }
 
 export async function apiInteracaoApresentacao(id, opts = {}) {
-  if (!id) throw new Error("id da interação é obrigatório.");
+  if (!id) {
+    throw new Error("id da interação é obrigatório.");
+  }
 
   return apiGet(`/interacao/admin/${id}/resultado`, {
     auth: true,
@@ -2971,7 +3222,9 @@ export async function apiAuditoriaResumo(params = {}, opts = {}) {
 }
 
 export async function apiAuditoriaObterPorId(id, opts = {}) {
-  if (!id) throw new Error("id do evento de auditoria é obrigatório.");
+  if (!id) {
+    throw new Error("id do evento de auditoria é obrigatório.");
+  }
 
   return apiGet(`/auditoria/${id}`, {
     auth: true,
@@ -3005,7 +3258,9 @@ export async function apiMensagemCriar(payload = {}, opts = {}) {
 }
 
 export async function apiMensagemObterUsuario(id, opts = {}) {
-  if (!id) throw new Error("id da conversa é obrigatório.");
+  if (!id) {
+    throw new Error("id da conversa é obrigatório.");
+  }
 
   return apiGet(`/mensagem/${id}`, {
     auth: true,
@@ -3016,7 +3271,9 @@ export async function apiMensagemObterUsuario(id, opts = {}) {
 }
 
 export async function apiMensagemResponderUsuario(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da conversa é obrigatório.");
+  if (!id) {
+    throw new Error("id da conversa é obrigatório.");
+  }
 
   return apiPost(`/mensagem/${id}/resposta`, payload, {
     auth: true,
@@ -3047,7 +3304,9 @@ export async function apiMensagemResumoAdmin(params = {}, opts = {}) {
 }
 
 export async function apiMensagemObterAdmin(id, opts = {}) {
-  if (!id) throw new Error("id da conversa é obrigatório.");
+  if (!id) {
+    throw new Error("id da conversa é obrigatório.");
+  }
 
   return apiGet(`/mensagem/admin/${id}`, {
     auth: true,
@@ -3058,7 +3317,9 @@ export async function apiMensagemObterAdmin(id, opts = {}) {
 }
 
 export async function apiMensagemResponderAdmin(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da conversa é obrigatório.");
+  if (!id) {
+    throw new Error("id da conversa é obrigatório.");
+  }
 
   return apiPost(`/mensagem/admin/${id}/resposta`, payload, {
     auth: true,
@@ -3069,8 +3330,12 @@ export async function apiMensagemResponderAdmin(id, payload = {}, opts = {}) {
 }
 
 export async function apiMensagemAlterarStatus(id, status, opts = {}) {
-  if (!id) throw new Error("id da conversa é obrigatório.");
-  if (!status) throw new Error("status da conversa é obrigatório.");
+  if (!id) {
+    throw new Error("id da conversa é obrigatório.");
+  }
+  if (!status) {
+    throw new Error("status da conversa é obrigatório.");
+  }
 
   return apiPatch(
     `/mensagem/admin/${id}/status`,
@@ -3080,12 +3345,14 @@ export async function apiMensagemAlterarStatus(id, status, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function apiMensagemAtribuir(id, atribuido_para, opts = {}) {
-  if (!id) throw new Error("id da conversa é obrigatório.");
+  if (!id) {
+    throw new Error("id da conversa é obrigatório.");
+  }
 
   return apiPatch(
     `/mensagem/admin/${id}/atribuir`,
@@ -3095,7 +3362,7 @@ export async function apiMensagemAtribuir(id, atribuido_para, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
@@ -3124,7 +3391,9 @@ export async function apiPendenciaResumo(params = {}, opts = {}) {
 }
 
 export async function apiPendenciaObterPorId(pendenciaId, opts = {}) {
-  if (!pendenciaId) throw new Error("pendencia_id é obrigatório.");
+  if (!pendenciaId) {
+    throw new Error("pendencia_id é obrigatório.");
+  }
 
   return apiGet(`/pendencia/${encodeURIComponent(pendenciaId)}`, {
     auth: true,
@@ -3168,7 +3437,9 @@ export async function apiSaudePlataformaDiagnostico(opts = {}) {
 }
 
 export async function apiSaudePlataformaObterPorId(indicadorId, opts = {}) {
-  if (!indicadorId) throw new Error("indicador_id é obrigatório.");
+  if (!indicadorId) {
+    throw new Error("indicador_id é obrigatório.");
+  }
 
   return apiGet(`/saude-plataforma/${encodeURIComponent(indicadorId)}`, {
     auth: true,
@@ -3220,7 +3491,9 @@ export async function apiSuporteListarSessoes(params = {}, opts = {}) {
 }
 
 export async function apiSuporteObterSessao(id, opts = {}) {
-  if (!id) throw new Error("id da sessão de suporte é obrigatório.");
+  if (!id) {
+    throw new Error("id da sessão de suporte é obrigatório.");
+  }
 
   return apiGet(`/suporte/sessao/${id}`, {
     auth: true,
@@ -3231,7 +3504,9 @@ export async function apiSuporteObterSessao(id, opts = {}) {
 }
 
 export async function apiSuporteEncerrarSessao(id, payload = {}, opts = {}) {
-  if (!id) throw new Error("id da sessão de suporte é obrigatório.");
+  if (!id) {
+    throw new Error("id da sessão de suporte é obrigatório.");
+  }
 
   return apiPatch(`/suporte/sessao/${id}/encerrar`, payload, {
     auth: true,
@@ -3307,7 +3582,7 @@ export async function apiRelatorioCertificados(params = {}, opts = {}) {
 
 export async function apiRelatorioCertificadosPendencias(
   params = {},
-  opts = {}
+  opts = {},
 ) {
   return apiGet("/relatorio/certificados/pendencias", {
     auth: true,
@@ -3358,12 +3633,40 @@ export async function apiRelatorioSaudePlataforma(params = {}, opts = {}) {
   });
 }
 
+export async function apiRelatorioInstitucional(params = {}, opts = {}) {
+  return apiGet("/relatorio/institucional", {
+    auth: true,
+    query: params,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+}
+
 export async function apiRelatorioExportarXlsx(tipo, params = {}, opts = {}) {
   const safeTipo = String(tipo || "").trim();
 
-  if (!safeTipo) throw new Error("tipo de relatório é obrigatório.");
+  if (!safeTipo) {
+    throw new Error("tipo de relatório é obrigatório.");
+  }
 
   return apiGetFile(`/relatorio/exportar/${safeTipo}.xlsx`, {
+    auth: true,
+    query: params,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+}
+
+export async function apiRelatorioExportarPdf(tipo, params = {}, opts = {}) {
+  const safeTipo = String(tipo || "").trim();
+
+  if (!safeTipo) {
+    throw new Error("tipo de relatório é obrigatório.");
+  }
+
+  return apiGetFile(`/relatorio/exportar/${safeTipo}.pdf`, {
     auth: true,
     query: params,
     on401: "redirect",
@@ -3377,7 +3680,9 @@ export async function apiRelatorioExportarXlsx(tipo, params = {}, opts = {}) {
 ────────────────────────────────────────────────────────────── */
 
 export const apiUploadPoster = (submissaoId, fileOrFormData, opts = {}) => {
-  if (!submissaoId) throw new Error("submissaoId é obrigatório.");
+  if (!submissaoId) {
+    throw new Error("submissaoId é obrigatório.");
+  }
 
   return apiUpload(`/submissao/${submissaoId}/poster`, fileOrFormData, {
     ...opts,
@@ -3437,7 +3742,7 @@ export async function apiChamadaModeloUpload(chamadaId, fileOrFormData) {
     fileOrFormData,
     {
       fieldName: "file",
-    }
+    },
   );
 
   try {
@@ -3484,33 +3789,41 @@ export const api = {
   patch: (path, body, opts) => apiPatch(path, body, opts),
   delete: (path, opts) => apiDelete(path, opts),
 
-request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => {
-  if (!url) throw new Error("api.request: url é obrigatória.");
+  request: ({
+    url,
+    method = "GET",
+    data,
+    params,
+    responseType,
+    ...opts
+  } = {}) => {
+    if (!url) {
+      throw new Error("api.request: url é obrigatória.");
+    }
 
-  if (responseType === "blob") {
-    if (method && String(method).toUpperCase() !== "GET") {
-      return apiPostFile(url, data, {
+    if (responseType === "blob") {
+      if (method && String(method).toUpperCase() !== "GET") {
+        return apiPostFile(url, data, {
+          query: params,
+          ...opts,
+        });
+      }
+
+      return apiGetFile(url, {
         query: params,
         ...opts,
       });
     }
 
-    return apiGetFile(url, {
+    return doFetch(url, {
+      method,
+      body: data,
       query: params,
       ...opts,
     });
-  }
+  },
 
-  return doFetch(url, {
-    method,
-    body: data,
-    query: params,
-    ...opts,
-  });
-},
-
-  upload: (path, formDataOrFile, opts) =>
-    apiUpload(path, formDataOrFile, opts),
+  upload: (path, formDataOrFile, opts) => apiUpload(path, formDataOrFile, opts),
 
   uploadPoster: (submissaoId, fileOrFormData, opts) =>
     apiUploadPoster(submissaoId, fileOrFormData, opts),
@@ -3519,14 +3832,14 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
   persistSession: (token, usuario) => persistAuthSession(token, usuario),
   authMe: (opts) => apiAuthMe(opts),
 
- auth: {
-  login: (payload, opts) => apiAuthLogin(payload, opts),
-  google: (payload, opts) => apiAuthGoogle(payload, opts),
-  cadastrar: (payload, opts) => apiCadastrarUsuario(payload, opts),
-  esqueciSenha: (payload, opts) => apiEsqueciSenha(payload, opts),
-  redefinirSenha: (payload, opts) => apiRedefinirSenha(payload, opts),
-  me: (opts) => apiPerfilMe(opts),
-},
+  auth: {
+    login: (payload, opts) => apiAuthLogin(payload, opts),
+    google: (payload, opts) => apiAuthGoogle(payload, opts),
+    cadastrar: (payload, opts) => apiCadastrarUsuario(payload, opts),
+    esqueciSenha: (payload, opts) => apiEsqueciSenha(payload, opts),
+    redefinirSenha: (payload, opts) => apiRedefinirSenha(payload, opts),
+    me: (opts) => apiPerfilMe(opts),
+  },
 
   perfil: {
     opcao: (opts) => apiPerfilOpcao(opts),
@@ -3570,13 +3883,13 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
     analitico: (params, opts) => apiDashboardAnalitico(params, opts),
   },
 
- organizador: {
-  listar: (params, opts) => apiorganizadorListar(params, opts),
-  eventosAvaliacao: (organizadorId, opts) =>
-    apiorganizadorEventosAvaliacao(organizadorId, opts),
-  turmas: (organizadorId, opts) => apiorganizadorTurmas(organizadorId, opts),
-  minhasTurmas: (params, opts) => apiorganizadorMinhasTurmas(params, opts),
-},
+  organizador: {
+    listar: (params, opts) => apiorganizadorListar(params, opts),
+    eventosAvaliacao: (organizadorId, opts) =>
+      apiorganizadorEventosAvaliacao(organizadorId, opts),
+    turmas: (organizadorId, opts) => apiorganizadorTurmas(organizadorId, opts),
+    minhasTurmas: (params, opts) => apiorganizadorMinhasTurmas(params, opts),
+  },
 
   informacao: {
     publicadaListar: (opts) => apiInformacaoPublicadaListar(opts),
@@ -3592,10 +3905,9 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
   evento: {
     listarAdministrador: (params, opts) =>
       apiEventoListarAdministrador(params, opts),
-      publicar: (eventoId, opts) => apiEventoPublicar(eventoId, opts),
-  excluir: (eventoId, opts) => apiEventoExcluir(eventoId, opts),
-    folderResponse: (eventoId, opts) =>
-      apiEventoFolderResponse(eventoId, opts),
+    publicar: (eventoId, opts) => apiEventoPublicar(eventoId, opts),
+    excluir: (eventoId, opts) => apiEventoExcluir(eventoId, opts),
+    folderResponse: (eventoId, opts) => apiEventoFolderResponse(eventoId, opts),
     programacaoResponse: (eventoId, opts) =>
       apiEventoProgramacaoResponse(eventoId, opts),
     programacaoFile: (eventoId, opts) =>
@@ -3606,17 +3918,15 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
     listar: (params, opts) => apiCalendarioEPSListar(params, opts),
     departamentos: (opts) => apiCalendarioEPSDepartamentos(opts),
     tipos: (opts) => apiCalendarioEPSTipos(opts),
-    resumoMensal: (params, opts) =>
-      apiCalendarioEPSResumoMensal(params, opts),
-    resumoAnual: (params, opts) =>
-      apiCalendarioEPSResumoAnual(params, opts),
+    resumoMensal: (params, opts) => apiCalendarioEPSResumoMensal(params, opts),
+    resumoAnual: (params, opts) => apiCalendarioEPSResumoAnual(params, opts),
     criar: (payload, opts) => apiCalendarioEPSCriar(payload, opts),
     atualizar: (id, payload, opts) =>
       apiCalendarioEPSAtualizar(id, payload, opts),
     excluir: (id, opts) => apiCalendarioEPSExcluir(id, opts),
   },
 
-    cursoOnline: {
+  cursoOnline: {
     listarPublicados: (params, opts) =>
       apiCursoOnlineListarPublicados(params, opts),
     obter: (id, opts) => apiCursoOnlineObter(id, opts),
@@ -3629,7 +3939,7 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
     excluir: (id, opts) => apiCursoOnlineExcluir(id, opts),
   },
 
-    pesquisa: {
+  pesquisa: {
     listarPublicadas: (params, opts) =>
       apiPesquisaListarPublicadas(params, opts),
     obter: (id, opts) => apiPesquisaObter(id, opts),
@@ -3638,8 +3948,7 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
     listarAdmin: (params, opts) => apiPesquisaListarAdmin(params, opts),
     criar: (payload, opts) => apiPesquisaCriar(payload, opts),
     obterAdmin: (id, opts) => apiPesquisaObterAdmin(id, opts),
-    atualizar: (id, payload, opts) =>
-      apiPesquisaAtualizar(id, payload, opts),
+    atualizar: (id, payload, opts) => apiPesquisaAtualizar(id, payload, opts),
     alterarStatus: (id, status, opts) =>
       apiPesquisaAlterarStatus(id, status, opts),
     respostas: (id, opts) => apiPesquisaRespostas(id, opts),
@@ -3647,237 +3956,242 @@ request: ({ url, method = "GET", data, params, responseType, ...opts } = {}) => 
     excluir: (id, opts) => apiPesquisaExcluir(id, opts),
   },
 
-interacao: {
-  listarPublicadas: (params, opts) =>
-    apiInteracaoListarPublicadas(params, opts),
-  obter: (id, opts) => apiInteracaoObter(id, opts),
-  responder: (id, payload, opts) =>
-    apiInteracaoResponder(id, payload, opts),
+  interacao: {
+    listarPublicadas: (params, opts) =>
+      apiInteracaoListarPublicadas(params, opts),
+    obter: (id, opts) => apiInteracaoObter(id, opts),
+    responder: (id, payload, opts) => apiInteracaoResponder(id, payload, opts),
 
-  listarAdmin: (params, opts) => apiInteracaoListarAdmin(params, opts),
-  criar: (payload, opts) => apiInteracaoCriar(payload, opts),
-  obterAdmin: (id, opts) => apiInteracaoObterAdmin(id, opts),
-  adminObterPorId: (id, opts) => apiInteracaoObterAdmin(id, opts),
-  obterPorId: (id, opts) => apiInteracaoObter(id, opts),
-  atualizar: (id, payload, opts) =>
-    apiInteracaoAtualizar(id, payload, opts),
-  alterarStatus: (id, status, opts) =>
-    apiInteracaoAlterarStatus(id, status, opts),
-  excluir: (id, opts) => apiInteracaoExcluir(id, opts),
+    listarAdmin: (params, opts) => apiInteracaoListarAdmin(params, opts),
+    criar: (payload, opts) => apiInteracaoCriar(payload, opts),
+    obterAdmin: (id, opts) => apiInteracaoObterAdmin(id, opts),
+    adminObterPorId: (id, opts) => apiInteracaoObterAdmin(id, opts),
+    obterPorId: (id, opts) => apiInteracaoObter(id, opts),
+    atualizar: (id, payload, opts) => apiInteracaoAtualizar(id, payload, opts),
+    alterarStatus: (id, status, opts) =>
+      apiInteracaoAlterarStatus(id, status, opts),
+    excluir: (id, opts) => apiInteracaoExcluir(id, opts),
 
-iniciarExecucao: (id, opts) => apiInteracaoIniciarExecucao(id, opts),
-avancarPergunta: (id, opts) => apiInteracaoAvancarPergunta(id, opts),
-abrirPergunta: (id, perguntaId, opts) =>
-  apiInteracaoAbrirPergunta(id, perguntaId, opts),
-fecharPergunta: (id, perguntaId, opts) =>
-  apiInteracaoFecharPergunta(id, perguntaId, opts),
-exibirGabarito: (id, perguntaId, opts) =>
-  apiInteracaoExibirGabarito(id, perguntaId, opts),
-resultado: (id, opts) => apiInteracaoResultado(id, opts),
-  resultadoAdmin: (id, opts) => apiInteracaoResultado(id, opts),
-  apresentacao: (id, opts) => apiInteracaoApresentacao(id, opts),
-},
+    iniciarExecucao: (id, opts) => apiInteracaoIniciarExecucao(id, opts),
+    avancarPergunta: (id, opts) => apiInteracaoAvancarPergunta(id, opts),
+    abrirPergunta: (id, perguntaId, opts) =>
+      apiInteracaoAbrirPergunta(id, perguntaId, opts),
+    fecharPergunta: (id, perguntaId, opts) =>
+      apiInteracaoFecharPergunta(id, perguntaId, opts),
+    exibirGabarito: (id, perguntaId, opts) =>
+      apiInteracaoExibirGabarito(id, perguntaId, opts),
+    resultado: (id, opts) => apiInteracaoResultado(id, opts),
+    resultadoAdmin: (id, opts) => apiInteracaoResultado(id, opts),
+    apresentacao: (id, opts) => apiInteracaoApresentacao(id, opts),
+  },
 
-auditoria: {
-  listar: (params, opts) => apiAuditoriaListar(params, opts),
-  resumo: (params, opts) => apiAuditoriaResumo(params, opts),
-  obterPorId: (id, opts) => apiAuditoriaObterPorId(id, opts),
-},
+  auditoria: {
+    listar: (params, opts) => apiAuditoriaListar(params, opts),
+    resumo: (params, opts) => apiAuditoriaResumo(params, opts),
+    obterPorId: (id, opts) => apiAuditoriaObterPorId(id, opts),
+  },
 
-mensagem: {
-  minhas: (params, opts) => apiMensagemMinhas(params, opts),
-  criar: (payload, opts) => apiMensagemCriar(payload, opts),
-  obterUsuario: (id, opts) => apiMensagemObterUsuario(id, opts),
-  responderUsuario: (id, payload, opts) =>
-    apiMensagemResponderUsuario(id, payload, opts),
+  mensagem: {
+    minhas: (params, opts) => apiMensagemMinhas(params, opts),
+    criar: (payload, opts) => apiMensagemCriar(payload, opts),
+    obterUsuario: (id, opts) => apiMensagemObterUsuario(id, opts),
+    responderUsuario: (id, payload, opts) =>
+      apiMensagemResponderUsuario(id, payload, opts),
 
-  listarAdmin: (params, opts) => apiMensagemListarAdmin(params, opts),
-  resumoAdmin: (params, opts) => apiMensagemResumoAdmin(params, opts),
-  obterAdmin: (id, opts) => apiMensagemObterAdmin(id, opts),
-  responderAdmin: (id, payload, opts) =>
-    apiMensagemResponderAdmin(id, payload, opts),
-  alterarStatus: (id, status, opts) =>
-    apiMensagemAlterarStatus(id, status, opts),
-  atribuir: (id, atribuido_para, opts) =>
-    apiMensagemAtribuir(id, atribuido_para, opts),
-},
+    listarAdmin: (params, opts) => apiMensagemListarAdmin(params, opts),
+    resumoAdmin: (params, opts) => apiMensagemResumoAdmin(params, opts),
+    obterAdmin: (id, opts) => apiMensagemObterAdmin(id, opts),
+    responderAdmin: (id, payload, opts) =>
+      apiMensagemResponderAdmin(id, payload, opts),
+    alterarStatus: (id, status, opts) =>
+      apiMensagemAlterarStatus(id, status, opts),
+    atribuir: (id, atribuido_para, opts) =>
+      apiMensagemAtribuir(id, atribuido_para, opts),
+  },
 
-pendencia: {
-  listar: (params, opts) => apiPendenciaListar(params, opts),
-  resumo: (params, opts) => apiPendenciaResumo(params, opts),
-  obterPorId: (pendenciaId, opts) =>
-    apiPendenciaObterPorId(pendenciaId, opts),
-},
+  pendencia: {
+    listar: (params, opts) => apiPendenciaListar(params, opts),
+    resumo: (params, opts) => apiPendenciaResumo(params, opts),
+    obterPorId: (pendenciaId, opts) =>
+      apiPendenciaObterPorId(pendenciaId, opts),
+  },
 
-saudePlataforma: {
-  listar: (params, opts) => apiSaudePlataformaListar(params, opts),
-  resumo: (params, opts) => apiSaudePlataformaResumo(params, opts),
-  diagnostico: (opts) => apiSaudePlataformaDiagnostico(opts),
-  obterPorId: (indicadorId, opts) =>
-    apiSaudePlataformaObterPorId(indicadorId, opts),
-},
+  saudePlataforma: {
+    listar: (params, opts) => apiSaudePlataformaListar(params, opts),
+    resumo: (params, opts) => apiSaudePlataformaResumo(params, opts),
+    diagnostico: (opts) => apiSaudePlataformaDiagnostico(opts),
+    obterPorId: (indicadorId, opts) =>
+      apiSaudePlataformaObterPorId(indicadorId, opts),
+  },
 
-suporte: {
-  resumo: (opts) => apiSuporteResumo(opts),
-  minhaSessaoAtiva: (opts) => apiSuporteMinhaSessaoAtiva(opts),
-  iniciarSessao: (payload, opts) => apiSuporteIniciarSessao(payload, opts),
-  listarSessoes: (params, opts) => apiSuporteListarSessoes(params, opts),
-  obterSessao: (id, opts) => apiSuporteObterSessao(id, opts),
-  encerrarSessao: (id, payload, opts) =>
-    apiSuporteEncerrarSessao(id, payload, opts),
-},
+  suporte: {
+    resumo: (opts) => apiSuporteResumo(opts),
+    minhaSessaoAtiva: (opts) => apiSuporteMinhaSessaoAtiva(opts),
+    iniciarSessao: (payload, opts) => apiSuporteIniciarSessao(payload, opts),
+    listarSessoes: (params, opts) => apiSuporteListarSessoes(params, opts),
+    obterSessao: (id, opts) => apiSuporteObterSessao(id, opts),
+    encerrarSessao: (id, payload, opts) =>
+      apiSuporteEncerrarSessao(id, payload, opts),
+  },
 
-turma: {
-  listarAdministrador: (opts) => apiTurmaListarAdministrador(opts),
-  listarComUsuario: (opts) => apiTurmaListarComUsuario(opts),
+  turma: {
+    listarAdministrador: (opts) => apiTurmaListarAdministrador(opts),
+    listarComUsuario: (opts) => apiTurmaListarComUsuario(opts),
 
-  listarPorEvento: (eventoId, opts) =>
-    apiTurmaListarPorEvento(eventoId, opts),
-  listarPorEventoSimples: (eventoId, opts) =>
-    apiTurmaListarPorEventoSimples(eventoId, opts),
+    listarPorEvento: (eventoId, opts) =>
+      apiTurmaListarPorEvento(eventoId, opts),
+    listarPorEventoSimples: (eventoId, opts) =>
+      apiTurmaListarPorEventoSimples(eventoId, opts),
 
-  obter: (turmaId, opts) => apiTurmaObter(turmaId, opts),
-  criar: (payload, opts) => apiTurmaCriar(payload, opts),
-  atualizar: (turmaId, payload, opts) =>
-    apiTurmaAtualizar(turmaId, payload, opts),
-  excluir: (turmaId, opts) => apiTurmaExcluir(turmaId, opts),
+    obter: (turmaId, opts) => apiTurmaObter(turmaId, opts),
+    criar: (payload, opts) => apiTurmaCriar(payload, opts),
+    atualizar: (turmaId, payload, opts) =>
+      apiTurmaAtualizar(turmaId, payload, opts),
+    excluir: (turmaId, opts) => apiTurmaExcluir(turmaId, opts),
 
-  datas: (turmaId, opts) => apiTurmaDatas(turmaId, opts),
-  datasAuto: (turmaId, opts) => apiTurmaDatas(turmaId, opts),
-  ocorrencias: (turmaId, opts) => apiTurmaOcorrencias(turmaId, opts),
-  detalhe: (turmaId, opts) => apiTurmaDetalhe(turmaId, opts),
+    datas: (turmaId, opts) => apiTurmaDatas(turmaId, opts),
+    datasAuto: (turmaId, opts) => apiTurmaDatas(turmaId, opts),
+    ocorrencias: (turmaId, opts) => apiTurmaOcorrencias(turmaId, opts),
+    detalhe: (turmaId, opts) => apiTurmaDetalhe(turmaId, opts),
 
-  listarOrganizadores: (turmaId, opts) =>
-    apiTurmaListarOrganizadores(turmaId, opts),
-  adicionarOrganizador: (turmaId, organizadores, opts) =>
-    apiTurmaAdicionarOrganizador(turmaId, organizadores, opts),
-},
+    listarOrganizadores: (turmaId, opts) =>
+      apiTurmaListarOrganizadores(turmaId, opts),
+    adicionarOrganizador: (turmaId, organizadores, opts) =>
+      apiTurmaAdicionarOrganizador(turmaId, organizadores, opts),
+  },
 
-inscricao: {
-  minhas: (opts) => apiInscricaoMinhas(opts),
-  listarPorTurma: (turmaId, opts) =>
-    apiInscricaoListarPorTurma(turmaId, opts),
-  porTurma: (turmaId, opts) => apiInscricaoListarPorTurma(turmaId, opts),
-  criar: (turmaId, opts) => apiInscricaoCriar(turmaId, opts),
-  cancelar: (inscricaoId, opts) => apiInscricaoCancelar(inscricaoId, opts),
-  cancelarMinhaPorTurma: (turmaId, opts) =>
-    apiInscricaoCancelarMinhaPorTurma(turmaId, opts),
-  cancelarUsuarioNaTurma: (turmaId, usuarioId, opts) =>
-    apiInscricaoCancelarUsuarioNaTurma(turmaId, usuarioId, opts),
-  conflito: (turmaId, opts) => apiInscricaoConflito(turmaId, opts),
-},
+  inscricao: {
+    minhas: (opts) => apiInscricaoMinhas(opts),
+    listarPorTurma: (turmaId, opts) =>
+      apiInscricaoListarPorTurma(turmaId, opts),
+    porTurma: (turmaId, opts) => apiInscricaoListarPorTurma(turmaId, opts),
+    criar: (turmaId, opts) => apiInscricaoCriar(turmaId, opts),
+    cancelar: (inscricaoId, opts) => apiInscricaoCancelar(inscricaoId, opts),
+    cancelarMinhaPorTurma: (turmaId, opts) =>
+      apiInscricaoCancelarMinhaPorTurma(turmaId, opts),
+    cancelarUsuarioNaTurma: (turmaId, usuarioId, opts) =>
+      apiInscricaoCancelarUsuarioNaTurma(turmaId, usuarioId, opts),
+    conflito: (turmaId, opts) => apiInscricaoConflito(turmaId, opts),
+  },
 
-avaliacao: {
-  enviar: (payload) => apiPost("/avaliacao", payload),
+  avaliacao: {
+    enviar: (payload) => apiPost("/avaliacao", payload),
 
-  listarPorTurma: (turmaId, opts) =>
-    apiAvaliacaoListarPorTurma(turmaId, opts),
+    listarPorTurma: (turmaId, opts) =>
+      apiAvaliacaoListarPorTurma(turmaId, opts),
 
-  porTurma: (turmaId, opts) => apiAvaliacaoListarPorTurma(turmaId, opts),
+    porTurma: (turmaId, opts) => apiAvaliacaoListarPorTurma(turmaId, opts),
 
-  disponiveis: apiAvaliacaoDisponiveis,
+    disponiveis: apiAvaliacaoDisponiveis,
 
-  adminEventos: (opts = {}) =>
-    apiGet("/avaliacao/admin/eventos", {
-      auth: true,
-      on403: "silent",
-      ...opts,
-    }),
+    adminEventos: (opts = {}) =>
+      apiGet("/avaliacao/admin/eventos", {
+        auth: true,
+        on403: "silent",
+        ...opts,
+      }),
 
-  adminEvento: (eventoId, opts = {}) =>
-    apiGet(`/avaliacao/admin/evento/${eventoId}`, {
-      auth: true,
-      on403: "silent",
-      ...opts,
-    }),
+    adminEvento: (eventoId, opts = {}) =>
+      apiGet(`/avaliacao/admin/evento/${eventoId}`, {
+        auth: true,
+        on403: "silent",
+        ...opts,
+      }),
 
-  adminTurma: (turmaId, opts = {}) =>
-    apiGet(`/avaliacao/admin/turma/${turmaId}`, {
-      auth: true,
-      on403: "silent",
-      ...opts,
-    }),
-},
+    adminTurma: (turmaId, opts = {}) =>
+      apiGet(`/avaliacao/admin/turma/${turmaId}`, {
+        auth: true,
+        on403: "silent",
+        ...opts,
+      }),
+  },
 
-questionario: {
-  disponiveis: apiQuestionarioDisponiveis,
-  iniciar: apiQuestionarioIniciar,
-  responder: apiQuestionarioResponder,
-  enviar: apiQuestionarioEnviar,
-},
+  questionario: {
+    disponiveis: apiQuestionarioDisponiveis,
+    iniciar: apiQuestionarioIniciar,
+    responder: apiQuestionarioResponder,
+    enviar: apiQuestionarioEnviar,
+  },
 
-presenca: {
-  validarPublico: (params, opts) => apiPresencaValidarPublico(params, opts),
-  minhas: (opts) => apiPresencaMinhas(opts),
-  minhaResumo: (opts) => apiPresencaMinhaResumo(opts),
-  registrar: (payload, opts) => apiPresencaRegistrar(payload, opts),
-  confirmarQr: (turmaId, opts) => apiPresencaConfirmarQr(turmaId, opts),
-  confirmarToken: (token, opts) => apiPresencaConfirmarToken(token, opts),
-  turmasorganizador: (opts) => apiPresencaTurmasorganizador(opts),
-  turmaDetalhe: (turmaId, opts) => apiPresencaTurmaDetalhe(turmaId, opts),
-  detalhesTurma: (turmaId, opts) => apiPresencaDetalhesTurma(turmaId, opts),
-  turmaFrequencia: (turmaId, opts) =>
-    apiPresencaTurmaFrequencia(turmaId, opts),
-  turmaPdf: (turmaId, opts) => apiPresencasTurmaPDF(turmaId, opts),
-  registrarManual: (payload, opts) => apiPresencaRegistrarManual(payload, opts),
-  confirmarManualHoje: (payload, opts) =>
-    apiPresencaConfirmarManualHoje(payload, opts),
-  validarManual: (payload, opts) => apiPresencaValidarManual(payload, opts),
-  confirmarorganizador: (payload, opts) =>
-    apiPresencaConfirmarorganizador(payload, opts),
-  administrador: (opts) => apiPresencaAdministrador(opts),
-},
+  presenca: {
+    validarPublico: (params, opts) => apiPresencaValidarPublico(params, opts),
+    minhas: (opts) => apiPresencaMinhas(opts),
+    minhaResumo: (opts) => apiPresencaMinhaResumo(opts),
+    registrar: (payload, opts) => apiPresencaRegistrar(payload, opts),
+    confirmarQr: (turmaId, opts) => apiPresencaConfirmarQr(turmaId, opts),
+    confirmarToken: (token, opts) => apiPresencaConfirmarToken(token, opts),
+    turmasorganizador: (opts) => apiPresencaTurmasorganizador(opts),
+    turmaDetalhe: (turmaId, opts) => apiPresencaTurmaDetalhe(turmaId, opts),
+    detalhesTurma: (turmaId, opts) => apiPresencaDetalhesTurma(turmaId, opts),
+    turmaFrequencia: (turmaId, opts) =>
+      apiPresencaTurmaFrequencia(turmaId, opts),
+    turmaPdf: (turmaId, opts) => apiPresencasTurmaPDF(turmaId, opts),
+    registrarManual: (payload, opts) =>
+      apiPresencaRegistrarManual(payload, opts),
+    confirmarManualHoje: (payload, opts) =>
+      apiPresencaConfirmarManualHoje(payload, opts),
+    validarManual: (payload, opts) => apiPresencaValidarManual(payload, opts),
+    confirmarorganizador: (payload, opts) =>
+      apiPresencaConfirmarorganizador(payload, opts),
+    administrador: (opts) => apiPresencaAdministrador(opts),
+  },
 
-assinatura: {
-  obter: (opts) => apiAssinaturaObter(opts),
-  minha: (opts) => apiAssinaturaObter(opts),
-  salvar: (payload, opts) => apiAssinaturaSalvar(payload, opts),
-  auto: (opts) => apiAssinaturaAuto(opts),
-  listar: (opts) => apiAssinaturaListar(opts),
-},
+  assinatura: {
+    obter: (opts) => apiAssinaturaObter(opts),
+    minha: (opts) => apiAssinaturaObter(opts),
+    salvar: (payload, opts) => apiAssinaturaSalvar(payload, opts),
+    auto: (opts) => apiAssinaturaAuto(opts),
+    listar: (opts) => apiAssinaturaListar(opts),
+  },
 
-certificado: {
-  avulsoPdf: (id, opts) => apiCertAvulsoPDF(id, opts),
-  adminArvore: (params, opts) => apiCertificadoAdminArvore(params, opts),
-  processarPendentesPorTurma: (turmaId, opts) =>
-    apiCertificadoProcessarPendentesPorTurma(turmaId, opts),
-  download: (certificadoId, opts) =>
-    apiCertificadoDownload(certificadoId, opts),
+  certificado: {
+    avulsoPdf: (id, opts) => apiCertAvulsoPDF(id, opts),
+    adminArvore: (params, opts) => apiCertificadoAdminArvore(params, opts),
+    processarPendentesPorTurma: (turmaId, opts) =>
+      apiCertificadoProcessarPendentesPorTurma(turmaId, opts),
+    download: (certificadoId, opts) =>
+      apiCertificadoDownload(certificadoId, opts),
 
-  meus: apiCertificadoMeus,
-  disponiveis: apiCertificadoDisponiveis,
-  elegivel: apiCertificadoElegivel,
-  elegivelorganizador: apiCertificadoElegivelOrganizador,
+    meus: apiCertificadoMeus,
+    disponiveis: apiCertificadoDisponiveis,
+    elegivel: apiCertificadoElegivel,
+    elegivelorganizador: apiCertificadoElegivelOrganizador,
 
-  gerar: apiCertificadoGerar,
-  validarPublico: (codigoValidacao, opts) =>
-    apiCertificadoValidarPublico(codigoValidacao, opts),
-},
+    gerar: apiCertificadoGerar,
+    validarPublico: (codigoValidacao, opts) =>
+      apiCertificadoValidarPublico(codigoValidacao, opts),
+  },
 
-certificadoAvulso: {
-  listar: (params, opts) => apiCertAvulsoListar(params, opts),
-  criar: (payload, opts) => apiCertAvulsoCriar(payload, opts),
-  pdf: (id, params, opts) => apiCertAvulsoPDF(id, params, opts),
-  enviar: (id, params, opts) => apiCertAvulsoEnviar(id, params, opts),
-},
+  certificadoAvulso: {
+    listar: (params, opts) => apiCertAvulsoListar(params, opts),
+    criar: (payload, opts) => apiCertAvulsoCriar(payload, opts),
+    pdf: (id, params, opts) => apiCertAvulsoPDF(id, params, opts),
+    enviar: (id, params, opts) => apiCertAvulsoEnviar(id, params, opts),
+  },
 
-relatorio: {
-  resumoGeral: (params, opts) => apiRelatorioResumoGeral(params, opts),
-  eventos: (params, opts) => apiRelatorioEventos(params, opts),
-  presencas: (params, opts) => apiRelatorioPresencas(params, opts),
-  avaliacoes: (params, opts) => apiRelatorioAvaliacoes(params, opts),
-  organizadores: (params, opts) => apiRelatorioorganizadores(params, opts),
-  certificados: (params, opts) => apiRelatorioCertificados(params, opts),
-  certificadosPendencias: (params, opts) =>
-    apiRelatorioCertificadosPendencias(params, opts),
-  usuarios: (params, opts) => apiRelatorioUsuarios(params, opts),
-  salas: (params, opts) => apiRelatorioSalas(params, opts),
-  notificacoes: (params, opts) => apiRelatorioNotificacoes(params, opts),
-  saudePlataforma: (params, opts) =>
-    apiRelatorioSaudePlataforma(params, opts),
-  exportarXlsx: (tipo, params, opts) =>
-    apiRelatorioExportarXlsx(tipo, params, opts),
-},
+  relatorio: {
+    institucional: (params, opts) => apiRelatorioInstitucional(params, opts),
+
+    resumoGeral: (params, opts) => apiRelatorioResumoGeral(params, opts),
+    eventos: (params, opts) => apiRelatorioEventos(params, opts),
+    presencas: (params, opts) => apiRelatorioPresencas(params, opts),
+    avaliacoes: (params, opts) => apiRelatorioAvaliacoes(params, opts),
+    organizadores: (params, opts) => apiRelatorioorganizadores(params, opts),
+    certificados: (params, opts) => apiRelatorioCertificados(params, opts),
+    certificadosPendencias: (params, opts) =>
+      apiRelatorioCertificadosPendencias(params, opts),
+    usuarios: (params, opts) => apiRelatorioUsuarios(params, opts),
+    salas: (params, opts) => apiRelatorioSalas(params, opts),
+    notificacoes: (params, opts) => apiRelatorioNotificacoes(params, opts),
+    saudePlataforma: (params, opts) =>
+      apiRelatorioSaudePlataforma(params, opts),
+
+    exportarXlsx: (tipo, params, opts) =>
+      apiRelatorioExportarXlsx(tipo, params, opts),
+
+    exportarPdf: (tipo, params, opts) =>
+      apiRelatorioExportarPdf(tipo, params, opts),
+  },
 
   chamadaModelo: {
     exists: (id) => apiChamadaModeloExists(id),

@@ -42,8 +42,8 @@ import {
   apiUsuarioResumo,
 } from "../services/api";
 
-const ModalEditarUsuario = lazy(() =>
-  import("../components/usuarios/ModalEditarUsuario")
+const ModalEditarUsuario = lazy(
+  () => import("../components/usuarios/ModalEditarUsuario"),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -111,7 +111,9 @@ function getStorageNumber(key, fallback) {
 function idadeFromYmd(value) {
   const ymd = String(value || "").slice(0, 10);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return null;
+  }
 
   const [anoRaw, mesRaw, diaRaw] = ymd.split("-");
   const ano = Number(anoRaw);
@@ -140,7 +142,9 @@ function idadeFromYmd(value) {
 function maskCpf(cpf, revealed = false) {
   const digits = onlyDigits(cpf);
 
-  if (digits.length !== 11) return "—";
+  if (digits.length !== 11) {
+    return "—";
+  }
 
   if (!revealed) {
     return digits.replace(/^(\d{3})\d{3}(\d{3})\d{2}$/, "$1.***.$2-**");
@@ -176,6 +180,35 @@ function normalizeUsuario(row = {}, lookup = {}) {
   const unidadeLookup = unidadeId ? lookup.unidadesMap.get(unidadeId) : null;
   const cargoLookup = cargoId ? lookup.cargosMap.get(cargoId) : null;
 
+  const deficienciaTexto = String(
+    row.deficiencia_descricao ||
+      row.deficiencia_nome ||
+      row.tipo_deficiencia ||
+      row.deficiencia_tipo ||
+      row.pcd_tipo ||
+      row.necessidade_especial ||
+      "",
+  ).trim();
+
+  const deficienciaNormalizada = deficienciaTexto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  const temDeficiencia =
+    Boolean(deficienciaNormalizada) &&
+    ![
+      "nao possuo",
+      "nao possui",
+      "nao informado",
+      "nenhuma",
+      "sem deficiencia",
+      "nao",
+      "false",
+      "true",
+    ].includes(deficienciaNormalizada);
+
   return {
     ...row,
     perfil: perfilOficial(row.perfil),
@@ -190,6 +223,9 @@ function normalizeUsuario(row = {}, lookup = {}) {
 
     email: String(row.email || "").trim(),
     celular: String(row.celular || "").trim(),
+
+    deficiencia_nome: temDeficiencia ? deficienciaTexto : "",
+    tem_deficiencia: temDeficiencia,
   };
 }
 
@@ -219,10 +255,12 @@ function PerfilChip({ active, value, onClick }) {
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
         active
           ? "bg-violet-700 text-white"
-          : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+          : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700",
       )}
     >
-      {active ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+      {active ? (
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+      ) : null}
       {PERFIL_LABEL[value] || value}
     </button>
   );
@@ -241,7 +279,12 @@ function KpiCard({ label, value = "—", icon: Icon, tone = "violet" }) {
   };
 
   return (
-    <div className={cx("rounded-2xl border p-4 shadow-sm", tones[tone] || tones.violet)}>
+    <div
+      className={cx(
+        "rounded-2xl border p-4 shadow-sm",
+        tones[tone] || tones.violet,
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-75">
@@ -298,7 +341,7 @@ function PainelOperacionalUsuarios({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600",
                 atualizando
                   ? "cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                  : "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200",
               )}
               aria-label="Atualizar lista de usuários"
               aria-busy={atualizando ? "true" : "false"}
@@ -327,8 +370,18 @@ function PainelOperacionalUsuarios({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Total" value={kpis.total} icon={Users} tone="indigo" />
-          <KpiCard label="Usuários" value={kpis.usuario} icon={Users} tone="emerald" />
+          <KpiCard
+            label="Total"
+            value={kpis.total}
+            icon={Users}
+            tone="indigo"
+          />
+          <KpiCard
+            label="Usuários"
+            value={kpis.usuario}
+            icon={Users}
+            tone="emerald"
+          />
           <KpiCard
             label="Organizadores"
             value={kpis.organizador}
@@ -356,7 +409,7 @@ export default function GestaoUsuarios() {
   const [meta, setMeta] = useState({
     total: 0,
     page: 1,
-    pageSize: 25,
+    pageSize: 50,
     pages: 1,
   });
 
@@ -382,15 +435,17 @@ export default function GestaoUsuarios() {
       : "todos";
   });
   const [unidadeFiltro, setUnidadeFiltro] = useState(() =>
-    getStorage(STORAGE_KEYS.unidade, "todas")
+    getStorage(STORAGE_KEYS.unidade, "todas"),
   );
   const [cargoFiltro, setCargoFiltro] = useState(() =>
-    getStorage(STORAGE_KEYS.cargo, "todos")
+    getStorage(STORAGE_KEYS.cargo, "todos"),
   );
 
-  const [page, setPage] = useState(() => getStorageNumber(STORAGE_KEYS.page, 1));
+  const [page, setPage] = useState(() =>
+    getStorageNumber(STORAGE_KEYS.page, 1),
+  );
   const [pageSize, setPageSize] = useState(() =>
-    getStorageNumber(STORAGE_KEYS.pageSize, 25)
+    getStorageNumber(STORAGE_KEYS.pageSize, 50),
   );
 
   const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
@@ -408,7 +463,9 @@ export default function GestaoUsuarios() {
   const requestSeqRef = useRef(0);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message || "";
+    if (liveRef.current) {
+      liveRef.current.textContent = message || "";
+    }
   }, []);
 
   useEffect(() => {
@@ -425,7 +482,12 @@ export default function GestaoUsuarios() {
 
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (
+        event.key === "/" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
         event.preventDefault();
         searchRef.current?.focus();
       }
@@ -437,8 +499,14 @@ export default function GestaoUsuarios() {
   }, []);
 
   useEffect(() => setStorage(STORAGE_KEYS.busca, busca), [busca]);
-  useEffect(() => setStorage(STORAGE_KEYS.perfil, perfilFiltro), [perfilFiltro]);
-  useEffect(() => setStorage(STORAGE_KEYS.unidade, unidadeFiltro), [unidadeFiltro]);
+  useEffect(
+    () => setStorage(STORAGE_KEYS.perfil, perfilFiltro),
+    [perfilFiltro],
+  );
+  useEffect(
+    () => setStorage(STORAGE_KEYS.unidade, unidadeFiltro),
+    [unidadeFiltro],
+  );
   useEffect(() => setStorage(STORAGE_KEYS.cargo, cargoFiltro), [cargoFiltro]);
   useEffect(() => setStorage(STORAGE_KEYS.page, page), [page]);
   useEffect(() => setStorage(STORAGE_KEYS.pageSize, pageSize), [pageSize]);
@@ -468,14 +536,14 @@ export default function GestaoUsuarios() {
         String(a.sigla || a.nome || "").localeCompare(
           String(b.sigla || b.nome || ""),
           "pt-BR",
-          { sensitivity: "base" }
-        )
+          { sensitivity: "base" },
+        ),
       );
 
       const cargosOrdenados = [...cargos].sort((a, b) =>
         String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", {
           sensitivity: "base",
-        })
+        }),
       );
 
       const unidadesMap = new Map();
@@ -484,7 +552,9 @@ export default function GestaoUsuarios() {
       unidadesOrdenadas.forEach((unidade) => {
         unidadesMap.set(Number(unidade.id), {
           id: Number(unidade.id),
-          sigla: String(unidade.sigla || "").trim().toUpperCase(),
+          sigla: String(unidade.sigla || "")
+            .trim()
+            .toUpperCase(),
           nome: String(unidade.nome || "").trim(),
         });
       });
@@ -496,7 +566,9 @@ export default function GestaoUsuarios() {
         });
       });
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setLookup({
         unidades: unidadesOrdenadas,
@@ -507,10 +579,12 @@ export default function GestaoUsuarios() {
     } catch (error) {
       console.error("[GestaoUsuarios] falha ao carregar opções", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       toast.error(
-        "Não foi possível carregar os filtros de unidade e cargo. Tente atualizar a página."
+        "Não foi possível carregar os filtros de unidade e cargo. Tente atualizar a página.",
       );
 
       setLookup({
@@ -520,7 +594,9 @@ export default function GestaoUsuarios() {
         cargosMap: new Map(),
       });
     } finally {
-      if (mountedRef.current) setCarregandoLookup(false);
+      if (mountedRef.current) {
+        setCarregandoLookup(false);
+      }
     }
   }, []);
 
@@ -529,13 +605,17 @@ export default function GestaoUsuarios() {
       const response = await apiUsuarioEstatisticaDetalhada();
       const data = response?.data ?? response;
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setEstatistica(data || null);
     } catch (error) {
       console.error("[GestaoUsuarios] falha ao carregar estatísticas", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setEstatistica(null);
     }
@@ -547,10 +627,18 @@ export default function GestaoUsuarios() {
       pageSize,
     };
 
-    if (debouncedQ) params.q = debouncedQ;
-    if (perfilFiltro !== "todos") params.perfil = perfilFiltro;
-    if (unidadeFiltro !== "todas") params.unidade_id = Number(unidadeFiltro);
-    if (cargoFiltro !== "todos") params.cargo_id = Number(cargoFiltro);
+    if (debouncedQ) {
+      params.q = debouncedQ;
+    }
+    if (perfilFiltro !== "todos") {
+      params.perfil = perfilFiltro;
+    }
+    if (unidadeFiltro !== "todas") {
+      params.unidade_id = Number(unidadeFiltro);
+    }
+    if (cargoFiltro !== "todos") {
+      params.cargo_id = Number(cargoFiltro);
+    }
 
     return params;
   }, [cargoFiltro, debouncedQ, page, pageSize, perfilFiltro, unidadeFiltro]);
@@ -565,7 +653,9 @@ export default function GestaoUsuarios() {
 
       const response = await apiUsuarioListar(paramsUsuarios);
 
-      if (!mountedRef.current || reqId !== requestSeqRef.current) return;
+      if (!mountedRef.current || reqId !== requestSeqRef.current) {
+        return;
+      }
 
       const data = Array.isArray(response?.data) ? response.data : [];
       const metaResponse = response?.meta || {
@@ -576,7 +666,7 @@ export default function GestaoUsuarios() {
       };
 
       const normalizados = data.map((usuario) =>
-        normalizeUsuario(usuario, lookup)
+        normalizeUsuario(usuario, lookup),
       );
 
       setUsuarios(normalizados);
@@ -590,11 +680,13 @@ export default function GestaoUsuarios() {
     } catch (error) {
       console.error("[GestaoUsuarios] falha ao carregar usuários", error);
 
-      if (!mountedRef.current || reqId !== requestSeqRef.current) return;
+      if (!mountedRef.current || reqId !== requestSeqRef.current) {
+        return;
+      }
 
       const message = getMensagemErro(
         error,
-        "Erro ao carregar usuários. Verifique sua conexão ou tente novamente."
+        "Erro ao carregar usuários. Verifique sua conexão ou tente novamente.",
       );
 
       setErro(message);
@@ -617,7 +709,9 @@ export default function GestaoUsuarios() {
   }, [carregarEstatisticas, carregarLookup]);
 
   useEffect(() => {
-    if (carregandoLookup) return;
+    if (carregandoLookup) {
+      return;
+    }
 
     carregarUsuarios();
   }, [carregandoLookup, carregarUsuarios]);
@@ -631,7 +725,7 @@ export default function GestaoUsuarios() {
       porPerfil.map((item) => [
         String(item.label || "").trim(),
         Number(item.value || 0),
-      ])
+      ]),
     );
 
     return {
@@ -653,8 +747,12 @@ export default function GestaoUsuarios() {
   }, []);
 
   async function carregarResumoUsuario(id) {
-    if (!id) return;
-    if (resumoCache.has(id) || loadingResumo.has(id)) return;
+    if (!id) {
+      return;
+    }
+    if (resumoCache.has(id) || loadingResumo.has(id)) {
+      return;
+    }
 
     setLoadingResumo((prev) => new Set(prev).add(id));
 
@@ -675,8 +773,8 @@ export default function GestaoUsuarios() {
 
       setUsuarios((prev) =>
         prev.map((usuario) =>
-          usuario.id === id ? { ...usuario, ...resumo } : usuario
-        )
+          usuario.id === id ? { ...usuario, ...resumo } : usuario,
+        ),
       );
     } catch (error) {
       console.error("[GestaoUsuarios] falha ao carregar resumo", {
@@ -694,74 +792,82 @@ export default function GestaoUsuarios() {
     }
   }
 
-async function salvarUsuarioEditado(id, payload = {}) {
-  const perfilNovo = perfilOficial(payload.perfil);
-  const nomeNovo = String(payload.nome || "").trim();
-  const emailNovo = String(payload.email || "").trim();
-  const celularNovo = onlyDigits(payload.celular);
-  const unidadeIdNovo = Number(payload.unidade_id) || null;
-  const dataNascimentoNova = String(payload.data_nascimento || "").slice(0, 10);
-
-  if (!nomeNovo) {
-    toast.error("Informe o nome completo do usuário.");
-    throw new Error("Nome obrigatório.");
-  }
-
-  if (!emailNovo) {
-    toast.error("Informe um e-mail válido para o usuário.");
-    throw new Error("E-mail obrigatório.");
-  }
-
-  if (!unidadeIdNovo) {
-    toast.error("Selecione a unidade do usuário.");
-    throw new Error("Unidade obrigatória.");
-  }
-
-  if (!perfilNovo) {
-    toast.error("Perfil inválido. Use apenas usuário, organizador ou administrador.");
-    throw new Error("Perfil inválido.");
-  }
-
-  try {
-    await apiUsuarioAtualizarBasico(id, {
-  nome: nomeNovo,
-  email: emailNovo,
-  celular: celularNovo,
-  data_nascimento: dataNascimentoNova || null,
-});
-
-   await apiUsuarioAtualizarDadosAdministrativos(id, {
-  unidade_id: unidadeIdNovo,
-});
-
-    await apiUsuarioAtualizarPerfil(id, {
-      perfil: perfilNovo,
-    });
-
-    await carregarUsuarios();
-    await carregarEstatisticas();
-  } catch (error) {
-    console.error("[GestaoUsuarios] falha ao atualizar usuário", {
-      usuarioId: id,
-      message: error?.message,
-    });
-
-    const message = getMensagemErro(
-      error,
-      "Não foi possível atualizar os dados do usuário. Verifique as permissões e tente novamente."
+  async function salvarUsuarioEditado(id, payload = {}) {
+    const perfilNovo = perfilOficial(payload.perfil);
+    const nomeNovo = String(payload.nome || "").trim();
+    const emailNovo = String(payload.email || "").trim();
+    const celularNovo = onlyDigits(payload.celular);
+    const unidadeIdNovo = Number(payload.unidade_id) || null;
+    const dataNascimentoNova = String(payload.data_nascimento || "").slice(
+      0,
+      10,
     );
 
-    toast.error(message);
-    throw error;
+    if (!nomeNovo) {
+      toast.error("Informe o nome completo do usuário.");
+      throw new Error("Nome obrigatório.");
+    }
+
+    if (!emailNovo) {
+      toast.error("Informe um e-mail válido para o usuário.");
+      throw new Error("E-mail obrigatório.");
+    }
+
+    if (!unidadeIdNovo) {
+      toast.error("Selecione a unidade do usuário.");
+      throw new Error("Unidade obrigatória.");
+    }
+
+    if (!perfilNovo) {
+      toast.error(
+        "Perfil inválido. Use apenas usuário, organizador ou administrador.",
+      );
+      throw new Error("Perfil inválido.");
+    }
+
+    try {
+      await apiUsuarioAtualizarBasico(id, {
+        nome: nomeNovo,
+        email: emailNovo,
+        celular: celularNovo,
+        data_nascimento: dataNascimentoNova || null,
+      });
+
+      await apiUsuarioAtualizarDadosAdministrativos(id, {
+        unidade_id: unidadeIdNovo,
+      });
+
+      await apiUsuarioAtualizarPerfil(id, {
+        perfil: perfilNovo,
+      });
+
+      await carregarUsuarios();
+      await carregarEstatisticas();
+    } catch (error) {
+      console.error("[GestaoUsuarios] falha ao atualizar usuário", {
+        usuarioId: id,
+        message: error?.message,
+      });
+
+      const message = getMensagemErro(
+        error,
+        "Não foi possível atualizar os dados do usuário. Verifique as permissões e tente novamente.",
+      );
+
+      toast.error(message);
+      throw error;
+    }
   }
-}
 
   function onToggleCpf(id) {
     setRevealCpfIds((prev) => {
       const next = new Set(prev);
 
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
 
       return next;
     });
@@ -778,7 +884,7 @@ async function salvarUsuarioEditado(id, payload = {}) {
 
     if (total > hardLimit) {
       toast.error(
-        `Exportação muito grande (${total}). Refine os filtros antes de exportar.`
+        `Exportação muito grande (${total}). Refine os filtros antes de exportar.`,
       );
       return;
     }
@@ -846,11 +952,19 @@ async function salvarUsuarioEditado(id, payload = {}) {
   const anyLoading = carregandoUsuarios || carregandoLookup;
   const totalItems = Number(meta.total || 0);
   const totalPages = Math.max(1, Number(meta.pages || 1));
-  const pageClamped = Math.min(Math.max(1, Number(meta.page || page)), totalPages);
+  const pageClamped = Math.min(
+    Math.max(1, Number(meta.page || page)),
+    totalPages,
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       <HeaderHero
         titulo="Gestão de Usuários"
@@ -870,7 +984,10 @@ async function salvarUsuarioEditado(id, payload = {}) {
         </div>
       ) : null}
 
-      <main id="conteudo" className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4">
+      <main
+        id="conteudo"
+        className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4"
+      >
         <PainelOperacionalUsuarios
           atualizando={anyLoading}
           total={totalItems}
@@ -1000,7 +1117,10 @@ async function salvarUsuarioEditado(id, payload = {}) {
             ))}
           </div>
         ) : erro ? (
-          <p className="text-center text-rose-600 dark:text-rose-300" role="alert">
+          <p
+            className="text-center text-rose-600 dark:text-rose-300"
+            role="alert"
+          >
             {erro}
           </p>
         ) : (
@@ -1030,7 +1150,9 @@ async function salvarUsuarioEditado(id, payload = {}) {
 
                 <select
                   value={pageSize}
-                  onChange={(event) => setPageSize(Number(event.target.value) || 25)}
+                  onChange={(event) =>
+                    setPageSize(Number(event.target.value) || 50)
+                  }
                   className="min-h-[34px] rounded-xl border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-700 dark:border-zinc-700 dark:bg-zinc-800"
                 >
                   {[10, 25, 50, 100, 200].map((size) => (
@@ -1089,8 +1211,8 @@ async function salvarUsuarioEditado(id, payload = {}) {
         <div className="mt-8 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
           <span>
-            CPFs ficam ocultos por padrão. Revele apenas quando houver necessidade
-            operacional real.
+            CPFs ficam ocultos por padrão. Revele apenas quando houver
+            necessidade operacional real.
           </span>
         </div>
       </main>

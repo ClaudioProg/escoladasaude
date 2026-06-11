@@ -2,24 +2,24 @@
 "use strict";
 
 /**
- * ✅ backend/src/routes/relatorioRoute.js — v2.1
- * Atualizado em: 19/05/2026
+ * ✅ backend/src/routes/relatorioRoute.js — v3.0
+ * Atualizado em: 11/06/2026
  * Plataforma Escola da Saúde
  *
  * Função:
  * - Rotas oficiais do módulo de relatórios institucionais.
  * - Relatórios gerenciais, operacionais, documentais e de saúde da plataforma.
+ * - Dashboard institucional com totais gerais e indicadores filtrados.
+ * - Exportação XLSX e PDF institucional.
  *
  * Mount oficial:
  * - /api/relatorio
  *
- * Contrato oficial único:
- * - authMiddleware exporta função.
- * - authorize exporta função nomeada em ../middlewares/authorize.
- * - relatorioController exporta funções oficiais v2.0.
- * - Perfil oficial autorizado: administrador.
+ * Perfil autorizado:
+ * - administrador
  *
- * Rotas oficiais:
+ * Rotas principais:
+ * - GET /institucional
  * - GET /resumo-geral
  * - GET /eventos
  * - GET /presencas
@@ -32,14 +32,7 @@
  * - GET /notificacoes
  * - GET /saude-plataforma
  * - GET /exportar/:tipo.xlsx
- *
- * Diretrizes v2.1:
- * - Sem aliases.
- * - Sem rotas antigas /opcao, /exportar POST, /presenca, /presencas, /turma, /evento.
- * - Sem auth/authorize resiliente.
- * - Sem resposta { erro }.
- * - Sem X-Route-Handler.
- * - Sem compatibilidade legada.
+ * - GET /exportar/:tipo.pdf
  */
 
 const express = require("express");
@@ -49,6 +42,7 @@ const authMiddleware = require("../auth/authMiddleware");
 const { authorize } = require("../middlewares/authorize");
 
 const {
+  relatorioInstitucional,
   resumoGeral,
   relatorioEventos,
   relatorioPresencas,
@@ -61,6 +55,7 @@ const {
   relatorioNotificacoes,
   relatorioSaudePlataforma,
   exportarRelatorioXlsx,
+  exportarRelatorioPdf,
 } = require("../controllers/relatorioController");
 
 const router = express.Router();
@@ -73,7 +68,7 @@ if (typeof authMiddleware !== "function") {
   console.error("[relatorioRoute] authMiddleware inválido:", authMiddleware);
 
   throw new Error(
-    "Contrato inválido: backend/src/auth/authMiddleware.js deve exportar uma função."
+    "Contrato inválido: backend/src/auth/authMiddleware.js deve exportar uma função.",
   );
 }
 
@@ -81,7 +76,7 @@ if (typeof authorize !== "function") {
   console.error("[relatorioRoute] authorize inválido:", authorize);
 
   throw new Error(
-    "Contrato inválido: backend/src/middlewares/authorize.js deve expor { authorize } como função."
+    "Contrato inválido: backend/src/middlewares/authorize.js deve expor { authorize } como função.",
   );
 }
 
@@ -90,11 +85,12 @@ function assertControllerFn(name, fn) {
     console.error(`[relatorioRoute] relatorioController.${name} inválido:`, fn);
 
     throw new Error(
-      `Contrato inválido: relatorioController.${name} deve ser uma função.`
+      `Contrato inválido: relatorioController.${name} deve ser uma função.`,
     );
   }
 }
 
+assertControllerFn("relatorioInstitucional", relatorioInstitucional);
 assertControllerFn("resumoGeral", resumoGeral);
 assertControllerFn("relatorioEventos", relatorioEventos);
 assertControllerFn("relatorioPresencas", relatorioPresencas);
@@ -103,13 +99,14 @@ assertControllerFn("relatorioorganizadores", relatorioorganizadores);
 assertControllerFn("relatorioCertificados", relatorioCertificados);
 assertControllerFn(
   "relatorioCertificadosPendencias",
-  relatorioCertificadosPendencias
+  relatorioCertificadosPendencias,
 );
 assertControllerFn("relatorioUsuarios", relatorioUsuarios);
 assertControllerFn("relatorioSalas", relatorioSalas);
 assertControllerFn("relatorioNotificacoes", relatorioNotificacoes);
 assertControllerFn("relatorioSaudePlataforma", relatorioSaudePlataforma);
 assertControllerFn("exportarRelatorioXlsx", exportarRelatorioXlsx);
+assertControllerFn("exportarRelatorioPdf", exportarRelatorioPdf);
 
 /* ─────────────────────────────────────────────
  * Helpers
@@ -126,7 +123,7 @@ function responderErro(
   code,
   adminHint,
   details = null,
-  req = null
+  req = null,
 ) {
   return res.status(statusCode).json({
     ok: false,
@@ -167,7 +164,7 @@ function ensureAuthenticatedContext(req, res, next) {
       "RELATORIO_USUARIO_NAO_AUTENTICADO",
       "req.user.id não foi encontrado após authMiddleware.",
       null,
-      req
+      req,
     );
   }
 
@@ -175,15 +172,19 @@ function ensureAuthenticatedContext(req, res, next) {
 }
 
 function ensureTipoExportacaoValido(req, res, next) {
-  const tipo = String(req.params?.tipo || "").trim().toLowerCase();
+  const tipo = String(req.params?.tipo || "")
+    .trim()
+    .toLowerCase();
 
   const tiposValidos = new Set([
+    "institucional",
     "eventos",
     "presencas",
     "avaliacoes",
     "organizadores",
     "certificados",
     "usuarios",
+    "salas",
     "notificacoes",
     "saude-plataforma",
   ]);
@@ -194,12 +195,12 @@ function ensureTipoExportacaoValido(req, res, next) {
       400,
       "Tipo de relatório inválido para exportação.",
       "RELATORIO_EXPORTACAO_TIPO_INVALIDO",
-      "Use um dos tipos oficiais de exportação XLSX.",
+      "Use um dos tipos oficiais de exportação.",
       {
         tipo_recebido: req.params?.tipo || null,
         tipos_validos: Array.from(tiposValidos),
       },
-      req
+      req,
     );
   }
 
@@ -208,22 +209,29 @@ function ensureTipoExportacaoValido(req, res, next) {
   return next();
 }
 
-function ensureXlsxExtension(req, res, next) {
-  const originalUrl = String(req.originalUrl || "");
+function ensureExtension(ext) {
+  return (req, res, next) => {
+    const pathOnly = String(req.path || req.originalUrl || "")
+      .split("?")[0]
+      .toLowerCase();
 
-  if (!originalUrl.toLowerCase().endsWith(".xlsx")) {
-    return responderErro(
-      res,
-      404,
-      "Rota de exportação não encontrada.",
-      "RELATORIO_EXPORTACAO_EXTENSAO_OBRIGATORIA",
-      "A exportação oficial usa a rota /api/relatorio/exportar/:tipo.xlsx.",
-      null,
-      req
-    );
-  }
+    if (!pathOnly.endsWith(`.${ext}`)) {
+      return responderErro(
+        res,
+        404,
+        "Rota de exportação não encontrada.",
+        "RELATORIO_EXPORTACAO_EXTENSAO_OBRIGATORIA",
+        `A exportação oficial usa a rota /api/relatorio/exportar/:tipo.${ext}.`,
+        {
+          path_recebido: pathOnly,
+          originalUrl: req.originalUrl || null,
+        },
+        req,
+      );
+    }
 
-  return next();
+    return next();
+  };
 }
 
 /* ─────────────────────────────────────────────
@@ -258,7 +266,7 @@ const exportacaoLimiter = rateLimit({
       "Muitas exportações solicitadas. Aguarde alguns instantes e tente novamente.",
     code: "RELATORIO_EXPORTACAO_RATE_LIMIT",
     adminHint:
-      "Rate limit aplicado às exportações XLSX por serem operações mais pesadas.",
+      "Rate limit aplicado às exportações por serem operações mais pesadas.",
     details: null,
   },
 });
@@ -273,185 +281,122 @@ router.use(ensureAuthenticatedContext);
 router.use(authorize("administrador"));
 
 /* ─────────────────────────────────────────────
- * Relatórios institucionais
+ * Dashboard institucional
  * ───────────────────────────────────────────── */
 
 /**
- * GET /api/relatorio/resumo-geral
- *
- * Função:
- * - Indicadores consolidados da plataforma.
- */
-router.get(
-  "/resumo-geral",
-  relatorioLimiter,
-  asyncHandler(resumoGeral)
-);
-
-/**
- * GET /api/relatorio/eventos
+ * GET /api/relatorio/institucional
  *
  * Query oficial:
  * - data_inicio=YYYY-MM-DD
  * - data_fim=YYYY-MM-DD
  * - evento_id=integer
+ * - turma_id=integer
+ * - organizador_id=integer
+ * - usuario_id=integer
+ * - unidade_id=integer
  * - status=programado|andamento|encerrado
- */
-router.get(
-  "/eventos",
-  relatorioLimiter,
-  asyncHandler(relatorioEventos)
-);
-
-/**
- * GET /api/relatorio/presencas
  *
- * Query oficial:
- * - data_inicio=YYYY-MM-DD
- * - data_fim=YYYY-MM-DD
- * - evento_id=integer
- * - turma_id=integer
- * - usuario_id=integer
+ * Retorna:
+ * - geral: totais globais da plataforma
+ * - filtrado: indicadores que mudam conforme filtros
+ * - series: dados para gráficos
+ * - tabelas: dados resumidos
  */
 router.get(
-  "/presencas",
+  "/institucional",
   relatorioLimiter,
-  asyncHandler(relatorioPresencas)
-);
-
-/**
- * GET /api/relatorio/avaliacoes
- *
- * Query oficial:
- * - data_inicio=YYYY-MM-DD
- * - data_fim=YYYY-MM-DD
- * - evento_id=integer
- * - turma_id=integer
- * - organizador_id=integer
- */
-router.get(
-  "/avaliacoes",
-  relatorioLimiter,
-  asyncHandler(relatorioAvaliacoes)
-);
-
-/**
- * GET /api/relatorio/organizadores
- *
- * Query oficial:
- * - data_inicio=YYYY-MM-DD
- * - data_fim=YYYY-MM-DD
- * - organizador_id=integer
- */
-router.get(
-  "/organizadores",
-  relatorioLimiter,
-  asyncHandler(relatorioorganizadores)
-);
-
-/**
- * GET /api/relatorio/certificados
- *
- * Query oficial:
- * - data_inicio=YYYY-MM-DD
- * - data_fim=YYYY-MM-DD
- * - evento_id=integer
- * - turma_id=integer
- * - usuario_id=integer
- * - status=emitido|enviado|cancelado|anulado|substituido|erro_emissao
- */
-router.get(
-  "/certificados",
-  relatorioLimiter,
-  asyncHandler(relatorioCertificados)
-);
-
-/**
- * GET /api/relatorio/certificados/pendencias
- *
- * Função:
- * - Diagnóstico de bloqueios e pendências para emissão/envio de certificados.
- */
-router.get(
-  "/certificados/pendencias",
-  relatorioLimiter,
-  asyncHandler(relatorioCertificadosPendencias)
-);
-
-/**
- * GET /api/relatorio/usuarios
- *
- * Função:
- * - Relatório de usuários e completude cadastral/institucional.
- */
-router.get(
-  "/usuarios",
-  relatorioLimiter,
-  asyncHandler(relatorioUsuarios)
-);
-
-/**
- * GET /api/relatorio/salas
- *
- * Função:
- * - Relatório de reservas/uso de salas.
- */
-router.get(
-  "/salas",
-  relatorioLimiter,
-  asyncHandler(relatorioSalas)
-);
-
-/**
- * GET /api/relatorio/notificacoes
- *
- * Função:
- * - Relatório de notificações enviadas/lidas/não lidas.
- */
-router.get(
-  "/notificacoes",
-  relatorioLimiter,
-  asyncHandler(relatorioNotificacoes)
-);
-
-/**
- * GET /api/relatorio/saude-plataforma
- *
- * Função:
- * - Diagnóstico administrativo de saúde da plataforma.
- */
-router.get(
-  "/saude-plataforma",
-  relatorioLimiter,
-  asyncHandler(relatorioSaudePlataforma)
+  asyncHandler(relatorioInstitucional),
 );
 
 /* ─────────────────────────────────────────────
- * Exportações XLSX
+ * Relatórios individuais
+ * ───────────────────────────────────────────── */
+
+router.get("/resumo-geral", relatorioLimiter, asyncHandler(resumoGeral));
+
+router.get("/eventos", relatorioLimiter, asyncHandler(relatorioEventos));
+
+router.get("/presencas", relatorioLimiter, asyncHandler(relatorioPresencas));
+
+router.get("/avaliacoes", relatorioLimiter, asyncHandler(relatorioAvaliacoes));
+
+router.get(
+  "/organizadores",
+  relatorioLimiter,
+  asyncHandler(relatorioorganizadores),
+);
+
+router.get(
+  "/certificados",
+  relatorioLimiter,
+  asyncHandler(relatorioCertificados),
+);
+
+router.get(
+  "/certificados/pendencias",
+  relatorioLimiter,
+  asyncHandler(relatorioCertificadosPendencias),
+);
+
+router.get("/usuarios", relatorioLimiter, asyncHandler(relatorioUsuarios));
+
+router.get("/salas", relatorioLimiter, asyncHandler(relatorioSalas));
+
+router.get(
+  "/notificacoes",
+  relatorioLimiter,
+  asyncHandler(relatorioNotificacoes),
+);
+
+router.get(
+  "/saude-plataforma",
+  relatorioLimiter,
+  asyncHandler(relatorioSaudePlataforma),
+);
+
+/* ─────────────────────────────────────────────
+ * Exportações
  * ───────────────────────────────────────────── */
 
 /**
  * GET /api/relatorio/exportar/:tipo.xlsx
  *
- * Tipos oficiais:
+ * Tipos:
+ * - institucional
  * - eventos
  * - presencas
  * - avaliacoes
  * - organizadores
  * - certificados
  * - usuarios
+ * - salas
  * - notificacoes
  * - saude-plataforma
- *
- * Exemplo:
- * - /api/relatorio/exportar/eventos.xlsx?data_inicio=2026-01-01&data_fim=2026-12-31
  */
 router.get(
   "/exportar/:tipo.xlsx",
   exportacaoLimiter,
-  ensureXlsxExtension,
+  ensureExtension("xlsx"),
   ensureTipoExportacaoValido,
-  asyncHandler(exportarRelatorioXlsx)
+  asyncHandler(exportarRelatorioXlsx),
+);
+
+/**
+ * GET /api/relatorio/exportar/:tipo.pdf
+ *
+ * Tipos:
+ * - institucional
+ *
+ * Observação:
+ * - O PDF institucional é visual, com cabeçalho, cards, barras, ranking e rodapé.
+ */
+router.get(
+  "/exportar/:tipo.pdf",
+  exportacaoLimiter,
+  ensureExtension("pdf"),
+  ensureTipoExportacaoValido,
+  asyncHandler(exportarRelatorioPdf),
 );
 
 module.exports = router;
