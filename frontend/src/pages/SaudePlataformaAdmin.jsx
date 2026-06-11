@@ -1325,25 +1325,45 @@ export default function SaudePlataformaAdmin() {
   );
 
   const abrirDetalhe = useCallback(async (indicador) => {
+    const indicadorBase = normalizarIndicador(indicador);
+
+    // Abre o modal imediatamente com o que já veio da listagem.
+    setIndicadorSelecionado(indicadorBase);
+
+    // Se não houver ID, não tenta buscar detalhe remoto.
+    if (!indicadorBase.indicador_id) {
+      setCarregandoDetalhe(false);
+      notifyWarning("Indicador sem ID técnico para consulta detalhada.");
+      return;
+    }
+
+    // Se a facade de detalhe não existir, mantém o modal aberto com os dados atuais.
+    if (typeof api?.saudePlataforma?.obterPorId !== "function") {
+      setCarregandoDetalhe(false);
+      notifyWarning(
+        "Detalhe remoto indisponível. Exibindo os dados carregados na listagem.",
+      );
+      return;
+    }
+
     try {
       setCarregandoDetalhe(true);
-      setIndicadorSelecionado(normalizarIndicador(indicador));
-
-      validarFacade(
-        "api.saudePlataforma.obterPorId",
-        api?.saudePlataforma?.obterPorId,
-      );
 
       const resposta = await api.saudePlataforma.obterPorId(
-        indicador.indicador_id,
+        indicadorBase.indicador_id,
       );
 
       if (!mountedRef.current) {
         return;
       }
 
+      const detalhe = extrairData(resposta);
+
       setIndicadorSelecionado(
-        normalizarIndicador(extrairData(resposta) || indicador),
+        normalizarIndicador({
+          ...indicadorBase,
+          ...(detalhe || {}),
+        }),
       );
     } catch (error) {
       console.error(
@@ -1351,10 +1371,10 @@ export default function SaudePlataformaAdmin() {
         error,
       );
 
-      notifyError(
+      notifyWarning(
         obterMensagemErro(
           error,
-          "Não foi possível carregar os detalhes do indicador.",
+          "Não foi possível carregar o detalhe remoto. Exibindo os dados da listagem.",
         ),
       );
     } finally {
@@ -1500,7 +1520,10 @@ export default function SaudePlataformaAdmin() {
       <ModalIndicador
         indicadorSelecionado={indicadorSelecionado}
         carregandoDetalhe={carregandoDetalhe}
-        onFechar={() => setIndicadorSelecionado(null)}
+        onFechar={() => {
+          setIndicadorSelecionado(null);
+          setCarregandoDetalhe(false);
+        }}
       />
 
       <Footer />
