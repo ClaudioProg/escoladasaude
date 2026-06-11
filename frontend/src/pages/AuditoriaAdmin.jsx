@@ -96,8 +96,12 @@ const SUCESSO_OPCOES = [
   { value: "false", label: "Falha" },
 ];
 
-const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(Boolean);
-const SUCESSO_OFICIAL = SUCESSO_OPCOES.map((item) => item.value).filter(Boolean);
+const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(
+  Boolean,
+);
+const SUCESSO_OFICIAL = SUCESSO_OPCOES.map((item) => item.value).filter(
+  Boolean,
+);
 
 const LIMITE_OPCOES = [25, 50, 100, 200];
 
@@ -165,15 +169,19 @@ function montarParams(filtros) {
   return Object.fromEntries(
     Object.entries(filtros).filter(([, valor]) => {
       return valor !== "" && valor !== null && valor !== undefined;
-    })
+    }),
   );
 }
 
 function montarParamsResumo(filtros) {
   const params = {};
 
-  if (filtros.data_inicio) params.data_inicio = filtros.data_inicio;
-  if (filtros.data_fim) params.data_fim = filtros.data_fim;
+  if (filtros.data_inicio) {
+    params.data_inicio = filtros.data_inicio;
+  }
+  if (filtros.data_fim) {
+    params.data_fim = filtros.data_fim;
+  }
 
   return params;
 }
@@ -185,7 +193,9 @@ function isYMD(value) {
 function toPositiveIntOrEmpty(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const number = Number(text);
 
@@ -195,17 +205,23 @@ function toPositiveIntOrEmpty(value) {
 function formatarNumero(valor) {
   const numero = Number(valor);
 
-  if (!Number.isFinite(numero)) return "0";
+  if (!Number.isFinite(numero)) {
+    return "0";
+  }
 
   return new Intl.NumberFormat("pt-BR").format(numero);
 }
 
 function formatarDataHora(valor) {
-  if (!valor) return "—";
+  if (!valor) {
+    return "—";
+  }
 
   const data = new Date(valor);
 
-  if (Number.isNaN(data.getTime())) return "—";
+  if (Number.isNaN(data.getTime())) {
+    return "—";
+  }
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -229,8 +245,8 @@ function copiarTexto(texto, mensagem = "Conteúdo copiado.") {
     .then(() => notifySuccess(mensagem))
     .catch(() =>
       notifyError(
-        "Não foi possível copiar automaticamente. Selecione o conteúdo manualmente."
-      )
+        "Não foi possível copiar automaticamente. Selecione o conteúdo manualmente.",
+      ),
     );
 }
 
@@ -297,12 +313,10 @@ function severidadeClasses(severidade) {
   const mapa = {
     debug:
       "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200",
-    info:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
     aviso:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    erro:
-      "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
+    erro: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
     critico:
       "border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-200",
   };
@@ -319,7 +333,7 @@ function BadgeSeveridade({ severidade }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        severidadeClasses(severidade)
+        severidadeClasses(severidade),
       )}
     >
       {severidadeLabel(severidade)}
@@ -357,7 +371,7 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
           <p
             className={cx(
               "mt-2 text-3xl font-black tracking-tight",
-              destaque || "text-slate-950 dark:text-white"
+              destaque || "text-slate-950 dark:text-white",
             )}
           >
             {formatarNumero(valor)}
@@ -380,7 +394,9 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
 
 function JsonPreview({ titulo, valor }) {
   const conteudo = useMemo(() => {
-    if (valor === null || valor === undefined) return "";
+    if (valor === null || valor === undefined) {
+      return "";
+    }
 
     try {
       return JSON.stringify(valor, null, 2);
@@ -517,7 +533,9 @@ function ModulosAuditados({ resumo }) {
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                   <div
                     className="h-full rounded-full bg-slate-800 transition-all dark:bg-slate-200"
-                    style={{ width: `${Math.max(percentual, total > 0 ? 3 : 0)}%` }}
+                    style={{
+                      width: `${Math.max(percentual, total > 0 ? 3 : 0)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -585,7 +603,7 @@ function PainelFiltros({
         pagina: 1,
       }));
     },
-    [setFiltros]
+    [setFiltros],
   );
 
   return (
@@ -606,7 +624,7 @@ function PainelFiltros({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Botao
             type="button"
-            variant="secondary"
+            variant="contorno"
             onClick={onLimpar}
             disabled={carregando || atualizando}
           >
@@ -618,7 +636,7 @@ function PainelFiltros({
 
           <Botao
             type="button"
-            variant="secondary"
+            variant="contorno"
             onClick={onAplicar}
             disabled={carregando || atualizando}
           >
@@ -771,7 +789,7 @@ function CampoTexto({
           placeholder={placeholder}
           className={cx(
             "w-full rounded-xl border border-slate-200 bg-white py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950",
-            Icon ? "pl-9 pr-3" : "px-3"
+            Icon ? "pl-9 pr-3" : "px-3",
           )}
         />
       </div>
@@ -818,13 +836,7 @@ function CampoSelect({ label, value, onChange, options }) {
   );
 }
 
-function ListaEventos({
-  eventos,
-  meta,
-  atualizando,
-  onAbrir,
-  onMudarPagina,
-}) {
+function ListaEventos({ eventos, meta, atualizando, onAbrir, onMudarPagina }) {
   const paginaAtual = Number(meta.pagina || 1);
   const totalPaginas = Math.max(Number(meta.total_paginas || 1), 1);
 
@@ -1068,11 +1080,15 @@ function EventoCardMobile({ evento, onAbrir }) {
 }
 
 function ModalEvento({ eventoSelecionado, carregandoDetalhe, onFechar }) {
+  if (!eventoSelecionado && !carregandoDetalhe) {
+    return null;
+  }
+
   const evento = eventoSelecionado ? normalizarEvento(eventoSelecionado) : null;
 
   return (
     <Modal
-      aberto={Boolean(eventoSelecionado)}
+      aberto={Boolean(eventoSelecionado || carregandoDetalhe)}
       onFechar={onFechar}
       titulo="Detalhes do evento de auditoria"
       tamanho="xl"
@@ -1138,7 +1154,9 @@ function ModalEvento({ eventoSelecionado, carregandoDetalhe, onFechar }) {
 
                 <button
                   type="button"
-                  onClick={() => copiarTexto(evento.request_id, "Request ID copiado.")}
+                  onClick={() =>
+                    copiarTexto(evento.request_id, "Request ID copiado.")
+                  }
                   className="max-w-full truncate text-left font-mono text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300"
                 >
                   {evento.request_id || "—"}
@@ -1173,7 +1191,10 @@ function ModalEvento({ eventoSelecionado, carregandoDetalhe, onFechar }) {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <JsonPreview titulo="Dados anteriores" valor={evento.dados_anteriores} />
+            <JsonPreview
+              titulo="Dados anteriores"
+              valor={evento.dados_anteriores}
+            />
             <JsonPreview titulo="Dados novos" valor={evento.dados_novos} />
             <JsonPreview titulo="Detalhes" valor={evento.detalhes} />
           </div>
@@ -1227,7 +1248,10 @@ export default function AuditoriaAdmin() {
   const resumoNormalizado = useMemo(() => normalizarResumo(resumo), [resumo]);
 
   const validarFiltros = useCallback((valores) => {
-    if (valores.severidade && !SEVERIDADES_OFICIAIS.includes(valores.severidade)) {
+    if (
+      valores.severidade &&
+      !SEVERIDADES_OFICIAIS.includes(valores.severidade)
+    ) {
       notifyWarning("Severidade inválida para o contrato oficial.");
       return false;
     }
@@ -1279,14 +1303,18 @@ export default function AuditoriaAdmin() {
   const carregarResumo = useCallback(async (proximosFiltros) => {
     validarFacade("api.auditoria.resumo", api?.auditoria?.resumo);
 
-    const resposta = await api.auditoria.resumo(montarParamsResumo(proximosFiltros));
+    const resposta = await api.auditoria.resumo(
+      montarParamsResumo(proximosFiltros),
+    );
 
     return extrairData(resposta);
   }, []);
 
   const carregarEventos = useCallback(
     async ({ proximosFiltros = filtrosAplicados, silencioso = false } = {}) => {
-      if (!validarFiltros(proximosFiltros)) return;
+      if (!validarFiltros(proximosFiltros)) {
+        return;
+      }
 
       const requestId = requestSeqRef.current + 1;
       requestSeqRef.current = requestId;
@@ -1303,18 +1331,20 @@ export default function AuditoriaAdmin() {
         validarFacade("api.auditoria.listar", api?.auditoria?.listar);
 
         const respostaEventos = await api.auditoria.listar(
-          montarParams(proximosFiltros)
+          montarParams(proximosFiltros),
         );
 
         const resumoPayload = await carregarResumo(proximosFiltros);
 
-        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+        if (!mountedRef.current || requestSeqRef.current !== requestId) {
+          return;
+        }
 
         const dataEventos = extrairData(respostaEventos);
         const metaEventos = extrairMeta(respostaEventos);
 
         setEventos(
-          Array.isArray(dataEventos) ? dataEventos.map(normalizarEvento) : []
+          Array.isArray(dataEventos) ? dataEventos.map(normalizarEvento) : [],
         );
 
         setMeta({
@@ -1329,13 +1359,15 @@ export default function AuditoriaAdmin() {
       } catch (error) {
         console.error("[AuditoriaAdmin] Falha ao carregar auditoria:", error);
 
-        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+        if (!mountedRef.current || requestSeqRef.current !== requestId) {
+          return;
+        }
 
         setErro(
           obterMensagemErro(
             error,
-            "Não foi possível carregar os eventos de auditoria."
-          )
+            "Não foi possível carregar os eventos de auditoria.",
+          ),
         );
       } finally {
         if (mountedRef.current && requestSeqRef.current === requestId) {
@@ -1344,7 +1376,7 @@ export default function AuditoriaAdmin() {
         }
       }
     },
-    [carregarResumo, filtrosAplicados, validarFiltros]
+    [carregarResumo, filtrosAplicados, validarFiltros],
   );
 
   useEffect(() => {
@@ -1405,7 +1437,7 @@ export default function AuditoriaAdmin() {
         silencioso: true,
       });
     },
-    [carregarEventos, filtrosAplicados]
+    [carregarEventos, filtrosAplicados],
   );
 
   const abrirDetalhe = useCallback(async (evento) => {
@@ -1419,7 +1451,9 @@ export default function AuditoriaAdmin() {
 
       const resposta = await api.auditoria.obterPorId(item.id);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setEventoSelecionado(normalizarEvento(extrairData(resposta) || item));
     } catch (error) {
@@ -1428,18 +1462,20 @@ export default function AuditoriaAdmin() {
       notifyError(
         obterMensagemErro(
           error,
-          "Não foi possível carregar os detalhes da auditoria."
-        )
+          "Não foi possível carregar os detalhes da auditoria.",
+        ),
       );
     } finally {
-      if (mountedRef.current) setCarregandoDetalhe(false);
+      if (mountedRef.current) {
+        setCarregandoDetalhe(false);
+      }
     }
   }, []);
 
   const copiarResumo = useCallback(() => {
     copiarTexto(
       `Total: ${resumoNormalizado.total_eventos} | Sucessos: ${resumoNormalizado.total_sucesso} | Falhas: ${resumoNormalizado.total_falha} | Críticos: ${resumoNormalizado.total_critico}`,
-      "Resumo da auditoria copiado."
+      "Resumo da auditoria copiado.",
     );
   }, [resumoNormalizado]);
 

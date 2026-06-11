@@ -101,7 +101,9 @@ const SEVERIDADES = [
 ];
 
 const STATUS_OFICIAIS = STATUS.map((item) => item.value).filter(Boolean);
-const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(Boolean);
+const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(
+  Boolean,
+);
 
 const LIMITES = [25, 50, 100, 200];
 
@@ -165,7 +167,7 @@ function montarParams(filtros) {
   return Object.fromEntries(
     Object.entries(filtros).filter(([, valor]) => {
       return valor !== "" && valor !== null && valor !== undefined;
-    })
+    }),
   );
 }
 
@@ -178,24 +180,30 @@ function montarParamsResumo(filtros) {
         valor !== null &&
         valor !== undefined
       );
-    })
+    }),
   );
 }
 
 function formatarNumero(valor) {
   const numero = Number(valor);
 
-  if (!Number.isFinite(numero)) return "0";
+  if (!Number.isFinite(numero)) {
+    return "0";
+  }
 
   return new Intl.NumberFormat("pt-BR").format(numero);
 }
 
 function formatarDataHora(valor) {
-  if (!valor) return "—";
+  if (!valor) {
+    return "—";
+  }
 
   const data = new Date(valor);
 
-  if (Number.isNaN(data.getTime())) return "—";
+  if (Number.isNaN(data.getTime())) {
+    return "—";
+  }
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -219,8 +227,8 @@ function copiarTexto(texto, mensagem = "Conteúdo copiado.") {
     .then(() => notifySuccess(mensagem))
     .catch(() =>
       notifyError(
-        "Não foi possível copiar automaticamente. Selecione o conteúdo manualmente."
-      )
+        "Não foi possível copiar automaticamente. Selecione o conteúdo manualmente.",
+      ),
     );
 }
 
@@ -301,12 +309,10 @@ function statusClasses(status) {
 
 function severidadeClasses(severidade) {
   const mapa = {
-    info:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
     aviso:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    erro:
-      "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
+    erro: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
     critico:
       "border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-200",
   };
@@ -333,7 +339,7 @@ function BadgeStatus({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        statusClasses(status)
+        statusClasses(status),
       )}
     >
       {statusLabel(status)}
@@ -346,7 +352,7 @@ function BadgeSeveridade({ severidade }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        severidadeClasses(severidade)
+        severidadeClasses(severidade),
       )}
     >
       {severidadeLabel(severidade)}
@@ -375,7 +381,7 @@ function ClassificacaoOperacional({ resumo }) {
           <div
             className={cx(
               "mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide",
-              statusClasses(resumo.status_geral)
+              statusClasses(resumo.status_geral),
             )}
           >
             <Icone className="h-3.5 w-3.5" aria-hidden="true" />
@@ -445,7 +451,7 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
           <p
             className={cx(
               "mt-2 text-3xl font-black tracking-tight",
-              destaque || "text-slate-950 dark:text-white"
+              destaque || "text-slate-950 dark:text-white",
             )}
           >
             {formatarNumero(valor)}
@@ -468,7 +474,9 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
 
 function JsonPreview({ titulo, valor }) {
   const conteudo = useMemo(() => {
-    if (valor === null || valor === undefined) return "";
+    if (valor === null || valor === undefined) {
+      return "";
+    }
 
     try {
       return JSON.stringify(valor, null, 2);
@@ -603,7 +611,7 @@ function SaudePorModulo({ resumo }) {
                         ? "bg-red-600"
                         : alertas > 0
                           ? "bg-amber-500"
-                          : "bg-emerald-600"
+                          : "bg-emerald-600",
                     )}
                     style={{
                       width: `${Math.max(percentualRisco, total > 0 ? 5 : 0)}%`,
@@ -693,7 +701,7 @@ function BotaoDiagnostico({ item, tone, onAbrir }) {
       onClick={() => onAbrir(item)}
       className={cx(
         "w-full rounded-2xl border p-3 text-left transition",
-        classes[tone]
+        classes[tone],
       )}
     >
       <div className="flex items-center justify-between gap-3">
@@ -724,7 +732,7 @@ function PainelFiltros({
         pagina: 1,
       }));
     },
-    [setFiltros]
+    [setFiltros],
   );
 
   return (
@@ -745,7 +753,7 @@ function PainelFiltros({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Botao
             type="button"
-            variant="secondary"
+            variant="contorno"
             onClick={onLimpar}
             disabled={carregando || atualizando}
           >
@@ -757,7 +765,7 @@ function PainelFiltros({
 
           <Botao
             type="button"
-            variant="secondary"
+            variant="contorno"
             onClick={onAplicar}
             disabled={carregando || atualizando}
           >
@@ -871,7 +879,7 @@ function CampoTexto({ label, value, onChange, placeholder, icon: Icon }) {
           placeholder={placeholder}
           className={cx(
             "w-full rounded-xl border border-slate-200 bg-white py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950",
-            Icon ? "pl-9 pr-3" : "px-3"
+            Icon ? "pl-9 pr-3" : "px-3",
           )}
         />
       </div>
@@ -986,18 +994,18 @@ function ListaIndicadores({
   );
 }
 
-function ModalIndicador({
-  indicadorSelecionado,
-  carregandoDetalhe,
-  onFechar,
-}) {
+function ModalIndicador({ indicadorSelecionado, carregandoDetalhe, onFechar }) {
+  if (!indicadorSelecionado && !carregandoDetalhe) {
+    return null;
+  }
+
   const indicador = indicadorSelecionado
     ? normalizarIndicador(indicadorSelecionado)
     : null;
 
   return (
     <Modal
-      aberto={Boolean(indicadorSelecionado)}
+      aberto={Boolean(indicadorSelecionado || carregandoDetalhe)}
       onFechar={onFechar}
       titulo="Detalhes do indicador"
       tamanho="xl"
@@ -1016,7 +1024,9 @@ function ModalIndicador({
                 <div className="mb-2 flex flex-wrap gap-2">
                   <BadgeStatus status={indicador.status} />
                   <BadgeSeveridade severidade={indicador.severidade} />
-                  <BadgeTecnico>{indicador.janela || "sem janela"}</BadgeTecnico>
+                  <BadgeTecnico>
+                    {indicador.janela || "sem janela"}
+                  </BadgeTecnico>
                 </div>
 
                 <h3 className="break-words text-xl font-black text-slate-950 dark:text-white">
@@ -1031,7 +1041,10 @@ function ModalIndicador({
               <button
                 type="button"
                 onClick={() =>
-                  copiarTexto(indicador.indicador_id, "ID do indicador copiado.")
+                  copiarTexto(
+                    indicador.indicador_id,
+                    "ID do indicador copiado.",
+                  )
                 }
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
               >
@@ -1041,7 +1054,10 @@ function ModalIndicador({
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <DetalheResumo label="Valor" value={formatarNumero(indicador.valor)} />
+              <DetalheResumo
+                label="Valor"
+                value={formatarNumero(indicador.valor)}
+              />
               <DetalheResumo label="Módulo" value={indicador.modulo || "—"} />
               <DetalheResumo label="Janela" value={indicador.janela || "—"} />
               <DetalheResumo
@@ -1148,7 +1164,7 @@ export default function SaudePlataformaAdmin() {
     validarFacade("api.saudePlataforma.resumo", api?.saudePlataforma?.resumo);
 
     const resposta = await api.saudePlataforma.resumo(
-      montarParamsResumo(proximosFiltros)
+      montarParamsResumo(proximosFiltros),
     );
 
     return extrairData(resposta);
@@ -1157,7 +1173,7 @@ export default function SaudePlataformaAdmin() {
   const carregarDiagnostico = useCallback(async () => {
     validarFacade(
       "api.saudePlataforma.diagnostico",
-      api?.saudePlataforma?.diagnostico
+      api?.saudePlataforma?.diagnostico,
     );
 
     const resposta = await api.saudePlataforma.diagnostico();
@@ -1167,7 +1183,9 @@ export default function SaudePlataformaAdmin() {
 
   const carregarIndicadores = useCallback(
     async ({ proximosFiltros = filtrosAplicados, silencioso = false } = {}) => {
-      if (!validarFiltros(proximosFiltros)) return;
+      if (!validarFiltros(proximosFiltros)) {
+        return;
+      }
 
       const requestId = requestSeqRef.current + 1;
       requestSeqRef.current = requestId;
@@ -1183,11 +1201,11 @@ export default function SaudePlataformaAdmin() {
 
         validarFacade(
           "api.saudePlataforma.listar",
-          api?.saudePlataforma?.listar
+          api?.saudePlataforma?.listar,
         );
 
         const respostaIndicadores = await api.saudePlataforma.listar(
-          montarParams(proximosFiltros)
+          montarParams(proximosFiltros),
         );
 
         const [resumoPayload, diagnosticoPayload] = await Promise.all([
@@ -1195,7 +1213,9 @@ export default function SaudePlataformaAdmin() {
           carregarDiagnostico(),
         ]);
 
-        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+        if (!mountedRef.current || requestSeqRef.current !== requestId) {
+          return;
+        }
 
         const dataIndicadores = extrairData(respostaIndicadores);
         const metaIndicadores = extrairMeta(respostaIndicadores);
@@ -1203,13 +1223,17 @@ export default function SaudePlataformaAdmin() {
         setIndicadores(
           Array.isArray(dataIndicadores)
             ? dataIndicadores.map(normalizarIndicador)
-            : []
+            : [],
         );
 
         setMeta({
           total: Number(metaIndicadores?.total || 0),
-          pagina: Number(metaIndicadores?.pagina || proximosFiltros.pagina || 1),
-          limite: Number(metaIndicadores?.limite || proximosFiltros.limite || 100),
+          pagina: Number(
+            metaIndicadores?.pagina || proximosFiltros.pagina || 1,
+          ),
+          limite: Number(
+            metaIndicadores?.limite || proximosFiltros.limite || 100,
+          ),
           total_paginas: Number(metaIndicadores?.total_paginas || 1),
         });
 
@@ -1219,13 +1243,15 @@ export default function SaudePlataformaAdmin() {
       } catch (error) {
         console.error("[SaudePlataformaAdmin] Falha ao carregar saúde:", error);
 
-        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+        if (!mountedRef.current || requestSeqRef.current !== requestId) {
+          return;
+        }
 
         setErro(
           obterMensagemErro(
             error,
-            "Não foi possível carregar a Saúde da Plataforma."
-          )
+            "Não foi possível carregar a Saúde da Plataforma.",
+          ),
         );
       } finally {
         if (mountedRef.current && requestSeqRef.current === requestId) {
@@ -1234,7 +1260,7 @@ export default function SaudePlataformaAdmin() {
         }
       }
     },
-    [carregarDiagnostico, carregarResumo, filtrosAplicados, validarFiltros]
+    [carregarDiagnostico, carregarResumo, filtrosAplicados, validarFiltros],
   );
 
   useEffect(() => {
@@ -1295,7 +1321,7 @@ export default function SaudePlataformaAdmin() {
         silencioso: true,
       });
     },
-    [carregarIndicadores, filtrosAplicados]
+    [carregarIndicadores, filtrosAplicados],
   );
 
   const abrirDetalhe = useCallback(async (indicador) => {
@@ -1305,29 +1331,36 @@ export default function SaudePlataformaAdmin() {
 
       validarFacade(
         "api.saudePlataforma.obterPorId",
-        api?.saudePlataforma?.obterPorId
+        api?.saudePlataforma?.obterPorId,
       );
 
       const resposta = await api.saudePlataforma.obterPorId(
-        indicador.indicador_id
+        indicador.indicador_id,
       );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setIndicadorSelecionado(
-        normalizarIndicador(extrairData(resposta) || indicador)
+        normalizarIndicador(extrairData(resposta) || indicador),
       );
     } catch (error) {
-      console.error("[SaudePlataformaAdmin] Falha ao carregar indicador:", error);
+      console.error(
+        "[SaudePlataformaAdmin] Falha ao carregar indicador:",
+        error,
+      );
 
       notifyError(
         obterMensagemErro(
           error,
-          "Não foi possível carregar os detalhes do indicador."
-        )
+          "Não foi possível carregar os detalhes do indicador.",
+        ),
       );
     } finally {
-      if (mountedRef.current) setCarregandoDetalhe(false);
+      if (mountedRef.current) {
+        setCarregandoDetalhe(false);
+      }
     }
   }, []);
 

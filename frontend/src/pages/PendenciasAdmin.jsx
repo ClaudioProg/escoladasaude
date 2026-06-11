@@ -108,8 +108,12 @@ const STATUS = [
   { value: "pendente", label: "Pendente" },
 ];
 
-const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(Boolean);
-const PRIORIDADES_OFICIAIS = PRIORIDADES.map((item) => item.value).filter(Boolean);
+const SEVERIDADES_OFICIAIS = SEVERIDADES.map((item) => item.value).filter(
+  Boolean,
+);
+const PRIORIDADES_OFICIAIS = PRIORIDADES.map((item) => item.value).filter(
+  Boolean,
+);
 const STATUS_OFICIAIS = STATUS.map((item) => item.value).filter(Boolean);
 
 const LIMITES = [25, 50, 100, 200];
@@ -180,7 +184,7 @@ function montarParams(filtros) {
   return Object.fromEntries(
     Object.entries(filtros).filter(([, valor]) => {
       return valor !== "" && valor !== null && valor !== undefined;
-    })
+    }),
   );
 }
 
@@ -193,7 +197,7 @@ function montarParamsResumo(filtros) {
         valor !== null &&
         valor !== undefined
       );
-    })
+    }),
   );
 }
 
@@ -204,7 +208,9 @@ function isYMD(value) {
 function toPositiveIntOrEmpty(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const number = Number(text);
 
@@ -214,17 +220,23 @@ function toPositiveIntOrEmpty(value) {
 function formatarNumero(valor) {
   const numero = Number(valor);
 
-  if (!Number.isFinite(numero)) return "0";
+  if (!Number.isFinite(numero)) {
+    return "0";
+  }
 
   return new Intl.NumberFormat("pt-BR").format(numero);
 }
 
 function formatarDataHora(valor) {
-  if (!valor) return "—";
+  if (!valor) {
+    return "—";
+  }
 
   const data = new Date(valor);
 
-  if (Number.isNaN(data.getTime())) return "—";
+  if (Number.isNaN(data.getTime())) {
+    return "—";
+  }
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -235,11 +247,15 @@ function formatarDataHora(valor) {
 function formatarDataBR(valor) {
   const texto = String(valor || "").trim();
 
-  if (!texto) return "—";
+  if (!texto) {
+    return "—";
+  }
 
   const ymd = texto.slice(0, 10);
 
-  if (!isYMD(ymd)) return texto;
+  if (!isYMD(ymd)) {
+    return texto;
+  }
 
   const [ano, mes, dia] = ymd.split("-");
   return `${dia}/${mes}/${ano}`;
@@ -261,8 +277,8 @@ function copiarTexto(texto, mensagem = "Conteúdo copiado.") {
     .then(() => notifySuccess(mensagem))
     .catch(() =>
       notifyError(
-        "Não foi possível copiar automaticamente. Selecione o conteúdo manualmente."
-      )
+        "Não foi possível copiar automaticamente. Selecione o conteúdo manualmente.",
+      ),
     );
 }
 
@@ -342,12 +358,10 @@ function statusLabel(status) {
 
 function severidadeClasses(severidade) {
   const mapa = {
-    info:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
     aviso:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    erro:
-      "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
+    erro: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
     critico:
       "border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-200",
   };
@@ -361,8 +375,7 @@ function prioridadeClasses(prioridade) {
       "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200",
     normal:
       "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
-    alta:
-      "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200",
+    alta: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200",
     urgente:
       "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200",
   };
@@ -379,7 +392,7 @@ function BadgeSeveridade({ severidade }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        severidadeClasses(severidade)
+        severidadeClasses(severidade),
       )}
     >
       {severidadeLabel(severidade)}
@@ -392,7 +405,7 @@ function BadgePrioridade({ prioridade }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        prioridadeClasses(prioridade)
+        prioridadeClasses(prioridade),
       )}
     >
       {prioridadeLabel(prioridade)}
@@ -428,7 +441,7 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
           <p
             className={cx(
               "mt-2 text-3xl font-black tracking-tight",
-              destaque || "text-slate-950 dark:text-white"
+              destaque || "text-slate-950 dark:text-white",
             )}
           >
             {formatarNumero(valor)}
@@ -451,7 +464,9 @@ function CardResumo({ icone: Icone, titulo, valor, detalhe, destaque }) {
 
 function JsonPreview({ titulo, valor }) {
   const conteudo = useMemo(() => {
-    if (valor === null || valor === undefined) return "";
+    if (valor === null || valor === undefined) {
+      return "";
+    }
 
     try {
       return JSON.stringify(valor, null, 2);
@@ -505,7 +520,7 @@ function PainelResumoOperacional({ resumo }) {
               "mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide",
               temPendencias
                 ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
             )}
           >
             {temPendencias ? (
@@ -521,9 +536,10 @@ function PainelResumoOperacional({ resumo }) {
           </h2>
 
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Este painel consolida pendências derivadas dos módulos da plataforma.
-            A correção deve ser feita na entidade de origem; quando a condição
-            deixar de existir, a pendência desaparece automaticamente da view.
+            Este painel consolida pendências derivadas dos módulos da
+            plataforma. A correção deve ser feita na entidade de origem; quando
+            a condição deixar de existir, a pendência desaparece automaticamente
+            da view.
           </p>
 
           <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 sm:grid-cols-2">
@@ -612,7 +628,9 @@ function PendenciasPorModulo({ resumo }) {
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                   <div
                     className="h-full rounded-full bg-slate-800 transition-all dark:bg-slate-200"
-                    style={{ width: `${Math.max(percentual, total > 0 ? 3 : 0)}%` }}
+                    style={{
+                      width: `${Math.max(percentual, total > 0 ? 3 : 0)}%`,
+                    }}
                   />
                 </div>
 
@@ -748,7 +766,7 @@ function PainelFiltros({
         pagina: 1,
       }));
     },
-    [setFiltros]
+    [setFiltros],
   );
 
   return (
@@ -769,7 +787,7 @@ function PainelFiltros({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Botao
             type="button"
-            variant="secondary"
+            variant="contorno"
             onClick={onLimpar}
             disabled={carregando || atualizando}
           >
@@ -781,7 +799,7 @@ function PainelFiltros({
 
           <Botao
             type="button"
-            variant="secondary"
+            variant="contorno"
             onClick={onAplicar}
             disabled={carregando || atualizando}
           >
@@ -949,7 +967,7 @@ function CampoTexto({
           placeholder={placeholder}
           className={cx(
             "w-full rounded-xl border border-slate-200 bg-white py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950",
-            Icon ? "pl-9 pr-3" : "px-3"
+            Icon ? "pl-9 pr-3" : "px-3",
           )}
         />
       </div>
@@ -1081,18 +1099,18 @@ function ListaPendencias({
   );
 }
 
-function ModalPendencia({
-  pendenciaSelecionada,
-  carregandoDetalhe,
-  onFechar,
-}) {
+function ModalPendencia({ pendenciaSelecionada, carregandoDetalhe, onFechar }) {
+  if (!pendenciaSelecionada && !carregandoDetalhe) {
+    return null;
+  }
+
   const pendencia = pendenciaSelecionada
     ? normalizarPendencia(pendenciaSelecionada)
     : null;
 
   return (
     <Modal
-      aberto={Boolean(pendenciaSelecionada)}
+      aberto={Boolean(pendenciaSelecionada || carregandoDetalhe)}
       onFechar={onFechar}
       titulo="Detalhes da pendência"
       tamanho="xl"
@@ -1126,7 +1144,10 @@ function ModalPendencia({
               <button
                 type="button"
                 onClick={() =>
-                  copiarTexto(pendencia.pendencia_id, "ID da pendência copiado.")
+                  copiarTexto(
+                    pendencia.pendencia_id,
+                    "ID da pendência copiado.",
+                  )
                 }
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
               >
@@ -1239,12 +1260,18 @@ export default function PendenciasAdmin() {
   const resumoNormalizado = useMemo(() => normalizarResumo(resumo), [resumo]);
 
   const validarFiltros = useCallback((valores) => {
-    if (valores.severidade && !SEVERIDADES_OFICIAIS.includes(valores.severidade)) {
+    if (
+      valores.severidade &&
+      !SEVERIDADES_OFICIAIS.includes(valores.severidade)
+    ) {
       notifyWarning("Severidade inválida para o contrato oficial.");
       return false;
     }
 
-    if (valores.prioridade && !PRIORIDADES_OFICIAIS.includes(valores.prioridade)) {
+    if (
+      valores.prioridade &&
+      !PRIORIDADES_OFICIAIS.includes(valores.prioridade)
+    ) {
       notifyWarning("Prioridade inválida para o contrato oficial.");
       return false;
     }
@@ -1296,14 +1323,18 @@ export default function PendenciasAdmin() {
   const carregarResumo = useCallback(async (proximosFiltros) => {
     validarFacade("api.pendencia.resumo", api?.pendencia?.resumo);
 
-    const resposta = await api.pendencia.resumo(montarParamsResumo(proximosFiltros));
+    const resposta = await api.pendencia.resumo(
+      montarParamsResumo(proximosFiltros),
+    );
 
     return extrairData(resposta);
   }, []);
 
   const carregarPendencias = useCallback(
     async ({ proximosFiltros = filtrosAplicados, silencioso = false } = {}) => {
-      if (!validarFiltros(proximosFiltros)) return;
+      if (!validarFiltros(proximosFiltros)) {
+        return;
+      }
 
       const requestId = requestSeqRef.current + 1;
       requestSeqRef.current = requestId;
@@ -1320,12 +1351,14 @@ export default function PendenciasAdmin() {
         validarFacade("api.pendencia.listar", api?.pendencia?.listar);
 
         const respostaPendencias = await api.pendencia.listar(
-          montarParams(proximosFiltros)
+          montarParams(proximosFiltros),
         );
 
         const resumoPayload = await carregarResumo(proximosFiltros);
 
-        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+        if (!mountedRef.current || requestSeqRef.current !== requestId) {
+          return;
+        }
 
         const dataPendencias = extrairData(respostaPendencias);
         const metaPendencias = extrairMeta(respostaPendencias);
@@ -1333,13 +1366,15 @@ export default function PendenciasAdmin() {
         setPendencias(
           Array.isArray(dataPendencias)
             ? dataPendencias.map(normalizarPendencia)
-            : []
+            : [],
         );
 
         setMeta({
           total: Number(metaPendencias?.total || 0),
           pagina: Number(metaPendencias?.pagina || proximosFiltros.pagina || 1),
-          limite: Number(metaPendencias?.limite || proximosFiltros.limite || 50),
+          limite: Number(
+            metaPendencias?.limite || proximosFiltros.limite || 50,
+          ),
           total_paginas: Number(metaPendencias?.total_paginas || 1),
         });
 
@@ -1348,13 +1383,15 @@ export default function PendenciasAdmin() {
       } catch (error) {
         console.error("[PendenciasAdmin] Falha ao carregar pendências:", error);
 
-        if (!mountedRef.current || requestSeqRef.current !== requestId) return;
+        if (!mountedRef.current || requestSeqRef.current !== requestId) {
+          return;
+        }
 
         setErro(
           obterMensagemErro(
             error,
-            "Não foi possível carregar as pendências administrativas."
-          )
+            "Não foi possível carregar as pendências administrativas.",
+          ),
         );
       } finally {
         if (mountedRef.current && requestSeqRef.current === requestId) {
@@ -1363,7 +1400,7 @@ export default function PendenciasAdmin() {
         }
       }
     },
-    [carregarResumo, filtrosAplicados, validarFiltros]
+    [carregarResumo, filtrosAplicados, validarFiltros],
   );
 
   useEffect(() => {
@@ -1424,7 +1461,7 @@ export default function PendenciasAdmin() {
         silencioso: true,
       });
     },
-    [carregarPendencias, filtrosAplicados]
+    [carregarPendencias, filtrosAplicados],
   );
 
   const abrirDetalhe = useCallback(async (pendencia) => {
@@ -1438,20 +1475,26 @@ export default function PendenciasAdmin() {
 
       const resposta = await api.pendencia.obterPorId(item.pendencia_id);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
-      setPendenciaSelecionada(normalizarPendencia(extrairData(resposta) || item));
+      setPendenciaSelecionada(
+        normalizarPendencia(extrairData(resposta) || item),
+      );
     } catch (error) {
       console.error("[PendenciasAdmin] Falha ao carregar detalhe:", error);
 
       notifyError(
         obterMensagemErro(
           error,
-          "Não foi possível carregar os detalhes da pendência."
-        )
+          "Não foi possível carregar os detalhes da pendência.",
+        ),
       );
     } finally {
-      if (mountedRef.current) setCarregandoDetalhe(false);
+      if (mountedRef.current) {
+        setCarregandoDetalhe(false);
+      }
     }
   }, []);
 
