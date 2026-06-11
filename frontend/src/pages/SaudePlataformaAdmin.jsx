@@ -43,6 +43,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Activity,
   AlertTriangle,
@@ -568,8 +569,6 @@ function IndicadorCard({ indicador, onAbrir }) {
               "[SaudePlataformaAdmin] Clique no botão Ver detalhes:",
               item,
             );
-            alert("Clique recebido no Ver detalhes");
-
             onAbrir(item);
           }}
           className="relative z-10 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
@@ -1013,9 +1012,9 @@ function ModalIndicador({ indicadorSelecionado, carregandoDetalhe, onFechar }) {
     ? normalizarIndicador(indicadorSelecionado)
     : null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label="Detalhes do indicador"
@@ -1136,7 +1135,8 @@ function ModalIndicador({ indicadorSelecionado, carregandoDetalhe, onFechar }) {
           </Botao>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
