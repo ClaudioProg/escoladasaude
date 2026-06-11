@@ -36,7 +36,7 @@
  * - Participante: tipo "usuario".
  * - Organizador: tipo "organizador".
  * - Organizadores vêm de turma_responsavel.
-* - Instrutor/palestrante são legados e não geram mais tipo próprio de certificado.
+ * - Instrutor/palestrante são legados e não geram mais tipo próprio de certificado.
  * - Assinantes de turma vêm de turma_certificado_assinante.
  * - Certificado avulso aceita assinantes_ids.
  * - Certificado avulso deve ter de 1 a 3 assinaturas.
@@ -76,7 +76,7 @@ if (typeof authMiddleware !== "function") {
   console.error("[certificadoRoute] authMiddleware inválido:", authMiddleware);
 
   throw new Error(
-    "Contrato inválido: ../auth/authMiddleware deve exportar authMiddleware como função."
+    "Contrato inválido: ../auth/authMiddleware deve exportar authMiddleware como função.",
   );
 }
 
@@ -84,7 +84,7 @@ if (typeof authorize !== "function") {
   console.error("[certificadoRoute] authorize inválido:", authorize);
 
   throw new Error(
-    "Contrato inválido: ../middlewares/authorize deve exportar authorize como função."
+    "Contrato inválido: ../middlewares/authorize deve exportar authorize como função.",
   );
 }
 
@@ -121,6 +121,7 @@ const certificadoAvulsoFns = [
   "listarCertificadoAvulso",
   "gerarPdfCertificado",
   "enviarPorEmail",
+  "consolidarPendentesCertificadosAvulsos",
   "cancelarCertificadoAvulso",
   "anularCertificadoAvulso",
   "historicoCertificadoAvulso",
@@ -130,7 +131,7 @@ for (const fnName of certificadoAvulsoFns) {
   assertFn(
     "certificadoAvulsoController",
     fnName,
-    certificadoAvulsoController?.[fnName]
+    certificadoAvulsoController?.[fnName],
   );
 }
 
@@ -138,10 +139,8 @@ for (const fnName of certificadoAvulsoFns) {
  * Helpers
  * ───────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function getRequestId(req) {
   return req?.requestId || req?.rid || null;
@@ -184,7 +183,9 @@ function getUsuarioId(req) {
 }
 
 function getPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 function ensureAuthenticatedContext(req, res, next) {
@@ -249,7 +250,7 @@ function codigoValidacaoParam(name = "codigo_validacao") {
     .withMessage(`${name} deve ter entre 8 e 140 caracteres.`)
     .matches(/^[A-Z0-9\-]+$/)
     .withMessage(
-      `${name} deve conter apenas letras maiúsculas, números e hífen.`
+      `${name} deve conter apenas letras maiúsculas, números e hífen.`,
     );
 }
 
@@ -377,7 +378,9 @@ function assinantesIdsOptionalBody() {
           try {
             ids = JSON.parse(raw);
           } catch {
-            throw new Error("assinantes_ids deve ser lista JSON válida ou CSV.");
+            throw new Error(
+              "assinantes_ids deve ser lista JSON válida ou CSV.",
+            );
           }
         } else {
           ids = raw
@@ -402,6 +405,54 @@ function assinantesIdsOptionalBody() {
 
       if (invalid) {
         throw new Error("assinantes_ids deve conter apenas IDs positivos.");
+      }
+
+      return true;
+    });
+}
+
+function certificadosAvulsosIdsOptionalBody() {
+  return body("ids")
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((value) => {
+      let ids = [];
+
+      if (Array.isArray(value)) {
+        ids = value;
+      } else {
+        const raw = String(value || "").trim();
+
+        if (!raw) return true;
+
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+          try {
+            ids = JSON.parse(raw);
+          } catch {
+            throw new Error("ids deve ser lista JSON válida ou CSV.");
+          }
+        } else {
+          ids = raw
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+      }
+
+      if (!Array.isArray(ids)) {
+        throw new Error("ids deve ser uma lista.");
+      }
+
+      if (ids.length > 100) {
+        throw new Error("ids deve conter no máximo 100 IDs por execução.");
+      }
+
+      const invalid = ids.some((item) => {
+        const n = Number(item);
+        return !Number.isInteger(n) || n <= 0;
+      });
+
+      if (invalid) {
+        throw new Error("ids deve conter apenas IDs positivos.");
       }
 
       return true;
@@ -462,7 +513,8 @@ const emailLimiter = buildLimiter({
   message: {
     ok: false,
     data: null,
-    message: "Muitas solicitações de e-mail. Aguarde antes de tentar novamente.",
+    message:
+      "Muitas solicitações de e-mail. Aguarde antes de tentar novamente.",
     code: "CERTIFICADO_RATE_LIMIT_EMAIL",
   },
 });
@@ -495,7 +547,7 @@ router.get(
   publicLimiter,
   [codigoValidacaoParam("codigo_validacao")],
   validate,
-  asyncHandler(certificadoController.validarCertificadoPublico)
+  asyncHandler(certificadoController.validarCertificadoPublico),
 );
 
 /* ─────────────────────────────────────────────
@@ -530,7 +582,7 @@ router.get(
   authorize("usuario", "organizador", "administrador"),
   [idParam("id")],
   validate,
-  asyncHandler(certificadoController.downloadCertificado)
+  asyncHandler(certificadoController.downloadCertificado),
 );
 
 /* ─────────────────────────────────────────────
@@ -546,7 +598,7 @@ router.get(
 router.get(
   "/usuario",
   authorize("usuario", "organizador", "administrador"),
-  asyncHandler(certificadoController.listarCertificadoUsuario)
+  asyncHandler(certificadoController.listarCertificadoUsuario),
 );
 
 /**
@@ -558,7 +610,7 @@ router.get(
 router.get(
   "/meus",
   authorize("usuario", "organizador", "administrador"),
-  asyncHandler(certificadoController.listarCertificadoUsuario)
+  asyncHandler(certificadoController.listarCertificadoUsuario),
 );
 
 /**
@@ -577,7 +629,7 @@ router.get(
 router.get(
   "/disponiveis",
   authorize("usuario", "organizador", "administrador"),
-  asyncHandler(certificadoController.listarCertificadosDisponiveisUsuario)
+  asyncHandler(certificadoController.listarCertificadosDisponiveisUsuario),
 );
 
 /**
@@ -598,7 +650,7 @@ router.get(
 router.get(
   "/organizador/elegiveis",
   authorize("usuario", "organizador", "administrador"),
-  asyncHandler(certificadoController.listarElegiveisOrganizador)
+  asyncHandler(certificadoController.listarElegiveisOrganizador),
 );
 
 /**
@@ -613,7 +665,7 @@ router.get(
   authorize("administrador"),
   [idParam("turma_id")],
   validate,
-  asyncHandler(certificadoController.listarCertificadosPorTurma)
+  asyncHandler(certificadoController.listarCertificadosPorTurma),
 );
 
 /**
@@ -628,7 +680,7 @@ router.get(
   authorize("administrador"),
   [idParam("turma_id")],
   validate,
-  asyncHandler(certificadoController.listarElegiveisPorTurma)
+  asyncHandler(certificadoController.listarElegiveisPorTurma),
 );
 
 /**
@@ -642,7 +694,7 @@ router.get(
   authorize("administrador"),
   [idParam("turma_id")],
   validate,
-  asyncHandler(certificadoController.listarElegiveisPorTurma)
+  asyncHandler(certificadoController.listarElegiveisPorTurma),
 );
 
 /**
@@ -673,12 +725,12 @@ router.post(
       .withMessage("turma_id inválido.")
       .toInt(),
     body("tipo")
-  .isIn(["usuario", "organizador"])
-  .withMessage("tipo deve ser usuario ou organizador."),
+      .isIn(["usuario", "organizador"])
+      .withMessage("tipo deve ser usuario ou organizador."),
   ],
   validate,
   ensureBodySelfOrAdmin,
-  asyncHandler(certificadoController.gerarCertificado)
+  asyncHandler(certificadoController.gerarCertificado),
 );
 
 /* ─────────────────────────────────────────────
@@ -697,7 +749,7 @@ adminRouter.use(authorize("administrador"));
  */
 adminRouter.get(
   "/arvore",
-  asyncHandler(certificadoController.listarAdminArvore)
+  asyncHandler(certificadoController.listarAdminArvore),
 );
 
 /**
@@ -713,7 +765,7 @@ adminRouter.post(
   sensitiveLimiter,
   [idParam("turma_id")],
   validate,
-  asyncHandler(certificadoController.processarPendentesPorTurma)
+  asyncHandler(certificadoController.processarPendentesPorTurma),
 );
 
 /**
@@ -728,7 +780,7 @@ adminRouter.post(
   sensitiveLimiter,
   [idParam("id"), motivoObrigatorioBody("cancelamento")],
   validate,
-  asyncHandler(certificadoController.cancelarCertificado)
+  asyncHandler(certificadoController.cancelarCertificado),
 );
 
 /* ─────────────────────────────────────────────
@@ -743,7 +795,7 @@ adminRouter.post(
  */
 adminRouter.get(
   "/avulso",
-  asyncHandler(certificadoAvulsoController.listarCertificadoAvulso)
+  asyncHandler(certificadoAvulsoController.listarCertificadoAvulso),
 );
 
 /**
@@ -796,7 +848,55 @@ adminRouter.post(
       .withMessage("texto_personalizado deve ter no máximo 5000 caracteres."),
   ],
   validate,
-  asyncHandler(certificadoAvulsoController.criarCertificadoAvulso)
+  asyncHandler(certificadoAvulsoController.criarCertificadoAvulso),
+);
+
+/**
+ * POST /api/certificado/admin/avulso/consolidar-pendentes
+ *
+ * Função:
+ * - Consolida PDFs pendentes de certificados avulsos recentes.
+ * - Não envia e-mail.
+ * - Não altera status.
+ * - Não recria PDF já consolidado.
+ * - Usa a mesma rotina documental oficial de geração de PDF/hash.
+ *
+ * Body:
+ * - marco_v2: "2026-05-01"
+ * - limite: 25
+ * - dry_run: true/false
+ * - assinantes_ids: [17] ou [123, 17] ou [123, 17, 2474]
+ * - ids: opcional, lista específica de certificados avulsos
+ */
+adminRouter.post(
+  "/avulso/consolidar-pendentes",
+  sensitiveLimiter,
+  [
+    body("marco_v2")
+      .optional({ nullable: true, checkFalsy: true })
+      .matches(/^\d{4}-\d{2}-\d{2}$/)
+      .withMessage("marco_v2 deve estar em AAAA-MM-DD."),
+    body("desde")
+      .optional({ nullable: true, checkFalsy: true })
+      .matches(/^\d{4}-\d{2}-\d{2}$/)
+      .withMessage("desde deve estar em AAAA-MM-DD."),
+    body("limite")
+      .optional({ nullable: true, checkFalsy: true })
+      .isInt({ min: 1, max: 100 })
+      .withMessage("limite deve ser inteiro entre 1 e 100.")
+      .toInt(),
+    body("dry_run")
+      .optional({ nullable: true })
+      .isBoolean()
+      .withMessage("dry_run deve ser booleano.")
+      .toBoolean(),
+    assinantesIdsOptionalBody(),
+    certificadosAvulsosIdsOptionalBody(),
+  ],
+  validate,
+  asyncHandler(
+    certificadoAvulsoController.consolidarPendentesCertificadosAvulsos,
+  ),
 );
 
 /**
@@ -822,7 +922,7 @@ adminRouter.get(
   pdfLimiter,
   [idParam("id"), assinantesIdsOptionalQuery()],
   validate,
-  asyncHandler(certificadoAvulsoController.gerarPdfCertificado)
+  asyncHandler(certificadoAvulsoController.gerarPdfCertificado),
 );
 
 /**
@@ -842,7 +942,7 @@ adminRouter.post(
   emailLimiter,
   [idParam("id"), assinantesIdsOptionalQuery(), assinantesIdsOptionalBody()],
   validate,
-  asyncHandler(certificadoAvulsoController.enviarPorEmail)
+  asyncHandler(certificadoAvulsoController.enviarPorEmail),
 );
 
 /**
@@ -855,7 +955,7 @@ adminRouter.get(
   "/avulso/:id/historico",
   [idParam("id")],
   validate,
-  asyncHandler(certificadoAvulsoController.historicoCertificadoAvulso)
+  asyncHandler(certificadoAvulsoController.historicoCertificadoAvulso),
 );
 
 /**
@@ -870,7 +970,7 @@ adminRouter.post(
   sensitiveLimiter,
   [idParam("id"), motivoObrigatorioBody("cancelamento")],
   validate,
-  asyncHandler(certificadoAvulsoController.cancelarCertificadoAvulso)
+  asyncHandler(certificadoAvulsoController.cancelarCertificadoAvulso),
 );
 
 /**
@@ -885,7 +985,7 @@ adminRouter.post(
   sensitiveLimiter,
   [idParam("id"), motivoObrigatorioBody("anulação")],
   validate,
-  asyncHandler(certificadoAvulsoController.anularCertificadoAvulso)
+  asyncHandler(certificadoAvulsoController.anularCertificadoAvulso),
 );
 
 router.use("/admin", adminRouter);

@@ -103,10 +103,7 @@ const MODALIDADES_OFICIAIS = [
   "comissao_organizadora",
 ];
 
-const MODALIDADES_SEM_CARGA = [
-  "banca_avaliadora",
-  "comissao_organizadora",
-];
+const MODALIDADES_SEM_CARGA = ["banca_avaliadora", "comissao_organizadora"];
 
 const MODALIDADES_EXIGEM_TITULO = [
   "residente_medica",
@@ -130,7 +127,14 @@ function responderSucesso(res, statusCode, data, message, code, extra = {}) {
   });
 }
 
-function responderErro(res, statusCode, message, code, adminHint, details = null) {
+function responderErro(
+  res,
+  statusCode,
+  message,
+  code,
+  adminHint,
+  details = null,
+) {
   return res.status(statusCode).json({
     ok: false,
     data: null,
@@ -168,7 +172,7 @@ function logWarn(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[certificado-avulso][${rid}][ERR] ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -189,7 +193,8 @@ function getDb(req) {
 }
 
 async function withTx(req, fn) {
-  const pool = req?.db?.pool || dbFallback?.pool || dbFallback?.db?.pool || null;
+  const pool =
+    req?.db?.pool || dbFallback?.pool || dbFallback?.db?.pool || null;
 
   if (pool && typeof pool.connect === "function") {
     const client = await pool.connect();
@@ -255,7 +260,9 @@ function onlyDigits(value = "") {
 }
 
 function safeText(value, max = 5000) {
-  const text = String(value || "").replace(/\s+/g, " ").trim();
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
   return text.length > max ? text.slice(0, max) : text;
 }
 
@@ -340,7 +347,7 @@ function frontendBaseUrl() {
 
 function urlValidacaoPublica(codigoValidacao) {
   return `${frontendBaseUrl()}/validar-certificado/${encodeURIComponent(
-    codigoValidacao
+    codigoValidacao,
   )}`;
 }
 
@@ -368,7 +375,7 @@ async function gerarNumeroCertificadoAvulso(db) {
   const result = await db.query(
     `
     SELECT nextval('public.certificados_avulsos_numero_seq')::bigint AS seq
-    `
+    `,
   );
 
   const seq = Number(result.rows?.[0]?.seq);
@@ -390,11 +397,11 @@ function getIdentificadorInfo(identificadorOriginal) {
       identificador_hash: sha256(`cpf:${digits}`),
       identificador_mascarado: `***.${digits.slice(3, 6)}.${digits.slice(
         6,
-        9
+        9,
       )}-**`,
       identificador_pdf: `Identificador: ***.${digits.slice(3, 6)}.${digits.slice(
         6,
-        9
+        9,
       )}-**`,
     };
   }
@@ -591,7 +598,11 @@ function registerFonts(doc) {
       doc.registerFont(fontName, foundPath);
       registered.add(fontName);
     } catch (error) {
-      logWarn(mkRid("FONT"), `Falha ao registrar fonte ${fontName}`, error.message);
+      logWarn(
+        mkRid("FONT"),
+        `Falha ao registrar fonte ${fontName}`,
+        error.message,
+      );
     }
   }
 
@@ -651,14 +662,12 @@ function assinaturaImagemToBuffer(value) {
 }
 
 function normalizarAssinantesAvulso(input) {
-  const ids = [
-    ...new Set(parseAssinantesIdsInput(input)),
-  ];
+  const ids = [...new Set(parseAssinantesIdsInput(input))];
 
   const temFabio = ids.includes(FABIO_LOPEZ_ID);
 
   const extras = ids.filter(
-    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID
+    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID,
   );
 
   const base = extras.slice(0, temFabio ? 1 : 2);
@@ -682,6 +691,50 @@ function obterAssinantesIdsDaRequisicao(req) {
   return normalizarAssinantesAvulso([]);
 }
 
+function parseCertificadosIdsInput(value) {
+  if (Array.isArray(value)) {
+    return [
+      ...new Set(
+        value
+          .flatMap((item) => parseCertificadosIdsInput(item))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      ),
+    ];
+  }
+
+  if (value == null || value === "") return [];
+
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value > 0 ? [value] : [];
+  }
+
+  const raw = String(value || "").trim();
+
+  if (!raw) return [];
+
+  if (raw.startsWith("[") && raw.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(raw);
+      return parseCertificadosIdsInput(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((item) => Number(String(item).trim()))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  ];
+}
+
+function booleanFromInput(value) {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
 async function carregarAssinaturasAvulsas(db, assinantesIds = []) {
   const ids = normalizarAssinantesAvulso(assinantesIds);
 
@@ -693,7 +746,9 @@ async function carregarAssinaturasAvulsas(db, assinantesIds = []) {
   }
 
   if (ids.length < 1 || ids.length > MAX_ASSINATURAS_AVULSO) {
-    const error = new Error("O certificado avulso deve ter de 1 a 3 assinaturas.");
+    const error = new Error(
+      "O certificado avulso deve ter de 1 a 3 assinaturas.",
+    );
     error.statusCode = 400;
     error.code = "CERTIFICADO_AVULSO_ASSINATURAS_QUANTIDADE_INVALIDA";
     error.details = {
@@ -726,7 +781,7 @@ async function carregarAssinaturasAvulsas(db, assinantesIds = []) {
     WHERE u.id = ANY($1::int[])
     ORDER BY array_position($1::int[], u.id)
     `,
-    [ids]
+    [ids],
   );
 
   const rows = result.rows || [];
@@ -735,7 +790,9 @@ async function carregarAssinaturasAvulsas(db, assinantesIds = []) {
   const ausentes = ids.filter((id) => !rowsMap.has(Number(id)));
 
   if (ausentes.length) {
-    const error = new Error(`Assinante(s) não encontrado(s): ${ausentes.join(", ")}.`);
+    const error = new Error(
+      `Assinante(s) não encontrado(s): ${ausentes.join(", ")}.`,
+    );
     error.statusCode = 400;
     error.code = "CERTIFICADO_AVULSO_ASSINANTE_NAO_ENCONTRADO";
     error.details = {
@@ -751,7 +808,7 @@ async function carregarAssinaturasAvulsas(db, assinantesIds = []) {
 
   if (invalidos.length) {
     const error = new Error(
-      "Assinantes devem ser usuários com perfil organizador ou administrador."
+      "Assinantes devem ser usuários com perfil organizador ou administrador.",
     );
     error.statusCode = 400;
     error.code = "CERTIFICADO_AVULSO_ASSINANTE_PERFIL_INVALIDO";
@@ -765,14 +822,14 @@ async function carregarAssinaturasAvulsas(db, assinantesIds = []) {
     throw error;
   }
 
-return ids.map((id, index) => {
-  const row = rowsMap.get(id);
+  return ids.map((id, index) => {
+    const row = rowsMap.get(id);
 
-  const imgBuffer = assinaturaImagemToBuffer(row?.imagem_base64);
+    const imgBuffer = assinaturaImagemToBuffer(row?.imagem_base64);
 
-  return {
-    id,
-    usuario_id: id,
+    return {
+      id,
+      usuario_id: id,
       nome: row?.nome || "—",
       email: row?.email || null,
       perfil: row?.perfil || null,
@@ -817,7 +874,7 @@ async function registrarHistorico(
     motivo = null,
     usuario_id = null,
     metadados_json = {},
-  }
+  },
 ) {
   await db.query(
     `
@@ -852,7 +909,7 @@ async function registrarHistorico(
       motivo,
       usuario_id,
       JSON.stringify(metadados_json || {}),
-    ]
+    ],
   );
 }
 
@@ -874,9 +931,7 @@ async function tryQRCodeDataURL(text) {
 }
 
 function desenharCertificado(doc, certificado, opts = {}) {
-  const assinaturas = Array.isArray(opts.assinaturas)
-    ? opts.assinaturas
-    : [];
+  const assinaturas = Array.isArray(opts.assinaturas) ? opts.assinaturas : [];
 
   const textoPrincipal = montarTextoModalidade({
     modalidade: certificado.modalidade || "participante",
@@ -915,7 +970,7 @@ async function gerarPdfPersistido(certificado, opts = {}) {
   await ensureDir(CERT_DIR);
 
   const filename = normalizarNomeArquivo(
-    `certificado_avulso_${certificado.numero_certificado}.pdf`
+    `certificado_avulso_${certificado.numero_certificado}.pdf`,
   );
 
   const caminho = path.join(CERT_DIR, filename);
@@ -1008,7 +1063,7 @@ function montarHashDadosCertificadoAvulso(certificado) {
       arquivo_pdf: certificado.arquivo_pdf || null,
       emitido_em: certificado.emitido_em,
       dados_assinatura_json: certificado.dados_assinatura_json || null,
-    })
+    }),
   );
 }
 
@@ -1030,7 +1085,9 @@ async function criarCertificadoAvulso(req, res) {
 
   const cargaRaw = req.body?.carga_horaria;
   let cargaHoraria =
-    cargaRaw === null || cargaRaw === undefined || String(cargaRaw).trim() === ""
+    cargaRaw === null ||
+    cargaRaw === undefined ||
+    String(cargaRaw).trim() === ""
       ? null
       : Number(cargaRaw);
 
@@ -1043,7 +1100,7 @@ async function criarCertificadoAvulso(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_AVULSO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -1053,7 +1110,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "Campos obrigatórios ausentes.",
       "CERTIFICADO_AVULSO_CAMPOS_OBRIGATORIOS",
-      "nome, identificador, email e curso são obrigatórios."
+      "nome, identificador, email e curso são obrigatórios.",
     );
   }
 
@@ -1063,7 +1120,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "E-mail inválido.",
       "CERTIFICADO_AVULSO_EMAIL_INVALIDO",
-      "O campo email não passou na validação."
+      "O campo email não passou na validação.",
     );
   }
 
@@ -1076,7 +1133,7 @@ async function criarCertificadoAvulso(req, res) {
       "A modalidade deve corresponder exatamente ao enum certificado_modalidade.",
       {
         modalidades_oficiais: MODALIDADES_OFICIAIS,
-      }
+      },
     );
   }
 
@@ -1093,7 +1150,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "Carga horária inválida.",
       "CERTIFICADO_AVULSO_CARGA_HORARIA_INVALIDA",
-      "carga_horaria deve ser número positivo ou nulo conforme modalidade."
+      "carga_horaria deve ser número positivo ou nulo conforme modalidade.",
     );
   }
 
@@ -1103,7 +1160,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "Título do trabalho é obrigatório para a modalidade selecionada.",
       "CERTIFICADO_AVULSO_TITULO_OBRIGATORIO",
-      "Modalidade exige titulo_trabalho."
+      "Modalidade exige titulo_trabalho.",
     );
   }
 
@@ -1113,7 +1170,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "data_inicio inválida.",
       "CERTIFICADO_AVULSO_DATA_INICIO_INVALIDA",
-      "Use formato AAAA-MM-DD."
+      "Use formato AAAA-MM-DD.",
     );
   }
 
@@ -1123,7 +1180,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "data_fim inválida.",
       "CERTIFICADO_AVULSO_DATA_FIM_INVALIDA",
-      "Use formato AAAA-MM-DD."
+      "Use formato AAAA-MM-DD.",
     );
   }
 
@@ -1133,7 +1190,7 @@ async function criarCertificadoAvulso(req, res) {
       400,
       "data_fim deve ser maior ou igual à data_inicio.",
       "CERTIFICADO_AVULSO_PERIODO_INVALIDO",
-      "Período de certificado avulso inválido."
+      "Período de certificado avulso inválido.",
     );
   }
 
@@ -1199,31 +1256,31 @@ NOW()
         RETURNING *
         `,
         [
-  nome,
-  identificadorOriginal,
-  email,
-  curso,
-  cargaHoraria,
-  dataInicio || null,
-  dataFim || null,
-  modalidade,
-  tituloTrabalho,
-  textoPersonalizado,
-  numeroCertificado,
-  codigoValidacao,
-  usuarioId,
-  identificador.identificador_tipo,
-  identificador.identificador_hash,
-  identificador.identificador_mascarado,
-JSON.stringify({
-  origem: "avulso",
-  numero_certificado: numeroCertificado,
-  codigo_validacao: codigoValidacao,
-  validacao_url: urlValidacaoPublica(codigoValidacao),
-}),
-sha256(`certificado-avulso:${numeroCertificado}:${codigoValidacao}`),
-identificador.identificador_hash,
-]
+          nome,
+          identificadorOriginal,
+          email,
+          curso,
+          cargaHoraria,
+          dataInicio || null,
+          dataFim || null,
+          modalidade,
+          tituloTrabalho,
+          textoPersonalizado,
+          numeroCertificado,
+          codigoValidacao,
+          usuarioId,
+          identificador.identificador_tipo,
+          identificador.identificador_hash,
+          identificador.identificador_mascarado,
+          JSON.stringify({
+            origem: "avulso",
+            numero_certificado: numeroCertificado,
+            codigo_validacao: codigoValidacao,
+            validacao_url: urlValidacaoPublica(codigoValidacao),
+          }),
+          sha256(`certificado-avulso:${numeroCertificado}:${codigoValidacao}`),
+          identificador.identificador_hash,
+        ],
       );
 
       const criado = insert.rows[0];
@@ -1238,7 +1295,7 @@ identificador.identificador_hash,
         WHERE id = $1
         RETURNING *
         `,
-        [criado.id, hashDados]
+        [criado.id, hashDados],
       );
 
       const atualizado = update.rows[0];
@@ -1271,7 +1328,7 @@ identificador.identificador_hash,
       201,
       result,
       "Certificado avulso criado com sucesso.",
-      "CERTIFICADO_AVULSO_CRIADO"
+      "CERTIFICADO_AVULSO_CRIADO",
     );
   } catch (error) {
     logError(rid, "Erro ao criar certificado avulso", error);
@@ -1282,7 +1339,7 @@ identificador.identificador_hash,
       "Erro ao criar certificado avulso.",
       "CERTIFICADO_AVULSO_ERRO_CRIAR",
       "Falha inesperada em criarCertificadoAvulso.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -1301,7 +1358,7 @@ async function listarCertificadoAvulso(req, res) {
       `
       SELECT COUNT(*)::int AS total
       FROM certificados_avulsos
-      `
+      `,
     );
 
     const total = Number(totalResult.rows?.[0]?.total || 0);
@@ -1344,7 +1401,7 @@ async function listarCertificadoAvulso(req, res) {
       ORDER BY id DESC
       LIMIT $1 OFFSET $2
       `,
-      [limite, offset]
+      [limite, offset],
     );
 
     const totalPaginas = Math.max(Math.ceil(total / limite), 1);
@@ -1371,7 +1428,7 @@ async function listarCertificadoAvulso(req, res) {
         },
       },
       "Certificados avulsos carregados com sucesso.",
-      "CERTIFICADOS_AVULSOS_LISTADOS"
+      "CERTIFICADOS_AVULSOS_LISTADOS",
     );
   } catch (error) {
     logError(rid, "Erro ao listar certificados avulsos", error);
@@ -1382,7 +1439,7 @@ async function listarCertificadoAvulso(req, res) {
       "Erro ao listar certificados avulsos.",
       "CERTIFICADO_AVULSO_ERRO_LISTAR",
       "Falha inesperada em listarCertificadoAvulso.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -1395,13 +1452,17 @@ async function carregarCertificadoAvulso(db, id) {
     WHERE id = $1
     LIMIT 1
     `,
-    [id]
+    [id],
   );
 
   return result.rows?.[0] || null;
 }
 
-async function consolidarPdfAvulsoSePendente(req, id, assinantesIdsInput = null) {
+async function consolidarPdfAvulsoSePendente(
+  req,
+  id,
+  assinantesIdsInput = null,
+) {
   const usuarioId = getUsuarioId(req);
   const assinantesIds = normalizarAssinantesAvulso(assinantesIdsInput);
 
@@ -1413,7 +1474,7 @@ async function consolidarPdfAvulsoSePendente(req, id, assinantesIdsInput = null)
       WHERE id = $1
       FOR UPDATE
       `,
-      [id]
+      [id],
     );
 
     if (atualResult.rowCount === 0) {
@@ -1469,7 +1530,7 @@ async function consolidarPdfAvulsoSePendente(req, id, assinantesIdsInput = null)
       },
       {
         assinaturas,
-      }
+      },
     );
 
     const metadados = {
@@ -1510,7 +1571,7 @@ async function consolidarPdfAvulsoSePendente(req, id, assinantesIdsInput = null)
         hashDados,
         JSON.stringify(metadados),
         JSON.stringify(dadosAssinatura),
-      ]
+      ],
     );
 
     if (update.rowCount === 0) {
@@ -1521,7 +1582,7 @@ async function consolidarPdfAvulsoSePendente(req, id, assinantesIdsInput = null)
         WHERE id = $1
         LIMIT 1
         `,
-        [id]
+        [id],
       );
 
       const row = recarregado.rows?.[0];
@@ -1572,7 +1633,7 @@ async function gerarPdfCertificado(req, res) {
       400,
       "ID inválido.",
       "CERTIFICADO_AVULSO_ID_INVALIDO",
-      "O parâmetro id deve ser inteiro positivo."
+      "O parâmetro id deve ser inteiro positivo.",
     );
   }
 
@@ -1585,7 +1646,7 @@ async function gerarPdfCertificado(req, res) {
         404,
         "Certificado avulso não encontrado.",
         "CERTIFICADO_AVULSO_NAO_ENCONTRADO",
-        "Não há certificado avulso com o id informado."
+        "Não há certificado avulso com o id informado.",
       );
     }
 
@@ -1597,7 +1658,7 @@ async function gerarPdfCertificado(req, res) {
         404,
         "Arquivo PDF não encontrado.",
         "CERTIFICADO_AVULSO_PDF_NAO_ENCONTRADO",
-        "Não foi possível localizar o arquivo PDF consolidado."
+        "Não foi possível localizar o arquivo PDF consolidado.",
       );
     }
 
@@ -1611,7 +1672,7 @@ async function gerarPdfCertificado(req, res) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${path.basename(caminho)}"`
+      `attachment; filename="${path.basename(caminho)}"`,
     );
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Pragma", "no-cache");
@@ -1630,7 +1691,192 @@ async function gerarPdfCertificado(req, res) {
         : "Erro ao gerar PDF.",
       error.code || "CERTIFICADO_AVULSO_ERRO_PDF",
       "Falha inesperada em gerarPdfCertificado.",
-      error.details || (IS_DEV ? error.message : null)
+      error.details || (IS_DEV ? error.message : null),
+    );
+  }
+}
+
+async function consolidarPendentesCertificadosAvulsos(req, res) {
+  const rid = reqRid(req);
+  const db = getDb(req);
+  const usuarioId = getUsuarioId(req);
+
+  const marcoV2 = safeText(
+    req.body?.marco_v2 || req.body?.desde || "2026-05-01",
+    10,
+  );
+
+  const limiteRaw = Number(req.body?.limite || 25);
+  const limite = Math.min(
+    Math.max(Number.isFinite(limiteRaw) ? limiteRaw : 25, 1),
+    100,
+  );
+
+  const dryRun = booleanFromInput(req.body?.dry_run);
+  const assinantesIds = obterAssinantesIdsDaRequisicao(req);
+  const idsInformados = parseCertificadosIdsInput(req.body?.ids);
+
+  if (!usuarioId) {
+    return responderErro(
+      res,
+      401,
+      "Usuário não autenticado.",
+      "CERTIFICADO_AVULSO_USUARIO_NAO_AUTENTICADO",
+      "req.user.id não foi encontrado no request.",
+    );
+  }
+
+  if (!isYmd(marcoV2)) {
+    return responderErro(
+      res,
+      400,
+      "Marco v2 inválido.",
+      "CERTIFICADO_AVULSO_MARCO_V2_INVALIDO",
+      "Use marco_v2 no formato AAAA-MM-DD.",
+    );
+  }
+
+  try {
+    const params = [marcoV2];
+    let filtroIds = "";
+
+    if (idsInformados.length > 0) {
+      params.push(idsInformados);
+      filtroIds = `AND id = ANY($${params.length}::int[])`;
+    }
+
+    params.push(limite);
+    const limiteParamIndex = params.length;
+
+    const pendentesResult = await db.query(
+      `
+      SELECT
+        id,
+        nome,
+        email,
+        curso,
+        status,
+        numero_certificado,
+        codigo_validacao,
+        arquivo_pdf,
+        hash_pdf,
+        emitido_em
+      FROM certificados_avulsos
+      WHERE status IN ('emitido', 'enviado')
+        AND emitido_em >= $1::date
+        AND (
+          arquivo_pdf IS NULL
+          OR TRIM(arquivo_pdf::text) = ''
+        )
+        AND (
+          hash_pdf IS NULL
+          OR TRIM(hash_pdf::text) = ''
+        )
+        ${filtroIds}
+      ORDER BY emitido_em ASC, id ASC
+      LIMIT $${limiteParamIndex}
+      `,
+      params,
+    );
+
+    const pendentes = pendentesResult.rows || [];
+
+    if (dryRun) {
+      return responderSucesso(
+        res,
+        200,
+        {
+          dry_run: true,
+          marco_v2: marcoV2,
+          limite,
+          total_encontrado: pendentes.length,
+          ids: pendentes.map((item) => item.id),
+          itens: pendentes,
+        },
+        "Prévia de certificados avulsos pendentes de consolidação.",
+        "CERTIFICADO_AVULSO_CONSOLIDAR_PENDENTES_DRY_RUN",
+      );
+    }
+
+    const consolidados = [];
+    const falhas = [];
+
+    for (const item of pendentes) {
+      try {
+        const resultado = await consolidarPdfAvulsoSePendente(
+          req,
+          item.id,
+          assinantesIds,
+        );
+
+        if (!resultado?.certificado) {
+          falhas.push({
+            id: item.id,
+            numero_certificado: item.numero_certificado,
+            erro: "Certificado não encontrado durante a consolidação.",
+          });
+          continue;
+        }
+
+        consolidados.push({
+          id: resultado.certificado.id,
+          numero_certificado: resultado.certificado.numero_certificado,
+          codigo_validacao: resultado.certificado.codigo_validacao,
+          arquivo_pdf: resultado.certificado.arquivo_pdf,
+          hash_pdf: resultado.certificado.hash_pdf,
+          ja_existia: Boolean(resultado.ja_existia),
+        });
+      } catch (error) {
+        logWarn(rid, "Falha ao consolidar certificado avulso pendente", {
+          id: item.id,
+          numero_certificado: item.numero_certificado,
+          erro: error?.message,
+          code: error?.code,
+        });
+
+        falhas.push({
+          id: item.id,
+          numero_certificado: item.numero_certificado,
+          erro: error?.message || "Erro inesperado.",
+          code: error?.code || "CERTIFICADO_AVULSO_CONSOLIDACAO_FALHOU",
+          details: error?.details || null,
+        });
+      }
+    }
+
+    logInfo(rid, "consolidarPendentesCertificadosAvulsos OK", {
+      marco_v2: marcoV2,
+      encontrados: pendentes.length,
+      consolidados: consolidados.length,
+      falhas: falhas.length,
+    });
+
+    return responderSucesso(
+      res,
+      200,
+      {
+        dry_run: false,
+        marco_v2: marcoV2,
+        limite,
+        encontrados: pendentes.length,
+        consolidados: consolidados.length,
+        falhas: falhas.length,
+        itens: consolidados,
+        erros: falhas,
+      },
+      "Consolidação de certificados avulsos pendentes concluída.",
+      "CERTIFICADO_AVULSO_CONSOLIDAR_PENDENTES_OK",
+    );
+  } catch (error) {
+    logError(rid, "Erro ao consolidar certificados avulsos pendentes", error);
+
+    return responderErro(
+      res,
+      500,
+      "Erro ao consolidar certificados avulsos pendentes.",
+      "CERTIFICADO_AVULSO_ERRO_CONSOLIDAR_PENDENTES",
+      "Falha inesperada em consolidarPendentesCertificadosAvulsos.",
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -1648,7 +1894,7 @@ async function enviarPorEmail(req, res) {
       400,
       "ID inválido.",
       "CERTIFICADO_AVULSO_ID_INVALIDO",
-      "O parâmetro id deve ser inteiro positivo."
+      "O parâmetro id deve ser inteiro positivo.",
     );
   }
 
@@ -1658,12 +1904,16 @@ async function enviarPorEmail(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_AVULSO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
   try {
-    const pdfResult = await consolidarPdfAvulsoSePendente(req, id, assinantesIds);
+    const pdfResult = await consolidarPdfAvulsoSePendente(
+      req,
+      id,
+      assinantesIds,
+    );
 
     if (!pdfResult) {
       return responderErro(
@@ -1671,7 +1921,7 @@ async function enviarPorEmail(req, res) {
         404,
         "Certificado avulso não encontrado.",
         "CERTIFICADO_AVULSO_NAO_ENCONTRADO",
-        "Não há certificado avulso com o id informado."
+        "Não há certificado avulso com o id informado.",
       );
     }
 
@@ -1683,7 +1933,7 @@ async function enviarPorEmail(req, res) {
         404,
         "Certificado avulso não encontrado.",
         "CERTIFICADO_AVULSO_NAO_ENCONTRADO",
-        "Registro desapareceu após geração do PDF."
+        "Registro desapareceu após geração do PDF.",
       );
     }
 
@@ -1697,7 +1947,7 @@ async function enviarPorEmail(req, res) {
         {
           status: certificado.status,
           numero_certificado: certificado.numero_certificado,
-        }
+        },
       );
     }
 
@@ -1707,7 +1957,7 @@ async function enviarPorEmail(req, res) {
         400,
         "O registro possui e-mail inválido.",
         "CERTIFICADO_AVULSO_EMAIL_INVALIDO",
-        "O campo email do certificado não passou na validação."
+        "O campo email do certificado não passou na validação.",
       );
     }
 
@@ -1717,7 +1967,7 @@ async function enviarPorEmail(req, res) {
         404,
         "Arquivo PDF não encontrado para envio.",
         "CERTIFICADO_AVULSO_PDF_NAO_ENCONTRADO",
-        "O PDF consolidado não foi localizado no armazenamento."
+        "O PDF consolidado não foi localizado no armazenamento.",
       );
     }
 
@@ -1796,7 +2046,7 @@ Equipe da Escola Municipal de Saúde Pública
         AND status = 'emitido'
       RETURNING *
       `,
-      [id]
+      [id],
     );
 
     const certificadoAtualizado =
@@ -1831,7 +2081,7 @@ Equipe da Escola Municipal de Saúde Pública
       200,
       certificadoAtualizado,
       "Certificado enviado com sucesso.",
-      "CERTIFICADO_AVULSO_EMAIL_ENVIADO"
+      "CERTIFICADO_AVULSO_EMAIL_ENVIADO",
     );
   } catch (error) {
     logError(rid, "Erro ao enviar certificado avulso por e-mail", error);
@@ -1846,7 +2096,7 @@ Equipe da Escola Municipal de Saúde Pública
         : "Erro ao enviar certificado avulso.",
       error.code || "CERTIFICADO_AVULSO_ERRO_EMAIL",
       "Falha inesperada em enviarPorEmail.",
-      error.details || (IS_DEV ? error.message : null)
+      error.details || (IS_DEV ? error.message : null),
     );
   }
 }
@@ -1863,7 +2113,7 @@ async function cancelarCertificadoAvulso(req, res) {
       400,
       "ID inválido.",
       "CERTIFICADO_AVULSO_ID_INVALIDO",
-      "O parâmetro id deve ser inteiro positivo."
+      "O parâmetro id deve ser inteiro positivo.",
     );
   }
 
@@ -1873,7 +2123,7 @@ async function cancelarCertificadoAvulso(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_AVULSO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -1883,7 +2133,7 @@ async function cancelarCertificadoAvulso(req, res) {
       400,
       "Motivo é obrigatório.",
       "CERTIFICADO_AVULSO_MOTIVO_OBRIGATORIO",
-      "Cancelamento de certificado exige motivo."
+      "Cancelamento de certificado exige motivo.",
     );
   }
 
@@ -1896,7 +2146,7 @@ async function cancelarCertificadoAvulso(req, res) {
         WHERE id = $1
         FOR UPDATE
         `,
-        [id]
+        [id],
       );
 
       if (atual.rowCount === 0) return null;
@@ -1904,7 +2154,9 @@ async function cancelarCertificadoAvulso(req, res) {
       const anterior = atual.rows[0];
 
       if (!["emitido", "enviado"].includes(anterior.status)) {
-        const error = new Error("Somente certificado emitido/enviado pode ser cancelado.");
+        const error = new Error(
+          "Somente certificado emitido/enviado pode ser cancelado.",
+        );
         error.statusCode = 409;
         error.code = "CERTIFICADO_AVULSO_STATUS_NAO_CANCELAVEL";
         error.details = {
@@ -1926,7 +2178,7 @@ async function cancelarCertificadoAvulso(req, res) {
         WHERE id = $1
         RETURNING *
         `,
-        [id, usuarioId, motivo]
+        [id, usuarioId, motivo],
       );
 
       await registrarHistorico(tx, {
@@ -1950,7 +2202,7 @@ async function cancelarCertificadoAvulso(req, res) {
         404,
         "Certificado avulso não encontrado.",
         "CERTIFICADO_AVULSO_NAO_ENCONTRADO",
-        "Não há certificado avulso com o id informado."
+        "Não há certificado avulso com o id informado.",
       );
     }
 
@@ -1964,7 +2216,7 @@ async function cancelarCertificadoAvulso(req, res) {
       200,
       result,
       "Certificado avulso cancelado com sucesso.",
-      "CERTIFICADO_AVULSO_CANCELADO"
+      "CERTIFICADO_AVULSO_CANCELADO",
     );
   } catch (error) {
     logError(rid, "Erro ao cancelar certificado avulso", error);
@@ -1977,7 +2229,7 @@ async function cancelarCertificadoAvulso(req, res) {
         : "Erro ao cancelar certificado avulso.",
       error.code || "CERTIFICADO_AVULSO_CANCELAR_ERRO",
       "Falha inesperada em cancelarCertificadoAvulso.",
-      error.details || (IS_DEV ? error.message : null)
+      error.details || (IS_DEV ? error.message : null),
     );
   }
 }
@@ -1994,7 +2246,7 @@ async function anularCertificadoAvulso(req, res) {
       400,
       "ID inválido.",
       "CERTIFICADO_AVULSO_ID_INVALIDO",
-      "O parâmetro id deve ser inteiro positivo."
+      "O parâmetro id deve ser inteiro positivo.",
     );
   }
 
@@ -2004,7 +2256,7 @@ async function anularCertificadoAvulso(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_AVULSO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -2014,7 +2266,7 @@ async function anularCertificadoAvulso(req, res) {
       400,
       "Motivo é obrigatório.",
       "CERTIFICADO_AVULSO_MOTIVO_OBRIGATORIO",
-      "Anulação de certificado exige motivo."
+      "Anulação de certificado exige motivo.",
     );
   }
 
@@ -2027,7 +2279,7 @@ async function anularCertificadoAvulso(req, res) {
         WHERE id = $1
         FOR UPDATE
         `,
-        [id]
+        [id],
       );
 
       if (atual.rowCount === 0) return null;
@@ -2035,7 +2287,9 @@ async function anularCertificadoAvulso(req, res) {
       const anterior = atual.rows[0];
 
       if (!["emitido", "enviado"].includes(anterior.status)) {
-        const error = new Error("Somente certificado emitido/enviado pode ser anulado.");
+        const error = new Error(
+          "Somente certificado emitido/enviado pode ser anulado.",
+        );
         error.statusCode = 409;
         error.code = "CERTIFICADO_AVULSO_STATUS_NAO_ANULAVEL";
         error.details = {
@@ -2057,7 +2311,7 @@ async function anularCertificadoAvulso(req, res) {
         WHERE id = $1
         RETURNING *
         `,
-        [id, usuarioId, motivo]
+        [id, usuarioId, motivo],
       );
 
       await registrarHistorico(tx, {
@@ -2081,7 +2335,7 @@ async function anularCertificadoAvulso(req, res) {
         404,
         "Certificado avulso não encontrado.",
         "CERTIFICADO_AVULSO_NAO_ENCONTRADO",
-        "Não há certificado avulso com o id informado."
+        "Não há certificado avulso com o id informado.",
       );
     }
 
@@ -2095,7 +2349,7 @@ async function anularCertificadoAvulso(req, res) {
       200,
       result,
       "Certificado avulso anulado com sucesso.",
-      "CERTIFICADO_AVULSO_ANULADO"
+      "CERTIFICADO_AVULSO_ANULADO",
     );
   } catch (error) {
     logError(rid, "Erro ao anular certificado avulso", error);
@@ -2108,7 +2362,7 @@ async function anularCertificadoAvulso(req, res) {
         : "Erro ao anular certificado avulso.",
       error.code || "CERTIFICADO_AVULSO_ANULAR_ERRO",
       "Falha inesperada em anularCertificadoAvulso.",
-      error.details || (IS_DEV ? error.message : null)
+      error.details || (IS_DEV ? error.message : null),
     );
   }
 }
@@ -2124,7 +2378,7 @@ async function historicoCertificadoAvulso(req, res) {
       400,
       "ID inválido.",
       "CERTIFICADO_AVULSO_ID_INVALIDO",
-      "O parâmetro id deve ser inteiro positivo."
+      "O parâmetro id deve ser inteiro positivo.",
     );
   }
 
@@ -2136,7 +2390,7 @@ async function historicoCertificadoAvulso(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     if (cert.rowCount === 0) {
@@ -2145,7 +2399,7 @@ async function historicoCertificadoAvulso(req, res) {
         404,
         "Certificado avulso não encontrado.",
         "CERTIFICADO_AVULSO_NAO_ENCONTRADO",
-        "Não há certificado avulso com o id informado."
+        "Não há certificado avulso com o id informado.",
       );
     }
 
@@ -2167,7 +2421,7 @@ async function historicoCertificadoAvulso(req, res) {
         AND h.certificado_avulso_id = $1
       ORDER BY h.criado_em DESC, h.id DESC
       `,
-      [id]
+      [id],
     );
 
     return responderSucesso(
@@ -2175,7 +2429,7 @@ async function historicoCertificadoAvulso(req, res) {
       200,
       historico.rows,
       "Histórico do certificado avulso carregado com sucesso.",
-      "CERTIFICADO_AVULSO_HISTORICO_LISTADO"
+      "CERTIFICADO_AVULSO_HISTORICO_LISTADO",
     );
   } catch (error) {
     logError(rid, "Erro ao carregar histórico do certificado avulso", error);
@@ -2186,7 +2440,7 @@ async function historicoCertificadoAvulso(req, res) {
       "Erro ao carregar histórico do certificado avulso.",
       "CERTIFICADO_AVULSO_HISTORICO_ERRO",
       "Falha inesperada em historicoCertificadoAvulso.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2196,6 +2450,7 @@ module.exports = {
   listarCertificadoAvulso,
   gerarPdfCertificado,
   enviarPorEmail,
+  consolidarPendentesCertificadosAvulsos,
   cancelarCertificadoAvulso,
   anularCertificadoAvulso,
   historicoCertificadoAvulso,
