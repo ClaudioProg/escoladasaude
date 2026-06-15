@@ -119,7 +119,14 @@ function responderSucesso(res, statusCode, data, message, code, extra = {}) {
   });
 }
 
-function responderErro(res, statusCode, message, code, adminHint, details = null) {
+function responderErro(
+  res,
+  statusCode,
+  message,
+  code,
+  adminHint,
+  details = null,
+) {
   return res.status(statusCode).json({
     ok: false,
     data: null,
@@ -157,7 +164,7 @@ function logWarn(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[certificado][${rid}][ERR] ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -182,7 +189,8 @@ function getDb(req) {
 }
 
 async function withTx(req, fn) {
-  const pool = req?.db?.pool || dbFallback?.pool || dbFallback?.db?.pool || null;
+  const pool =
+    req?.db?.pool || dbFallback?.pool || dbFallback?.db?.pool || null;
 
   if (pool && typeof pool.connect === "function") {
     const client = await pool.connect();
@@ -239,7 +247,9 @@ function getUsuarioId(req) {
 }
 
 function getPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isAdministrador(req) {
@@ -346,7 +356,7 @@ function frontendBaseUrl() {
 
 function urlValidacaoPublica(codigoValidacao) {
   return `${frontendBaseUrl()}/validar-certificado/${encodeURIComponent(
-    codigoValidacao
+    codigoValidacao,
   )}`;
 }
 
@@ -374,7 +384,7 @@ async function gerarNumeroCertificadoEvento(db) {
   const result = await db.query(
     `
     SELECT nextval('public.certificados_numero_seq')::bigint AS seq
-    `
+    `,
   );
 
   const seq = Number(result.rows?.[0]?.seq);
@@ -459,7 +469,7 @@ async function registrarHistorico(
     motivo = null,
     usuario_id = null,
     metadados_json = {},
-  }
+  },
 ) {
   await db.query(
     `
@@ -487,7 +497,7 @@ async function registrarHistorico(
       motivo,
       usuario_id,
       JSON.stringify(metadados_json || {}),
-    ]
+    ],
   );
 }
 
@@ -501,13 +511,10 @@ async function registrarValidacaoPublica(
     codigo_validacao,
     resultado,
     metadados_json = {},
-  }
+  },
 ) {
   const ip =
-    req.headers["x-forwarded-for"] ||
-    req.socket?.remoteAddress ||
-    req.ip ||
-    "";
+    req.headers["x-forwarded-for"] || req.socket?.remoteAddress || req.ip || "";
 
   const ipHash = ip ? sha256(String(ip)) : null;
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 1000);
@@ -536,7 +543,7 @@ async function registrarValidacaoPublica(
       ipHash,
       userAgent || null,
       JSON.stringify(metadados_json || {}),
-    ]
+    ],
   );
 }
 
@@ -568,7 +575,7 @@ async function turmaEncerradaSP(db, turmaId) {
         )
       ) AS encerrou
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0]?.encerrou === true;
@@ -597,7 +604,7 @@ async function totalEncontrosTurma(db, turmaId) {
         ELSE COALESCE((SELECT total FROM fallback), 0)
       END AS total
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return Number(result.rows?.[0]?.total || 0);
@@ -612,7 +619,7 @@ async function presencasDistintasUsuarioTurma(db, usuarioId, turmaId) {
       AND p.usuario_id = $2
       AND p.presente = TRUE
     `,
-    [turmaId, usuarioId]
+    [turmaId, usuarioId],
   );
 
   return Number(result.rows?.[0]?.total || 0);
@@ -627,7 +634,7 @@ async function usuarioEstaInscrito(db, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rowCount || 0) > 0;
@@ -642,7 +649,7 @@ async function usuarioFezAvaliacao(db, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rowCount || 0) > 0;
@@ -652,7 +659,7 @@ async function usuarioAprovadoEmQuestionarioObrigatorio(
   db,
   usuarioId,
   eventoId,
-  turmaId
+  turmaId,
 ) {
   const result = await db.query(
     `
@@ -682,7 +689,7 @@ async function usuarioAprovadoEmQuestionarioObrigatorio(
         )
       END AS aprovado
     `,
-    [usuarioId, eventoId, turmaId]
+    [usuarioId, eventoId, turmaId],
   );
 
   return result.rows?.[0]?.aprovado === true;
@@ -703,7 +710,7 @@ async function organizadorVinculadoATurma(db, usuarioId, turmaId) {
         )
     ) AS vinculado
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return result.rows?.[0]?.vinculado === true;
@@ -730,7 +737,7 @@ async function obterContextoTurmaCertificado(db, eventoId, turmaId) {
       AND t.id = $2
     LIMIT 1
     `,
-    [eventoId, turmaId]
+    [eventoId, turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -769,7 +776,7 @@ async function resumoDatasTurma(db, turmaId, usuarioId) {
     FROM base
     LEFT JOIN pres ON TRUE
     `,
-    [turmaId, usuarioId]
+    [turmaId, usuarioId],
   );
 
   const row = result.rows?.[0] || {};
@@ -796,7 +803,7 @@ async function resumoDatasTurma(db, turmaId, usuarioId) {
     FROM turmas t
     WHERE t.id = $1
     `,
-    [turmaId, usuarioId]
+    [turmaId, usuarioId],
   );
 
   return fallback.rows?.[0] || {};
@@ -804,49 +811,108 @@ async function resumoDatasTurma(db, turmaId, usuarioId) {
 
 async function obterAssinantesDaTurma(db, turmaId, options = {}) {
   const excluirUsuarioId = toPositiveInt(options?.excluirUsuarioId);
+
   const result = await db.query(
     `
+    WITH candidatos AS (
+      /*
+       * Assinantes oficiais cadastrados na turma.
+       * Fonte documental principal.
+       */
+      SELECT
+        tca.usuario_id,
+        tca.ordem::int AS ordem,
+        'turma_certificado_assinante'::text AS origem,
+        'assinante'::text AS papel,
+        CASE
+          WHEN tca.usuario_id = $2 THEN 'Chefe da Escola da Saúde'
+          WHEN tca.usuario_id = $3 THEN 'Secretário de Saúde'
+          ELSE 'Assinante'
+        END AS cargo_fallback
+      FROM turma_certificado_assinante tca
+      WHERE tca.turma_id = $1
+
+      UNION ALL
+
+      /*
+       * Organizadores internos da turma.
+       * Eles NÃO assinam o próprio certificado, porque serão filtrados
+       * por excluirUsuarioId quando forem o titular do certificado.
+       * Mas assinam certificados de participantes/palestrantes.
+       */
+      SELECT
+        tr.usuario_id,
+        10 AS ordem,
+        'turma_responsavel'::text AS origem,
+        LOWER(TRIM(COALESCE(tr.papel, ''))) AS papel,
+        'Organizador(a)'::text AS cargo_fallback
+      FROM turma_responsavel tr
+      WHERE tr.turma_id = $1
+        AND LOWER(TRIM(COALESCE(tr.papel, ''))) = 'organizador'
+    ),
+    dedup AS (
+      SELECT DISTINCT ON (c.usuario_id)
+        c.usuario_id,
+        c.ordem,
+        c.origem,
+        c.papel,
+        c.cargo_fallback
+      FROM candidatos c
+      WHERE c.usuario_id IS NOT NULL
+      ORDER BY
+        c.usuario_id,
+        CASE
+          WHEN c.origem = 'turma_certificado_assinante' THEN 0
+          ELSE 1
+        END,
+        c.ordem
+    )
     SELECT
-      tca.usuario_id AS id,
-      tca.usuario_id,
-      tca.ordem,
+      d.usuario_id AS id,
+      d.usuario_id,
+      d.ordem,
+      d.origem,
+      d.papel,
+      d.cargo_fallback,
       NULLIF(TRIM(u.nome), '') AS nome,
       u.email,
       u.perfil,
       a.imagem_base64
-    FROM turma_certificado_assinante tca
-    JOIN usuarios u ON u.id = tca.usuario_id
+    FROM dedup d
+    JOIN usuarios u ON u.id = d.usuario_id
     LEFT JOIN assinaturas a ON a.usuario_id = u.id
-    WHERE tca.turma_id = $1
-    ORDER BY tca.ordem ASC, u.nome ASC
+    WHERE d.usuario_id <> COALESCE($4, 0)
+    ORDER BY
+      CASE
+        WHEN d.usuario_id = $3 THEN 999
+        WHEN d.usuario_id = $2 THEN 998
+        ELSE d.ordem
+      END ASC,
+      u.nome ASC
     `,
-    [turmaId]
+    [turmaId, RAFAELLA_PITOL_ID, FABIO_LOPEZ_ID, excluirUsuarioId],
   );
 
   const assinantes = (result.rows || [])
-  .map((row) => ({
-    id: Number(row.id),
-    usuario_id: Number(row.usuario_id),
-    ordem: Number(row.ordem),
-    nome: row.nome || "",
-    email: row.email || null,
-    perfil: row.perfil || null,
-    imagem_base64: row.imagem_base64 || null,
-    cargo: cargoAssinantePorId(row.usuario_id, "Assinante"),
-    origem: "turma_certificado_assinante",
-  }))
-  .filter((item) => item.id && item.nome)
-  .filter((item) => {
-    if (!excluirUsuarioId) return true;
-
-    return Number(item.usuario_id) !== Number(excluirUsuarioId);
-  });
+    .map((row) => ({
+      id: Number(row.id),
+      usuario_id: Number(row.usuario_id),
+      ordem: Number(row.ordem),
+      nome: row.nome || "",
+      email: row.email || null,
+      perfil: row.perfil || null,
+      imagem_base64: row.imagem_base64 || null,
+      cargo: cargoAssinantePorId(row.usuario_id, row.cargo_fallback),
+      origem: row.origem || "desconhecida",
+      papel: row.papel || null,
+    }))
+    .filter((item) => item.id && item.nome);
 
   const ids = assinantes.map((item) => Number(item.id));
 
   if (!ids.includes(RAFAELLA_PITOL_ID)) {
     const error = new Error(
-      "A turma não possui a assinatura obrigatória da Rafaella Pitol."
+      "A turma não possui a assinatura obrigatória da Rafaella Pitol.",
     );
     error.statusCode = 409;
     error.code = "CERTIFICADO_ASSINATURA_RAFAELLA_AUSENTE";
@@ -859,26 +925,31 @@ async function obterAssinantesDaTurma(db, turmaId, options = {}) {
     error.code = "CERTIFICADO_ASSINANTES_QUANTIDADE_INVALIDA";
     error.details = {
       total_assinantes: assinantes.length,
+      assinantes: assinantes.map((item) => ({
+        usuario_id: item.usuario_id,
+        nome: item.nome,
+        origem: item.origem,
+        papel: item.papel,
+      })),
     };
     throw error;
   }
 
   const fabioIndex = ids.indexOf(FABIO_LOPEZ_ID);
+  const rafaellaIndex = ids.indexOf(RAFAELLA_PITOL_ID);
 
   if (fabioIndex !== -1 && fabioIndex !== assinantes.length - 1) {
     const error = new Error(
-      "Fábio Lopez deve ser a última assinatura quando selecionado."
+      "Fábio Lopez deve ser a última assinatura quando selecionado.",
     );
     error.statusCode = 409;
     error.code = "CERTIFICADO_ASSINATURA_FABIO_ORDEM_INVALIDA";
     throw error;
   }
 
-  const rafaellaIndex = ids.indexOf(RAFAELLA_PITOL_ID);
-
   if (fabioIndex === -1 && rafaellaIndex !== assinantes.length - 1) {
     const error = new Error(
-      "Rafaella Pitol deve ser a última assinatura quando Fábio Lopez não estiver selecionado."
+      "Rafaella Pitol deve ser a última assinatura quando Fábio Lopez não estiver selecionado.",
     );
     error.statusCode = 409;
     error.code = "CERTIFICADO_ASSINATURA_RAFAELLA_ORDEM_INVALIDA";
@@ -887,7 +958,7 @@ async function obterAssinantesDaTurma(db, turmaId, options = {}) {
 
   if (fabioIndex !== -1 && rafaellaIndex !== fabioIndex - 1) {
     const error = new Error(
-      "Rafaella Pitol deve ficar imediatamente antes de Fábio Lopez quando ambos estiverem presentes."
+      "Rafaella Pitol deve ficar imediatamente antes de Fábio Lopez quando ambos estiverem presentes.",
     );
     error.statusCode = 409;
     error.code = "CERTIFICADO_ASSINATURA_RAFAELLA_FABIO_ORDEM_INVALIDA";
@@ -927,7 +998,7 @@ async function gerarPdfFisico({
   await ensureDir(CERT_DIR);
 
   const nomeArquivo = nomeArquivoSeguro(
-    `certificado_${tipo}_${codigo_validacao}.pdf`
+    `certificado_${tipo}_${codigo_validacao}.pdf`,
   );
   const caminho = path.join(CERT_DIR, nomeArquivo);
   const tmpPath = `${caminho}.tmp`;
@@ -943,13 +1014,15 @@ async function gerarPdfFisico({
   const cargaTexto = horasOuFallback(horasTotal, contextoTurma.carga_horaria);
   const tituloEvento = contextoTurma.titulo || "evento";
   const turmaNome =
-    contextoTurma.turma_nome || contextoTurma.nome_turma || `Turma #${turma_id}`;
+    contextoTurma.turma_nome ||
+    contextoTurma.nome_turma ||
+    `Turma #${turma_id}`;
 
   const linkValidacao = urlValidacaoPublica(codigo_validacao);
   const qrDataURL = await tryQRCodeDataURL(linkValidacao);
   const assinantes = await obterAssinantesDaTurma(db, turma_id, {
-  excluirUsuarioId: usuario_id,
-});
+    excluirUsuarioId: usuario_id,
+  });
 
   const doc = new PDFDocument({
     size: "A4",
@@ -978,11 +1051,11 @@ async function gerarPdfFisico({
 
   let textoPrincipal;
 
-if (tipo === TIPO_CERTIFICADO.ORGANIZADOR) {
-  textoPrincipal = mesmoDia
-    ? `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
-    : `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
-} else {
+  if (tipo === TIPO_CERTIFICADO.ORGANIZADOR) {
+    textoPrincipal = mesmoDia
+      ? `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
+      : `Participou como organizador(a) do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
+  } else {
     textoPrincipal = mesmoDia
       ? `Participou do evento "${tituloEvento}" - "${turmaNome}", realizado em ${dataInicioBR}, com carga horária total de ${cargaTexto} horas.`
       : `Participou do evento "${tituloEvento}" - "${turmaNome}", realizado de ${dataInicioBR} a ${dataFimBR}, com carga horária total de ${cargaTexto} horas.`;
@@ -996,7 +1069,7 @@ if (tipo === TIPO_CERTIFICADO.ORGANIZADOR) {
   };
 
   desenharCertificadoCompletoV2(doc, {
-modelo: tipo === TIPO_CERTIFICADO.ORGANIZADOR ? "organizador" : "padrao",
+    modelo: tipo === TIPO_CERTIFICADO.ORGANIZADOR ? "organizador" : "padrao",
     nome: nomeUsuario,
     identificadorTexto: cpfMask ? `Identificador: ${cpfMask}` : null,
     textoPrincipal,
@@ -1012,7 +1085,7 @@ modelo: tipo === TIPO_CERTIFICADO.ORGANIZADOR ? "organizador" : "padrao",
 
   const conteudoProgramatico = safeText(
     contextoTurma?.conteudo_programatico,
-    12000
+    12000,
   );
 
   if (conteudoProgramatico) {
@@ -1057,10 +1130,10 @@ modelo: tipo === TIPO_CERTIFICADO.ORGANIZADOR ? "organizador" : "padrao",
         assinatura_visual: Boolean(assinante.imagem_base64),
         origem: assinante.origem,
       })),
-            rafaella_obrigatoria: true,
+      rafaella_obrigatoria: true,
       fabio_ultimo_quando_presente: true,
       possui_verso_conteudo_programatico: Boolean(
-        safeText(contextoTurma?.conteudo_programatico, 12000)
+        safeText(contextoTurma?.conteudo_programatico, 12000),
       ),
       validacao_url: linkValidacao,
     },
@@ -1090,7 +1163,7 @@ function montarHashDadosCertificado({
       arquivo_pdf,
       codigo_validacao,
       gerado_em,
-    })
+    }),
   );
 }
 
@@ -1101,7 +1174,9 @@ function montarHashDadosCertificado({
 async function validarCertificadoPublico(req, res) {
   const rid = reqRid(req);
   const db = getDb(req);
-  const codigo = String(req.params?.codigo_validacao || "").trim().toUpperCase();
+  const codigo = String(req.params?.codigo_validacao || "")
+    .trim()
+    .toUpperCase();
 
   if (!codigo) {
     return responderErro(
@@ -1109,7 +1184,7 @@ async function validarCertificadoPublico(req, res) {
       400,
       "Código de validação não informado.",
       "CERTIFICADO_CODIGO_AUSENTE",
-      "A validação pública foi chamada sem codigo_validacao."
+      "A validação pública foi chamada sem codigo_validacao.",
     );
   }
 
@@ -1142,7 +1217,7 @@ async function validarCertificadoPublico(req, res) {
       WHERE c.codigo_validacao = $1
       LIMIT 1
       `,
-      [codigo]
+      [codigo],
     );
 
     if (regular.rowCount > 0) {
@@ -1191,7 +1266,7 @@ async function validarCertificadoPublico(req, res) {
         resultado === "valido"
           ? "Certificado válido."
           : "Certificado localizado, mas não está válido.",
-        "CERTIFICADO_VALIDACAO_PUBLICA_OK"
+        "CERTIFICADO_VALIDACAO_PUBLICA_OK",
       );
     }
 
@@ -1222,7 +1297,7 @@ async function validarCertificadoPublico(req, res) {
       WHERE c.codigo_validacao = $1
       LIMIT 1
       `,
-      [codigo]
+      [codigo],
     );
 
     if (avulso.rowCount > 0) {
@@ -1272,7 +1347,7 @@ async function validarCertificadoPublico(req, res) {
         resultado === "valido"
           ? "Certificado válido."
           : "Certificado localizado, mas não está válido.",
-        "CERTIFICADO_VALIDACAO_PUBLICA_OK"
+        "CERTIFICADO_VALIDACAO_PUBLICA_OK",
       );
     }
 
@@ -1290,7 +1365,7 @@ async function validarCertificadoPublico(req, res) {
         status: "nao_encontrado",
       },
       "Certificado não encontrado.",
-      "CERTIFICADO_VALIDACAO_PUBLICA_NAO_ENCONTRADO"
+      "CERTIFICADO_VALIDACAO_PUBLICA_NAO_ENCONTRADO",
     );
   } catch (error) {
     logError(rid, "Erro na validação pública de certificado", error);
@@ -1301,7 +1376,7 @@ async function validarCertificadoPublico(req, res) {
       "Erro ao validar certificado.",
       "CERTIFICADO_VALIDACAO_PUBLICA_ERRO",
       "Falha inesperada em validarCertificadoPublico.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -1317,7 +1392,9 @@ async function gerarCertificado(req, res) {
   const usuarioId = toPositiveInt(req.body?.usuario_id);
   const eventoId = toPositiveInt(req.body?.evento_id);
   const turmaId = toPositiveInt(req.body?.turma_id);
-  const tipo = String(req.body?.tipo || "").trim().toLowerCase();
+  const tipo = String(req.body?.tipo || "")
+    .trim()
+    .toLowerCase();
   const authUserId = getUsuarioId(req);
 
   if (!authUserId) {
@@ -1326,7 +1403,7 @@ async function gerarCertificado(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -1336,25 +1413,25 @@ async function gerarCertificado(req, res) {
       400,
       "Parâmetros obrigatórios inválidos.",
       "CERTIFICADO_PARAMETROS_INVALIDOS",
-      "usuario_id, evento_id e turma_id devem ser inteiros positivos."
+      "usuario_id, evento_id e turma_id devem ser inteiros positivos.",
     );
   }
 
-if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
-  return responderErro(
-    res,
-    400,
-    "Tipo de certificado inválido.",
-    "CERTIFICADO_TIPO_INVALIDO",
-    "tipo deve ser usuario ou organizador."
-  );
-}
+  if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
+    return responderErro(
+      res,
+      400,
+      "Tipo de certificado inválido.",
+      "CERTIFICADO_TIPO_INVALIDO",
+      "tipo deve ser usuario ou organizador.",
+    );
+  }
 
   try {
     const contextoTurma = await obterContextoTurmaCertificado(
       db,
       eventoId,
-      turmaId
+      turmaId,
     );
 
     if (!contextoTurma) {
@@ -1363,7 +1440,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
         404,
         "Evento ou turma não encontrados.",
         "CERTIFICADO_TURMA_NAO_ENCONTRADA",
-        "Não foi localizada turma vinculada ao evento informado."
+        "Não foi localizada turma vinculada ao evento informado.",
       );
     }
 
@@ -1374,7 +1451,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
       WHERE id = $1
       LIMIT 1
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     if (pessoa.rowCount === 0) {
@@ -1383,7 +1460,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
         404,
         "Usuário não encontrado.",
         "CERTIFICADO_USUARIO_NAO_ENCONTRADO",
-        "Não há usuário para o usuario_id informado."
+        "Não há usuário para o usuario_id informado.",
       );
     }
 
@@ -1395,12 +1472,16 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
         403,
         "A turma ainda não encerrou.",
         "CERTIFICADO_TURMA_NAO_ENCERRADA",
-        "A emissão só é permitida após o fim real da turma."
+        "A emissão só é permitida após o fim real da turma.",
       );
     }
 
     if (tipo === TIPO_CERTIFICADO.ORGANIZADOR) {
-      const vinculado = await organizadorVinculadoATurma(db, usuarioId, turmaId);
+      const vinculado = await organizadorVinculadoATurma(
+        db,
+        usuarioId,
+        turmaId,
+      );
 
       if (!vinculado) {
         return responderErro(
@@ -1408,7 +1489,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
           403,
           "Usuário não está vinculado como organizador nesta turma.",
           "CERTIFICADO_ORGANIZADOR_NAO_VINCULADO",
-          "Não há vínculo em turma_responsavel com papel organizador."
+          "Não há vínculo em turma_responsavel com papel organizador.",
         );
       }
     }
@@ -1422,7 +1503,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
           403,
           "Usuário não está inscrito nesta turma.",
           "CERTIFICADO_USUARIO_NAO_INSCRITO",
-          "Não há inscrição correspondente em inscricoes."
+          "Não há inscrição correspondente em inscricoes.",
         );
       }
 
@@ -1430,7 +1511,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
       const presencas = await presencasDistintasUsuarioTurma(
         db,
         usuarioId,
-        turmaId
+        turmaId,
       );
       const percentual = totalAulas > 0 ? (presencas / totalAulas) * 100 : 0;
 
@@ -1445,7 +1526,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
             total_aulas: totalAulas,
             presencas,
             percentual: Number(percentual.toFixed(2)),
-          }
+          },
         );
       }
 
@@ -1457,7 +1538,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
           403,
           "É necessário enviar a avaliação do evento para liberar o certificado.",
           "CERTIFICADO_AVALIACAO_PENDENTE",
-          "Não há registro em avaliacoes para usuario_id/turma_id."
+          "Não há registro em avaliacoes para usuario_id/turma_id.",
         );
       }
 
@@ -1465,7 +1546,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
         db,
         usuarioId,
         eventoId,
-        turmaId
+        turmaId,
       );
 
       if (!questionarioOk) {
@@ -1474,7 +1555,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
           403,
           "É necessário ser aprovado no questionário obrigatório para liberar o certificado.",
           "CERTIFICADO_QUESTIONARIO_PENDENTE",
-          "Há questionário obrigatório publicado sem tentativa aprovada."
+          "Há questionário obrigatório publicado sem tentativa aprovada.",
         );
       }
     }
@@ -1501,7 +1582,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
         LIMIT 1
         FOR UPDATE
         `,
-        [usuarioId, eventoId, turmaId, tipo]
+        [usuarioId, eventoId, turmaId, tipo],
       );
 
       const certificadoAnterior = existente.rows?.[0] || null;
@@ -1516,11 +1597,11 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
 
         if (
           ["cancelado", "anulado", "substituido"].includes(
-            certificadoAnterior.status
+            certificadoAnterior.status,
           )
         ) {
           const error = new Error(
-            "Já existe certificado anterior com status final. Use substituição formal."
+            "Já existe certificado anterior com status final. Use substituição formal.",
           );
           error.statusCode = 409;
           error.code = "CERTIFICADO_EXISTENTE_STATUS_FINAL";
@@ -1534,7 +1615,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
 
         if (certificadoAnterior.status === "erro_emissao") {
           const error = new Error(
-            "Certificado em erro técnico deve ser tratado pela rotina de reprocessamento de erro."
+            "Certificado em erro técnico deve ser tratado pela rotina de reprocessamento de erro.",
           );
           error.statusCode = 409;
           error.code = "CERTIFICADO_EXISTENTE_ERRO_EMISSAO";
@@ -1644,7 +1725,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
           authUserId,
           JSON.stringify(metadados),
           JSON.stringify(pdf.dados_assinatura_json),
-        ]
+        ],
       );
 
       const certificado = insert.rows[0];
@@ -1679,7 +1760,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
         200,
         result.certificado,
         "Certificado já havia sido emitido. O documento existente foi preservado.",
-        "CERTIFICADO_JA_EMITIDO"
+        "CERTIFICADO_JA_EMITIDO",
       );
     }
 
@@ -1698,7 +1779,7 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
       201,
       result.certificado,
       "Certificado gerado com sucesso.",
-      "CERTIFICADO_GERADO"
+      "CERTIFICADO_GERADO",
     );
   } catch (error) {
     logError(rid, "Erro ao gerar certificado", error);
@@ -1706,12 +1787,10 @@ if (!TIPOS_CERTIFICADO_VALIDOS.has(tipo)) {
     return responderErro(
       res,
       error.statusCode || 500,
-      error.statusCode === 409
-        ? error.message
-      : "Erro ao gerar certificado.",
+      error.statusCode === 409 ? error.message : "Erro ao gerar certificado.",
       error.code || "CERTIFICADO_GERAR_ERRO",
       "Falha inesperada em gerarCertificado.",
-      error.details || (IS_DEV ? error.message : null)
+      error.details || (IS_DEV ? error.message : null),
     );
   }
 }
@@ -1762,7 +1841,7 @@ async function obterCertificadoPorId(db, certificadoId) {
     WHERE c.id = $1
     LIMIT 1
     `,
-    [certificadoId]
+    [certificadoId],
   );
 
   return result.rows?.[0] || null;
@@ -1800,7 +1879,7 @@ async function downloadCertificado(req, res) {
       400,
       "ID do certificado inválido.",
       "CERTIFICADO_ID_INVALIDO",
-      "req.params.id deve ser inteiro positivo."
+      "req.params.id deve ser inteiro positivo.",
     );
   }
 
@@ -1813,7 +1892,7 @@ async function downloadCertificado(req, res) {
         404,
         "Certificado não encontrado.",
         "CERTIFICADO_NAO_ENCONTRADO",
-        "Nenhum certificado localizado para o ID informado."
+        "Nenhum certificado localizado para o ID informado.",
       );
     }
 
@@ -1823,7 +1902,7 @@ async function downloadCertificado(req, res) {
         403,
         "Você não tem permissão para acessar este certificado.",
         "CERTIFICADO_ACESSO_NEGADO",
-        "Usuário autenticado não é dono do certificado e não é administrador."
+        "Usuário autenticado não é dono do certificado e não é administrador.",
       );
     }
 
@@ -1841,65 +1920,67 @@ async function downloadCertificado(req, res) {
         {
           status: certificado.status,
           motivo_cancelamento: certificado.motivo_cancelamento || null,
-        }
+        },
       );
     }
 
     const filePath = caminhoCertificadoPdf(certificado.arquivo_pdf);
 
     console.log("[CERTIFICADO][DOWNLOAD][DEBUG]", {
-  CERT_DIR,
-  arquivo_pdf: certificado.arquivo_pdf,
-  filePath,
-  exists: filePath ? fs.existsSync(filePath) : false,
-});
+      CERT_DIR,
+      arquivo_pdf: certificado.arquivo_pdf,
+      filePath,
+      exists: filePath ? fs.existsSync(filePath) : false,
+    });
 
     let finalFilePath = filePath;
 
-if (!finalFilePath || !fs.existsSync(finalFilePath)) {
-  logWarn(rid, "PDF físico ausente. Tentando reconstruir certificado.", {
-    certificado_id: certificado.id,
-    arquivo_pdf: certificado.arquivo_pdf,
-    CERT_DIR,
-  });
+    if (!finalFilePath || !fs.existsSync(finalFilePath)) {
+      logWarn(rid, "PDF físico ausente. Tentando reconstruir certificado.", {
+        certificado_id: certificado.id,
+        arquivo_pdf: certificado.arquivo_pdf,
+        CERT_DIR,
+      });
 
-  const resumo = await resumoDatasTurma(
-    db,
-    certificado.turma_id,
-    certificado.usuario_id
-  );
+      const resumo = await resumoDatasTurma(
+        db,
+        certificado.turma_id,
+        certificado.usuario_id,
+      );
 
-  const contextoTurma = {
-    evento_id: certificado.evento_id,
-    turma_id: certificado.turma_id,
-    titulo: certificado.evento_titulo,
-    turma_nome: certificado.turma_nome,
-    data_inicio: certificado.data_inicio,
-    data_fim: certificado.data_fim,
-    carga_horaria: certificado.carga_horaria,
-    conteudo_programatico: certificado.conteudo_programatico,
-  };
+      const contextoTurma = {
+        evento_id: certificado.evento_id,
+        turma_id: certificado.turma_id,
+        titulo: certificado.evento_titulo,
+        turma_nome: certificado.turma_nome,
+        data_inicio: certificado.data_inicio,
+        data_fim: certificado.data_fim,
+        carga_horaria: certificado.carga_horaria,
+        conteudo_programatico: certificado.conteudo_programatico,
+      };
 
-  const pdf = await gerarPdfFisico({
-    tipo: certificado.tipo,
-    usuario_id: certificado.usuario_id,
-    evento_id: certificado.evento_id,
-    turma_id: certificado.turma_id,
-    numero_certificado: certificado.numero_certificado,
-    codigo_validacao: certificado.codigo_validacao,
-    contextoTurma,
-    nomeUsuario: certificado.usuario_nome,
-    cpfUsuario: certificado.usuario_cpf || "",
-    horasTotal: Number(resumo.horas_total || certificado.carga_horaria || 0),
-    minData: resumo.min_data || certificado.data_inicio,
-    maxData: resumo.max_data || certificado.data_fim,
-    db,
-  });
+      const pdf = await gerarPdfFisico({
+        tipo: certificado.tipo,
+        usuario_id: certificado.usuario_id,
+        evento_id: certificado.evento_id,
+        turma_id: certificado.turma_id,
+        numero_certificado: certificado.numero_certificado,
+        codigo_validacao: certificado.codigo_validacao,
+        contextoTurma,
+        nomeUsuario: certificado.usuario_nome,
+        cpfUsuario: certificado.usuario_cpf || "",
+        horasTotal: Number(
+          resumo.horas_total || certificado.carga_horaria || 0,
+        ),
+        minData: resumo.min_data || certificado.data_inicio,
+        maxData: resumo.max_data || certificado.data_fim,
+        db,
+      });
 
-  finalFilePath = pdf.caminho;
+      finalFilePath = pdf.caminho;
 
-  await db.query(
-    `
+      await db.query(
+        `
     UPDATE certificados
     SET
       arquivo_pdf = $2,
@@ -1908,27 +1989,27 @@ if (!finalFilePath || !fs.existsSync(finalFilePath)) {
       atualizado_em = NOW()
     WHERE id = $1
     `,
-    [
-      certificado.id,
-      pdf.nomeArquivo,
-      pdf.hash_pdf,
-      JSON.stringify(pdf.dados_assinatura_json || {}),
-    ]
-  );
+        [
+          certificado.id,
+          pdf.nomeArquivo,
+          pdf.hash_pdf,
+          JSON.stringify(pdf.dados_assinatura_json || {}),
+        ],
+      );
 
-  certificado.arquivo_pdf = pdf.nomeArquivo;
-  certificado.hash_pdf = pdf.hash_pdf;
-}
+      certificado.arquivo_pdf = pdf.nomeArquivo;
+      certificado.hash_pdf = pdf.hash_pdf;
+    }
 
     const filename = nomeArquivoSeguro(
-      `${certificado.numero_certificado || "certificado"}.pdf`
+      `${certificado.numero_certificado || "certificado"}.pdf`,
     );
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename="${filename || "certificado.pdf"}"`
+      `inline; filename="${filename || "certificado.pdf"}"`,
     );
     res.setHeader("Cache-Control", "private, no-store");
 
@@ -1942,7 +2023,7 @@ if (!finalFilePath || !fs.existsSync(finalFilePath)) {
       "Erro ao baixar certificado.",
       "CERTIFICADO_DOWNLOAD_ERRO",
       "Falha inesperada em downloadCertificado.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -1962,7 +2043,7 @@ async function listarCertificadoUsuario(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado."
+      "req.user.id não foi encontrado.",
     );
   }
 
@@ -1996,7 +2077,7 @@ async function listarCertificadoUsuario(req, res) {
       WHERE c.usuario_id = $1
       ORDER BY c.gerado_em DESC NULLS LAST, c.id DESC
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     return responderSucesso(
@@ -2009,7 +2090,7 @@ async function listarCertificadoUsuario(req, res) {
         meta: {
           total: result.rows?.length || 0,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao listar certificados do usuário", error);
@@ -2020,7 +2101,7 @@ async function listarCertificadoUsuario(req, res) {
       "Erro ao listar certificados.",
       "CERTIFICADO_USUARIO_LISTA_ERRO",
       "Falha inesperada em listarCertificadoUsuario.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2040,7 +2121,7 @@ async function listarCertificadosDisponiveisUsuario(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado."
+      "req.user.id não foi encontrado.",
     );
   }
 
@@ -2238,7 +2319,7 @@ async function listarCertificadosDisponiveisUsuario(req, res) {
         t.data_fim DESC NULLS LAST,
         t.id DESC
       `,
-      [usuarioId, TZ]
+      [usuarioId, TZ],
     );
 
     return responderSucesso(
@@ -2251,7 +2332,7 @@ async function listarCertificadosDisponiveisUsuario(req, res) {
         meta: {
           total: result.rows?.length || 0,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao listar certificados disponíveis do usuário", error);
@@ -2262,7 +2343,7 @@ async function listarCertificadosDisponiveisUsuario(req, res) {
       "Erro ao listar certificados disponíveis.",
       "CERTIFICADO_DISPONIVEIS_USUARIO_ERRO",
       "Falha inesperada em listarCertificadosDisponiveisUsuario.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2284,7 +2365,7 @@ async function listarElegiveisOrganizador(req, res) {
       401,
       "Usuário não autenticado.",
       "CERTIFICADO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado."
+      "req.user.id não foi encontrado.",
     );
   }
 
@@ -2401,7 +2482,7 @@ async function listarElegiveisOrganizador(req, res) {
         COALESCE(t.data_fim, t.data_inicio) DESC NULLS LAST,
         t.id DESC
       `,
-      [usuarioId, TZ]
+      [usuarioId, TZ],
     );
 
     return responderSucesso(
@@ -2415,7 +2496,7 @@ async function listarElegiveisOrganizador(req, res) {
           usuario_id: usuarioId,
           total: result.rows?.length || 0,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao listar certificados de organizador", error);
@@ -2426,7 +2507,7 @@ async function listarElegiveisOrganizador(req, res) {
       "Erro ao listar certificados de organizador.",
       "CERTIFICADO_ORGANIZADOR_ELEGIVEIS_ERRO",
       "Falha inesperada em listarElegiveisOrganizador.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2446,7 +2527,7 @@ async function listarCertificadosPorTurma(req, res) {
       403,
       "Acesso restrito a administradores.",
       "CERTIFICADO_ADMIN_REQUERIDO",
-      "Somente administrador pode consultar certificados por turma."
+      "Somente administrador pode consultar certificados por turma.",
     );
   }
 
@@ -2456,7 +2537,7 @@ async function listarCertificadosPorTurma(req, res) {
       400,
       "ID da turma inválido.",
       "CERTIFICADO_TURMA_ID_INVALIDO",
-      "turma_id deve ser inteiro positivo."
+      "turma_id deve ser inteiro positivo.",
     );
   }
 
@@ -2495,7 +2576,7 @@ async function listarCertificadosPorTurma(req, res) {
         c.gerado_em DESC NULLS LAST,
         c.id DESC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     return responderSucesso(
@@ -2509,7 +2590,7 @@ async function listarCertificadosPorTurma(req, res) {
           turma_id: turmaId,
           total: result.rows?.length || 0,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao listar certificados por turma", error);
@@ -2520,7 +2601,7 @@ async function listarCertificadosPorTurma(req, res) {
       "Erro ao listar certificados da turma.",
       "CERTIFICADO_TURMA_LISTA_ERRO",
       "Falha inesperada em listarCertificadosPorTurma.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2540,7 +2621,7 @@ async function listarElegiveisPorTurma(req, res) {
       403,
       "Acesso restrito a administradores.",
       "CERTIFICADO_ADMIN_REQUERIDO",
-      "Somente administrador pode listar elegíveis por turma."
+      "Somente administrador pode listar elegíveis por turma.",
     );
   }
 
@@ -2550,7 +2631,7 @@ async function listarElegiveisPorTurma(req, res) {
       400,
       "ID da turma inválido.",
       "CERTIFICADO_TURMA_ID_INVALIDO",
-      "turma_id deve ser inteiro positivo."
+      "turma_id deve ser inteiro positivo.",
     );
   }
 
@@ -2567,7 +2648,7 @@ async function listarElegiveisPorTurma(req, res) {
       WHERE t.id = $1
       LIMIT 1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const turma = turmaResult.rows?.[0] || null;
@@ -2578,7 +2659,7 @@ async function listarElegiveisPorTurma(req, res) {
         404,
         "Turma não encontrada.",
         "CERTIFICADO_TURMA_NAO_ENCONTRADA",
-        "Não foi localizada turma para o ID informado."
+        "Não foi localizada turma para o ID informado.",
       );
     }
 
@@ -2594,7 +2675,7 @@ async function listarElegiveisPorTurma(req, res) {
       WHERE i.turma_id = $1
       ORDER BY u.nome ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const organizadores = await db.query(
@@ -2610,7 +2691,7 @@ async function listarElegiveisPorTurma(req, res) {
         AND tr.papel = 'organizador'
       ORDER BY u.nome ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const certificados = await db.query(
@@ -2619,7 +2700,7 @@ async function listarElegiveisPorTurma(req, res) {
       FROM certificados
       WHERE turma_id = $1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const certMap = new Map();
@@ -2628,11 +2709,12 @@ async function listarElegiveisPorTurma(req, res) {
       certMap.set(`${cert.usuario_id}:${cert.tipo}`, cert);
     }
 
-const lista = [
-  ...(participantes.rows || []),
-  ...(organizadores.rows || []),
-].map((item) => {
-      const certificado = certMap.get(`${item.usuario_id}:${item.tipo}`) || null;
+    const lista = [
+      ...(participantes.rows || []),
+      ...(organizadores.rows || []),
+    ].map((item) => {
+      const certificado =
+        certMap.get(`${item.usuario_id}:${item.tipo}`) || null;
 
       return {
         ...item,
@@ -2663,7 +2745,7 @@ const lista = [
           turma_id: turmaId,
           total: lista.length,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao listar elegíveis por turma", error);
@@ -2674,7 +2756,7 @@ const lista = [
       "Erro ao listar elegíveis da turma.",
       "CERTIFICADO_ELEGIVEIS_TURMA_ERRO",
       "Falha inesperada em listarElegiveisPorTurma.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2693,7 +2775,7 @@ async function listarAdminArvore(req, res) {
       403,
       "Acesso restrito a administradores.",
       "CERTIFICADO_ADMIN_REQUERIDO",
-      "Somente administrador pode acessar a árvore administrativa de certificados."
+      "Somente administrador pode acessar a árvore administrativa de certificados.",
     );
   }
 
@@ -2730,7 +2812,7 @@ async function listarAdminArvore(req, res) {
         COALESCE(t.data_inicio, t.data_fim) DESC NULLS LAST,
         e.titulo ASC,
         t.nome ASC
-      `
+      `,
     );
 
     const eventosMap = new Map();
@@ -2770,10 +2852,14 @@ async function listarAdminArvore(req, res) {
         meta: {
           total_eventos: data.length,
         },
-      }
+      },
     );
   } catch (error) {
-    logError(rid, "Erro ao listar árvore administrativa de certificados", error);
+    logError(
+      rid,
+      "Erro ao listar árvore administrativa de certificados",
+      error,
+    );
 
     return responderErro(
       res,
@@ -2781,7 +2867,7 @@ async function listarAdminArvore(req, res) {
       "Erro ao carregar árvore administrativa de certificados.",
       "CERTIFICADO_ADMIN_ARVORE_ERRO",
       "Falha inesperada em listarAdminArvore.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2801,7 +2887,7 @@ async function processarPendentesPorTurma(req, res) {
       403,
       "Acesso restrito a administradores.",
       "CERTIFICADO_ADMIN_REQUERIDO",
-      "Somente administrador pode processar certificados pendentes por turma."
+      "Somente administrador pode processar certificados pendentes por turma.",
     );
   }
 
@@ -2811,7 +2897,7 @@ async function processarPendentesPorTurma(req, res) {
       400,
       "ID da turma inválido.",
       "CERTIFICADO_TURMA_ID_INVALIDO",
-      "turma_id deve ser inteiro positivo."
+      "turma_id deve ser inteiro positivo.",
     );
   }
 
@@ -2828,7 +2914,7 @@ async function processarPendentesPorTurma(req, res) {
       WHERE t.id = $1
       LIMIT 1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const turma = turmaResult.rows?.[0] || null;
@@ -2839,7 +2925,7 @@ async function processarPendentesPorTurma(req, res) {
         404,
         "Turma não encontrada.",
         "CERTIFICADO_TURMA_NAO_ENCONTRADA",
-        "Não foi localizada turma para o ID informado."
+        "Não foi localizada turma para o ID informado.",
       );
     }
 
@@ -2887,7 +2973,7 @@ async function processarPendentesPorTurma(req, res) {
       )
       ORDER BY u.nome ASC, b.tipo ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     return responderSucesso(
@@ -2908,7 +2994,7 @@ async function processarPendentesPorTurma(req, res) {
         meta: {
           total_pendentes: elegiveisResult.rows?.length || 0,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao processar pendentes por turma", error);
@@ -2919,7 +3005,7 @@ async function processarPendentesPorTurma(req, res) {
       "Erro ao processar pendentes da turma.",
       "CERTIFICADO_PENDENTES_TURMA_ERRO",
       "Falha inesperada em processarPendentesPorTurma.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -2940,7 +3026,7 @@ async function cancelarCertificado(req, res) {
       403,
       "Acesso restrito a administradores.",
       "CERTIFICADO_ADMIN_REQUERIDO",
-      "Somente administrador pode cancelar certificado."
+      "Somente administrador pode cancelar certificado.",
     );
   }
 
@@ -2950,7 +3036,7 @@ async function cancelarCertificado(req, res) {
       400,
       "ID do certificado inválido.",
       "CERTIFICADO_ID_INVALIDO",
-      "req.params.id deve ser inteiro positivo."
+      "req.params.id deve ser inteiro positivo.",
     );
   }
 
@@ -2960,7 +3046,7 @@ async function cancelarCertificado(req, res) {
       400,
       "Informe o motivo do cancelamento.",
       "CERTIFICADO_MOTIVO_CANCELAMENTO_OBRIGATORIO",
-      "Cancelamento documental exige motivo."
+      "Cancelamento documental exige motivo.",
     );
   }
 
@@ -2973,7 +3059,7 @@ async function cancelarCertificado(req, res) {
         WHERE id = $1
         FOR UPDATE
         `,
-        [certificadoId]
+        [certificadoId],
       );
 
       const certificado = atual.rows?.[0] || null;
@@ -3010,7 +3096,7 @@ async function cancelarCertificado(req, res) {
         WHERE id = $1
         RETURNING *
         `,
-        [certificadoId, authUserId, motivo]
+        [certificadoId, authUserId, motivo],
       );
 
       await registrarHistorico(tx, {
@@ -3035,7 +3121,7 @@ async function cancelarCertificado(req, res) {
       200,
       result,
       "Certificado cancelado com sucesso.",
-      "CERTIFICADO_CANCELADO"
+      "CERTIFICADO_CANCELADO",
     );
   } catch (error) {
     logError(rid, "Erro ao cancelar certificado", error);
@@ -3046,7 +3132,7 @@ async function cancelarCertificado(req, res) {
       error.statusCode ? error.message : "Erro ao cancelar certificado.",
       error.code || "CERTIFICADO_CANCELAR_ERRO",
       "Falha inesperada em cancelarCertificado.",
-      error.details || (IS_DEV ? error.message : null)
+      error.details || (IS_DEV ? error.message : null),
     );
   }
 }

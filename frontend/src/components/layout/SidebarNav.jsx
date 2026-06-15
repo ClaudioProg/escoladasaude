@@ -131,7 +131,9 @@ function isBrowser() {
 }
 
 function getStoredPerfil() {
-  if (!isBrowser()) return null;
+  if (!isBrowser()) {
+    return null;
+  }
 
   try {
     const raw = localStorage.getItem(STORAGE_PERFIL_KEY);
@@ -157,7 +159,9 @@ function getPerfilAtual() {
 }
 
 function getStoredBoolean(key, fallback = false) {
-  if (!isBrowser()) return fallback;
+  if (!isBrowser()) {
+    return fallback;
+  }
 
   try {
     return localStorage.getItem(key) === "1";
@@ -167,7 +171,9 @@ function getStoredBoolean(key, fallback = false) {
 }
 
 function setStoredBoolean(key, value) {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   try {
     localStorage.setItem(key, value ? "1" : "0");
@@ -177,28 +183,40 @@ function setStoredBoolean(key, value) {
 }
 
 function isActivePath(currentPath, itemPath) {
-  if (!itemPath) return false;
-  if (currentPath === itemPath) return true;
+  if (!itemPath) {
+    return false;
+  }
+  if (currentPath === itemPath) {
+    return true;
+  }
   return itemPath !== "/" && currentPath.startsWith(`${itemPath}/`);
 }
 
 function formatarContador(value) {
   const numero = Number(value);
 
-  if (!Number.isFinite(numero) || numero <= 0) return "";
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return "";
+  }
 
   return numero > 99 ? "99+" : String(numero);
 }
 
 function getContadorItem(item, resumoMenu) {
-  if (!item?.resumo_chave) return "";
+  if (!item?.resumo_chave) {
+    return "";
+  }
   return formatarContador(resumoMenu?.[item.resumo_chave]);
 }
 
 function temAcessoSecao(perfilAtual, secaoPerfil) {
-  if (!perfilAtual) return false;
+  if (!perfilAtual) {
+    return false;
+  }
 
-  if (perfilAtual === PERFIL.administrador) return true;
+  if (perfilAtual === PERFIL.administrador) {
+    return true;
+  }
 
   if (secaoPerfil === PERFIL.usuario) {
     return perfilAtual === PERFIL.usuario || perfilAtual === PERFIL.organizador;
@@ -208,7 +226,9 @@ function temAcessoSecao(perfilAtual, secaoPerfil) {
 }
 
 function toggleArrayItem(lista, item) {
-  if (!item) return lista;
+  if (!item) {
+    return lista;
+  }
 
   return lista.includes(item)
     ? lista.filter((valor) => valor !== item)
@@ -216,7 +236,9 @@ function toggleArrayItem(lista, item) {
 }
 
 function BadgeMenu({ valor, recolhida = false, label, campanha }) {
-  if (!valor) return null;
+  if (!valor) {
+    return null;
+  }
 
   if (recolhida) {
     return (
@@ -236,7 +258,7 @@ function BadgeMenu({ valor, recolhida = false, label, campanha }) {
         "ml-auto inline-flex min-w-6 shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-black ring-1",
         campanha.textoContraste === "escuro"
           ? "bg-white/75 text-slate-950 ring-white/70"
-          : "bg-white/14 text-white ring-white/20"
+          : "bg-white/14 text-white ring-white/20",
       )}
       aria-label={label}
       title={label}
@@ -253,7 +275,7 @@ function IconTile({ active, Icon, contador, recolhida, label, campanha }) {
         "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition",
         active
           ? "border-white/20 bg-white/15 text-white shadow-[0_12px_30px_-18px_rgba(255,255,255,.45)]"
-          : "border-slate-200 bg-white text-slate-700 shadow-sm group-hover:border-slate-300 group-hover:bg-slate-50 group-hover:text-slate-950 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-200 dark:group-hover:bg-white/10 dark:group-hover:text-white"
+          : "border-slate-200 bg-white text-slate-700 shadow-sm group-hover:border-slate-300 group-hover:bg-slate-50 group-hover:text-slate-950 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-200 dark:group-hover:bg-white/10 dark:group-hover:text-white",
       )}
       aria-hidden="true"
     >
@@ -278,17 +300,17 @@ function MenuItem({ item, active, recolhida, contador, onClick, campanha }) {
     <button
       type="button"
       onClick={onClick}
-className={classNames(
-  "group relative flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-[13px] font-black transition",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950",
+      className={classNames(
+        "group relative flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-[13px] font-black transition",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950",
         campanha.foco,
         active
           ? classNames(
               "bg-gradient-to-r text-white shadow-[0_18px_46px_-34px_rgba(15,23,42,.95)]",
-              campanha.topbar
+              campanha.topbar,
             )
           : "text-slate-800 hover:bg-slate-100/80 dark:text-slate-200 dark:hover:bg-white/7",
-        recolhida && "justify-center px-2"
+        recolhida && "justify-center px-2",
       )}
       aria-current={active ? "page" : undefined}
       aria-label={contador ? `${item.label}. ${badgeLabel}` : item.label}
@@ -297,7 +319,7 @@ className={classNames(
       <span
         className={classNames(
           "absolute bottom-2 left-1 top-2 w-1 rounded-full transition",
-          active ? "bg-white/85" : "bg-transparent"
+          active ? "bg-white/85" : "bg-transparent",
         )}
         aria-hidden="true"
       />
@@ -336,7 +358,7 @@ function SectionHeader({ title, expanded, recolhida, onClick, campanha }) {
         "flex w-full items-center gap-2 rounded-2xl px-2 py-2 text-left transition",
         "hover:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-2 dark:hover:bg-white/7",
         campanha.foco,
-        recolhida && "justify-center"
+        recolhida && "justify-center",
       )}
       aria-expanded={expanded}
       title={recolhida ? title : undefined}
@@ -344,7 +366,7 @@ function SectionHeader({ title, expanded, recolhida, onClick, campanha }) {
       <span
         className={classNames(
           "text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400",
-          recolhida && "sr-only"
+          recolhida && "sr-only",
         )}
       >
         {title}
@@ -354,7 +376,7 @@ function SectionHeader({ title, expanded, recolhida, onClick, campanha }) {
         <ChevronDown
           className={classNames(
             "ml-auto h-4 w-4 text-slate-400 transition dark:text-slate-500",
-            !expanded && "-rotate-90"
+            !expanded && "-rotate-90",
           )}
           aria-hidden="true"
         />
@@ -434,14 +456,14 @@ function CaixaMensagemSidebar({
       ? ROTA.administradorMensagem
       : ROTA.mensagem;
 
-if (recolhida) {
-  return null;
-}
+  if (recolhida) {
+    return null;
+  }
 
-const podeEnviar =
-  typeof onEnviarMensagem === "function" &&
-  String(textoMensagem || "").trim().length >= 3 &&
-  !enviandoMensagem;
+  const podeEnviar =
+    typeof onEnviarMensagem === "function" &&
+    String(textoMensagem || "").trim().length >= 3 &&
+    !enviandoMensagem;
 
   return (
     <section
@@ -449,7 +471,7 @@ const podeEnviar =
         "mt-3 rounded-[1.75rem] border p-3 shadow-sm ring-1",
         campanha.textoContraste === "escuro"
           ? "border-slate-200 bg-white/78 text-slate-900 ring-white/70"
-          : "border-white/10 bg-white/[0.06] text-white ring-white/10"
+          : "border-white/10 bg-white/[0.06] text-white ring-white/10",
       )}
       aria-label="Últimas mensagens institucionais"
     >
@@ -466,17 +488,17 @@ const podeEnviar =
         </div>
 
         <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onNavigate(destino)}
-          className={classNames(
-            "rounded-xl px-2 py-1 text-[10px] font-black underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2",
-            campanha.foco
-          )}
-        >
-          Ver todas
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => onNavigate(destino)}
+            className={classNames(
+              "rounded-xl px-2 py-1 text-[10px] font-black underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2",
+              campanha.foco,
+            )}
+          >
+            Ver todas
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 max-h-28 space-y-2 overflow-y-auto pr-1">
@@ -505,7 +527,9 @@ const podeEnviar =
         className="mt-3 space-y-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (podeEnviar) onEnviarMensagem(String(textoMensagem).trim());
+          if (podeEnviar) {
+            onEnviarMensagem(String(textoMensagem).trim());
+          }
         }}
       >
         <label className="sr-only" htmlFor="mensagem-sidebar-rapida">
@@ -530,7 +554,7 @@ const podeEnviar =
             campanha.textoContraste === "escuro"
               ? "bg-slate-950 text-white hover:bg-slate-800"
               : "bg-white text-slate-950 hover:bg-white/90",
-            campanha.foco
+            campanha.foco,
           )}
         >
           <MessageSquareText className="h-4 w-4" aria-hidden="true" />
@@ -548,6 +572,7 @@ function criarSecoes() {
       perfil: PERFIL.usuario,
       items: [
         { label: "Início", path: ROTA.painel, icon: LayoutDashboard },
+        { label: "Meu perfil", path: ROTA.perfil, icon: UserRound },
         {
           label: "Eventos",
           path: ROTA.evento,
@@ -583,8 +608,8 @@ function criarSecoes() {
           path: ROTA.trabalho,
           icon: FolderOpenDot,
         },
-                { label: "Escanear QR Code", path: ROTA.scanner, icon: QrCode },
-                {
+        { label: "Escanear QR Code", path: ROTA.scanner, icon: QrCode },
+        {
           label: "Chat de Dúvidas",
           path: ROTA.mensagem,
           icon: MessageSquareText,
@@ -610,9 +635,9 @@ function criarSecoes() {
           icon: School,
           resumo_chave: "calendario_eps_pendente",
         },
-              ],
+      ],
     },
-        {
+    {
       title: "Organizador",
       perfil: PERFIL.organizador,
       items: [
@@ -648,7 +673,7 @@ function criarSecoes() {
           icon: FolderOpenDot,
           resumo_chave: "trabalho_pendente",
         },
-                {
+        {
           label: "Quiz",
           path: ROTA.administradorInteracaoQuiz,
           icon: Trophy,
@@ -666,42 +691,46 @@ function criarSecoes() {
       title: "Administrador",
       perfil: PERFIL.administrador,
       items: [
-                {
+        {
           label: "Agenda de salas (ADM)",
           path: ROTA.administradorReserva,
           icon: CalendarDays,
           resumo_chave: "reserva_pendente",
         },
-                 { label: "Criar Informativos", path: ROTA.gestaoInformacao, icon: Megaphone },
-                         {
+        {
+          label: "Criar Informativos",
+          path: ROTA.gestaoInformacao,
+          icon: Megaphone,
+        },
+        {
           label: "Criar Eventos",
           path: ROTA.gestaoEvento,
           icon: CalendarDays,
           resumo_chave: "evento_disponivel",
         },
-                         {
+        {
           label: "Certificados avulsos",
           path: ROTA.certificadoAvulso,
           icon: FileText,
         },
-                {
+        {
           label: "Agenda geral",
           path: ROTA.administradorAgenda,
           icon: ListChecks,
         },
-                         {
+        {
           label: "Caixa de mensagens",
           path: ROTA.administradorMensagem,
           icon: MessageSquareText,
           resumo_chave: "mensagem_pendente",
         },
-        ],
+      ],
     },
     {
       title: "Gestão",
       perfil: PERFIL.administrador,
       items: [
-         {
+        {
           label: "Painel do gestor",
           path: ROTA.administrador,
           icon: LayoutDashboard,
@@ -712,7 +741,7 @@ function criarSecoes() {
           path: ROTA.gestaoOrganizador,
           icon: Presentation,
         },
-              {
+        {
           label: "Dashboard analítico",
           path: ROTA.dashboardAnalitico,
           icon: BarChart3,
@@ -802,13 +831,13 @@ export default function SidebarNav({
   const [perfilAtual, setPerfilAtual] = useState(() => getPerfilAtual());
   const [secoesAbertas, setSecoesAbertas] = useState([]);
   const [recolhidaInterna, setRecolhidaInterna] = useState(() =>
-   getStoredBoolean(STORAGE_SIDEBAR_RECOLHIDA_KEY, false)
+    getStoredBoolean(STORAGE_SIDEBAR_RECOLHIDA_KEY, false),
   );
-const [textoMensagemRapida, setTextoMensagemRapida] = useState("");
-const [mensagensRecentes, setMensagensRecentes] = useState([]);
-const [carregandoMensagens, setCarregandoMensagens] = useState(false);
-const [enviandoMensagemRapida, setEnviandoMensagemRapida] = useState(false);
-const rotaAnteriorMobileRef = useRef(location.pathname);
+  const [textoMensagemRapida, setTextoMensagemRapida] = useState("");
+  const [mensagensRecentes, setMensagensRecentes] = useState([]);
+  const [carregandoMensagens, setCarregandoMensagens] = useState(false);
+  const [enviandoMensagemRapida, setEnviandoMensagemRapida] = useState(false);
+  const rotaAnteriorMobileRef = useRef(location.pathname);
 
   const recolhidaFinal = mobile
     ? false
@@ -821,17 +850,19 @@ const rotaAnteriorMobileRef = useRef(location.pathname);
   const secoesVisiveis = useMemo(
     () =>
       secoesBase.filter((section) =>
-        temAcessoSecao(perfilAtual, section.perfil)
+        temAcessoSecao(perfilAtual, section.perfil),
       ),
-    [perfilAtual, secoesBase]
+    [perfilAtual, secoesBase],
   );
 
   const secaoAtiva = useMemo(
     () =>
       secoesVisiveis.find((section) =>
-        section.items.some((item) => isActivePath(location.pathname, item.path))
+        section.items.some((item) =>
+          isActivePath(location.pathname, item.path),
+        ),
       ),
-    [location.pathname, secoesVisiveis]
+    [location.pathname, secoesVisiveis],
   );
 
   const totalBadges = useMemo(() => {
@@ -852,59 +883,63 @@ const rotaAnteriorMobileRef = useRef(location.pathname);
       setStoredBoolean(STORAGE_SIDEBAR_RECOLHIDA_KEY, value);
       aoAlternarRecolhida?.(value);
     },
-    [aoAlternarRecolhida, recolhida]
+    [aoAlternarRecolhida, recolhida],
   );
 
-const navegar = useCallback(
-  (path) => {
-    if (!path) return;
+  const navegar = useCallback(
+    (path) => {
+      if (!path) {
+        return;
+      }
 
-    if (mobile) {
-      aoFechar?.();
+      if (mobile) {
+        aoFechar?.();
 
-      window.setTimeout(() => {
-        if (location.pathname !== path) {
-          navigate(path);
-        }
-      }, 0);
+        window.setTimeout(() => {
+          if (location.pathname !== path) {
+            navigate(path);
+          }
+        }, 0);
 
+        return;
+      }
+
+      if (location.pathname !== path) {
+        navigate(path);
+      }
+    },
+    [aoFechar, location.pathname, mobile, navigate],
+  );
+
+  useEffect(() => {
+    if (!mobile) {
+      rotaAnteriorMobileRef.current = location.pathname;
       return;
     }
 
-    if (location.pathname !== path) {
-      navigate(path);
+    if (rotaAnteriorMobileRef.current !== location.pathname) {
+      rotaAnteriorMobileRef.current = location.pathname;
+      aoFechar?.();
     }
-  },
-  [aoFechar, location.pathname, mobile, navigate]
-);
-
-useEffect(() => {
-  if (!mobile) {
-    rotaAnteriorMobileRef.current = location.pathname;
-    return;
-  }
-
-  if (rotaAnteriorMobileRef.current !== location.pathname) {
-    rotaAnteriorMobileRef.current = location.pathname;
-    aoFechar?.();
-  }
-}, [aoFechar, location.pathname, mobile]);
+  }, [aoFechar, location.pathname, mobile]);
 
   const alternarSecao = useCallback(
     (title) => {
-      if (!title) return;
+      if (!title) {
+        return;
+      }
 
       if (recolhidaFinal && !mobile) {
         setRecolhida(false);
         setSecoesAbertas((current) =>
-          current.includes(title) ? current : [...current, title]
+          current.includes(title) ? current : [...current, title],
         );
         return;
       }
 
       setSecoesAbertas((current) => toggleArrayItem(current, title));
     },
-    [mobile, recolhidaFinal, setRecolhida]
+    [mobile, recolhidaFinal, setRecolhida],
   );
 
   useEffect(() => {
@@ -912,14 +947,14 @@ useEffect(() => {
       setSecoesAbertas((current) =>
         current.includes(secaoAtiva.title)
           ? current
-          : [...current, secaoAtiva.title]
+          : [...current, secaoAtiva.title],
       );
       return;
     }
 
     if (secoesVisiveis.length > 0) {
       setSecoesAbertas((current) =>
-        current.length > 0 ? current : [secoesVisiveis[0].title]
+        current.length > 0 ? current : [secoesVisiveis[0].title],
       );
     }
   }, [secaoAtiva, secoesVisiveis]);
@@ -955,213 +990,220 @@ useEffect(() => {
   }, [aoAlternarRecolhida, recolhida]);
 
   useEffect(() => {
-  if (recolhidaFinal) return;
-
-  let ativo = true;
-
-  async function carregarMensagensRecentes() {
-    try {
-      setCarregandoMensagens(true);
-
-      const respostaApi = await api.mensagem.minhas({
-        pagina: 1,
-        limite: 3,
-      });
-
-      if (!ativo) return;
-
-      setMensagensRecentes(
-        Array.isArray(respostaApi?.data) ? respostaApi.data : []
-      );
-    } catch {
-      if (ativo) setMensagensRecentes([]);
-    } finally {
-      if (ativo) setCarregandoMensagens(false);
+    if (recolhidaFinal) {
+      return;
     }
-  }
 
-  carregarMensagensRecentes();
+    let ativo = true;
 
-  return () => {
-    ativo = false;
-  };
-}, [recolhidaFinal]);
+    async function carregarMensagensRecentes() {
+      try {
+        setCarregandoMensagens(true);
+
+        const respostaApi = await api.mensagem.minhas({
+          pagina: 1,
+          limite: 3,
+        });
+
+        if (!ativo) {
+          return;
+        }
+
+        setMensagensRecentes(
+          Array.isArray(respostaApi?.data) ? respostaApi.data : [],
+        );
+      } catch {
+        if (ativo) {
+          setMensagensRecentes([]);
+        }
+      } finally {
+        if (ativo) {
+          setCarregandoMensagens(false);
+        }
+      }
+    }
+
+    carregarMensagensRecentes();
+
+    return () => {
+      ativo = false;
+    };
+  }, [recolhidaFinal]);
 
   return (
-  <aside
-    className={classNames(
-      "flex min-h-0 flex-col gap-3",
-      mobile ? "h-full" : "self-start",
-      recolhidaFinal && !mobile && "w-[96px]"
-    )}
-  >
-    <nav
+    <aside
       className={classNames(
-        "relative flex flex-col rounded-[2rem]",
-        "border border-slate-200 bg-white/86 text-slate-950",
-        "shadow-[0_24px_80px_-58px_rgba(15,23,42,.65)]",
-        "ring-1 ring-black/5 backdrop-blur-xl",
-        "dark:border-white/10 dark:bg-slate-900/62 dark:text-white dark:ring-white/10",
-        mobile && "h-full rounded-none border-0 bg-transparent shadow-none ring-0"
+        "flex min-h-0 flex-col gap-3",
+        mobile ? "h-full" : "self-start",
+        recolhidaFinal && !mobile && "w-[96px]",
       )}
-      aria-label="Menu principal"
     >
-      <div
+      <nav
         className={classNames(
-          "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r blur-3xl",
-          campanha.topbarGlow
+          "relative flex flex-col rounded-[2rem]",
+          "border border-slate-200 bg-white/86 text-slate-950",
+          "shadow-[0_24px_80px_-58px_rgba(15,23,42,.65)]",
+          "ring-1 ring-black/5 backdrop-blur-xl",
+          "dark:border-white/10 dark:bg-slate-900/62 dark:text-white dark:ring-white/10",
+          mobile &&
+            "h-full rounded-none border-0 bg-transparent shadow-none ring-0",
         )}
-        aria-hidden="true"
-      />
-
-      <div className="relative shrink-0 p-3">
+        aria-label="Menu principal"
+      >
         <div
           className={classNames(
-            "mb-3 h-1.5 rounded-full bg-gradient-to-r",
-            campanha.topbar
+            "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r blur-3xl",
+            campanha.topbarGlow,
           )}
           aria-hidden="true"
         />
 
-        <div className="flex items-center justify-between gap-2">
-          {!recolhidaFinal && (
-            <div className="min-w-0">
-              <div
-                className={classNames(
-                  "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-black",
-                  campanha.textoContraste === "escuro"
-                    ? "border-white/70 bg-white/70 text-slate-900"
-                    : "border-white/10 bg-white/10 text-white dark:text-white"
+        <div className="relative shrink-0 p-3">
+          <div
+            className={classNames(
+              "mb-3 h-1.5 rounded-full bg-gradient-to-r",
+              campanha.topbar,
+            )}
+            aria-hidden="true"
+          />
+
+          <div className="flex items-center justify-between gap-2">
+            {!recolhidaFinal && (
+              <div className="min-w-0">
+                <div
+                  className={classNames(
+                    "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-black",
+                    campanha.textoContraste === "escuro"
+                      ? "border-white/70 bg-white/70 text-slate-900"
+                      : "border-white/10 bg-white/10 text-white dark:text-white",
+                  )}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  Menu oficial
+                </div>
+
+                <h2 className="mt-2 truncate text-sm font-black">Navegação</h2>
+
+                {totalBadges > 0 && (
+                  <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {totalBadges} item(ns) exigem atenção.
+                  </p>
                 )}
-              >
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                Menu oficial
               </div>
+            )}
 
-              <h2 className="mt-2 truncate text-sm font-black">Navegação</h2>
+            {!mobile ? (
+              <button
+                type="button"
+                onClick={() => setRecolhida(!recolhidaFinal)}
+                className={classNames(
+                  "grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
+                  campanha.foco,
+                )}
+                aria-label={recolhidaFinal ? "Expandir menu" : "Recolher menu"}
+                aria-expanded={!recolhidaFinal}
+                title={recolhidaFinal ? "Expandir menu" : "Recolher menu"}
+              >
+                {recolhidaFinal ? (
+                  <ChevronsRight className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <ChevronsLeft className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={aoFechar}
+                className={classNames(
+                  "ml-auto grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
+                  campanha.foco,
+                )}
+                aria-label="Fechar menu"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
 
-              {totalBadges > 0 && (
-                <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {totalBadges} item(ns) exigem atenção.
-                </p>
-              )}
-            </div>
-          )}
+        <div className="relative px-3 pb-4">
+          <div className="space-y-1.5">
+            {secoesVisiveis.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
+                Nenhum menu disponível para este perfil.
+              </div>
+            ) : recolhidaFinal && !mobile ? (
+              <div className="space-y-1">
+                {secoesVisiveis.flatMap((section) =>
+                  section.items.map((item) => {
+                    const active = isActivePath(location.pathname, item.path);
+                    const contador = getContadorItem(item, resumoMenu);
 
-          {!mobile ? (
-            <button
-              type="button"
-              onClick={() => setRecolhida(!recolhidaFinal)}
-              className={classNames(
-                "grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
-                campanha.foco
-              )}
-              aria-label={recolhidaFinal ? "Expandir menu" : "Recolher menu"}
-              aria-expanded={!recolhidaFinal}
-              title={recolhidaFinal ? "Expandir menu" : "Recolher menu"}
-            >
-              {recolhidaFinal ? (
-                <ChevronsRight className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <ChevronsLeft className="h-5 w-5" aria-hidden="true" />
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={aoFechar}
-              className={classNames(
-                "ml-auto grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
-                campanha.foco
-              )}
-              aria-label="Fechar menu"
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
+                    return (
+                      <MenuItem
+                        key={`${section.title}-${item.label}-${item.path}`}
+                        item={item}
+                        active={active}
+                        recolhida
+                        contador={contador}
+                        onClick={() => navegar(item.path)}
+                        campanha={campanha}
+                      />
+                    );
+                  }),
+                )}
+              </div>
+            ) : (
+              secoesVisiveis.map((section) => (
+                <SectionBlock
+                  key={section.title}
+                  section={section}
+                  expanded={secoesAbertas.includes(section.title)}
+                  recolhida={false}
+                  currentPath={location.pathname}
+                  resumoMenu={resumoMenu}
+                  onToggle={() => alternarSecao(section.title)}
+                  onNavigate={navegar}
+                  campanha={campanha}
+                />
+              ))
+            )}
+          </div>
+          {!mobile && !recolhidaFinal && (
+            <CaixaMensagemSidebar
+              recolhida={false}
+              campanha={campanha}
+              perfilAtual={perfilAtual}
+              mensagensRecentes={mensagensRecentes}
+              carregandoMensagens={carregandoMensagens}
+              enviandoMensagem={enviandoMensagemRapida}
+              textoMensagem={textoMensagemRapida}
+              setTextoMensagem={setTextoMensagemRapida}
+              onEnviarMensagem={async (texto) => {
+                try {
+                  setEnviandoMensagemRapida(true);
+
+                  await api.mensagem.criar({
+                    assunto:
+                      texto.length > 80 ? `${texto.slice(0, 77)}...` : texto,
+                    categoria: "duvida",
+                    prioridade: "normal",
+                    mensagem: texto,
+                  });
+
+                  setTextoMensagemRapida("");
+                  navigate(ROTA.mensagem);
+                } finally {
+                  setEnviandoMensagemRapida(false);
+                }
+              }}
+              onNavigate={navegar}
+            />
           )}
         </div>
-      </div>
-
-<div
-  className="relative px-3 pb-4"
->
-  <div className="space-y-1.5">
-    {secoesVisiveis.length === 0 ? (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
-        Nenhum menu disponível para este perfil.
-      </div>
-    ) : recolhidaFinal && !mobile ? (
-      <div className="space-y-1">
-        {secoesVisiveis.flatMap((section) =>
-          section.items.map((item) => {
-            const active = isActivePath(location.pathname, item.path);
-            const contador = getContadorItem(item, resumoMenu);
-
-            return (
-              <MenuItem
-                key={`${section.title}-${item.label}-${item.path}`}
-                item={item}
-                active={active}
-                recolhida
-                contador={contador}
-                onClick={() => navegar(item.path)}
-                campanha={campanha}
-              />
-            );
-          })
-        )}
-      </div>
-    ) : (
-      secoesVisiveis.map((section) => (
-        <SectionBlock
-          key={section.title}
-          section={section}
-          expanded={secoesAbertas.includes(section.title)}
-          recolhida={false}
-          currentPath={location.pathname}
-          resumoMenu={resumoMenu}
-          onToggle={() => alternarSecao(section.title)}
-          onNavigate={navegar}
-          campanha={campanha}
-        />
-      ))
-    )}
-
- </div>
- {!mobile && !recolhidaFinal && (
-  <CaixaMensagemSidebar
-  recolhida={false}
-  campanha={campanha}
-  perfilAtual={perfilAtual}
-  mensagensRecentes={mensagensRecentes}
-  carregandoMensagens={carregandoMensagens}
-  enviandoMensagem={enviandoMensagemRapida}
-  textoMensagem={textoMensagemRapida}
-  setTextoMensagem={setTextoMensagemRapida}
-  onEnviarMensagem={async (texto) => {
-    try {
-      setEnviandoMensagemRapida(true);
-
-      await api.mensagem.criar({
-        assunto: texto.length > 80 ? `${texto.slice(0, 77)}...` : texto,
-        categoria: "duvida",
-        prioridade: "normal",
-        mensagem: texto,
-      });
-
-      setTextoMensagemRapida("");
-      navigate(ROTA.mensagem);
-    } finally {
-      setEnviandoMensagemRapida(false);
-    }
-  }}
-  onNavigate={navegar}
-/>
-)}
-</div>
-    </nav>
-  </aside>
-);
+      </nav>
+    </aside>
+  );
 }
 
 BadgeMenu.propTypes = {
@@ -1213,14 +1255,14 @@ SectionBlock.propTypes = {
         path: PropTypes.string.isRequired,
         icon: PropTypes.elementType.isRequired,
         resumo_chave: PropTypes.string,
-      })
+      }),
     ).isRequired,
   }).isRequired,
   expanded: PropTypes.bool.isRequired,
   recolhida: PropTypes.bool,
   currentPath: PropTypes.string.isRequired,
   resumoMenu: PropTypes.objectOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   ),
   onToggle: PropTypes.func.isRequired,
   onNavigate: PropTypes.func.isRequired,
@@ -1242,6 +1284,6 @@ SidebarNav.propTypes = {
   aoAlternarRecolhida: PropTypes.func,
   aoFechar: PropTypes.func,
   resumoMenu: PropTypes.objectOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   ),
 };
