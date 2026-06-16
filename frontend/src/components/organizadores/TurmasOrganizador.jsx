@@ -92,11 +92,15 @@ function hojeYMD() {
 function hhmm(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const match = text.match(/^(\d{1,2}):?(\d{2})?(?::\d{2})?$/);
 
-  if (!match) return "";
+  if (!match) {
+    return "";
+  }
 
   const hour = Math.min(23, Number(match[1] || 0));
   const minute = Math.min(59, Number(match[2] || 0));
@@ -107,7 +111,9 @@ function hhmm(value) {
 function parseYMD(value) {
   const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
 
   return {
     year: Number(match[1]),
@@ -120,7 +126,9 @@ function parseHHMM(value) {
   const normalized = hhmm(value) || "00:00";
   const match = normalized.match(/^(\d{2}):(\d{2})$/);
 
-  if (!match) return { hour: 0, minute: 0 };
+  if (!match) {
+    return { hour: 0, minute: 0 };
+  }
 
   return {
     hour: Number(match[1]),
@@ -131,7 +139,9 @@ function parseHHMM(value) {
 function toLocalDateFromYMDTime(dateOnly, timeHHmm = "12:00") {
   const date = parseYMD(dateOnly);
 
-  if (!date) return null;
+  if (!date) {
+    return null;
+  }
 
   const time = parseHHMM(timeHHmm);
 
@@ -142,14 +152,16 @@ function toLocalDateFromYMDTime(dateOnly, timeHHmm = "12:00") {
     time.hour,
     time.minute,
     0,
-    0
+    0,
   );
 }
 
 function formatarDataBR(value) {
   const dateOnly = ymd(value);
 
-  if (!dateOnly) return "—";
+  if (!dateOnly) {
+    return "—";
+  }
 
   const [year, month, day] = dateOnly.split("-");
 
@@ -162,7 +174,7 @@ function formatarDocumento(value) {
   if (digits.length === 11) {
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(
       6,
-      9
+      9,
     )}-${digits.slice(9)}`;
   }
 
@@ -178,7 +190,9 @@ function normalizarTextoBusca(value) {
 }
 
 function obterDeficienciaUsuario(usuario = {}) {
-  const codigo = String(usuario?.deficiencia_codigo || "").trim().toUpperCase();
+  const codigo = String(usuario?.deficiencia_codigo || "")
+    .trim()
+    .toUpperCase();
   const id = Number(usuario?.deficiencia_id);
 
   if (codigo && codigo !== "0") {
@@ -201,7 +215,9 @@ function obterDeficienciaUsuario(usuario = {}) {
   for (const candidato of candidatos) {
     const texto = String(candidato || "").trim();
 
-    if (texto) return texto;
+    if (texto) {
+      return texto;
+    }
   }
 
   return "";
@@ -336,7 +352,9 @@ function obterConfigDeficiencia(deficiencia) {
 function IconeDeficienciaUsuario({ usuario }) {
   const config = obterConfigDeficiencia(obterDeficienciaUsuario(usuario));
 
-  if (!config) return null;
+  if (!config) {
+    return null;
+  }
 
   const Icon = config.Icon;
 
@@ -344,7 +362,7 @@ function IconeDeficienciaUsuario({ usuario }) {
     <span
       className={cx(
         "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
-        config.className
+        config.className,
       )}
       title={config.label}
       aria-label={config.label}
@@ -358,23 +376,33 @@ function statusFromTurma(turma) {
   const inicio = ymd(turma?.data_inicio);
   const fim = ymd(turma?.data_fim);
 
-  if (!inicio || !fim) return "programado";
+  if (!inicio || !fim) {
+    return "programado";
+  }
 
   const hoje = hojeYMD();
 
-  if (inicio > hoje) return "programado";
-  if (inicio <= hoje && fim >= hoje) return "andamento";
+  if (inicio > hoje) {
+    return "programado";
+  }
+  if (inicio <= hoje && fim >= hoje) {
+    return "andamento";
+  }
 
   return "encerrado";
 }
 
 function dentroDaJanelaConfirmacao(dataYMD, horarioInicio, horarioFim) {
-  if (!dataYMD) return false;
+  if (!dataYMD) {
+    return false;
+  }
 
   const start = toLocalDateFromYMDTime(dataYMD, hhmm(horarioInicio) || "00:00");
   const end = toLocalDateFromYMDTime(dataYMD, hhmm(horarioFim) || "23:59");
 
-  if (!start || !end) return false;
+  if (!start || !end) {
+    return false;
+  }
 
   const abre = new Date(start.getTime() + 60 * 60 * 1000);
   const fecha = new Date(end.getTime() + 48 * 60 * 60 * 1000);
@@ -408,7 +436,9 @@ function getTurmaNome(turma) {
 function normalizarDataTurma(item, turma) {
   const data = ymd(item?.data || item);
 
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     data,
@@ -432,7 +462,9 @@ function montarDatasReais(turma, datasPorTurma, presencasPorTurma) {
   for (const item of fonte) {
     const data = normalizarDataTurma(item, turma);
 
-    if (!data) continue;
+    if (!data) {
+      continue;
+    }
 
     const key = `${data.data}|${data.horario_inicio}|${data.horario_fim}`;
 
@@ -453,33 +485,37 @@ function montarMapaUsuarios(inscritos, presencasDetalhadas) {
   for (const inscrito of safeArray(inscritos)) {
     const usuarioId = toPositiveInt(inscrito?.usuario_id || inscrito?.id);
 
-    if (!usuarioId) continue;
+    if (!usuarioId) {
+      continue;
+    }
 
     const deficiencia = obterDeficienciaUsuario(inscrito);
 
-map.set(usuarioId, {
-  ...inscrito,
-  id: usuarioId,
-  nome: safeText(inscrito?.nome, "—"),
-  cpf: safeText(inscrito?.cpf),
-  deficiencia_nome: deficiencia,
-  presencas: new Map(),
-});
+    map.set(usuarioId, {
+      ...inscrito,
+      id: usuarioId,
+      nome: safeText(inscrito?.nome, "—"),
+      cpf: safeText(inscrito?.cpf),
+      deficiencia_nome: deficiencia,
+      presencas: new Map(),
+    });
   }
 
   for (const usuario of safeArray(presencasDetalhadas?.usuarios)) {
     const usuarioId = toPositiveInt(usuario?.id || usuario?.usuario_id);
 
-    if (!usuarioId || !map.has(usuarioId)) continue;
+    if (!usuarioId || !map.has(usuarioId)) {
+      continue;
+    }
 
     const alvo = map.get(usuarioId);
-const deficiencia = obterDeficienciaUsuario(usuario);
+    const deficiencia = obterDeficienciaUsuario(usuario);
 
-if (deficiencia && !obterDeficienciaUsuario(alvo)) {
-  alvo.deficiencia_nome = deficiencia;
-}
+    if (deficiencia && !obterDeficienciaUsuario(alvo)) {
+      alvo.deficiencia_nome = deficiencia;
+    }
 
-for (const presenca of safeArray(usuario?.presencas)) {
+    for (const presenca of safeArray(usuario?.presencas)) {
       const data = ymd(presenca?.data_presenca || presenca?.data);
 
       if (data) {
@@ -537,7 +573,7 @@ function exportarCsvDataAtiva({ turmaId, dataAtiva, mapaUsuarios }) {
     .map((row) =>
       row
         .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
-        .join(";")
+        .join(";"),
     )
     .join("\n");
 
@@ -587,7 +623,7 @@ function StatusTurmaBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1",
-        item.className
+        item.className,
       )}
     >
       {item.label}
@@ -636,15 +672,14 @@ function MiniStat({ number, label, tone = "slate" }) {
       "bg-emerald-50 text-emerald-900 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-100 dark:ring-emerald-800/60",
     amber:
       "bg-amber-50 text-amber-900 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800/60",
-    rose:
-      "bg-rose-50 text-rose-900 ring-rose-100 dark:bg-rose-950/30 dark:text-rose-100 dark:ring-rose-800/60",
+    rose: "bg-rose-50 text-rose-900 ring-rose-100 dark:bg-rose-950/30 dark:text-rose-100 dark:ring-rose-800/60",
   };
 
   return (
     <div
       className={cx(
         "min-w-[82px] rounded-2xl p-3 text-center ring-1",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       <p className="text-2xl font-black leading-none">{Number(number) || 0}</p>
@@ -690,7 +725,7 @@ function DonutPresenca({ pct }) {
           className={cx(
             value >= 75
               ? "text-emerald-600 dark:text-emerald-400"
-              : "text-amber-600 dark:text-amber-400"
+              : "text-amber-600 dark:text-amber-400",
           )}
         />
       </svg>
@@ -701,7 +736,7 @@ function DonutPresenca({ pct }) {
             "text-lg font-black leading-none",
             value >= 75
               ? "text-emerald-700 dark:text-emerald-300"
-              : "text-amber-700 dark:text-amber-300"
+              : "text-amber-700 dark:text-amber-300",
           )}
         >
           {value}%
@@ -770,7 +805,13 @@ function TurmaInfo({ turma, status }) {
   );
 }
 
-function ActionButton({ children, icon: Icon, onClick, disabled, variant = "primary" }) {
+function ActionButton({
+  children,
+  icon: Icon,
+  onClick,
+  disabled,
+  variant = "primary",
+}) {
   const styles =
     variant === "primary"
       ? "bg-indigo-700 text-white hover:bg-indigo-800"
@@ -788,7 +829,7 @@ function ActionButton({ children, icon: Icon, onClick, disabled, variant = "prim
       className={cx(
         "inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-black transition",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
-        disabled ? "cursor-not-allowed opacity-60" : styles
+        disabled ? "cursor-not-allowed opacity-60" : styles,
       )}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
@@ -849,7 +890,7 @@ function DataTabs({ turmaId, datas, dataAtiva, onChange }) {
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
               active
                 ? "border-violet-700 bg-violet-700 text-white"
-                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800",
             )}
           >
             {formatarDataBR(data.data)} · {data.horario_inicio || "—"}-
@@ -890,7 +931,7 @@ export default function Turmasorganizador({
   const [confirmandoKey, setConfirmandoKey] = useState("");
   const [dataAtivaPorTurma, setDataAtivaPorTurma] = useState({});
   const [somenteSemPresencaPorTurma, setSomenteSemPresencaPorTurma] = useState(
-    {}
+    {},
   );
 
   const eventosAgrupados = useMemo(() => {
@@ -900,7 +941,9 @@ export default function Turmasorganizador({
       const turmaId = getTurmaId(turma);
       const eventoId = getEventoId(turma);
 
-      if (!turmaId || !eventoId) continue;
+      if (!turmaId || !eventoId) {
+        continue;
+      }
 
       if (!map.has(eventoId)) {
         map.set(eventoId, {
@@ -919,7 +962,9 @@ export default function Turmasorganizador({
 
   const handleConfirmarPresenca = useCallback(
     async ({ usuarioId, turmaId, data }) => {
-      if (typeof onConfirmarPresencaManual !== "function") return;
+      if (typeof onConfirmarPresencaManual !== "function") {
+        return;
+      }
 
       const key = `${usuarioId}-${turmaId}-${data}`;
 
@@ -930,8 +975,8 @@ export default function Turmasorganizador({
           onConfirmarPresencaManual({
             usuario_id: Number(usuarioId),
             turma_id: Number(turmaId),
-            data,
-          })
+            data_presenca: data,
+          }),
         );
 
         await Promise.resolve(carregarPresencas?.(turmaId));
@@ -939,12 +984,15 @@ export default function Turmasorganizador({
         setConfirmandoKey("");
       }
     },
-    [onConfirmarPresencaManual, carregarPresencas]
+    [onConfirmarPresencaManual, carregarPresencas],
   );
 
   if (carregando) {
     return (
-      <section aria-label="Carregando turmas do organizador" className={className}>
+      <section
+        aria-label="Carregando turmas do organizador"
+        className={className}
+      >
         <div className="space-y-4">
           <CarregandoSkeleton height={150} />
           <CarregandoSkeleton height={150} />
@@ -981,7 +1029,9 @@ export default function Turmasorganizador({
                 {evento.turmas.map((turma) => {
                   const turmaId = getTurmaId(turma);
 
-                  if (!turmaId) return null;
+                  if (!turmaId) {
+                    return null;
+                  }
 
                   const statusTurma = statusFromTurma(turma);
                   const expandindoInscritos =
@@ -992,13 +1042,14 @@ export default function Turmasorganizador({
                   const datas = montarDatasReais(
                     turma,
                     datasPorTurma,
-                    presencasPorTurma
+                    presencasPorTurma,
                   );
 
                   const dataAtiva =
                     dataAtivaPorTurma[turmaId] || datas[0]?.data || "";
-                  const somenteSemPresenca =
-                    Boolean(somenteSemPresencaPorTurma[turmaId]);
+                  const somenteSemPresenca = Boolean(
+                    somenteSemPresencaPorTurma[turmaId],
+                  );
 
                   const inscritos = safeArray(inscritosPorTurma[turmaId]);
                   const presencasDetalhadas =
@@ -1006,7 +1057,7 @@ export default function Turmasorganizador({
 
                   const mapaUsuarios = montarMapaUsuarios(
                     inscritos,
-                    presencasDetalhadas
+                    presencasDetalhadas,
                   );
 
                   return (
@@ -1032,7 +1083,7 @@ export default function Turmasorganizador({
                             }
 
                             setTurmaExpandidaInscritos(
-                              expandindoInscritos ? null : turmaId
+                              expandindoInscritos ? null : turmaId,
                             );
                             setTurmaExpandidaAvaliacao(null);
                           }}
@@ -1046,7 +1097,7 @@ export default function Turmasorganizador({
                           onClick={() => {
                             onVerAvaliacao?.(turmaId);
                             setTurmaExpandidaAvaliacao(
-                              expandindoAvaliacao ? null : turmaId
+                              expandindoAvaliacao ? null : turmaId,
                             );
                             setTurmaExpandidaInscritos(null);
                           }}
@@ -1057,7 +1108,9 @@ export default function Turmasorganizador({
                         <ActionButton
                           icon={FileText}
                           variant="neutral"
-                          onClick={() => onExportarListaAssinaturaPDF?.(turmaId)}
+                          onClick={() =>
+                            onExportarListaAssinaturaPDF?.(turmaId)
+                          }
                         >
                           Lista de presença
                         </ActionButton>
@@ -1077,12 +1130,18 @@ export default function Turmasorganizador({
                         {expandindoInscritos ? (
                           <motion.div
                             id={`painel-inscritos-${turmaId}`}
-                            initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                            initial={
+                              reduceMotion ? false : { opacity: 0, height: 0 }
+                            }
                             animate={
-                              reduceMotion ? undefined : { opacity: 1, height: "auto" }
+                              reduceMotion
+                                ? undefined
+                                : { opacity: 1, height: "auto" }
                             }
                             exit={
-                              reduceMotion ? undefined : { opacity: 0, height: 0 }
+                              reduceMotion
+                                ? undefined
+                                : { opacity: 0, height: 0 }
                             }
                             className="overflow-hidden px-4 pb-4"
                           >
@@ -1112,17 +1171,22 @@ export default function Turmasorganizador({
 
                                 {(() => {
                                   const dataSelecionada =
-                                    datas.find((item) => item.data === dataAtiva) ||
-                                    datas[0];
+                                    datas.find(
+                                      (item) => item.data === dataAtiva,
+                                    ) || datas[0];
 
-                                  if (!dataSelecionada) return null;
+                                  if (!dataSelecionada) {
+                                    return null;
+                                  }
 
                                   const inicio = toLocalDateFromYMDTime(
                                     dataSelecionada.data,
-                                    dataSelecionada.horario_inicio || "00:00"
+                                    dataSelecionada.horario_inicio || "00:00",
                                   );
                                   const abreJanela = inicio
-                                    ? new Date(inicio.getTime() + 60 * 60 * 1000)
+                                    ? new Date(
+                                        inicio.getTime() + 60 * 60 * 1000,
+                                      )
                                     : null;
                                   const antesDaJanela = abreJanela
                                     ? new Date() < abreJanela
@@ -1135,13 +1199,15 @@ export default function Turmasorganizador({
                                   });
 
                                   const usuarios = Array.from(
-                                    mapaUsuarios.values()
+                                    mapaUsuarios.values(),
                                   ).filter((usuario) => {
-                                    if (!somenteSemPresenca) return true;
+                                    if (!somenteSemPresenca) {
+                                      return true;
+                                    }
 
                                     return (
                                       usuario.presencas.get(
-                                        dataSelecionada.data
+                                        dataSelecionada.data,
                                       ) !== true
                                     );
                                   });
@@ -1156,7 +1222,9 @@ export default function Turmasorganizador({
                                       <header className="flex flex-col gap-4 border-b border-slate-200 p-4 dark:border-zinc-800 lg:flex-row lg:items-end lg:justify-between">
                                         <div>
                                           <h5 className="text-sm font-black text-slate-950 dark:text-white">
-                                            {formatarDataBR(dataSelecionada.data)}
+                                            {formatarDataBR(
+                                              dataSelecionada.data,
+                                            )}
                                           </h5>
 
                                           <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
@@ -1166,7 +1234,8 @@ export default function Turmasorganizador({
                                             />
                                             {dataSelecionada.horario_inicio ||
                                               "—"}{" "}
-                                            às {dataSelecionada.horario_fim || "—"}
+                                            às{" "}
+                                            {dataSelecionada.horario_fim || "—"}
                                           </p>
 
                                           {antesDaJanela ? (
@@ -1210,8 +1279,7 @@ export default function Turmasorganizador({
                                             onClick={() =>
                                               exportarCsvDataAtiva({
                                                 turmaId,
-                                                dataAtiva:
-                                                  dataSelecionada.data,
+                                                dataAtiva: dataSelecionada.data,
                                                 mapaUsuarios,
                                               })
                                             }
@@ -1239,7 +1307,7 @@ export default function Turmasorganizador({
                                                     ...prev,
                                                     [turmaId]:
                                                       event.target.checked,
-                                                  })
+                                                  }),
                                                 )
                                               }
                                             />
@@ -1275,7 +1343,7 @@ export default function Turmasorganizador({
                                               {usuarios.map((usuario) => {
                                                 const presente =
                                                   usuario.presencas.get(
-                                                    dataSelecionada.data
+                                                    dataSelecionada.data,
                                                   ) === true;
                                                 const status = presente
                                                   ? "presente"
@@ -1287,7 +1355,7 @@ export default function Turmasorganizador({
                                                   dentroDaJanelaConfirmacao(
                                                     dataSelecionada.data,
                                                     dataSelecionada.horario_inicio,
-                                                    dataSelecionada.horario_fim
+                                                    dataSelecionada.horario_fim,
                                                   ) &&
                                                   typeof onConfirmarPresencaManual ===
                                                     "function";
@@ -1301,15 +1369,19 @@ export default function Turmasorganizador({
                                                     className="border-t border-slate-200 dark:border-zinc-800"
                                                   >
                                                     <td className="px-3 py-3 font-semibold text-slate-950 dark:text-white">
-  <span className="inline-flex max-w-full items-center gap-2">
-    <span className="break-words">{usuario.nome}</span>
-    <IconeDeficienciaUsuario usuario={usuario} />
-  </span>
-</td>
+                                                      <span className="inline-flex max-w-full items-center gap-2">
+                                                        <span className="break-words">
+                                                          {usuario.nome}
+                                                        </span>
+                                                        <IconeDeficienciaUsuario
+                                                          usuario={usuario}
+                                                        />
+                                                      </span>
+                                                    </td>
 
                                                     <td className="px-3 py-3 text-slate-600 dark:text-zinc-300">
                                                       {formatarDocumento(
-                                                        usuario.cpf
+                                                        usuario.cpf,
                                                       )}
                                                     </td>
 
@@ -1332,7 +1404,7 @@ export default function Turmasorganizador({
                                                                   usuario.id,
                                                                 turmaId,
                                                                 data: dataSelecionada.data,
-                                                              }
+                                                              },
                                                             )
                                                           }
                                                         >
@@ -1357,7 +1429,7 @@ export default function Turmasorganizador({
                                           {usuarios.map((usuario) => {
                                             const presente =
                                               usuario.presencas.get(
-                                                dataSelecionada.data
+                                                dataSelecionada.data,
                                               ) === true;
                                             const status = presente
                                               ? "presente"
@@ -1369,7 +1441,7 @@ export default function Turmasorganizador({
                                               dentroDaJanelaConfirmacao(
                                                 dataSelecionada.data,
                                                 dataSelecionada.horario_inicio,
-                                                dataSelecionada.horario_fim
+                                                dataSelecionada.horario_fim,
                                               ) &&
                                               typeof onConfirmarPresencaManual ===
                                                 "function";
@@ -1385,12 +1457,16 @@ export default function Turmasorganizador({
                                                 <div className="flex flex-col gap-2">
                                                   <div>
                                                     <p className="flex items-center gap-2 font-black text-slate-950 dark:text-white">
-  <span className="break-words">{usuario.nome}</span>
-  <IconeDeficienciaUsuario usuario={usuario} />
-</p>
+                                                      <span className="break-words">
+                                                        {usuario.nome}
+                                                      </span>
+                                                      <IconeDeficienciaUsuario
+                                                        usuario={usuario}
+                                                      />
+                                                    </p>
                                                     <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
                                                       {formatarDocumento(
-                                                        usuario.cpf
+                                                        usuario.cpf,
                                                       )}
                                                     </p>
                                                   </div>
@@ -1402,19 +1478,22 @@ export default function Turmasorganizador({
                                                   {podeConfirmar ? (
                                                     <Botao
                                                       type="button"
-                                                      variant="primary"
+                                                      variant="sucesso"
                                                       disabled={loadingThis}
                                                       onClick={() =>
-                                                        handleConfirmarPresenca({
-                                                          usuarioId: usuario.id,
-                                                          turmaId,
-                                                          data: dataSelecionada.data,
-                                                        })
+                                                        handleConfirmarPresenca(
+                                                          {
+                                                            usuarioId:
+                                                              usuario.id,
+                                                            turmaId,
+                                                            data: dataSelecionada.data,
+                                                          },
+                                                        )
                                                       }
                                                     >
                                                       {loadingThis
                                                         ? "Confirmando..."
-                                                        : "Confirmar presença"}
+                                                        : "Confirmar"}
                                                     </Botao>
                                                   ) : null}
                                                 </div>
@@ -1436,18 +1515,24 @@ export default function Turmasorganizador({
                         {expandindoAvaliacao ? (
                           <motion.div
                             id={`painel-avaliacao-${turmaId}`}
-                            initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                            initial={
+                              reduceMotion ? false : { opacity: 0, height: 0 }
+                            }
                             animate={
-                              reduceMotion ? undefined : { opacity: 1, height: "auto" }
+                              reduceMotion
+                                ? undefined
+                                : { opacity: 1, height: "auto" }
                             }
                             exit={
-                              reduceMotion ? undefined : { opacity: 0, height: 0 }
+                              reduceMotion
+                                ? undefined
+                                : { opacity: 0, height: 0 }
                             }
                             className="overflow-hidden px-4 pb-4"
                           >
                             {(() => {
                               const comentarios = safeArray(
-                                avaliacaoPorTurma[turmaId]
+                                avaliacaoPorTurma[turmaId],
                               );
 
                               return comentarios.length > 0 ? (
@@ -1500,9 +1585,9 @@ Turmasorganizador.propTypes = {
           data: PropTypes.string,
           horario_inicio: PropTypes.string,
           horario_fim: PropTypes.string,
-        })
+        }),
       ),
-    })
+    }),
   ),
   inscritosPorTurma: PropTypes.object,
   avaliacaoPorTurma: PropTypes.object,

@@ -1304,6 +1304,44 @@ export default function organizadorPresenca() {
     [nome, turmas],
   );
 
+  const confirmarPresencaManualOrganizador = useCallback(
+    async ({ usuarioId, turmaId, dataPresenca }) => {
+      const usuarioIdOk = toPositiveInt(usuarioId);
+      const turmaIdOk = toPositiveInt(turmaId);
+      const dataOk = ymd(dataPresenca);
+
+      if (!usuarioIdOk || !turmaIdOk || !dataOk) {
+        notifyError("Dados inválidos para confirmação de presença.");
+        return;
+      }
+
+      try {
+        validarFacade(
+          "api.presenca.confirmarPresencaOrganizador",
+          api?.presenca?.confirmarPresencaOrganizador,
+        );
+
+        await api.presenca.confirmarPresencaOrganizador({
+          usuario_id: usuarioIdOk,
+          turma_id: turmaIdOk,
+          data_presenca: dataOk,
+        });
+
+        notifySuccess("Presença confirmada com sucesso.");
+
+        await Promise.allSettled([
+          carregarInscritos(turmaIdOk),
+          carregarPresencas(turmaIdOk, { silent: true }),
+        ]);
+      } catch (error) {
+        notifyError(
+          obterMensagemErro(error, "Erro ao confirmar presença manualmente."),
+        );
+      }
+    },
+    [carregarInscritos, carregarPresencas],
+  );
+
   const hoje = useMemo(() => todayYMD(), []);
 
   const turmasComStatus = useMemo(() => {
@@ -1521,6 +1559,7 @@ export default function organizadorPresenca() {
             gerarRelatorioPDF={gerarRelatorioPDF}
             onExportarListaAssinaturaPDF={gerarListaAssinaturaPDF}
             onExportarQrCodePDF={gerarQrCodePresencaPDF}
+            onConfirmarPresencaManual={confirmarPresencaManualOrganizador}
             carregando={carregando}
             turmaExpandidaInscritos={turmaExpandidaInscritos}
             setTurmaExpandidaInscritos={setTurmaExpandidaInscritos}

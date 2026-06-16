@@ -27,7 +27,7 @@
  * - Suporta de 1 a 3 assinaturas oficiais.
  *
  * Contrato preservado:
-  * - desenharCertificadoCompletoV2(doc, options)
+ * - desenharCertificadoCompletoV2(doc, options)
  * - desenharVersoConteudoProgramatico(doc, options)
  * - desenharAssinaturas(doc, assinaturas, options)
  * - normalizarAssinaturasLayout(assinaturas)
@@ -65,7 +65,9 @@ const CORES = {
 };
 
 function safeText(value, max = 5000) {
-  const text = String(value || "").replace(/\s+/g, " ").trim();
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
   return text.length > max ? text.slice(0, max) : text;
 }
 
@@ -76,16 +78,27 @@ function clamp(value, min, max) {
 }
 
 function dataUrlToBuffer(value) {
-  const raw = String(value || "");
+  const raw = String(value || "").trim();
 
-  if (!raw.startsWith("data:image")) return null;
+  if (!raw) return null;
 
-  const parts = raw.split(",");
+  let base64 = raw;
 
-  if (parts.length < 2) return null;
+  if (raw.startsWith("data:image")) {
+    const parts = raw.split(",");
+
+    if (parts.length < 2) return null;
+
+    base64 = parts.slice(1).join(",").trim();
+  }
+
+  base64 = base64.replace(/\s+/g, "").replace(/^base64,/, "");
+
+  if (!base64) return null;
 
   try {
-    return Buffer.from(parts[1], "base64");
+    const buffer = Buffer.from(base64, "base64");
+    return buffer.length > 0 ? buffer : null;
   } catch {
     return null;
   }
@@ -330,15 +343,9 @@ function desenharCantosOrnamentais(doc) {
     doc.translate(x, y);
     doc.scale(sx, sy);
 
-    doc
-      .moveTo(0, 32)
-      .bezierCurveTo(4, 17, 17, 4, 32, 0)
-      .stroke();
+    doc.moveTo(0, 32).bezierCurveTo(4, 17, 17, 4, 32, 0).stroke();
 
-    doc
-      .moveTo(9, 35)
-      .bezierCurveTo(12, 23, 23, 12, 35, 9)
-      .stroke();
+    doc.moveTo(9, 35).bezierCurveTo(12, 23, 23, 12, 35, 9).stroke();
 
     doc.moveTo(6, 47).lineTo(0, 60).lineTo(14, 54).stroke();
 
@@ -510,7 +517,7 @@ function desenharTopoInstitucional(doc, options = {}) {
       logoSize,
       logoSize,
       "SANTOS",
-      fonts
+      fonts,
     );
 
   desenharLogoImagem(doc, logoEscola, logoRightX, logoY, logoSize, logoSize, {
@@ -524,58 +531,67 @@ function desenharTopoInstitucional(doc, options = {}) {
       logoSize,
       logoSize,
       "EMSP",
-      fonts
+      fonts,
     );
 
   doc.save();
 
   setFont(doc, fonts.bold, "Helvetica-Bold");
-  doc.fillColor(CORES.verdeProfundo).fontSize(13.2).text(
-    "PREFEITURA MUNICIPAL DE SANTOS",
-    170,
-    54,
-    {
+  doc
+    .fillColor(CORES.verdeProfundo)
+    .fontSize(13.2)
+    .text("PREFEITURA MUNICIPAL DE SANTOS", 170, 54, {
       width: pageW - 340,
       align: "center",
       characterSpacing: 0.65,
       lineBreak: false,
-    }
-  );
+    });
 
   setFont(doc, fonts.bold, "Helvetica-Bold");
-  doc.fillColor(CORES.texto).fontSize(11).text(
-    "SECRETARIA MUNICIPAL DE SAÚDE",
-    170,
-    74,
-    {
+  doc
+    .fillColor(CORES.texto)
+    .fontSize(11)
+    .text("SECRETARIA MUNICIPAL DE SAÚDE", 170, 74, {
       width: pageW - 340,
       align: "center",
       characterSpacing: 0.25,
       lineBreak: false,
-    }
-  );
+    });
 
   setFont(doc, fonts.regular, "Helvetica");
-  doc.fillColor(CORES.textoSuave).fontSize(8.8).text(
-    "Escola Municipal de Saúde Pública — EMSP-SMS",
-    170,
-    91,
-    {
+  doc
+    .fillColor(CORES.textoSuave)
+    .fontSize(8.8)
+    .text("Escola Municipal de Saúde Pública — EMSP-SMS", 170, 91, {
       width: pageW - 340,
       align: "center",
       lineBreak: false,
-    }
-  );
+    });
 
   const cy = 116;
 
   doc.strokeColor(CORES.ouro).lineWidth(0.75);
-  doc.moveTo(pageW / 2 - 120, cy).lineTo(pageW / 2 - 24, cy).stroke();
-  doc.moveTo(pageW / 2 + 24, cy).lineTo(pageW / 2 + 120, cy).stroke();
+  doc
+    .moveTo(pageW / 2 - 120, cy)
+    .lineTo(pageW / 2 - 24, cy)
+    .stroke();
+  doc
+    .moveTo(pageW / 2 + 24, cy)
+    .lineTo(pageW / 2 + 120, cy)
+    .stroke();
 
-  doc.circle(pageW / 2, cy, 2.2).fillColor(CORES.ouro).fill();
-  doc.circle(pageW / 2 - 12, cy, 1.2).fillColor(CORES.ouro).fill();
-  doc.circle(pageW / 2 + 12, cy, 1.2).fillColor(CORES.ouro).fill();
+  doc
+    .circle(pageW / 2, cy, 2.2)
+    .fillColor(CORES.ouro)
+    .fill();
+  doc
+    .circle(pageW / 2 - 12, cy, 1.2)
+    .fillColor(CORES.ouro)
+    .fill();
+  doc
+    .circle(pageW / 2 + 12, cy, 1.2)
+    .fillColor(CORES.ouro)
+    .fill();
 
   doc.restore();
 }
@@ -590,37 +606,55 @@ function desenharTitulo(doc, options = {}) {
 
   setFont(doc, fonts.serif, "Helvetica-Bold");
 
-  doc.fillColor("#d2bd87").fontSize(44).text(titulo, 66, 134, {
-    width: pageW - 132,
-    align: "center",
-    characterSpacing: 2.4,
-    lineBreak: false,
-  });
+  doc
+    .fillColor("#d2bd87")
+    .fontSize(44)
+    .text(titulo, 66, 134, {
+      width: pageW - 132,
+      align: "center",
+      characterSpacing: 2.4,
+      lineBreak: false,
+    });
 
-  doc.fillColor(CORES.verdeProfundo).fontSize(42).text(titulo, 66, 131, {
-    width: pageW - 132,
-    align: "center",
-    characterSpacing: 2.4,
-    lineBreak: false,
-  });
+  doc
+    .fillColor(CORES.verdeProfundo)
+    .fontSize(42)
+    .text(titulo, 66, 131, {
+      width: pageW - 132,
+      align: "center",
+      characterSpacing: 2.4,
+      lineBreak: false,
+    });
 
   setFont(doc, fonts.regular, "Helvetica");
-  doc.fillColor(CORES.ouroEscuro).fontSize(9.6).text(
-    options.subtitulo ||
-      "Documento eletrônico emitido pela Plataforma Escola da Saúde",
-    90,
-    179,
-    {
-      width: pageW - 180,
-      align: "center",
-      lineBreak: false,
-    }
-  );
+  doc
+    .fillColor(CORES.ouroEscuro)
+    .fontSize(9.6)
+    .text(
+      options.subtitulo ||
+        "Documento eletrônico emitido pela Plataforma Escola da Saúde",
+      90,
+      179,
+      {
+        width: pageW - 180,
+        align: "center",
+        lineBreak: false,
+      },
+    );
 
   doc.strokeColor(CORES.ouro).lineWidth(0.7);
-  doc.moveTo(pageW / 2 - 76, 200).lineTo(pageW / 2 - 16, 200).stroke();
-  doc.moveTo(pageW / 2 + 16, 200).lineTo(pageW / 2 + 76, 200).stroke();
-  doc.circle(pageW / 2, 200, 1.8).fillColor(CORES.ouro).fill();
+  doc
+    .moveTo(pageW / 2 - 76, 200)
+    .lineTo(pageW / 2 - 16, 200)
+    .stroke();
+  doc
+    .moveTo(pageW / 2 + 16, 200)
+    .lineTo(pageW / 2 + 76, 200)
+    .stroke();
+  doc
+    .circle(pageW / 2, 200, 1.8)
+    .fillColor(CORES.ouro)
+    .fill();
 
   doc.restore();
 }
@@ -646,20 +680,21 @@ function desenharNome(doc, nome, options = {}) {
   });
 
   doc.strokeColor(CORES.linha).lineWidth(0.75);
-  doc.moveTo(236, 273).lineTo(pageW - 236, 273).stroke();
+  doc
+    .moveTo(236, 273)
+    .lineTo(pageW - 236, 273)
+    .stroke();
 
   if (options.identificadorTexto) {
     setFont(doc, fonts.regular, "Helvetica");
-    doc.fillColor(CORES.textoSuave).fontSize(8.8).text(
-      options.identificadorTexto,
-      90,
-      283,
-      {
+    doc
+      .fillColor(CORES.textoSuave)
+      .fontSize(8.8)
+      .text(options.identificadorTexto, 90, 283, {
         width: pageW - 180,
         align: "center",
         lineBreak: false,
-      }
-    );
+      });
   }
 
   doc.restore();
@@ -828,97 +863,99 @@ function desenharAssinaturas(doc, assinaturas = [], options = {}) {
   const baseY = lista.length === 3 ? 430 : 436;
   const slots = slotsAssinaturas(pageW, lista.length);
 
-lista.forEach((assinatura, index) => {
-  const slot = slots[index];
-  const imgBuffer = assinatura.imgBuffer || assinatura.imagemBuffer || null;
+  lista.forEach((assinatura, index) => {
+    const slot = slots[index];
+    const imgBuffer = assinatura.imgBuffer || assinatura.imagemBuffer || null;
 
-  const cargoFinal = safeText(assinatura.cargo, 140);
-  const cargoEhGenerico = ["assinante", "assina", "assinatura"].includes(
-    cargoFinal
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim()
-  );
-
-  doc.save();
-
-  const linhaY = baseY + 2;
-
-  if (imgBuffer) {
-    try {
-      const nomeAssinante = String(assinatura?.nome || "")
+    const cargoFinal = safeText(assinatura.cargo, 140);
+    const cargoEhGenerico = ["assinante", "assina", "assinatura"].includes(
+      cargoFinal
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
+        .toLowerCase()
+        .trim(),
+    );
 
-      const isRafaellaPitol =
-        nomeAssinante.includes("rafaella") &&
-        nomeAssinante.includes("pitol");
+    doc.save();
 
-      const imageW = clamp(
-        isRafaellaPitol ? slot.imageW + 22 : slot.imageW,
-        80,
-        168
-      );
+    const linhaY = baseY + 2;
 
-      const imageH = clamp(
-        isRafaellaPitol ? slot.imageH + 8 : slot.imageH,
-        32,
-        54
-      );
+    if (imgBuffer) {
+      try {
+        const nomeAssinante = String(assinatura?.nome || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase();
 
-      const imageX = slot.x + (slot.w - imageW) / 2;
+        const isRafaellaPitol =
+          nomeAssinante.includes("rafaella") && nomeAssinante.includes("pitol");
 
-      // Aproxima a assinatura manuscrita da linha.
-      doc.image(imgBuffer, imageX, linhaY - imageH + 4, {
-        width: imageW,
-        height: imageH,
-        fit: [imageW, imageH],
-      });
-    } catch {
-      // imagem inválida não bloqueia emissão
+        const imageW = clamp(
+          isRafaellaPitol ? slot.imageW + 22 : slot.imageW,
+          80,
+          168,
+        );
+
+        const imageH = clamp(
+          isRafaellaPitol ? slot.imageH + 8 : slot.imageH,
+          32,
+          54,
+        );
+
+        const imageX = slot.x + (slot.w - imageW) / 2;
+
+        // Aproxima a assinatura manuscrita da linha.
+        doc.image(imgBuffer, imageX, linhaY - imageH + 4, {
+          width: imageW,
+          height: imageH,
+          fit: [imageW, imageH],
+        });
+      } catch {
+        // imagem inválida não bloqueia emissão
+      }
     }
-  }
 
-  doc.strokeColor(CORES.ouro).lineWidth(0.8);
-  doc.moveTo(slot.x + 8, linhaY).lineTo(slot.x + slot.w - 8, linhaY).stroke();
+    doc.strokeColor(CORES.ouro).lineWidth(0.8);
+    doc
+      .moveTo(slot.x + 8, linhaY)
+      .lineTo(slot.x + slot.w - 8, linhaY)
+      .stroke();
 
-  const midX = slot.x + slot.w / 2;
-  doc.circle(midX, linhaY, 1.5).fillColor(CORES.ouro).fill();
+    const midX = slot.x + slot.w / 2;
+    doc.circle(midX, linhaY, 1.5).fillColor(CORES.ouro).fill();
 
-  drawFitText(doc, assinatura.nome, {
-    x: slot.x,
-    y: linhaY + 8,
-    width: slot.w,
-    height: 17,
-    font: fonts.bold,
-    fallbackFont: "Helvetica-Bold",
-    maxSize: slot.nomeSize,
-    minSize: 7.6,
-    align: "center",
-    color: CORES.texto,
-    lineGap: 0,
-  });
-
-  if (!cargoEhGenerico && cargoFinal) {
-    drawFitText(doc, cargoFinal, {
+    drawFitText(doc, assinatura.nome, {
       x: slot.x,
-      y: linhaY + 25,
+      y: linhaY + 8,
       width: slot.w,
       height: 17,
-      font: fonts.regular,
-      fallbackFont: "Helvetica",
-      maxSize: slot.cargoSize,
-      minSize: 6.2,
+      font: fonts.bold,
+      fallbackFont: "Helvetica-Bold",
+      maxSize: slot.nomeSize,
+      minSize: 7.6,
       align: "center",
-      color: CORES.ouroEscuro,
+      color: CORES.texto,
       lineGap: 0,
     });
-  }
 
-  doc.restore();
-});
+    if (!cargoEhGenerico && cargoFinal) {
+      drawFitText(doc, cargoFinal, {
+        x: slot.x,
+        y: linhaY + 25,
+        width: slot.w,
+        height: 17,
+        font: fonts.regular,
+        fallbackFont: "Helvetica",
+        maxSize: slot.cargoSize,
+        minSize: 6.2,
+        align: "center",
+        color: CORES.ouroEscuro,
+        lineGap: 0,
+      });
+    }
+
+    doc.restore();
+  });
 }
 
 function desenharRodapeImagem(doc, options = {}, x, y, w, h) {
@@ -1015,7 +1052,10 @@ function desenharValidacao(doc, options = {}) {
 
   doc.strokeColor(CORES.ouro).lineWidth(0.8);
   for (let yy = footerY + 13; yy <= footerY + footerH - 13; yy += 8) {
-    doc.circle(qrX + qrSize + 18, yy, 0.9).fillColor(CORES.ouro).fill();
+    doc
+      .circle(qrX + qrSize + 18, yy, 0.9)
+      .fillColor(CORES.ouro)
+      .fill();
   }
 
   setFont(doc, fonts.bold, "Helvetica-Bold");
@@ -1029,7 +1069,7 @@ function desenharValidacao(doc, options = {}) {
       width: infoW,
       height: 9,
       max: 190,
-    }
+    },
   );
 
   setFont(doc, fonts.regular, "Helvetica");
@@ -1043,7 +1083,7 @@ function desenharValidacao(doc, options = {}) {
       width: infoW,
       height: 8,
       max: 190,
-    }
+    },
   );
 
   drawNoBreakText(
@@ -1055,7 +1095,7 @@ function desenharValidacao(doc, options = {}) {
       width: infoW,
       height: 8,
       max: 210,
-    }
+    },
   );
 
   if (url) {
@@ -1077,7 +1117,7 @@ function desenharValidacao(doc, options = {}) {
     artX,
     artY,
     artW,
-    artH
+    artH,
   );
 
   if (!desenhouImagem) {
@@ -1167,11 +1207,14 @@ function desenharLinhasConteudoProgramatico(doc, linhas, options = {}) {
     }
 
     setFont(doc, fonts.regular, "Helvetica");
-    doc.fillColor(CORES.texto).fontSize(fontSize).text(texto || linha, textX, cursorY, {
-      width: textW,
-      align: "left",
-      lineGap,
-    });
+    doc
+      .fillColor(CORES.texto)
+      .fontSize(fontSize)
+      .text(texto || linha, textX, cursorY, {
+        width: textW,
+        align: "left",
+        lineGap,
+      });
 
     const alturaLinha = doc.heightOfString(texto || linha, {
       width: textW,
@@ -1181,18 +1224,23 @@ function desenharLinhasConteudoProgramatico(doc, linhas, options = {}) {
 
     cursorY += alturaLinha + 4;
 
-        if (cursorY > y + height - 14) {
+    if (cursorY > y + height - 14) {
       setFont(doc, fonts.bold, "Helvetica-Bold");
       doc
         .fillColor(CORES.textoMuted)
         .fontSize(6.4)
-        .text("Conteúdo ajustado ao limite físico do verso.", x, y + height - 10, {
-          width,
-          height: 8,
-          align: "right",
-          lineBreak: false,
-          ellipsis: true,
-        });
+        .text(
+          "Conteúdo ajustado ao limite físico do verso.",
+          x,
+          y + height - 10,
+          {
+            width,
+            height: 8,
+            align: "right",
+            lineBreak: false,
+            ellipsis: true,
+          },
+        );
       break;
     }
   }
@@ -1205,7 +1253,7 @@ function desenharVersoConteudoProgramatico(doc, options = {}) {
 
   const conteudo = normalizarConteudoProgramatico(
     options.conteudoProgramatico,
-    12000
+    12000,
   );
 
   if (!conteudo) return;
@@ -1251,18 +1299,24 @@ function desenharVersoConteudoProgramatico(doc, options = {}) {
     });
 
   doc.strokeColor(CORES.ouro).lineWidth(0.7);
-  doc.moveTo(pageW / 2 - 88, 194).lineTo(pageW / 2 - 16, 194).stroke();
-  doc.moveTo(pageW / 2 + 16, 194).lineTo(pageW / 2 + 88, 194).stroke();
-  doc.circle(pageW / 2, 194, 1.8).fillColor(CORES.ouro).fill();
+  doc
+    .moveTo(pageW / 2 - 88, 194)
+    .lineTo(pageW / 2 - 16, 194)
+    .stroke();
+  doc
+    .moveTo(pageW / 2 + 16, 194)
+    .lineTo(pageW / 2 + 88, 194)
+    .stroke();
+  doc
+    .circle(pageW / 2, 194, 1.8)
+    .fillColor(CORES.ouro)
+    .fill();
 
   const infoX = 86;
   const infoY = 212;
   const infoW = pageW - 172;
 
-  doc
-    .roundedRect(infoX, infoY, infoW, 58, 14)
-    .fillColor("#fffaf0")
-    .fill();
+  doc.roundedRect(infoX, infoY, infoW, 58, 14).fillColor("#fffaf0").fill();
 
   doc
     .roundedRect(infoX, infoY, infoW, 58, 14)
@@ -1271,21 +1325,27 @@ function desenharVersoConteudoProgramatico(doc, options = {}) {
     .stroke();
 
   setFont(doc, fonts.bold, "Helvetica-Bold");
-  doc.fillColor(CORES.verdeProfundo).fontSize(10.8).text(tituloEvento, infoX + 18, infoY + 13, {
-    width: infoW - 36,
-    align: "center",
-    lineBreak: false,
-    ellipsis: true,
-  });
-
-  if (turmaNome) {
-    setFont(doc, fonts.regular, "Helvetica");
-    doc.fillColor(CORES.textoSuave).fontSize(8.8).text(turmaNome, infoX + 18, infoY + 33, {
+  doc
+    .fillColor(CORES.verdeProfundo)
+    .fontSize(10.8)
+    .text(tituloEvento, infoX + 18, infoY + 13, {
       width: infoW - 36,
       align: "center",
       lineBreak: false,
       ellipsis: true,
     });
+
+  if (turmaNome) {
+    setFont(doc, fonts.regular, "Helvetica");
+    doc
+      .fillColor(CORES.textoSuave)
+      .fontSize(8.8)
+      .text(turmaNome, infoX + 18, infoY + 33, {
+        width: infoW - 36,
+        align: "center",
+        lineBreak: false,
+        ellipsis: true,
+      });
   }
 
   const boxX = 92;
@@ -1352,40 +1412,49 @@ function desenharVersoConteudoProgramatico(doc, options = {}) {
   const rodapeY = pageH - 70;
 
   doc.strokeColor(CORES.ouro).lineWidth(0.65);
-  doc.moveTo(86, rodapeY - 12).lineTo(pageW - 86, rodapeY - 12).stroke();
+  doc
+    .moveTo(86, rodapeY - 12)
+    .lineTo(pageW - 86, rodapeY - 12)
+    .stroke();
 
   setFont(doc, fonts.bold, "Helvetica-Bold");
-  doc.fillColor(CORES.verdeProfundo).fontSize(8).text(
-    "Documento eletrônico emitido pela Plataforma Escola da Saúde",
-    86,
-    rodapeY,
-    {
-      width: pageW - 172,
-      height: 10,
-      align: "center",
-      lineBreak: false,
-      ellipsis: true,
-    }
-  );
+  doc
+    .fillColor(CORES.verdeProfundo)
+    .fontSize(8)
+    .text(
+      "Documento eletrônico emitido pela Plataforma Escola da Saúde",
+      86,
+      rodapeY,
+      {
+        width: pageW - 172,
+        height: 10,
+        align: "center",
+        lineBreak: false,
+        ellipsis: true,
+      },
+    );
 
   setFont(doc, fonts.regular, "Helvetica");
-  doc.fillColor(CORES.textoMuted).fontSize(7).text(
-    [
-      numeroCertificado ? `Certificado nº: ${numeroCertificado}` : "",
-      codigoValidacao ? `Código de validação: ${codigoValidacao}` : "",
-    ]
-      .filter(Boolean)
-      .join("  •  "),
-    86,
-    rodapeY + 15,
-    {
-      width: pageW - 172,
-      height: 10,
-      align: "center",
-      lineBreak: false,
-      ellipsis: true,
-    }
-  );
+  doc
+    .fillColor(CORES.textoMuted)
+    .fontSize(7)
+    .text(
+      [
+        numeroCertificado ? `Certificado nº: ${numeroCertificado}` : "",
+        codigoValidacao ? `Código de validação: ${codigoValidacao}` : "",
+      ]
+        .filter(Boolean)
+        .join("  •  "),
+      86,
+      rodapeY + 15,
+      {
+        width: pageW - 172,
+        height: 10,
+        align: "center",
+        lineBreak: false,
+        ellipsis: true,
+      },
+    );
 
   doc.restore();
 }
