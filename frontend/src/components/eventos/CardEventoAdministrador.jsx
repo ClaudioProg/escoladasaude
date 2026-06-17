@@ -3,24 +3,7 @@
 // Plataforma Escola da Saúde
 //
 // Card administrativo premium de evento.
-//
-// Diretrizes aplicadas:
-// - Visual reestruturado, não apenas mantido;
-// - Pasta do domínio: src/components/eventos/;
-// - BadgeStatus vem de ../ui/BadgeStatus;
-// - CardTurmaAdministrador vem de ./CardTurmaAdministrador;
-// - Folder oficial vem de getEventoFolderUrl(evento);
-// - Status oficial: programado | andamento | encerrado | sem_datas;
-// - Sem status em_andamento;
-// - Sem status todos;
-// - Sem evento.organizador como alias;
-// - Sem normalização multi-formato de listas;
-// - Sem resolveAssetUrl;
-// - Sem helper legado de data;
-// - Sem new Date("YYYY-MM-DD");
-// - Presença ≥75% calculada sobre ocorrências oficiais;
-// - Layout administrativo claro: evento → métricas → turmas → inscritos;
-// - Mobile-first, acessível, rastreável e mais legível.
+// Layout refatorado para visual mais compacto e "singelo".
 
 import PropTypes from "prop-types";
 import { useEffect, useMemo, useState } from "react";
@@ -56,7 +39,6 @@ function pad2(value) {
 
 function hojeIsoLocal() {
   const d = new Date();
-
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
@@ -77,11 +59,9 @@ function ymd(value) {
 
   if (typeof value === "string") {
     const raw = value.trim();
-
     if (isDateOnly(raw)) {
       return raw;
     }
-
     const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
     return match ? match[1] : "";
   }
@@ -91,7 +71,6 @@ function ymd(value) {
 
 function formatDateBr(value) {
   const date = ymd(value);
-
   if (!date) {
     return "";
   }
@@ -102,7 +81,6 @@ function formatDateBr(value) {
 
 function idadePorDataNascimento(value) {
   const nascimento = ymd(value);
-
   if (!nascimento) {
     return null;
   }
@@ -222,7 +200,6 @@ function getStatusEvento({ evento, turmas }) {
 
   if (!dataInicio || !dataFim) {
     const datas = getDatasTurmas(turmas);
-
     if (datas.length) {
       dataInicio = datas[0];
       dataFim = datas.at(-1);
@@ -308,7 +285,6 @@ function resolveAssinanteNome(turma) {
   }
 
   const assinanteId = Number(turma?.organizador_assinante_id);
-
   if (!Number.isFinite(assinanteId)) {
     return null;
   }
@@ -331,7 +307,6 @@ function resolveAssinanteNome(turma) {
 
 function resolverorganizadoresTurma(turma) {
   const raw = Array.isArray(turma?.organizadores) ? turma.organizadores : [];
-
   const seen = new Set();
   const result = [];
 
@@ -343,7 +318,6 @@ function resolverorganizadoresTurma(turma) {
     }
 
     seen.add(id);
-
     result.push({
       id,
       nome:
@@ -362,7 +336,6 @@ function resolverorganizadoresEvento(evento) {
   return raw
     .map((item) => {
       const id = Number(item?.id ?? item);
-
       if (!Number.isFinite(id)) {
         return null;
       }
@@ -410,7 +383,7 @@ function statusStyles(status) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   UI
+   UI Refatorada e Compactada
 ────────────────────────────────────────────────────────────── */
 
 function MetricCard({ icon: Icon, label, value, tone = "slate", hint }) {
@@ -428,19 +401,19 @@ function MetricCard({ icon: Icon, label, value, tone = "slate", hint }) {
 
   return (
     <div
-      className={`rounded-2xl border p-3 shadow-sm ${tones[tone] || tones.slate}`}
+      className={`rounded-2xl border p-2.5 shadow-sm ${tones[tone] || tones.slate}`}
       title={hint || `${label}: ${value}`}
     >
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/65 shadow-sm dark:bg-white/5">
-          <Icon className="h-5 w-5" aria-hidden="true" />
+      <div className="flex items-center gap-2.5">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/65 shadow-sm dark:bg-white/5">
+          <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
 
         <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wide opacity-70">
+          <div className="text-[10px] font-bold uppercase tracking-wide opacity-70">
             {label}
           </div>
-          <div className="truncate text-xl font-black leading-tight">
+          <div className="truncate text-base font-black leading-tight">
             {value}
           </div>
         </div>
@@ -469,7 +442,7 @@ function PctPill({ value }) {
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-xl border px-2.5 py-1 text-xs font-black ${cls}`}
+      className={`inline-flex items-center justify-center rounded-lg border px-2 py-0.5 text-[11px] font-black ${cls}`}
       title={`${pct}% de presença`}
     >
       {pct}%
@@ -487,10 +460,10 @@ function DeficienciaBadges({ inscrito }) {
 
   return (
     <span
-      className="inline-flex w-fit items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200"
+      className="inline-flex w-fit items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-bold text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200"
       title={descricao || "Pessoa com deficiência"}
     >
-      <Accessibility size={15} aria-hidden="true" />
+      <Accessibility size={13} aria-hidden="true" />
       {descricao || "Sim"}
     </span>
   );
@@ -498,10 +471,10 @@ function DeficienciaBadges({ inscrito }) {
 
 function EmptyPoster({ hasUrl }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-zinc-400">
-      <ImageIcon className="h-8 w-8" aria-hidden="true" />
-      <span className="text-xs font-semibold">
-        {hasUrl ? "Imagem indisponível" : "Sem folder"}
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-zinc-400">
+      <ImageIcon className="h-6 w-6 opacity-50" aria-hidden="true" />
+      <span className="text-[11px] font-semibold">
+        {hasUrl ? "Indisponível" : "Sem folder"}
       </span>
     </div>
   );
@@ -513,15 +486,15 @@ function InstructorChips({ organizadores }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {organizadores.map((organizador) => (
         <span
           key={organizador.id}
-          className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-200"
+          className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-800 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-200"
           title={organizador.nome}
         >
           <span
-            className="h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-300"
+            className="h-1 w-1 rounded-full bg-indigo-500 dark:bg-indigo-300"
             aria-hidden="true"
           />
           {organizador.nome}
@@ -534,7 +507,7 @@ function InstructorChips({ organizadores }) {
 function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
   if (!inscritos.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/30 dark:text-zinc-400">
+      <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/30 dark:text-zinc-400">
         Nenhum inscrito nesta turma.
       </div>
     );
@@ -544,13 +517,13 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="hidden grid-cols-[minmax(240px,1fr)_150px_120px_80px_140px_100px] gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-[11px] font-black uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 sm:grid">
+      <div className="hidden grid-cols-[minmax(200px,1fr)_120px_100px_60px_120px_80px] gap-2 border-b border-zinc-200 bg-zinc-50 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 sm:grid">
         <div>Nome</div>
         <div>CPF</div>
         <div>Registro</div>
         <div>Idade</div>
         <div>PcD</div>
-        <div className="text-right">Frequência</div>
+        <div className="text-right">Freq.</div>
       </div>
 
       <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -584,29 +557,28 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
                 : null;
 
             return (
-              <li key={key} className="px-4 py-3">
-                <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(240px,1fr)_150px_120px_80px_140px_100px] sm:gap-3">
+              <li key={key} className="px-3 py-2">
+                <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(200px,1fr)_120px_100px_60px_120px_80px] sm:gap-2">
                   <div className="min-w-0">
-                    <div className="break-words text-sm font-semibold leading-snug text-zinc-900 dark:text-zinc-100">
+                    <div className="break-words text-[13px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100">
                       {inscrito?.nome || "—"}
                     </div>
-
-                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400 sm:hidden">
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400 sm:hidden">
                       <span>CPF: {cpf}</span>
                       <span>Reg.: {registro}</span>
                       {Number.isFinite(idade) && <span>Idade: {idade}</span>}
                     </div>
                   </div>
 
-                  <div className="hidden font-mono text-sm tabular-nums text-zinc-600 dark:text-zinc-300 sm:block">
+                  <div className="hidden font-mono text-[11px] tabular-nums text-zinc-600 dark:text-zinc-300 sm:block">
                     {cpf}
                   </div>
 
-                  <div className="hidden break-words text-sm leading-snug text-zinc-600 dark:text-zinc-300 sm:block">
+                  <div className="hidden break-words text-[11px] leading-snug text-zinc-600 dark:text-zinc-300 sm:block">
                     {registro}
                   </div>
 
-                  <div className="hidden text-sm text-zinc-600 dark:text-zinc-300 sm:block">
+                  <div className="hidden text-[11px] text-zinc-600 dark:text-zinc-300 sm:block">
                     {Number.isFinite(idade) ? `${idade}` : "—"}
                   </div>
 
@@ -616,7 +588,7 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
                     {Number.isFinite(frequencia) ? (
                       <PctPill value={frequencia} />
                     ) : (
-                      <span className="text-sm text-zinc-400">—</span>
+                      <span className="text-[11px] text-zinc-400">—</span>
                     )}
                   </div>
                 </div>
@@ -629,7 +601,7 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Componente
+   Componente Principal
 ────────────────────────────────────────────────────────────── */
 
 export default function CardEventoAdministrador({
@@ -654,7 +626,6 @@ export default function CardEventoAdministrador({
   };
 
   const tituloEvento = evento?.titulo || "Evento sem título";
-
   const folderUrl = useMemo(() => getEventoFolderUrl(evento), [evento]);
   const [imgOk, setImgOk] = useState(true);
 
@@ -677,7 +648,6 @@ export default function CardEventoAdministrador({
     const nomes = resolverorganizadoresEvento(evento)
       .map((item) => item.nome)
       .filter(Boolean);
-
     return nomes.length ? nomes.join(", ") : "organizador não informado";
   }, [evento]);
 
@@ -743,36 +713,36 @@ export default function CardEventoAdministrador({
     turmas,
   ]);
 
+  // Ajustado o tamanho base das fontes
   const nomeEventoClass =
     classNomeEventoMultiLinha ||
-    "break-words text-2xl font-black leading-tight tracking-tight text-zinc-950 dark:text-white sm:text-3xl";
+    "break-words text-xl font-black leading-tight tracking-tight text-zinc-950 dark:text-white sm:text-2xl";
 
   const organizadoresClass =
     classorganizadoresMultiLinha ||
-    "break-words text-sm font-medium leading-snug text-zinc-600 dark:text-zinc-300";
+    "break-words text-xs font-medium leading-snug text-zinc-600 dark:text-zinc-300";
 
   return (
     <section
-      className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white shadow-[0_18px_70px_-44px_rgba(15,23,42,0.65)] dark:border-zinc-800 dark:bg-zinc-950"
+      className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_70px_-44px_rgba(15,23,42,0.65)] dark:border-zinc-800 dark:bg-zinc-950"
       aria-labelledby={tituloId}
     >
       <div
         className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${styles.bar}`}
         aria-hidden="true"
       />
-
       <div
         className={`pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl ${styles.aura}`}
         aria-hidden="true"
       />
-
       <div
         className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl"
         aria-hidden="true"
       />
 
-      <div className="relative grid gap-5 p-4 sm:p-5 lg:grid-cols-[210px_minmax(0,1fr)_180px] lg:p-6">
-        <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+      {/* Grid refatorado com colunas menores e paddings menores */}
+      <div className="relative grid gap-4 p-3 sm:p-4 lg:grid-cols-[140px_minmax(0,1fr)_160px]">
+        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
           <div className="aspect-[4/3] w-full lg:aspect-[3/4]">
             {folderUrl && imgOk ? (
               <img
@@ -793,31 +763,30 @@ export default function CardEventoAdministrador({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <BadgeStatus status={statusEvento} size="sm" variant="soft" />
-
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-bold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+              <CalendarDays className="h-3 w-3" aria-hidden="true" />
               {periodo}
             </span>
           </div>
 
           <h3
             id={tituloId}
-            className={`${nomeEventoClass} mt-3`}
+            className={`${nomeEventoClass} mt-2`}
             title={tituloEvento}
           >
             {tituloEvento}
           </h3>
 
-          <div className="mt-3 rounded-2xl border border-zinc-200 bg-white/70 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              organizadores responsáveis
+          <div className="mt-2 rounded-xl border border-zinc-200 bg-white/70 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Organizadores responsáveis
             </div>
             <div className={organizadoresClass} title={nomeorganizador}>
               {nomeorganizador}
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <MetricCard
               icon={ListChecks}
               label="Turmas"
@@ -835,7 +804,7 @@ export default function CardEventoAdministrador({
               label="≥75%"
               value={stats.totalPresentes}
               tone="emerald"
-              hint="Participantes com presença igual ou superior a 75%"
+              hint="Participantes com presença ≥ 75%"
             />
             <MetricCard
               icon={BarChart3}
@@ -846,15 +815,14 @@ export default function CardEventoAdministrador({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between gap-3 rounded-3xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <div className="flex flex-col justify-between gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div>
-            <div className="flex items-center gap-2 text-sm font-black text-zinc-900 dark:text-white">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <div className="flex items-center gap-1.5 text-xs font-black text-zinc-900 dark:text-white">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Gestão do evento
             </div>
-
-            <p className="mt-1 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Acesse turmas, inscritos, presença e relatórios administrativos.
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Acesse turmas, inscritos, presença e relatórios.
             </p>
           </div>
 
@@ -862,14 +830,14 @@ export default function CardEventoAdministrador({
             type="button"
             onClick={irParaGestaoEvento}
             className={[
-              "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-sm transition",
+              "inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-white shadow-sm transition",
               "bg-gradient-to-br from-zinc-950 via-emerald-950 to-emerald-800 hover:brightness-[1.06]",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
             ].join(" ")}
             title="Abrir central de gestão deste evento"
           >
             Gerenciar evento
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -877,41 +845,38 @@ export default function CardEventoAdministrador({
       {expandido && (
         <div
           id={turmasId}
-          className="relative border-t border-zinc-200 bg-zinc-50/75 p-4 dark:border-zinc-800 dark:bg-zinc-950/40 sm:p-5 lg:p-6"
+          className="relative border-t border-zinc-200 bg-zinc-50/75 p-3 dark:border-zinc-800 dark:bg-zinc-950/40 sm:p-4"
         >
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h4 className="text-lg font-black text-zinc-950 dark:text-white">
+              <h4 className="text-base font-black text-zinc-950 dark:text-white">
                 Turmas e acompanhamento
               </h4>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Controle de inscritos, presença, assinante e relatórios por
-                turma.
+              <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                Controle de inscritos, presença e relatórios por turma.
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-bold text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
               <CheckCircle2
-                className="h-4 w-4 text-emerald-600"
+                className="h-3.5 w-3.5 text-emerald-600"
                 aria-hidden="true"
               />
-              Presença mínima: 75%
+              Mínimo: 75%
             </div>
           </div>
 
           {Array.isArray(turmas) && turmas.length ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {turmas.map((turma) => {
                 const inscritos = asArray(inscritosPorTurma?.[turma.id]);
                 const presencas = mapPresencasParaLista(
                   presencasPorTurma,
                   turma.id,
                 );
-
                 const elegiveis = presencas.filter(
                   (presenca) => presenca?.elegivel === true,
                 ).length;
-
                 const pctElegiveis = inscritos.length
                   ? Math.round((elegiveis / inscritos.length) * 100)
                   : 0;
@@ -922,9 +887,9 @@ export default function CardEventoAdministrador({
                 return (
                   <article
                     key={turma.id}
-                    className="overflow-hidden rounded-[1.5rem] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                    className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
                   >
-                    <div className="border-b border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+                    <div className="border-b border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
                       <CardTurmaAdministrador
                         turma={turma}
                         inscritos={inscritos}
@@ -936,52 +901,48 @@ export default function CardEventoAdministrador({
                       />
                     </div>
 
-                    <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-                      <div className="space-y-4">
-                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-                          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+                      <div className="space-y-3">
+                        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+                          <div className="mb-2 flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                              <div className="text-sm font-black text-zinc-900 dark:text-white">
+                              <div className="text-xs font-black text-zinc-900 dark:text-white">
                                 Equipe da turma
                               </div>
-                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                organizadores vinculados e assinante oficial.
+                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                organizadores vinculados e assinante.
                               </div>
                             </div>
-
                             <span
-                              className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200"
+                              className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200"
                               title={assinanteNome || "—"}
                             >
                               Assinante: {assinanteNome || "—"}
                             </span>
                           </div>
-
                           <InstructorChips organizadores={organizadores} />
                         </div>
 
-                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-                          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+                          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-sm font-black text-zinc-900 dark:text-white">
+                              <p className="text-xs font-black text-zinc-900 dark:text-white">
                                 Inscritos da turma
                               </p>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                Dados principais, PcD e frequência calculada.
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                Dados principais e frequência.
                               </p>
                             </div>
-
                             <button
                               type="button"
                               onClick={() => gerarPdfInscritosTurma?.(turma.id)}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-green-900 px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-green-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
-                              title="Gerar PDF com dados do curso e lista de inscritos"
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-900 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-green-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:focus-visible:ring-offset-zinc-950"
+                              title="Gerar PDF"
                             >
-                              <FileDown size={16} aria-hidden="true" />
+                              <FileDown size={14} aria-hidden="true" />
                               Gerar PDF
                             </button>
                           </div>
-
                           <InscritosTable
                             inscritos={inscritos}
                             presencasPorTurma={presencasPorTurma}
@@ -990,7 +951,7 @@ export default function CardEventoAdministrador({
                         </div>
                       </div>
 
-                      <aside className="space-y-3">
+                      <aside className="space-y-2">
                         <MetricCard
                           icon={Users}
                           label="Inscritos"
@@ -1016,7 +977,7 @@ export default function CardEventoAdministrador({
               })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-5 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
+            <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-4 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
               Nenhuma turma cadastrada.
             </div>
           )}

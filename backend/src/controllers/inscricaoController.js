@@ -1496,6 +1496,7 @@ async function listarInscritosPorTurma(req, res) {
         u.email,
         u.cpf,
         u.registro,
+        u.celular,
         u.data_nascimento,
 u.deficiencia_id,
 d.nome AS deficiencia_descricao,
@@ -1549,6 +1550,7 @@ ORDER BY u.nome ASC, i.id ASC
         cpf: row.cpf || null,
         cpf_protegido: cpfProtegido(row.cpf),
         registro: row.registro || null,
+        celular: row.celular || "—",
         idade: Number.isInteger(Number(row.idade)) ? Number(row.idade) : null,
 
         deficiencia: Boolean(deficienciaDescricao),

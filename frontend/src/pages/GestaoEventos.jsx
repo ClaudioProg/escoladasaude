@@ -4,26 +4,7 @@
 // Plataforma Escola da Saúde
 //
 // Página administrativa premium de criação/edição de evento.
-//
-// Contratos aplicados:
-// - Página do domínio: src/pages/GestaoEventos.jsx
-// - ModalConfirmacao vem de src/components/ui/
-// - ModalTurma e ModalQuestionarioEvento ficam em src/components/eventos/
-// - Folder: File em folderFile
-// - Programação: File em programacaoFile
-// - Conteúdo programático: eventos.conteudo_programatico
-// - Conteúdo programático opcional e impresso no verso do certificado quando informado
-// - Sem campo legado "file"
-// - Sem folder_url/programacao_pdf_url como fonte funcional
-// - Sem resolveAssetUrl/openAsset
-// - Sem exclusão direta de turma pelo modal
-// - Remoção de turma é enviada no payload; backend bloqueia se houver uso operacional
-// - Restrição:
-//   • todos_servidores => restrito_modo: "todos_servidores"
-//   • lista_registros  => restrito_modo: "lista_registros"
-//   • cargos/unidades  => restrito_modo: null + cargos_permitidos/unidades_permitidas
-// - Date-only seguro em YYYY-MM-DD
-// - Mobile-first, acessível, visual premium e sem legado operacional
+// Layout refatorado para ser mais compacto e "singelo".
 
 import {
   useCallback,
@@ -161,7 +142,6 @@ function asArray(value) {
   if (Array.isArray(value)) {
     return value;
   }
-
   if (Array.isArray(value?.data)) {
     return value.data;
   }
@@ -183,7 +163,6 @@ function asArray(value) {
   if (Array.isArray(value?.cargos)) {
     return value.cargos;
   }
-
   if (Array.isArray(value?.data?.rows)) {
     return value.data.rows;
   }
@@ -193,7 +172,6 @@ function asArray(value) {
   if (Array.isArray(value?.data?.results)) {
     return value.data.results;
   }
-
   return [];
 }
 
@@ -228,7 +206,6 @@ function parseRegistrosBulk(value) {
 
 function formatDateBr(value) {
   const date = ymd(value);
-
   if (!date) {
     return "—";
   }
@@ -284,10 +261,6 @@ function eventoTemProgramacao(evento) {
    Helpers de turma
 ────────────────────────────────────────────────────────────── */
 
-/* ─────────────────────────────────────────────────────────────
-   Helpers de turma
-────────────────────────────────────────────────────────────── */
-
 const RAFAELLA_PITOL_ID = 17;
 const FABIO_LOPEZ_ID = 2474;
 const MAX_ASSINANTES_TURMA = 3;
@@ -300,12 +273,8 @@ function normalizarPalestrantesTurma(value = []) {
   return value
     .map((item) => {
       if (typeof item === "string") {
-        return {
-          nome: String(item || "").trim(),
-          usuario_id: null,
-        };
+        return { nome: String(item || "").trim(), usuario_id: null };
       }
-
       return {
         nome: String(item?.nome || "").trim(),
         usuario_id: toPositiveIntOrNull(item?.usuario_id),
@@ -411,7 +380,6 @@ function extractCargoIds(value) {
           if (typeof item === "object" && item !== null) {
             return item.id ?? item.cargo_id ?? item.value;
           }
-
           return item;
         })
         .map(Number)
@@ -484,7 +452,7 @@ function inferirModoRestricaoUi(evento = {}) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   UI helpers
+   UI helpers (Ajustados para menor escala)
 ────────────────────────────────────────────────────────────── */
 
 function Chip({ tone = "zinc", children, title }) {
@@ -534,10 +502,11 @@ function ActionButton({
     danger: "bg-rose-600 hover:bg-rose-500 text-white focus:ring-rose-400/60",
   };
 
+  // Ajustado o padding para deixar os botões mais compactos
   const sizeMap = {
-    xs: "rounded-xl px-3 py-2 text-xs",
-    sm: "rounded-2xl px-3.5 py-2 text-sm",
-    md: "rounded-2xl px-4 py-2.5 text-sm",
+    xs: "rounded-lg px-2.5 py-1.5 text-[11px]",
+    sm: "rounded-xl px-3 py-1.5 text-xs",
+    md: "rounded-xl px-3.5 py-2 text-sm",
   };
 
   return (
@@ -545,7 +514,7 @@ function ActionButton({
       type={type}
       disabled={disabled}
       className={[
-        "inline-flex items-center justify-center gap-2 font-extrabold shadow-sm transition active:scale-[0.99]",
+        "inline-flex items-center justify-center gap-1.5 font-bold shadow-sm transition active:scale-[0.99]",
         "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900",
         "disabled:cursor-not-allowed disabled:opacity-60",
         toneMap[tone] || toneMap.neutral,
@@ -559,24 +528,25 @@ function ActionButton({
   );
 }
 
+// SectionCard agora usa paddings menores (p-3 sm:p-4) e arredondamentos menores
 function SectionCard({ id, icon: Icon, title, subtitle, children }) {
   return (
     <section
       id={id}
-      className="scroll-mt-3 rounded-3xl border border-black/10 bg-white/75 p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/45 sm:p-5"
+      className="scroll-mt-3 rounded-2xl border border-black/10 bg-white/75 p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/45 sm:p-4"
     >
-      <div className="mb-4 flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-black/5 dark:bg-white/5">
-          <Icon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+      <div className="mb-3 flex items-start gap-2.5">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-black/5 dark:bg-white/5">
+          <Icon className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
         </span>
 
         <div className="min-w-0">
-          <h3 className="text-base font-extrabold text-zinc-900 dark:text-white sm:text-lg">
+          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white sm:text-base">
             {title}
           </h3>
 
           {subtitle && (
-            <p className="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
+            <p className="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
               {subtitle}
             </p>
           )}
@@ -592,7 +562,7 @@ function FieldLabel({ htmlFor, children, required = false }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="text-sm font-semibold text-zinc-800 dark:text-zinc-100"
+      className="text-xs font-bold text-zinc-800 dark:text-zinc-200"
     >
       {children} {required && <span className="text-rose-600">*</span>}
     </label>
@@ -608,10 +578,10 @@ function CampoContador({ value, max }) {
       ? "text-rose-600 dark:text-rose-400"
       : percentual >= 0.85
         ? "text-amber-600 dark:text-amber-400"
-        : "text-zinc-500 dark:text-zinc-400";
+        : "text-zinc-500 dark:text-zinc-500";
 
   return (
-    <p className={`mt-1 text-right text-[11px] font-black ${cor}`}>
+    <p className={`mt-1 text-right text-[10px] font-black ${cor}`}>
       {atual}/{max}
     </p>
   );
@@ -626,7 +596,7 @@ function SelectInput(props) {
     <select
       {...props}
       className={[
-        "w-full rounded-2xl border border-black/10 bg-white px-3 py-2.5 text-sm shadow-sm outline-none",
+        "w-full rounded-xl border border-black/10 bg-white px-2.5 py-2 text-sm shadow-sm outline-none",
         "focus:ring-2 focus:ring-emerald-500 dark:border-white/10 dark:bg-zinc-900 dark:text-white",
         props.className || "",
       ].join(" ")}
@@ -639,7 +609,7 @@ function TextInput({ icon: Icon, className = "", ...props }) {
     <div className="relative">
       {Icon && (
         <Icon
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
           aria-hidden="true"
         />
       )}
@@ -647,9 +617,9 @@ function TextInput({ icon: Icon, className = "", ...props }) {
       <input
         {...props}
         className={[
-          "w-full rounded-2xl border border-black/10 bg-white py-2.5 pr-3 text-sm shadow-sm outline-none",
+          "w-full rounded-xl border border-black/10 bg-white py-2 pr-3 text-sm shadow-sm outline-none",
           "focus:ring-2 focus:ring-emerald-500 dark:border-white/10 dark:bg-zinc-900 dark:text-white",
-          Icon ? "pl-10" : "pl-3",
+          Icon ? "pl-9" : "pl-3",
           className,
         ].join(" ")}
       />
@@ -662,7 +632,7 @@ function TextArea({ icon: Icon, className = "", ...props }) {
     <div className="relative">
       {Icon && (
         <Icon
-          className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-zinc-400"
+          className="pointer-events-none absolute left-3 top-3 h-3.5 w-3.5 text-zinc-400"
           aria-hidden="true"
         />
       )}
@@ -670,9 +640,9 @@ function TextArea({ icon: Icon, className = "", ...props }) {
       <textarea
         {...props}
         className={[
-          "min-h-24 w-full rounded-2xl border border-black/10 bg-white py-2.5 pr-3 text-sm shadow-sm outline-none",
+          "min-h-20 w-full rounded-xl border border-black/10 bg-white py-2 pr-3 text-sm shadow-sm outline-none",
           "focus:ring-2 focus:ring-emerald-500 dark:border-white/10 dark:bg-zinc-900 dark:text-white",
-          Icon ? "pl-10" : "pl-3",
+          Icon ? "pl-9" : "pl-3",
           className,
         ].join(" ")}
       />
@@ -681,7 +651,7 @@ function TextArea({ icon: Icon, className = "", ...props }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Componente
+   Componente Principal
 ────────────────────────────────────────────────────────────── */
 
 export default function GestaoEventos() {
@@ -774,25 +744,16 @@ export default function GestaoEventos() {
 
       try {
         setSalvando(true);
-
         const id = toPositiveIntOrNull(payload?.id || eventoIdParam);
-
         let response = null;
 
         if (id) {
           response = await EventoService.admin.atualizar(
             id,
-            {
-              ...payload,
-              baseServidor: evento,
-            },
+            { ...payload, baseServidor: evento },
             {},
-            {
-              on401: "redirect",
-              on403: "silent",
-            },
+            { on401: "redirect", on403: "silent" },
           );
-
           toast.success("Evento atualizado com sucesso.");
           await recarregarEvento();
           return response;
@@ -801,10 +762,7 @@ export default function GestaoEventos() {
         response = await EventoService.admin.criar(
           payload,
           {},
-          {
-            on401: "redirect",
-            on403: "silent",
-          },
+          { on401: "redirect", on403: "silent" },
         );
 
         const novoEventoId = toPositiveIntOrNull(
@@ -815,9 +773,7 @@ export default function GestaoEventos() {
 
         if (novoEventoId) {
           navigate(`/gestao/evento?editar=${novoEventoId}`, { replace: true });
-          return response;
         }
-
         return response;
       } catch (error) {
         const message =
@@ -890,7 +846,6 @@ export default function GestaoEventos() {
     if (!eventoTemFolder(evento)) {
       return "";
     }
-
     return getEventoFolderUrl(evento);
   }, [evento, folderFile, removerFolderExistente]);
 
@@ -901,13 +856,11 @@ export default function GestaoEventos() {
     if (!eventoTemProgramacao(evento)) {
       return "";
     }
-
     return getEventoProgramacaoUrl(evento);
   }, [evento, programacaoFile, removerProgramacaoExistente]);
 
   const unidadeNome = useMemo(() => {
     const id = Number(unidadeId);
-
     return (
       unidades.find((u) => Number(u.id) === id)?.nome ||
       unidades.find((u) => String(u.id) === String(unidadeId))?.nome ||
@@ -917,10 +870,8 @@ export default function GestaoEventos() {
 
   const organizadoresById = useMemo(() => {
     const map = new Map();
-
     for (const organizador of organizadoresDisponiveis) {
       const id = Number(organizador?.id);
-
       if (Number.isInteger(id)) {
         map.set(
           id,
@@ -928,7 +879,6 @@ export default function GestaoEventos() {
         );
       }
     }
-
     return map;
   }, [organizadoresDisponiveis]);
 
@@ -938,7 +888,6 @@ export default function GestaoEventos() {
       if (!Number.isInteger(n)) {
         return "—";
       }
-
       return organizadoresById.get(n) || `organizador ${n}`;
     },
     [organizadoresById],
@@ -946,27 +895,23 @@ export default function GestaoEventos() {
 
   const cargosById = useMemo(() => {
     const map = new Map();
-
     for (const cargo of cargosDisponiveis) {
       const id = Number(cargo?.id);
       if (Number.isInteger(id)) {
         map.set(id, cargo);
       }
     }
-
     return map;
   }, [cargosDisponiveis]);
 
   const unidadesById = useMemo(() => {
     const map = new Map();
-
     for (const unidade of unidades) {
       const id = Number(unidade?.id);
       if (Number.isInteger(id)) {
         map.set(id, unidade);
       }
     }
-
     return map;
   }, [unidades]);
 
@@ -974,7 +919,6 @@ export default function GestaoEventos() {
     if (!effectiveOpen) {
       return;
     }
-
     let alive = true;
 
     async function carregarAuxiliares() {
@@ -1001,10 +945,7 @@ export default function GestaoEventos() {
               on403: "silent",
             })
               .then((res) => ({ key: "unidades", value: asArray(res) }))
-              .catch((error) => {
-                warnDev("Falha ao carregar unidades", error);
-                return { key: "unidades", value: [] };
-              }),
+              .catch(() => ({ key: "unidades", value: [] })),
           );
         }
 
@@ -1015,10 +956,7 @@ export default function GestaoEventos() {
               on403: "silent",
             })
               .then((res) => ({ key: "organizadores", value: asArray(res) }))
-              .catch((error) => {
-                warnDev("Falha ao carregar organizadores", error);
-                return { key: "organizadores", value: [] };
-              }),
+              .catch(() => ({ key: "organizadores", value: [] })),
           );
         }
 
@@ -1030,15 +968,11 @@ export default function GestaoEventos() {
               on403: "silent",
             })
               .then((res) => ({ key: "cargos", value: asArray(res) }))
-              .catch((error) => {
-                warnDev("Falha ao carregar cargos", error);
-                return { key: "cargos", value: [] };
-              }),
+              .catch(() => ({ key: "cargos", value: [] })),
           );
         }
 
         const results = promises.length ? await Promise.all(promises) : [];
-
         if (!alive) {
           return;
         }
@@ -1053,11 +987,9 @@ export default function GestaoEventos() {
                   "pt-BR",
                 ),
               );
-
             cacheUnidades = lista;
             setUnidades(lista);
           }
-
           if (result.key === "organizadores") {
             const lista = result.value
               .filter(Boolean)
@@ -1067,18 +999,15 @@ export default function GestaoEventos() {
                   "pt-BR",
                 ),
               );
-
             cacheorganizadores = lista;
             setorganizadoresDisponiveis(lista);
           }
-
           if (result.key === "cargos") {
             const lista = result.value
               .filter(Boolean)
               .sort((a, b) =>
                 cargoLabel(a).localeCompare(cargoLabel(b), "pt-BR"),
               );
-
             cacheCargos = lista;
             setCargosDisponiveis(lista);
           }
@@ -1091,7 +1020,6 @@ export default function GestaoEventos() {
     }
 
     carregarAuxiliares();
-
     return () => {
       alive = false;
     };
@@ -1188,13 +1116,11 @@ export default function GestaoEventos() {
     if (!effectiveOpen || !evento?.id) {
       return;
     }
-
     let alive = true;
 
     async function carregarDetalhe() {
       try {
         const completo = await EventoService.admin.buscarCompleto(evento.id);
-
         if (!alive || !completo?.id) {
           return;
         }
@@ -1253,7 +1179,6 @@ export default function GestaoEventos() {
     }
 
     carregarDetalhe();
-
     return () => {
       alive = false;
     };
@@ -1290,7 +1215,6 @@ export default function GestaoEventos() {
         if (!alive) {
           return;
         }
-
         const qz = response?.data ?? response;
 
         if (!qz?.id) {
@@ -1320,16 +1244,12 @@ export default function GestaoEventos() {
         if (!alive) {
           return;
         }
-
-        warnDev("Falha ao carregar questionário", error);
-
         setTesteObrigatorio(false);
         setTesteConfig(TESTE_DEFAULT);
       }
     }
 
     carregarQuestionario();
-
     return () => {
       alive = false;
     };
@@ -1342,12 +1262,10 @@ export default function GestaoEventos() {
 
   const addRegistros = useCallback(() => {
     const novos = parseRegistrosBulk(registroInput);
-
     if (!novos.length) {
       toast.info("Informe ou cole ao menos um registro de 6 dígitos.");
       return;
     }
-
     setRegistrosPermitidos((prev) => [...new Set([...prev, ...novos])]);
     setRegistroInput("");
   }, [registroInput]);
@@ -1358,12 +1276,10 @@ export default function GestaoEventos() {
 
   const addCargo = useCallback(() => {
     const id = Number(cargoAddId);
-
     if (!Number.isInteger(id) || id <= 0) {
       toast.info("Selecione um cargo.");
       return;
     }
-
     setCargosPermitidos((prev) => (prev.includes(id) ? prev : [...prev, id]));
     setCargoAddId("");
   }, [cargoAddId]);
@@ -1376,12 +1292,10 @@ export default function GestaoEventos() {
 
   const addUnidade = useCallback(() => {
     const id = Number(unidadeAddId);
-
     if (!Number.isInteger(id) || id <= 0) {
       toast.info("Selecione uma unidade.");
       return;
     }
-
     setUnidadesPermitidas((prev) => (prev.includes(id) ? prev : [...prev, id]));
     setUnidadeAddId("");
   }, [unidadeAddId]);
@@ -1394,7 +1308,6 @@ export default function GestaoEventos() {
 
   const onChangeFolder = useCallback((event) => {
     const file = event.target.files?.[0];
-
     if (!file) {
       return;
     }
@@ -1417,17 +1330,14 @@ export default function GestaoEventos() {
     setRemoverFolderExistente(false);
 
     const reader = new FileReader();
-
     reader.onload = () => {
       setFolderPreview(String(reader.result || ""));
     };
-
     reader.readAsDataURL(file);
   }, []);
 
   const onChangeProgramacao = useCallback((event) => {
     const file = event.target.files?.[0];
-
     if (!file) {
       return;
     }
@@ -1453,11 +1363,9 @@ export default function GestaoEventos() {
   const limparFolder = useCallback(() => {
     setFolderFile(null);
     setFolderPreview("");
-
     if (folderInputRef.current) {
       folderInputRef.current.value = "";
     }
-
     if (eventoTemFolder(evento)) {
       setRemoverFolderExistente(true);
     }
@@ -1465,11 +1373,9 @@ export default function GestaoEventos() {
 
   const limparProgramacao = useCallback(() => {
     setProgramacaoFile(null);
-
     if (pdfInputRef.current) {
       pdfInputRef.current.value = "";
     }
-
     if (eventoTemProgramacao(evento)) {
       setRemoverProgramacaoExistente(true);
     }
@@ -1493,26 +1399,20 @@ export default function GestaoEventos() {
         toast.error("Informe o nome da turma.");
         return;
       }
-
       if (!normalizada.datas.length) {
         toast.error("A turma precisa ter ao menos uma data.");
         return;
       }
-
       const organizadores = extractIds(normalizada.organizadores);
-
       if (!organizadores.length) {
         toast.error("A turma precisa ter ao menos um organizador.");
         return;
       }
-
       const assinantes = normalizarAssinantesTurma(normalizada.assinantes);
-
       if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
         toast.error("A assinatura da Rafaella Pitol é obrigatória.");
         return;
       }
-
       if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
         toast.error("A turma deve ter de 1 a 3 assinantes.");
         return;
@@ -1529,7 +1429,6 @@ export default function GestaoEventos() {
         if (editandoTurmaIndex === null || editandoTurmaIndex === undefined) {
           return [...prev, turmaFinal];
         }
-
         return prev.map((item, index) =>
           index === editandoTurmaIndex ? turmaFinal : item,
         );
@@ -1542,11 +1441,7 @@ export default function GestaoEventos() {
   );
 
   const solicitarRemoverTurma = useCallback((turma, idx) => {
-    setConfirmTurma({
-      open: true,
-      idx,
-      turma,
-    });
+    setConfirmTurma({ open: true, idx, turma });
   }, []);
 
   const confirmarRemoverTurma = useCallback(() => {
@@ -1582,44 +1477,35 @@ export default function GestaoEventos() {
     if (!tituloLimpo) {
       return "Informe o título do evento.";
     }
-
     if (tituloLimpo.length > EVENTO_LIMITES.titulo) {
       return `O título ultrapassou o limite de ${EVENTO_LIMITES.titulo} caracteres.`;
     }
-
     if (!String(tipo || "").trim()) {
       return "Selecione o tipo do evento.";
     }
     if (!TIPOS_EVENTO.includes(tipo)) {
       return "Tipo de evento inválido.";
     }
-
     if (!localLimpo) {
       return "Informe o local do evento.";
     }
-
     if (localLimpo.length > EVENTO_LIMITES.local) {
       return `O local ultrapassou o limite de ${EVENTO_LIMITES.local} caracteres.`;
     }
-
     if (descricaoLimpa.length > EVENTO_LIMITES.descricao) {
       return `A descrição ultrapassou o limite de ${EVENTO_LIMITES.descricao} caracteres.`;
     }
-
     if (publicoAlvoLimpo.length > EVENTO_LIMITES.publico_alvo) {
       return `O público-alvo ultrapassou o limite de ${EVENTO_LIMITES.publico_alvo} caracteres.`;
     }
-
     if (
       conteudoProgramaticoLimpo.length > EVENTO_LIMITES.conteudo_programatico
     ) {
       return `O conteúdo programático ultrapassou o limite de ${EVENTO_LIMITES.conteudo_programatico} caracteres.`;
     }
-
     if (!toPositiveIntOrNull(unidadeId)) {
       return "Selecione a unidade.";
     }
-
     if (!Array.isArray(turmas) || !turmas.length) {
       return "Adicione ao menos uma turma.";
     }
@@ -1628,23 +1514,19 @@ export default function GestaoEventos() {
       if (!String(turma?.nome || "").trim()) {
         return "Todas as turmas precisam ter nome.";
       }
-
       if (!Array.isArray(turma?.datas) || !turma.datas.length) {
         return `A turma "${turma?.nome || "Turma"}" precisa ter ao menos uma data.`;
       }
 
       const organizadores = extractIds(turma?.organizadores);
-
       if (!organizadores.length) {
         return `A turma "${turma?.nome || "Turma"}" precisa ter ao menos um organizador.`;
       }
 
       const assinantes = normalizarAssinantesTurma(turma?.assinantes || []);
-
       if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
         return `A turma "${turma?.nome}" precisa ter a assinatura obrigatória da Rafaella Pitol.`;
       }
-
       if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
         return `A turma "${turma?.nome}" deve ter de 1 a 3 assinantes.`;
       }
@@ -1660,18 +1542,15 @@ export default function GestaoEventos() {
       if (!restricaoUi) {
         return "Defina o tipo de restrição do evento.";
       }
-
       if (
         restricaoUi === RESTRICAO_UI.LISTA_REGISTROS &&
         !registrosPermitidos.length
       ) {
         return "Inclua ao menos um registro autorizado.";
       }
-
       if (restricaoUi === RESTRICAO_UI.CARGOS && !cargosPermitidos.length) {
         return "Inclua ao menos um cargo permitido.";
       }
-
       if (restricaoUi === RESTRICAO_UI.UNIDADES && !unidadesPermitidas.length) {
         return "Inclua ao menos uma unidade permitida.";
       }
@@ -1697,13 +1576,11 @@ export default function GestaoEventos() {
   const handleSubmit = useCallback(
     (event) => {
       event.preventDefault();
-
       if (salvando) {
         return;
       }
 
       const erro = validarFormulario();
-
       if (erro) {
         toast.error(erro);
         return;
@@ -1715,7 +1592,6 @@ export default function GestaoEventos() {
       ];
 
       let restritoModo = null;
-
       if (restrito) {
         if (restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES) {
           restritoModo = "todos_servidores";
@@ -1750,11 +1626,9 @@ export default function GestaoEventos() {
         registros.length
           ? { registros_permitidos: registros }
           : {}),
-
         ...(restrito && restricaoUi === RESTRICAO_UI.CARGOS
           ? { cargos_permitidos: cargosPermitidos }
           : {}),
-
         ...(restrito && restricaoUi === RESTRICAO_UI.UNIDADES
           ? { unidades_permitidas: unidadesPermitidas }
           : {}),
@@ -1765,19 +1639,6 @@ export default function GestaoEventos() {
         ...(folderFile instanceof File ? { folderFile } : {}),
         ...(programacaoFile instanceof File ? { programacaoFile } : {}),
       };
-
-      logDev("Payload do modal preparado", {
-        eventoId: payload.id || null,
-        turmas: payload.turmas?.length || 0,
-        restrito: payload.restrito,
-        restrito_modo: payload.restrito_modo,
-        cargos: payload.cargos_permitidos?.length || 0,
-        unidades: payload.unidades_permitidas?.length || 0,
-        registros: payload.registros_permitidos?.length || 0,
-        hasConteudoProgramatico: Boolean(payload.conteudo_programatico),
-        hasFolder: folderFile instanceof File,
-        hasProgramacao: programacaoFile instanceof File,
-      });
 
       handleSalvarEvento(payload);
     },
@@ -1825,18 +1686,18 @@ export default function GestaoEventos() {
       return (
         <div
           key={turma.id || `turma-${index}`}
-          className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
+          className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
         >
           <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
-          <div className="p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="p-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="break-words text-base font-black leading-tight text-zinc-950 dark:text-white">
+                <p className="break-words text-sm font-black leading-tight text-zinc-950 dark:text-white">
                   {turma.nome}
                 </p>
 
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-1.5 flex flex-wrap gap-2">
                   <Chip tone="indigo">{datas.length} encontro(s)</Chip>
                   <Chip tone="emerald">
                     {Number(turma.vagas_total) || 0} vagas
@@ -1853,7 +1714,7 @@ export default function GestaoEventos() {
                   onClick={() => abrirEditarTurma(index)}
                   aria-label={`Editar turma ${turma.nome}`}
                 >
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                   Editar
                 </ActionButton>
 
@@ -1864,17 +1725,17 @@ export default function GestaoEventos() {
                   onClick={() => solicitarRemoverTurma(turma, index)}
                   aria-label={`Remover turma ${turma.nome}`}
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Remover
                 </ActionButton>
               </div>
             </div>
 
-            <div className="mt-3 grid gap-2 text-[13px] text-zinc-700 dark:text-zinc-200 sm:grid-cols-2">
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="mt-2 grid gap-2 text-xs text-zinc-700 dark:text-zinc-200 sm:grid-cols-2">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/50">
                 <div className="flex items-start gap-2">
                   <CalendarDays
-                    size={16}
+                    size={14}
                     className="mt-[2px] text-indigo-700 dark:text-indigo-300"
                     aria-hidden="true"
                   />
@@ -1885,10 +1746,10 @@ export default function GestaoEventos() {
               </div>
 
               {horarioInicio && horarioFim && (
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/50">
                   <div className="flex items-start gap-2">
                     <Clock
-                      size={16}
+                      size={14}
                       className="mt-[2px] text-indigo-700 dark:text-indigo-300"
                       aria-hidden="true"
                     />
@@ -1901,11 +1762,10 @@ export default function GestaoEventos() {
             </div>
 
             {!!datas.length && (
-              <details className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+              <details className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/50">
                 <summary className="cursor-pointer text-xs font-black text-zinc-800 dark:text-zinc-100">
                   Ver encontros
                 </summary>
-
                 <ul className="mt-2 list-inside list-disc text-xs text-zinc-600 dark:text-zinc-300">
                   {datas.map((item, idx) => (
                     <li
@@ -1923,10 +1783,10 @@ export default function GestaoEventos() {
             {(organizadores.length > 0 ||
               palestrantes.length > 0 ||
               assinantes.length > 0) && (
-              <div className="mt-3 space-y-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+              <div className="mt-2 space-y-1.5 rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/50">
                 {organizadores.length > 0 && (
-                  <div className="text-xs">
-                    <span className="font-black">Organizadores: </span>
+                  <div className="text-[11px]">
+                    <span className="font-black">Org: </span>
                     {organizadores.map((id, idx) => (
                       <span key={id}>
                         {nomeorganizador(id)}
@@ -1937,8 +1797,8 @@ export default function GestaoEventos() {
                 )}
 
                 {palestrantes.length > 0 && (
-                  <div className="text-xs">
-                    <span className="font-black">Palestrantes: </span>
+                  <div className="text-[11px]">
+                    <span className="font-black">Pal: </span>
                     {palestrantes.map((palestrante, idx) => (
                       <span key={`${palestrante.nome}-${idx}`}>
                         {palestrante.nome}
@@ -1949,13 +1809,11 @@ export default function GestaoEventos() {
                 )}
 
                 {assinantes.length > 0 && (
-                  <div className="text-xs">
-                    <span className="font-black">Assinantes: </span>
+                  <div className="text-[11px]">
+                    <span className="font-black">Ass: </span>
                     {assinantes.map((id, idx) => (
                       <span key={id}>
                         {nomeorganizador(id)}
-                        {id === RAFAELLA_PITOL_ID ? " (obrigatória)" : ""}
-                        {id === FABIO_LOPEZ_ID ? " (última assinatura)" : ""}
                         {idx < assinantes.length - 1 ? ", " : ""}
                       </span>
                     ))}
@@ -1968,6 +1826,7 @@ export default function GestaoEventos() {
       );
     });
   }, [abrirEditarTurma, nomeorganizador, solicitarRemoverTurma, turmas]);
+
   if (carregandoEvento) {
     return (
       <div className="min-h-screen bg-zinc-50/80 dark:bg-zinc-950">
@@ -1980,14 +1839,12 @@ export default function GestaoEventos() {
             tamanho="lg"
             raio="xl"
           />
-
-          <section className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <p className="text-sm font-semibold text-slate-600 dark:text-zinc-300">
               Carregando evento…
             </p>
           </section>
         </div>
-
         <Footer />
       </div>
     );
@@ -2005,22 +1862,19 @@ export default function GestaoEventos() {
             tamanho="lg"
             raio="xl"
           />
-
-          <section className="mt-5 rounded-[2rem] border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-zinc-950">
+          <section className="mt-4 rounded-2xl border border-rose-200 bg-white p-4 shadow-sm dark:border-rose-900/40 dark:bg-zinc-950">
             <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
               {erroEvento}
             </p>
-
             <button
               type="button"
               onClick={onClose}
-              className="mt-4 inline-flex min-h-10 items-center justify-center rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800"
+              className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-emerald-700 px-3 py-1.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800"
             >
               Voltar ao painel
             </button>
           </section>
         </div>
-
         <Footer />
       </div>
     );
@@ -2039,14 +1893,10 @@ export default function GestaoEventos() {
             raio="xl"
           />
 
-          <div
-            className={[
-              "mt-5 overflow-visible rounded-[2rem] border border-black/5 bg-white shadow-xl dark:border-white/10 dark:bg-zinc-950",
-            ].join(" ")}
-          >
+          <div className="mt-4 overflow-visible rounded-2xl border border-black/5 bg-white shadow-xl dark:border-white/10 dark:bg-zinc-950">
             <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
 
-            <header className="relative border-b border-zinc-200 bg-white/90 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-6 sm:py-4">
+            <header className="relative border-b border-zinc-200 bg-white/90 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-5 sm:py-3">
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
                 <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
@@ -2055,21 +1905,21 @@ export default function GestaoEventos() {
               <div className="relative">
                 <div className="min-w-0">
                   <div className="flex items-start gap-3">
-                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300">
-                      <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300">
+                      <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                     </span>
 
                     <div className="min-w-0">
                       <h2
                         id={titleId}
-                        className="break-words text-xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-2xl"
+                        className="break-words text-lg font-black tracking-tight text-zinc-950 dark:text-white sm:text-xl"
                       >
                         {evento?.id ? "Editar evento" : "Novo evento"}
                       </h2>
 
                       <p
                         id={descId}
-                        className="mt-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300"
+                        className="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300"
                       >
                         Configure dados institucionais, turmas, anexos,
                         restrições e teste obrigatório.
@@ -2077,48 +1927,42 @@ export default function GestaoEventos() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {tipo ? (
                       <Chip tone="indigo" title="Tipo do evento">
-                        <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Layers3 className="h-3 w-3" aria-hidden="true" />
                         {tipo}
                       </Chip>
                     ) : (
                       <Chip tone="zinc" title="Tipo pendente">
-                        <HelpCircle
-                          className="h-3.5 w-3.5"
-                          aria-hidden="true"
-                        />
+                        <HelpCircle className="h-3 w-3" aria-hidden="true" />
                         Tipo pendente
                       </Chip>
                     )}
 
                     {unidadeNome ? (
                       <Chip tone="emerald" title="Unidade responsável">
-                        <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Building2 className="h-3 w-3" aria-hidden="true" />
                         {unidadeNome}
                       </Chip>
                     ) : (
                       <Chip tone="zinc" title="Unidade pendente">
-                        <HelpCircle
-                          className="h-3.5 w-3.5"
-                          aria-hidden="true"
-                        />
+                        <HelpCircle className="h-3 w-3" aria-hidden="true" />
                         Unidade pendente
                       </Chip>
                     )}
 
                     <Chip tone={restrito ? "amber" : "zinc"}>
                       {restrito ? (
-                        <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Lock className="h-3 w-3" aria-hidden="true" />
                       ) : (
-                        <Unlock className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Unlock className="h-3 w-3" aria-hidden="true" />
                       )}
                       {restrito ? "Restrito" : "Padrão"}
                     </Chip>
 
                     <Chip tone={testeObrigatorio ? "violet" : "zinc"}>
-                      <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                      <Sparkles className="h-3 w-3" aria-hidden="true" />
                       {testeObrigatorio ? "Teste obrigatório" : "Sem teste"}
                     </Chip>
                   </div>
@@ -2126,26 +1970,25 @@ export default function GestaoEventos() {
               </div>
             </header>
 
-            <main className="bg-zinc-50/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-5">
-              {" "}
+            <main className="bg-zinc-50/70 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-4">
               <section
                 className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-5"
                 aria-label="Resumo do cadastro do evento"
               >
-                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
                   <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
                     Turmas
                   </div>
-                  <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
+                  <div className="mt-1 text-base font-black text-zinc-950 dark:text-white">
                     {turmas.length}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
                   <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
                     Encontros
                   </div>
-                  <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
+                  <div className="mt-1 text-base font-black text-zinc-950 dark:text-white">
                     {turmas.reduce(
                       (total, turma) =>
                         total +
@@ -2155,11 +1998,11 @@ export default function GestaoEventos() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
                   <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
                     Folder
                   </div>
-                  <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                  <div className="mt-1 text-xs font-black text-zinc-950 dark:text-white">
                     {folderFile || folderExistenteUrl
                       ? "Configurado"
                       : removerFolderExistente
@@ -2168,11 +2011,11 @@ export default function GestaoEventos() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
                   <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
                     PDF
                   </div>
-                  <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                  <div className="mt-1 text-xs font-black text-zinc-950 dark:text-white">
                     {programacaoFile || programacaoExistenteUrl
                       ? "Configurado"
                       : removerProgramacaoExistente
@@ -2181,20 +2024,21 @@ export default function GestaoEventos() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="rounded-xl border border-zinc-200 bg-white p-2.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
                   <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
                     Conteúdo
                   </div>
-                  <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                  <div className="mt-1 text-xs font-black text-zinc-950 dark:text-white">
                     {String(conteudoProgramatico || "").trim()
                       ? "Configurado"
                       : "Opcional"}
                   </div>
                 </div>
               </section>
+
               {isPending ? (
                 <p
-                  className="rounded-2xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900"
+                  className="rounded-xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900"
                   role="status"
                   aria-live="polite"
                 >
@@ -2204,17 +2048,17 @@ export default function GestaoEventos() {
                 <form
                   id={formId}
                   onSubmit={handleSubmit}
-                  className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"
+                  className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"
                   noValidate
                 >
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     <SectionCard
                       id={`sec-dados-${uid}`}
                       icon={FileText}
                       title="Dados do evento"
-                      subtitle="Informações principais usadas na divulgação, inscrição e emissão de certificados."
+                      subtitle="Informações principais usadas na divulgação e certificados."
                     >
-                      <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         <div className="grid gap-1 sm:col-span-2">
                           <FieldLabel htmlFor={`evento-titulo-${uid}`} required>
                             Título
@@ -2235,7 +2079,6 @@ export default function GestaoEventos() {
                             placeholder="Ex.: Curso de Atualização em Urgência"
                             required
                           />
-
                           <CampoContador
                             value={titulo}
                             max={EVENTO_LIMITES.titulo}
@@ -2261,7 +2104,6 @@ export default function GestaoEventos() {
                             }
                             placeholder="Contexto, objetivos, orientações e observações do evento."
                           />
-
                           <CampoContador
                             value={descricao}
                             max={EVENTO_LIMITES.descricao}
@@ -2287,22 +2129,16 @@ export default function GestaoEventos() {
                                 ),
                               )
                             }
-                            placeholder={
-                              "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
-                            }
-                            rows={6}
-                            className="min-h-36"
+                            placeholder="Informe os tópicos que serão impressos no verso do certificado."
+                            rows={4}
                           />
-
                           <CampoContador
                             value={conteudoProgramatico}
                             max={EVENTO_LIMITES.conteudo_programatico}
                           />
-
-                          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-                            Campo opcional. Quando preenchido, será impresso no
-                            verso do certificado, preservando as quebras de
-                            linha informadas.
+                          <p className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                            Campo opcional. Impresso no verso do certificado,
+                            preservando as quebras de linha.
                           </p>
                         </div>
 
@@ -2325,7 +2161,6 @@ export default function GestaoEventos() {
                             }
                             placeholder="Ex.: Profissionais da APS, enfermeiros, médicos"
                           />
-
                           <CampoContador
                             value={publicoAlvo}
                             max={EVENTO_LIMITES.publico_alvo}
@@ -2352,7 +2187,6 @@ export default function GestaoEventos() {
                             placeholder="Ex.: Auditório da Escola da Saúde"
                             required
                           />
-
                           <CampoContador
                             value={local}
                             max={EVENTO_LIMITES.local}
@@ -2396,7 +2230,6 @@ export default function GestaoEventos() {
                                 ? "Carregando unidades..."
                                 : "Selecione a unidade"}
                             </option>
-
                             {unidades.map((unidade) => (
                               <option
                                 key={unidade.id}
@@ -2414,9 +2247,9 @@ export default function GestaoEventos() {
                       id={`sec-turmas-${uid}`}
                       icon={Users}
                       title="Turmas"
-                      subtitle="Cada turma precisa ter encontros, horários, vagas, organizador obrigatório, palestrantes opcionais e assinantes."
+                      subtitle="Gerencie os encontros, horários e organizadores de cada turma."
                     >
-                      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap gap-2">
                           <Chip tone="indigo">{turmas.length} turma(s)</Chip>
                           <Chip tone="emerald">
@@ -2437,15 +2270,18 @@ export default function GestaoEventos() {
                           tone="success"
                           onClick={abrirCriarTurma}
                         >
-                          <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                          <PlusCircle
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
                           Adicionar turma
                         </ActionButton>
                       </div>
 
                       {turmas.length ? (
-                        <div className="grid gap-3">{turmasRender}</div>
+                        <div className="grid gap-2">{turmasRender}</div>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
+                        <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
                           Nenhuma turma cadastrada. Adicione ao menos uma turma
                           para salvar o evento.
                         </div>
@@ -2453,55 +2289,50 @@ export default function GestaoEventos() {
                     </SectionCard>
                   </div>
 
-                  <aside className="space-y-5 xl:sticky xl:top-0 xl:self-start">
+                  <aside className="space-y-4 xl:sticky xl:top-0 xl:self-start">
                     <SectionCard
                       id={`sec-arquivos-${uid}`}
                       icon={Paperclip}
                       title="Folder e programação"
-                      subtitle="Os arquivos são persistidos no banco."
+                      subtitle="Arquivos persistidos no banco."
                     >
-                      <div className="space-y-4">
-                        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                          <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                          <div className="flex items-center justify-between gap-2 border-b border-zinc-200 pb-2 dark:border-zinc-800">
                             <div>
-                              <h4 className="font-black text-zinc-950 dark:text-white">
-                                Folder
+                              <h4 className="font-black text-zinc-950 dark:text-white text-xs">
+                                Folder do evento
                               </h4>
-                              <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
-                                PNG/JPG até {MAX_FOLDER_MB} MB.
+                              <p className="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                                PNG/JPG até 2 MB.
                               </p>
                             </div>
-
-                            <ImageIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+                            <ImageIcon className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                           </div>
 
                           <div className="mt-3 flex justify-center">
                             {folderPreview ? (
-                              <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-2xl border border-zinc-200 shadow-sm dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
+                              <div className="relative aspect-[3/4] w-full max-w-[120px] overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                                 <img
                                   src={folderPreview}
                                   alt="Pré-visualização do novo folder"
-                                  loading="lazy"
-                                  decoding="async"
                                   className="h-full w-full object-cover"
                                 />
                               </div>
                             ) : folderExistenteUrl ? (
-                              <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-2xl border border-zinc-200 shadow-sm dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
+                              <div className="relative aspect-[3/4] w-full max-w-[120px] overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                                 <img
                                   src={folderExistenteUrl}
-                                  alt="Folder atual do evento"
-                                  loading="lazy"
-                                  decoding="async"
+                                  alt="Folder atual"
                                   className="h-full w-full object-cover"
                                   referrerPolicy="no-referrer"
                                 />
                               </div>
                             ) : (
-                              <div className="flex aspect-[3/4] w-full max-w-[180px] items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-400">
-                                <div className="flex flex-col items-center gap-2 px-2 text-center">
+                              <div className="flex aspect-[3/4] w-full max-w-[120px] items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-white text-[10px] font-bold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                <div className="flex flex-col items-center gap-1 text-center">
                                   <ImageIcon
-                                    className="h-5 w-5 text-zinc-400"
+                                    className="h-4 w-4 opacity-60"
                                     aria-hidden="true"
                                   />
                                   <span>Sem folder</span>
@@ -2510,7 +2341,7 @@ export default function GestaoEventos() {
                             )}
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          <div className="mt-2 flex flex-wrap gap-2">
                             <input
                               ref={folderInputRef}
                               id={`evento-folder-${uid}`}
@@ -2519,17 +2350,14 @@ export default function GestaoEventos() {
                               onChange={onChangeFolder}
                               className="sr-only"
                             />
-
                             <ActionButton
                               type="button"
                               tone="info"
                               size="sm"
                               onClick={() => folderInputRef.current?.click()}
                             >
-                              <UploadCloud className="h-4 w-4" />
-                              Selecionar
+                              <UploadCloud className="h-3.5 w-3.5" /> Selecionar
                             </ActionButton>
-
                             {(folderFile ||
                               folderExistenteUrl ||
                               removerFolderExistente) && (
@@ -2539,77 +2367,71 @@ export default function GestaoEventos() {
                                 size="sm"
                                 onClick={limparFolder}
                               >
-                                <Trash2 className="h-4 w-4" />
-                                Remover
+                                <Trash2 className="h-3.5 w-3.5" /> Remover
                               </ActionButton>
                             )}
                           </div>
 
                           {removerFolderExistente && (
-                            <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
-                              O folder atual será removido ao salvar.
+                            <p className="mt-1 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                              Folder será removido.
                             </p>
                           )}
-
                           {folderFile && (
-                            <p className="mt-2 break-words text-xs text-zinc-600 dark:text-zinc-300">
-                              Novo arquivo: <strong>{folderFile.name}</strong>
+                            <p className="mt-1 break-words text-[10px] text-zinc-600 dark:text-zinc-300">
+                              Novo: <strong>{folderFile.name}</strong>
                             </p>
                           )}
                         </div>
 
-                        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                          <div className="flex items-center justify-between gap-3">
+                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                          <div className="flex items-center justify-between gap-2">
                             <div>
-                              <h4 className="font-black text-zinc-950 dark:text-white">
+                              <h4 className="text-xs font-black text-zinc-950 dark:text-white">
                                 Programação PDF
                               </h4>
-                              <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
+                              <p className="mt-0.5 text-[10px] text-zinc-600 dark:text-zinc-300">
                                 PDF até {MAX_PROGRAMACAO_MB} MB.
                               </p>
                             </div>
-
-                            <FileText className="h-5 w-5 text-sky-700 dark:text-sky-300" />
+                            <FileText className="h-4 w-4 text-sky-700 dark:text-sky-300" />
                           </div>
 
-                          <div className="mt-3 rounded-2xl border border-dashed border-zinc-300 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950/40">
+                          <div className="mt-2 rounded-xl border border-dashed border-zinc-300 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-950/40">
                             {programacaoFile ? (
-                              <div className="flex items-start gap-3">
-                                <FileText className="mt-0.5 h-5 w-5 text-sky-700 dark:text-sky-300" />
+                              <div className="flex items-start gap-2">
+                                <FileText className="mt-0.5 h-4 w-4 text-sky-700 dark:text-sky-300" />
                                 <div className="min-w-0">
-                                  <p className="break-words text-sm font-black text-zinc-950 dark:text-white">
+                                  <p className="break-words text-[11px] font-black text-zinc-950 dark:text-white">
                                     {programacaoFile.name}
-                                  </p>
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                    Nova programação será enviada ao salvar.
                                   </p>
                                 </div>
                               </div>
                             ) : programacaoExistenteUrl ? (
-                              <div className="flex items-start gap-3">
-                                <FileText className="mt-0.5 h-5 w-5 text-sky-700 dark:text-sky-300" />
+                              <div className="flex items-start gap-2">
+                                <FileText className="mt-0.5 h-4 w-4 text-sky-700 dark:text-sky-300" />
                                 <div className="min-w-0">
-                                  <p className="text-sm font-black text-zinc-950 dark:text-white">
-                                    Programação cadastrada
+                                  <p className="text-[11px] font-black text-zinc-950 dark:text-white">
+                                    Programação atual
                                   </p>
                                   <a
                                     href={programacaoExistenteUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="mt-1 inline-flex text-xs font-bold text-sky-700 underline dark:text-sky-300"
+                                    className="mt-0.5 inline-flex text-[10px] font-bold text-sky-700 underline dark:text-sky-300"
                                   >
-                                    Abrir PDF atual
+                                    Abrir PDF
                                   </a>
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                Nenhuma programação selecionada.
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                Nenhuma programação.
                               </p>
                             )}
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          <div className="mt-2 flex flex-wrap gap-2">
                             <input
                               ref={pdfInputRef}
                               id={`evento-programacao-${uid}`}
@@ -2618,17 +2440,14 @@ export default function GestaoEventos() {
                               onChange={onChangeProgramacao}
                               className="sr-only"
                             />
-
                             <ActionButton
                               type="button"
                               tone="info"
                               size="sm"
                               onClick={() => pdfInputRef.current?.click()}
                             >
-                              <UploadCloud className="h-4 w-4" />
-                              Selecionar
+                              <UploadCloud className="h-3.5 w-3.5" /> Selecionar
                             </ActionButton>
-
                             {(programacaoFile ||
                               programacaoExistenteUrl ||
                               removerProgramacaoExistente) && (
@@ -2638,15 +2457,13 @@ export default function GestaoEventos() {
                                 size="sm"
                                 onClick={limparProgramacao}
                               >
-                                <Trash2 className="h-4 w-4" />
-                                Remover
+                                <Trash2 className="h-3.5 w-3.5" /> Remover
                               </ActionButton>
                             )}
                           </div>
-
                           {removerProgramacaoExistente && (
-                            <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
-                              A programação atual será removida ao salvar.
+                            <p className="mt-1 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                              PDF será removido.
                             </p>
                           )}
                         </div>
@@ -2657,38 +2474,33 @@ export default function GestaoEventos() {
                       id={`sec-restricao-${uid}`}
                       icon={Lock}
                       title="Restrição de inscrição"
-                      subtitle="O evento pode ficar visível, mas com inscrição bloqueada para não elegíveis."
+                      subtitle="O evento pode ficar com inscrição bloqueada para não elegíveis."
                     >
-                      <label className="inline-flex items-start gap-3">
+                      <label className="inline-flex items-start gap-2">
                         <input
                           type="checkbox"
                           checked={restrito}
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setRestrito(checked);
-
                             if (!checked) {
                               setRestricaoUi("");
                             } else if (!restricaoUi) {
                               setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES);
                             }
                           }}
-                          className="mt-1"
+                          className="mt-0.5"
                         />
                         <span>
-                          <span className="block font-black text-zinc-950 dark:text-white">
+                          <span className="block text-sm font-black text-zinc-950 dark:text-white">
                             {restrito ? "Evento restrito" : "Evento padrão"}
-                          </span>
-                          <span className="text-xs text-zinc-600 dark:text-zinc-300">
-                            Use restrição apenas quando houver público
-                            autorizado.
                           </span>
                         </span>
                       </label>
 
                       {restrito && (
-                        <div className="mt-4 space-y-4">
-                          <div className="grid gap-2 text-sm text-zinc-800 dark:text-zinc-100">
+                        <div className="mt-3 space-y-3">
+                          <div className="grid gap-1.5 text-xs text-zinc-800 dark:text-zinc-100">
                             <label className="flex items-center gap-2">
                               <input
                                 type="radio"
@@ -2700,11 +2512,8 @@ export default function GestaoEventos() {
                                   setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES)
                                 }
                               />
-                              <span>
-                                Todos os servidores com registro funcional
-                              </span>
+                              <span>Todos com registro funcional</span>
                             </label>
-
                             <label className="flex items-center gap-2">
                               <input
                                 type="radio"
@@ -2718,7 +2527,6 @@ export default function GestaoEventos() {
                               />
                               <span>Lista específica de registros</span>
                             </label>
-
                             <label className="flex items-center gap-2">
                               <input
                                 type="radio"
@@ -2730,7 +2538,6 @@ export default function GestaoEventos() {
                               />
                               <span>Cargos permitidos</span>
                             </label>
-
                             <label className="flex items-center gap-2">
                               <input
                                 type="radio"
@@ -2745,12 +2552,11 @@ export default function GestaoEventos() {
                           </div>
 
                           {restricaoUi === RESTRICAO_UI.LISTA_REGISTROS && (
-                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/45">
                               <FieldLabel htmlFor={`registros-${uid}`}>
                                 Registros autorizados
                               </FieldLabel>
-
-                              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                              <div className="mt-1.5 flex flex-col gap-1.5 sm:flex-row">
                                 <TextInput
                                   id={`registros-${uid}`}
                                   value={registroInput}
@@ -2761,7 +2567,6 @@ export default function GestaoEventos() {
                                     const text =
                                       e.clipboardData?.getData("text") || "";
                                     const regs = parseRegistrosBulk(text);
-
                                     if (regs.length > 1) {
                                       e.preventDefault();
                                       setRegistrosPermitidos((prev) => [
@@ -2770,9 +2575,8 @@ export default function GestaoEventos() {
                                       setRegistroInput("");
                                     }
                                   }}
-                                  placeholder="Digite ou cole registros de 6 dígitos"
+                                  placeholder="Registros de 6 dígitos"
                                 />
-
                                 <ActionButton
                                   type="button"
                                   tone="info"
@@ -2781,9 +2585,8 @@ export default function GestaoEventos() {
                                   Adicionar
                                 </ActionButton>
                               </div>
-
                               {!!registrosPermitidos.length && (
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-2 flex flex-wrap gap-1.5">
                                   {registrosPermitidos.map((registro) => (
                                     <Chip key={registro} tone="amber">
                                       {registro}
@@ -2791,7 +2594,6 @@ export default function GestaoEventos() {
                                         type="button"
                                         onClick={() => removeRegistro(registro)}
                                         className="ml-1 rounded-full hover:bg-black/10"
-                                        aria-label={`Remover registro ${registro}`}
                                       >
                                         <X className="h-3 w-3" />
                                       </button>
@@ -2803,12 +2605,11 @@ export default function GestaoEventos() {
                           )}
 
                           {restricaoUi === RESTRICAO_UI.CARGOS && (
-                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/45">
                               <FieldLabel htmlFor={`cargo-${uid}`}>
                                 Cargo permitido
                               </FieldLabel>
-
-                              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                              <div className="mt-1.5 flex flex-col gap-1.5 sm:flex-row">
                                 <SelectInput
                                   id={`cargo-${uid}`}
                                   value={cargoAddId}
@@ -2826,7 +2627,6 @@ export default function GestaoEventos() {
                                     </option>
                                   ))}
                                 </SelectInput>
-
                                 <ActionButton
                                   type="button"
                                   tone="info"
@@ -2835,9 +2635,8 @@ export default function GestaoEventos() {
                                   Adicionar
                                 </ActionButton>
                               </div>
-
                               {!!cargosPermitidos.length && (
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-2 flex flex-wrap gap-1.5">
                                   {cargosPermitidos.map((id) => (
                                     <Chip key={id} tone="amber">
                                       {cargoLabel(cargosById.get(Number(id))) ||
@@ -2846,7 +2645,6 @@ export default function GestaoEventos() {
                                         type="button"
                                         onClick={() => removeCargo(id)}
                                         className="ml-1 rounded-full hover:bg-black/10"
-                                        aria-label={`Remover cargo ${id}`}
                                       >
                                         <X className="h-3 w-3" />
                                       </button>
@@ -2858,12 +2656,11 @@ export default function GestaoEventos() {
                           )}
 
                           {restricaoUi === RESTRICAO_UI.UNIDADES && (
-                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/45">
                               <FieldLabel htmlFor={`unidade-permitida-${uid}`}>
                                 Unidade permitida
                               </FieldLabel>
-
-                              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                              <div className="mt-1.5 flex flex-col gap-1.5 sm:flex-row">
                                 <SelectInput
                                   id={`unidade-permitida-${uid}`}
                                   value={unidadeAddId}
@@ -2883,7 +2680,6 @@ export default function GestaoEventos() {
                                     </option>
                                   ))}
                                 </SelectInput>
-
                                 <ActionButton
                                   type="button"
                                   tone="info"
@@ -2892,9 +2688,8 @@ export default function GestaoEventos() {
                                   Adicionar
                                 </ActionButton>
                               </div>
-
                               {!!unidadesPermitidas.length && (
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-2 flex flex-wrap gap-1.5">
                                   {unidadesPermitidas.map((id) => (
                                     <Chip key={id} tone="amber">
                                       {unidadesById.get(Number(id))?.nome ||
@@ -2903,7 +2698,6 @@ export default function GestaoEventos() {
                                         type="button"
                                         onClick={() => removeUnidade(id)}
                                         className="ml-1 rounded-full hover:bg-black/10"
-                                        aria-label={`Remover unidade ${id}`}
                                       >
                                         <X className="h-3 w-3" />
                                       </button>
@@ -2921,46 +2715,37 @@ export default function GestaoEventos() {
                       id={`sec-pos-${uid}`}
                       icon={CheckCircle2}
                       title="Teste obrigatório"
-                      subtitle="A avaliação final do curso continua obrigatória. Aqui você define se haverá teste para certificado."
+                      subtitle="Defina se haverá teste avaliativo para emissão do certificado."
                     >
-                      <label className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                      <label className="flex items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/45">
                         <input
                           type="checkbox"
                           checked={testeObrigatorio}
                           onChange={(e) =>
                             setTesteObrigatorio(e.target.checked)
                           }
-                          className="mt-1"
+                          className="mt-0.5"
                         />
-
                         <span className="min-w-0">
-                          <span className="block font-black text-zinc-950 dark:text-white">
-                            Exigir teste para gerar certificado
-                          </span>
-
-                          <span className="text-xs text-zinc-600 dark:text-zinc-300">
-                            Quando ativado, o participante libera certificado
-                            após frequência, avaliação e teste aprovado.
+                          <span className="block text-sm font-black text-zinc-950 dark:text-white">
+                            Exigir teste
                           </span>
                         </span>
                       </label>
 
                       {testeObrigatorio && (
-                        <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="text-xs text-zinc-700 dark:text-zinc-200">
-                              <strong>Configuração:</strong>{" "}
+                        <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/45">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="text-[11px] text-zinc-700 dark:text-zinc-200">
+                              <strong>Config:</strong>{" "}
                               {testeConfig.questionario_id ? (
                                 <>
                                   {testeConfig.titulo || "Questionário"} •{" "}
-                                  {Number(testeConfig.questoes_count || 0)}{" "}
-                                  questão(ões) • nota mín.{" "}
-                                  {Number(testeConfig.nota_minima || 0)} •{" "}
-                                  {Number(testeConfig.tentativas || 1)}{" "}
-                                  tentativa(s)
+                                  {Number(testeConfig.questoes_count || 0)} q. •
+                                  mín. {Number(testeConfig.nota_minima || 0)}
                                 </>
                               ) : (
-                                <>nenhum teste configurado ainda</>
+                                <>Nenhum teste configurado</>
                               )}
                             </div>
 
@@ -2975,11 +2760,10 @@ export default function GestaoEventos() {
                                   );
                                   return;
                                 }
-
                                 setModalQuestionarioAberto(true);
                               }}
                             >
-                              <ClipboardList className="h-4 w-4" />
+                              <ClipboardList className="h-3.5 w-3.5" />
                               {evento?.id ? "Configurar" : "Salve o evento"}
                             </ActionButton>
                           </div>
@@ -2993,7 +2777,7 @@ export default function GestaoEventos() {
 
             <footer className="border-t border-zinc-200 bg-white/95 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
                   Campos obrigatórios: título, tipo, local, unidade e ao menos
                   uma turma válida.
                 </div>
@@ -3007,7 +2791,6 @@ export default function GestaoEventos() {
                   >
                     Voltar
                   </ActionButton>
-
                   <ActionButton
                     type="submit"
                     form={formId}
@@ -3067,7 +2850,6 @@ export default function GestaoEventos() {
                 publicado: Boolean(questionario?.publicado),
               }));
             }
-
             setModalQuestionarioAberto(false);
           }}
         />
