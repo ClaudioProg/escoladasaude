@@ -100,10 +100,6 @@ function toPositiveInt(value) {
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
-function onlyDigits(value) {
-  return String(value ?? "").replace(/\D/g, "");
-}
-
 function ymd(value) {
   if (typeof value !== "string") {
     return "";
@@ -164,16 +160,6 @@ function formatarDataBR(value) {
 
   const [year, month, day] = data.split("-");
   return `${day}/${month}/${year}`;
-}
-
-function cpfProtegido(value) {
-  const digits = onlyDigits(value);
-
-  if (digits.length !== 11) {
-    return value ? String(value) : "—";
-  }
-
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.***-**`;
 }
 
 function deduzStatusEvento(evento) {
@@ -1343,7 +1329,7 @@ export default function CancelarInscricaoAdmin() {
                                             Participante
                                           </th>
                                           <th className="px-3 py-3 font-black">
-                                            CPF
+                                            Celular
                                           </th>
                                           <th className="px-3 py-3 font-black">
                                             Frequência
@@ -1403,7 +1389,9 @@ export default function CancelarInscricaoAdmin() {
                                               </td>
 
                                               <td className="px-3 py-3 font-mono text-xs">
-                                                {cpfProtegido(inscrito?.cpf)}
+                                                {inscrito?.celular ||
+                                                  inscrito?.telefone ||
+                                                  "—"}
                                               </td>
 
                                               <td className="px-3 py-3">
@@ -1485,8 +1473,10 @@ export default function CancelarInscricaoAdmin() {
                                               </p>
 
                                               <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
-                                                CPF:{" "}
-                                                {cpfProtegido(inscrito?.cpf)}
+                                                Celular:{" "}
+                                                {inscrito?.celular ||
+                                                  inscrito?.telefone ||
+                                                  "—"}
                                               </p>
 
                                               <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">

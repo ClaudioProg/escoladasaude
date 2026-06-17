@@ -2475,22 +2475,37 @@ export default function GestaoEventos() {
                             <ImageIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
                           </div>
 
-                          <div className="mt-3">
+                          <div className="mt-3 flex justify-center">
                             {folderPreview ? (
-                              <img
-                                src={folderPreview}
-                                alt="Pré-visualização do novo folder"
-                                className="max-h-56 w-full rounded-2xl border border-zinc-200 object-contain dark:border-zinc-800"
-                              />
+                              <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-2xl border border-zinc-200 shadow-sm dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
+                                <img
+                                  src={folderPreview}
+                                  alt="Pré-visualização do novo folder"
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
                             ) : folderExistenteUrl ? (
-                              <img
-                                src={folderExistenteUrl}
-                                alt="Folder atual do evento"
-                                className="max-h-56 w-full rounded-2xl border border-zinc-200 object-contain dark:border-zinc-800"
-                              />
+                              <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-2xl border border-zinc-200 shadow-sm dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
+                                <img
+                                  src={folderExistenteUrl}
+                                  alt="Folder atual do evento"
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
                             ) : (
-                              <div className="flex min-h-36 items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-400">
-                                Sem folder selecionado
+                              <div className="flex aspect-[3/4] w-full max-w-[180px] items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-400">
+                                <div className="flex flex-col items-center gap-2 px-2 text-center">
+                                  <ImageIcon
+                                    className="h-5 w-5 text-zinc-400"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Sem folder</span>
+                                </div>
                               </div>
                             )}
                           </div>
