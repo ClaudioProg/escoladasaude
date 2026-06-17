@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+// eslint-disable no-console */
 // ✅ frontend/src/pages/GestaoEventos.jsx — v2.0
 // 02/06/2026
 // Plataforma Escola da Saúde
@@ -118,12 +118,6 @@ let cacheCargos = null;
 /* ─────────────────────────────────────────────────────────────
    Logger
 ────────────────────────────────────────────────────────────── */
-
-function logDev(...args) {
-  if (IS_DEV) {
-    console.log("[GestaoEventos]", ...args);
-  }
-}
 
 function warnDev(...args) {
   if (IS_DEV) {
@@ -1240,10 +1234,13 @@ export default function GestaoEventos() {
           peso_total: Number(qz.peso_total || prev.peso_total || 0),
           publicado: Boolean(qz.publicado),
         }));
-      } catch (error) {
+      } catch (_error) {
+        // Alterado para _error
         if (!alive) {
           return;
         }
+        // Opcional: Se quiser manter o log de desenvolvimento, pode usar o _error aqui
+        // warnDev("Falha ao carregar questionário", _error);
         setTesteObrigatorio(false);
         setTesteConfig(TESTE_DEFAULT);
       }

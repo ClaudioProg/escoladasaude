@@ -162,6 +162,17 @@ function formatarDataBR(value) {
   return `${day}/${month}/${year}`;
 }
 
+function formatarCelular(value) {
+  const celular = String(value || "").replace(/\D/g, "");
+  if (celular.length === 11) {
+    return celular.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  }
+  if (celular.length === 10) {
+    return celular.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  }
+  return value || "—";
+}
+
 function deduzStatusEvento(evento) {
   const raw = String(evento?.status || "")
     .trim()
@@ -1389,7 +1400,9 @@ export default function CancelarInscricaoAdmin() {
                                               </td>
 
                                               <td className="px-3 py-3 font-mono text-xs">
-                                                {inscrito?.celular || "—"}
+                                                {formatarCelular(
+                                                  inscrito?.celular,
+                                                )}
                                               </td>
 
                                               <td className="px-3 py-3">
@@ -1472,7 +1485,9 @@ export default function CancelarInscricaoAdmin() {
 
                                               <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
                                                 Celular:{" "}
-                                                {inscrito?.celular || "—"}
+                                                {formatarCelular(
+                                                  inscrito?.celular,
+                                                )}
                                               </p>
 
                                               <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-zinc-300">
