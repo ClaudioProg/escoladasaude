@@ -669,29 +669,7 @@ function EventCard({
       transition={{ duration: 0.2 }}
       className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-zinc-900"
     >
-      <div className="grid gap-0 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-        <div className="bg-slate-100 dark:bg-zinc-950">
-          <div className="aspect-[16/9] w-full overflow-hidden lg:aspect-auto lg:h-full lg:min-h-[260px]">
-            {folderUrl ? (
-              <img
-                src={folderUrl}
-                alt={`Folder do evento ${titulo}`}
-                className="h-full w-full object-cover object-top"
-                loading="lazy"
-                decoding="async"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="grid h-full min-h-[180px] place-items-center p-4 text-center text-slate-500 dark:text-zinc-400 lg:min-h-[260px]">
-                <div>
-                  <CalendarDays className="mx-auto h-8 w-8" />
-                  <p className="mt-2 text-xs font-black">Sem folder</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_220px] xl:grid-cols-[minmax(0,1fr)_240px]">
         <div className="min-w-0 p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span
@@ -813,6 +791,31 @@ function EventCard({
             >
               Excluir
             </QuickAction>
+          </div>
+        </div>
+
+        <div className="bg-slate-100 dark:bg-zinc-950">
+          <div className="aspect-[16/9] w-full overflow-hidden lg:aspect-auto lg:h-full lg:min-h-[260px]">
+            {folderUrl ? (
+              <img
+                src={folderUrl}
+                alt={`Folder do evento ${titulo}`}
+                className="h-full w-full object-cover object-top"
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="grid h-full min-h-[180px] place-items-center p-4 text-center text-slate-500 dark:text-zinc-400 lg:min-h-[260px]">
+                <div>
+                  <CalendarDays
+                    className="mx-auto h-8 w-8"
+                    aria-hidden="true"
+                  />
+                  <p className="mt-2 text-xs font-black">Sem folder</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
