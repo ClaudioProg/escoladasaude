@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Award,
+  Ban,
   CheckCircle2,
   FileText,
   Filter,
@@ -986,6 +987,7 @@ function CertificadoAvulsoCard({
   item,
   onGerarPdf,
   onEnviarEmail,
+  onCancelar, // <--- NOVA PROP
   acaoLoading,
   usarAssinaturaAdicional,
   assinaturaAdicionalId,
@@ -994,6 +996,9 @@ function CertificadoAvulsoCard({
   const isEmailLoading =
     acaoLoading.id === item.id && acaoLoading.tipo === "email";
   const isPdfLoading = acaoLoading.id === item.id && acaoLoading.tipo === "pdf";
+  const isCancelarLoading =
+    acaoLoading.id === item.id && acaoLoading.tipo === "cancelar"; // <--- NOVO STATE
+
   const mod = item?.modalidade || "participante";
   const status = item?.status || "emitido";
   const podeGerar = certificadoPodeGerarPdf(item);
@@ -1139,7 +1144,7 @@ function CertificadoAvulsoCard({
           ) : null}
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Botao
             type="button"
             variant="contorno"
@@ -1190,6 +1195,23 @@ function CertificadoAvulsoCard({
                 : item?.enviado
                   ? "Reenviar"
                   : "Enviar"}
+            </span>
+          </Botao>
+
+          <Botao
+            type="button"
+            variant="contorno"
+            onClick={() => onCancelar(item)}
+            disabled={isCancelarLoading || !podeGerar}
+            title="Cancelar certificado"
+          >
+            <span className="inline-flex items-center justify-center gap-2 text-rose-700 dark:text-rose-400">
+              {isCancelarLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Ban className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isCancelarLoading ? "Cancelando..." : "Cancelar"}
             </span>
           </Botao>
         </div>
@@ -1856,6 +1878,76 @@ export default function CertificadoAvulso() {
     [acaoLoading.id, getAssinaturaParams, setLive],
   );
 
+  const cancelarCertificado = useCallback(
+    async (item) => {
+      if (acaoLoading.id) {
+        return;
+      }
+
+      const id = Number(item?.id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return;
+      }
+
+      // Usando o prompt nativo para capturar o motivo obrigatório
+      // eslint-disable-next-line no-alert
+      const motivo = window.prompt(
+        "⚠️ Qual o motivo do cancelamento deste certificado?\n\nEsta ação mudará o status e invalidará a validação pública.",
+      );
+
+      // Se o usuário clicar em "Cancelar" no prompt, retorna null
+      if (motivo === null) {
+        return;
+      }
+
+      const motivoLimpo = safeText(motivo, 2000);
+
+      if (!motivoLimpo) {
+        notifyWarning("O motivo do cancelamento é obrigatório.");
+        return;
+      }
+
+      try {
+        // Certifique-se de que este método exista no seu arquivo api.js
+        validarFacade(
+          "api.certificadoAvulso.cancelar",
+          api?.certificadoAvulso?.cancelar,
+        );
+
+        setAcaoLoading({ id, tipo: "cancelar" });
+        setLive("Cancelando certificado avulso.");
+
+        // Dispara o payload com o motivo exigido pelo controller
+        const response = await api.certificadoAvulso.cancelar(id, {
+          motivo: motivoLimpo,
+        });
+        const atualizado = extrairData(response);
+
+        // Atualiza a lista local para refletir o status de "cancelado" (badge vermelho)
+        setLista((prev) =>
+          prev.map((cert) =>
+            Number(cert.id) === Number(id)
+              ? { ...cert, ...atualizado, status: "cancelado" }
+              : cert,
+          ),
+        );
+
+        notifySuccess("Certificado cancelado com sucesso.");
+        setLive("Certificado avulso cancelado.");
+      } catch (error) {
+        console.error("[CertificadoAvulso] erro ao cancelar:", error);
+
+        notifyError(
+          obterMensagemErro(error, "Não foi possível cancelar o certificado."),
+        );
+        setLive("Erro ao cancelar certificado.");
+      } finally {
+        setAcaoLoading({ id: null, tipo: null });
+      }
+    },
+    [acaoLoading.id, setLive],
+  );
+
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
       <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
@@ -2008,6 +2100,7 @@ export default function CertificadoAvulso() {
                     item={item}
                     onGerarPdf={gerarPdf}
                     onEnviarEmail={enviarPorEmail}
+                    onCancelar={cancelarCertificado}
                     acaoLoading={acaoLoading}
                     usarAssinaturaAdicional={usarAssinaturaAdicional}
                     assinaturaAdicionalId={assinaturaAdicionalId}

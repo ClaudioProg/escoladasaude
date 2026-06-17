@@ -4167,6 +4167,13 @@ export const api = {
     criar: (payload, opts) => apiCertAvulsoCriar(payload, opts),
     pdf: (id, params, opts) => apiCertAvulsoPDF(id, params, opts),
     enviar: (id, params, opts) => apiCertAvulsoEnviar(id, params, opts),
+    cancelar: (id, payload, opts) =>
+      apiPut(`/certificado/admin/avulso/${id}/cancelar`, payload, {
+        auth: true,
+        on401: "redirect",
+        on403: "silent",
+        ...opts,
+      }),
   },
 
   relatorio: {

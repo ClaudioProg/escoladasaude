@@ -732,24 +732,6 @@ function BotaoProgramacao({ evento }) {
   );
 }
 
-function ImageBatchSentinel({ onReach }) {
-  const firedRef = useRef(false);
-
-  const { ref, inView } = useInViewOnce({
-    rootMargin: "1200px 0px",
-    threshold: 0.01,
-  });
-
-  useEffect(() => {
-    if (inView && !firedRef.current) {
-      firedRef.current = true;
-      onReach?.();
-    }
-  }, [inView, onReach]);
-
-  return <div ref={ref} className="h-1 w-full" aria-hidden="true" />;
-}
-
 function SearchBox({ value, onChange }) {
   return (
     <label className="relative block w-full sm:max-w-md">
@@ -789,7 +771,6 @@ export default function Eventos() {
   const [carregandoTurmas, setCarregandoTurmas] = useState(null);
   const [inscrevendo, setInscrevendo] = useState(null);
   const [cancelandoId, setCancelandoId] = useState(null);
-  const [imageLoadBudget, setImageLoadBudget] = useState(0);
 
   const [confirmCancel, setConfirmCancel] = useState({
     open: false,
@@ -818,10 +799,6 @@ export default function Eventos() {
       mountedRef.current = false;
       abortEventosRef.current?.abort?.("unmount");
       abortInscricaoRef.current?.abort?.("unmount");
-
-      if (imageStartTimerRef.current) {
-        clearTimeout(imageStartTimerRef.current);
-      }
     };
   }, []);
 
@@ -864,7 +841,6 @@ export default function Eventos() {
     setCarregandoEventos(true);
     setLive("Carregando eventos…");
     setErro("");
-    setImageLoadBudget(0);
 
     if (imageStartTimerRef.current) {
       clearTimeout(imageStartTimerRef.current);
@@ -894,13 +870,6 @@ export default function Eventos() {
       setEventos(visiveis);
       setErro("");
       setLive("Eventos carregados. Imagens serão exibidas em seguida.");
-
-      imageStartTimerRef.current = setTimeout(() => {
-        if (!mountedRef.current) {
-          return;
-        }
-        setImageLoadBudget(4);
-      }, 450);
     } catch (error) {
       if (isAbortLike(error)) {
         return;
@@ -1207,10 +1176,6 @@ export default function Eventos() {
     fecharConfirmCancel,
   ]);
 
-  const liberarMaisImagens = useCallback(() => {
-    setImageLoadBudget((prev) => prev + 4);
-  }, []);
-
   const atualizarTudo = useCallback(async () => {
     await carregarEventos();
     await carregarInscricoes();
@@ -1296,15 +1261,6 @@ export default function Eventos() {
             </div>
           </div>
         </>
-      )}
-
-      {!carregandoEventos && eventos.length > 0 && imageLoadBudget === 0 && (
-        <div className="mx-auto max-w-6xl px-4 pt-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
-            <span className="font-extrabold">Eventos carregados.</span> Os
-            folders serão exibidos em seguida.
-          </div>
-        </div>
       )}
 
       <main id="conteudo" className="mx-auto max-w-6xl px-2 pb-8 pt-6 sm:px-4">
@@ -1401,7 +1357,7 @@ export default function Eventos() {
                       <ThumbEvento
                         evento={evento}
                         titulo={evento.titulo}
-                        canStartLoading={index < imageLoadBudget}
+                        canStartLoading={true}
                       />
 
                       <div className="min-w-0 flex-1">
@@ -1596,8 +1552,6 @@ export default function Eventos() {
                 </motion.article>
               );
             })}
-
-            <ImageBatchSentinel onReach={liberarMaisImagens} />
           </div>
         )}
       </main>

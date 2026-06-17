@@ -116,16 +116,6 @@ function somenteDigitos(value) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
-function cpfProtegido(value) {
-  const digits = somenteDigitos(value);
-
-  if (digits.length !== 11) {
-    return value ? String(value) : "—";
-  }
-
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.***-**`;
-}
-
 function normalizarTexto(value) {
   return String(value || "")
     .normalize("NFD")
@@ -273,7 +263,7 @@ function normalizarLinhasPresenca(payload) {
         turma_id: toPositiveInt(data?.turma_id),
         evento_id: toPositiveInt(data?.evento_id),
         nome: usuario?.nome || "Participante sem nome",
-        cpf: usuario?.cpf || usuario?.cpf_protegido || "",
+        celular: usuario?.celular || usuario?.telefone || "—",
         email: usuario?.email || "",
         data_referencia,
         data_presenca: presente ? data_referencia : null,
@@ -956,7 +946,7 @@ export default function PresencasPorTurma() {
                           </h2>
 
                           <div className="mt-2 flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-300">
-                            <p>CPF: {cpfProtegido(registro.cpf)}</p>
+                            <p>Celular: {registro.celular}</p>
                             <p>
                               Data: {formatarDataBR(registro.data_referencia)}
                             </p>

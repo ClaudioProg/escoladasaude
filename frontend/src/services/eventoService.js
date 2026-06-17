@@ -34,7 +34,6 @@
 // - cancelamento próprio por turma: DELETE /inscricao/minha/turma/:turma_id;
 // - questionário/configuração pós-curso: pos_curso;
 // - sem "file" como alias de folder;
-// - sem folder_url/programacao_pdf_url como fonte funcional;
 // - sem rotas /eventos;
 // - sem authFetch manual;
 // - sem authToken/access_token;
