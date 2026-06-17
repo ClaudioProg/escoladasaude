@@ -42,7 +42,6 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  GraduationCap,
   Loader2,
   Lock,
   MapPin,
@@ -50,7 +49,6 @@ import {
   Save,
   School,
   ShieldCheck,
-  Sparkles,
   Trash2,
   Type,
   Unlock,
@@ -119,7 +117,7 @@ const DEPARTAMENTOS_FALLBACK = [
 ];
 
 const DEPARTAMENTOS_OFICIAIS = new Set(
-  DEPARTAMENTOS_FALLBACK.map((item) => item.value)
+  DEPARTAMENTOS_FALLBACK.map((item) => item.value),
 );
 
 const FORM_INICIAL = {
@@ -170,13 +168,19 @@ function trimOrNull(value) {
 }
 
 function normalizarNome(value) {
-  return String(value || "").trim().replace(/\s+/g, " ");
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function normalizarDepartamentoItem(item) {
   const value = String(item?.value || item?.departamento || "").trim();
   const label = String(
-    item?.label || item?.departamento_label || item?.value || item?.departamento || ""
+    item?.label ||
+      item?.departamento_label ||
+      item?.value ||
+      item?.departamento ||
+      "",
   ).trim();
 
   return {
@@ -187,7 +191,8 @@ function normalizarDepartamentoItem(item) {
 }
 
 function normalizarDepartamentos(lista = []) {
-  const base = Array.isArray(lista) && lista.length > 0 ? lista : DEPARTAMENTOS_FALLBACK;
+  const base =
+    Array.isArray(lista) && lista.length > 0 ? lista : DEPARTAMENTOS_FALLBACK;
 
   return base
     .map(normalizarDepartamentoItem)
@@ -197,10 +202,12 @@ function normalizarDepartamentos(lista = []) {
 function departamentoValido(value, departamentos = []) {
   const departamento = String(value || "").trim();
 
-  if (!departamento) return false;
+  if (!departamento) {
+    return false;
+  }
 
   const oficiais = new Set(
-    normalizarDepartamentos(departamentos).map((item) => item.value)
+    normalizarDepartamentos(departamentos).map((item) => item.value),
   );
 
   return oficiais.has(departamento) || DEPARTAMENTOS_OFICIAIS.has(departamento);
@@ -217,14 +224,18 @@ function isHHMM(value) {
 function formatarDataBR(ymd) {
   const text = String(ymd || "").slice(0, 10);
 
-  if (!isYMD(text)) return text || "—";
+  if (!isYMD(text)) {
+    return text || "—";
+  }
 
   const [ano, mes, dia] = text.split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
 function minutosHHMM(hhmm) {
-  if (!isHHMM(hhmm)) return null;
+  if (!isHHMM(hhmm)) {
+    return null;
+  }
 
   const [hora, minuto] = hhmm.split(":").map(Number);
 
@@ -246,13 +257,17 @@ function diferencaHoras(inicio, fim) {
   const a = minutosHHMM(inicio);
   const b = minutosHHMM(fim);
 
-  if (a == null || b == null || b <= a) return 0;
+  if (a == null || b == null || b <= a) {
+    return 0;
+  }
 
   return (b - a) / 60;
 }
 
 function numeroInteiroOuNull(value) {
-  if (value === "" || value === null || value === undefined) return null;
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
 
   const number = Number(value);
   return Number.isInteger(number) ? number : Number.NaN;
@@ -263,18 +278,22 @@ function statusValido(status) {
 }
 
 function modalidadeValida(modalidade) {
-  if (!modalidade) return true;
+  if (!modalidade) {
+    return true;
+  }
   return MODALIDADE_OFICIAL.some((item) => item.value === modalidade);
 }
 
 function extrairPalestranteNome(palestrante) {
-  if (typeof palestrante === "string") return normalizarNome(palestrante);
+  if (typeof palestrante === "string") {
+    return normalizarNome(palestrante);
+  }
 
   return normalizarNome(
     palestrante?.nome ||
       palestrante?.nome_externo ||
       palestrante?.palestrante_nome ||
-      ""
+      "",
   );
 }
 
@@ -297,8 +316,7 @@ function Button({
       "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
     emerald:
       "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-700",
-    rose:
-      "bg-rose-600 text-white shadow-lg shadow-rose-900/20 hover:bg-rose-700",
+    rose: "bg-rose-600 text-white shadow-lg shadow-rose-900/20 hover:bg-rose-700",
     ghost:
       "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
   };
@@ -310,7 +328,7 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
         "focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -350,7 +368,9 @@ function MiniStat({ icon: Icon, label, value }) {
     <div className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
         <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-        <span className="text-xs font-black uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-black uppercase tracking-wide">
+          {label}
+        </span>
       </div>
       <p className="mt-2 break-words text-sm font-black text-slate-900 dark:text-white">
         {value}
@@ -420,7 +440,7 @@ export default function ModalCalendarioAnualEPS({
 
   const departamentosNormalizados = useMemo(
     () => normalizarDepartamentos(departamentos),
-    [departamentos]
+    [departamentos],
   );
 
   const inputBase =
@@ -430,7 +450,9 @@ export default function ModalCalendarioAnualEPS({
     "w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:disabled:bg-slate-900";
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     if (isEdicao) {
       setForm({
@@ -469,7 +491,7 @@ export default function ModalCalendarioAnualEPS({
                 ? String(item.horario_fim).slice(0, 5)
                 : "",
             }))
-          : [criarLinhaDataVazia()]
+          : [criarLinhaDataVazia()],
       );
 
       const nomes = Array.isArray(registro?.palestrantes)
@@ -481,7 +503,9 @@ export default function ModalCalendarioAnualEPS({
 
       for (const nome of nomes) {
         const key = nome.toLowerCase();
-        if (vistos.has(key)) continue;
+        if (vistos.has(key)) {
+          continue;
+        }
         vistos.add(key);
         unicos.push(nome);
       }
@@ -528,7 +552,9 @@ export default function ModalCalendarioAnualEPS({
 
   function setLinhaData(id, campo, valor) {
     setDatas((current) =>
-      current.map((item) => (item.id === id ? { ...item, [campo]: valor } : item))
+      current.map((item) =>
+        item.id === id ? { ...item, [campo]: valor } : item,
+      ),
     );
   }
 
@@ -538,7 +564,9 @@ export default function ModalCalendarioAnualEPS({
 
   function removerData(id) {
     setDatas((current) => {
-      if (current.length <= 1) return current;
+      if (current.length <= 1) {
+        return current;
+      }
       return current.filter((item) => item.id !== id);
     });
   }
@@ -554,7 +582,7 @@ export default function ModalCalendarioAnualEPS({
 
     setPalestrantes((current) => {
       const existe = current.some(
-        (item) => item.toLowerCase() === nome.toLowerCase()
+        (item) => item.toLowerCase() === nome.toLowerCase(),
       );
 
       if (existe) {
@@ -574,7 +602,7 @@ export default function ModalCalendarioAnualEPS({
 
   function removerPalestrante(index) {
     setPalestrantes((current) =>
-      current.filter((_, itemIndex) => itemIndex !== index)
+      current.filter((_, itemIndex) => itemIndex !== index),
     );
   }
 
@@ -592,7 +620,9 @@ export default function ModalCalendarioAnualEPS({
       .filter((item) => isYMD(item.data))
       .map((item) => ({
         data: item.data,
-        horario_inicio: isHHMM(item.horario_inicio) ? item.horario_inicio : null,
+        horario_inicio: isHHMM(item.horario_inicio)
+          ? item.horario_inicio
+          : null,
         horario_fim: isHHMM(item.horario_fim) ? item.horario_fim : null,
       }));
 
@@ -604,7 +634,9 @@ export default function ModalCalendarioAnualEPS({
         item.horario_fim || ""
       }`;
 
-      if (vistos.has(key)) continue;
+      if (vistos.has(key)) {
+        continue;
+      }
 
       vistos.add(key);
       unicas.push(item);
@@ -625,7 +657,9 @@ export default function ModalCalendarioAnualEPS({
     const fim = qtd ? formatarDataBR(payloadDatas[qtd - 1].data) : "—";
 
     const somaHoras = payloadDatas.reduce((sum, item) => {
-      return sum + diferencaHoras(item.horario_inicio || "", item.horario_fim || "");
+      return (
+        sum + diferencaHoras(item.horario_inicio || "", item.horario_fim || "")
+      );
     }, 0);
 
     const cargaInformada = Number(form.carga_horaria_total);
@@ -635,12 +669,12 @@ export default function ModalCalendarioAnualEPS({
         : somaHoras;
 
     const unidadeNome =
-      unidades.find((item) => String(item.id) === String(form.unidade_id))?.nome ||
-      "—";
+      unidades.find((item) => String(item.id) === String(form.unidade_id))
+        ?.nome || "—";
 
     const departamentoNome =
       departamentosNormalizados.find(
-        (item) => String(item.value) === String(form.departamento)
+        (item) => String(item.value) === String(form.departamento),
       )?.label || "—";
 
     return {
@@ -749,7 +783,9 @@ export default function ModalCalendarioAnualEPS({
   async function salvar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setMensagem("");
@@ -783,7 +819,7 @@ export default function ModalCalendarioAnualEPS({
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Erro ao salvar a programação do Calendário Anual de EPS."
+        "Erro ao salvar a programação do Calendário Anual de EPS.",
       );
 
       setErro(message);
@@ -794,41 +830,50 @@ export default function ModalCalendarioAnualEPS({
   }
 
   function fechar() {
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
     onClose?.();
   }
 
-  if (!aberto) return null;
+  if (!aberto) {
+    return null;
+  }
 
-return createPortal(
-  <AnimatePresence>
-    <motion.div
-      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
+  return createPortal(
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
         role="presentation"
         onMouseDown={(event) => {
-          if (salvando) return;
-          if (event.target === event.currentTarget) fechar();
+          if (salvando) {
+            return;
+          }
+          if (event.target === event.currentTarget) {
+            fechar();
+          }
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-<motion.div
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby={titleId}
-  aria-describedby={descId}
-  className="flex w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl outline-none dark:bg-slate-950 sm:rounded-[2rem]"
-  style={{
-    maxHeight: "calc(100dvh - 3rem)",
-  }}
-  initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={descId}
+          className="flex w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl outline-none dark:bg-slate-950 sm:rounded-[2rem]"
+          style={{
+            maxHeight: "calc(100dvh - 3rem)",
+          }}
+          initial={{ opacity: 0, y: 18, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 18, scale: 0.98 }}
           transition={{ duration: 0.18 }}
         >
-<header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
-
+          <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
+            {" "}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
             <div className="relative flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
@@ -891,7 +936,11 @@ return createPortal(
             ) : null}
 
             <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <MiniStat icon={CalendarDays} label="Datas" value={minis.qtd || "—"} />
+              <MiniStat
+                icon={CalendarDays}
+                label="Datas"
+                value={minis.qtd || "—"}
+              />
               <MiniStat icon={Clock} label="Período" value={minis.periodo} />
               <MiniStat
                 icon={Building2}
@@ -918,7 +967,9 @@ return createPortal(
                         ref={firstFocusRef}
                         type="text"
                         value={form.titulo}
-                        onChange={(event) => setCampo("titulo", event.target.value)}
+                        onChange={(event) =>
+                          setCampo("titulo", event.target.value)
+                        }
                         className={inputBase}
                         placeholder="Ex.: Atualização em cuidados paliativos na APS"
                         maxLength={200}
@@ -965,7 +1016,9 @@ return createPortal(
                   <Field label="Unidade responsável">
                     <select
                       value={form.unidade_id}
-                      onChange={(event) => setCampo("unidade_id", event.target.value)}
+                      onChange={(event) =>
+                        setCampo("unidade_id", event.target.value)
+                      }
                       className={inputBase}
                       disabled={salvando}
                     >
@@ -981,7 +1034,9 @@ return createPortal(
                   <Field label="Modalidade">
                     <select
                       value={form.modalidade}
-                      onChange={(event) => setCampo("modalidade", event.target.value)}
+                      onChange={(event) =>
+                        setCampo("modalidade", event.target.value)
+                      }
                       className={inputBase}
                       disabled={salvando}
                     >
@@ -998,7 +1053,9 @@ return createPortal(
                     <input
                       type="text"
                       value={form.local}
-                      onChange={(event) => setCampo("local", event.target.value)}
+                      onChange={(event) =>
+                        setCampo("local", event.target.value)
+                      }
                       className={inputBase}
                       placeholder="Ex.: Auditório da Escola da Saúde, remoto via Teams..."
                       disabled={salvando}
@@ -1009,7 +1066,9 @@ return createPortal(
                     <Field label="Descrição">
                       <textarea
                         value={form.descricao}
-                        onChange={(event) => setCampo("descricao", event.target.value)}
+                        onChange={(event) =>
+                          setCampo("descricao", event.target.value)
+                        }
                         rows={4}
                         className={textareaBase}
                         placeholder="Objetivos, conteúdo e observações."
@@ -1129,7 +1188,7 @@ return createPortal(
                             setLinhaData(
                               linha.id,
                               "horario_inicio",
-                              event.target.value
+                              event.target.value,
                             )
                           }
                           className={inputBase}
@@ -1145,7 +1204,7 @@ return createPortal(
                             setLinhaData(
                               linha.id,
                               "horario_fim",
-                              event.target.value
+                              event.target.value,
                             )
                           }
                           className={inputBase}
@@ -1241,7 +1300,9 @@ return createPortal(
                   <input
                     type="checkbox"
                     checked={form.restrito}
-                    onChange={(event) => setCampo("restrito", event.target.checked)}
+                    onChange={(event) =>
+                      setCampo("restrito", event.target.checked)
+                    }
                     className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                     disabled={salvando}
                   />
@@ -1270,9 +1331,9 @@ return createPortal(
             </form>
           </div>
 
-<footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
-  <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                  Campos com <span className="font-bold text-rose-500">*</span> são
+          <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Campos com <span className="font-bold text-rose-500">*</span> são
               obrigatórios.
             </p>
 
@@ -1301,7 +1362,7 @@ return createPortal(
           </footer>
         </motion.div>
       </motion.div>
-        </AnimatePresence>,
-    document.body
+    </AnimatePresence>,
+    document.body,
   );
 }

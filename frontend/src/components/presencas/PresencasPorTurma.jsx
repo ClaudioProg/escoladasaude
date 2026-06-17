@@ -49,8 +49,12 @@ function classNames(...classes) {
 function ymd(value) {
   const safe = String(value || "").trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) return safe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) return safe.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) {
+    return safe.slice(0, 10);
+  }
 
   return "";
 }
@@ -67,7 +71,9 @@ function hojeLocalISO() {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [year, month, day] = data.split("-");
   return `${day}/${month}/${year}`;
@@ -86,8 +92,12 @@ function unwrapData(response) {
 function unwrapEventos(response) {
   const data = unwrapData(response);
 
-  if (Array.isArray(data?.eventos)) return data.eventos;
-  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.eventos)) {
+    return data.eventos;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
 
   return [];
 }
@@ -121,7 +131,9 @@ function isAbortLike(error) {
 }
 
 function turmaTemEncontroNoDia(turma, dataISO) {
-  if (!turma || !dataISO) return false;
+  if (!turma || !dataISO) {
+    return false;
+  }
 
   const datas = [
     ...(Array.isArray(turma?.datas) ? turma.datas : []),
@@ -147,7 +159,7 @@ function MiniStat({ label, value, icon: Icon, tone = "default" }) {
     <article
       className={classNames(
         "rounded-3xl border p-3 text-left shadow-sm backdrop-blur",
-        tones[tone] || tones.default
+        tones[tone] || tones.default,
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-white/75">
@@ -164,7 +176,10 @@ function MiniStat({ label, value, icon: Icon, tone = "default" }) {
 
 function HeaderHero({ onRefresh, refreshing, kpis }) {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-teal-800 to-cyan-700" />
       <div
         aria-hidden="true"
@@ -209,13 +224,16 @@ function HeaderHero({ onRefresh, refreshing, kpis }) {
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
                   refreshing
                     ? "cursor-not-allowed bg-white/20 opacity-70"
-                    : "bg-white/15 hover:bg-white/25"
+                    : "bg-white/15 hover:bg-white/25",
                 )}
                 aria-label="Atualizar lista de eventos e turmas"
                 aria-busy={refreshing ? "true" : "false"}
               >
                 {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 )}
@@ -331,16 +349,22 @@ export default function PresencasPorTurma() {
 
       const lista = unwrapEventos(response);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setEventos(lista);
       setLive(`Lista atualizada. ${lista.length} evento(s).`);
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
       const message = getErrorMessage(error, "Erro ao carregar turmas.");
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setErro(message);
       setEventos([]);
@@ -376,7 +400,9 @@ export default function PresencasPorTurma() {
 
         const lista = unwrapArray(response);
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         setInscritosPorTurma((prev) => ({
           ...prev,
@@ -395,14 +421,16 @@ export default function PresencasPorTurma() {
         setLive("Erro ao carregar inscritos.");
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const carregarAvaliacao = useCallback(
     async (turma_id) => {
       const turmaIdSeguro = toPositiveInt(turma_id);
 
-      if (!turmaIdSeguro) return;
+      if (!turmaIdSeguro) {
+        return;
+      }
 
       try {
         if (typeof api.avaliacao?.porTurma !== "function") {
@@ -421,7 +449,9 @@ export default function PresencasPorTurma() {
 
         const lista = unwrapArray(response);
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         setAvaliacaoPorTurma((prev) => ({
           ...prev,
@@ -440,7 +470,7 @@ export default function PresencasPorTurma() {
         setLive("Erro ao carregar avaliações.");
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const handleTurmaRemovida = useCallback(async () => {
@@ -530,7 +560,10 @@ export default function PresencasPorTurma() {
             </button>
           </section>
         ) : loading ? (
-          <CarregandoSkeleton texto="Carregando eventos e turmas..." linhas={6} />
+          <CarregandoSkeleton
+            texto="Carregando eventos e turmas..."
+            linhas={6}
+          />
         ) : eventos.length === 0 ? (
           <NadaEncontrado
             titulo="Nenhuma turma encontrada"

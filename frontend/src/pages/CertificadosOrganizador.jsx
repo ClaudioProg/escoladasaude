@@ -26,7 +26,11 @@ import Botao from "../components/ui/Botao";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 import { downloadBlob } from "../utils/downloadArquivo";
 import { formatDateBr, extractYmd } from "../utils/dateTime";
@@ -72,7 +76,9 @@ function getUsuarioLogado() {
     const raw = localStorage.getItem("usuario");
     const parsed = raw ? JSON.parse(raw) : null;
 
-    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
 
     const id = Number(parsed.id);
 
@@ -117,7 +123,9 @@ function periodoCertificado(certificado) {
   const fim =
     certificado?.data_fim || certificado?.fim || certificado?.df || inicio;
 
-  if (!inicio && !fim) return "Período não informado";
+  if (!inicio && !fim) {
+    return "Período não informado";
+  }
 
   return `${dataBR(inicio)} até ${dataBR(fim)}`;
 }
@@ -219,12 +227,18 @@ function deduplicarCertificadosorganizador(lista) {
     const eventoId = Number(item?.evento_id || 0) || null;
     const turmaId = Number(item?.turma_id || 0) || null;
 
-    if (tipo !== "organizador") continue;
-    if (!eventoId || !turmaId) continue;
+    if (tipo !== "organizador") {
+      continue;
+    }
+    if (!eventoId || !turmaId) {
+      continue;
+    }
 
     const key = `organizador-${eventoId}-${turmaId}`;
 
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
 
     seen.add(key);
 
@@ -279,7 +293,7 @@ function MiniStat({ icon: Icon, label, value, description, tone = "amber" }) {
     </div>
   );
 }
-      
+
 function Badge({ tone = "slate", children }) {
   const tones = {
     slate:
@@ -288,17 +302,15 @@ function Badge({ tone = "slate", children }) {
       "bg-emerald-50 text-emerald-800 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/60",
     amber:
       "bg-amber-50 text-amber-800 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800/60",
-    rose:
-      "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
-    cyan:
-      "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
+    rose: "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
+    cyan: "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
   };
 
   return (
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {children}
@@ -356,7 +368,7 @@ function Toolbar({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
               somentePendentes
                 ? "bg-amber-50 text-amber-900 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800"
-                : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 dark:bg-zinc-950 dark:text-zinc-200 dark:ring-zinc-800 dark:hover:bg-zinc-900"
+                : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 dark:bg-zinc-950 dark:text-zinc-200 dark:ring-zinc-800 dark:hover:bg-zinc-900",
             )}
             aria-pressed={somentePendentes}
           >
@@ -365,11 +377,11 @@ function Toolbar({
           </button>
 
           <Botao
-  type="button"
-  variant="contorno"
-  onClick={onRefresh}
-  disabled={carregando}
->
+            type="button"
+            variant="contorno"
+            onClick={onRefresh}
+            disabled={carregando}
+          >
             <span className="inline-flex items-center gap-2">
               <RefreshCw
                 className={cx("h-4 w-4", carregando && "animate-spin")}
@@ -477,14 +489,17 @@ function CertificadoCard({
         <div className="flex flex-col gap-2 sm:flex-row">
           {state.estado === "pronto" ? (
             <Botao
-  type="button"
-  variant="contraste"
-  onClick={() => onBaixar(certificado)}
-  disabled={baixando || busyBaixar}
->
+              type="button"
+              variant="contraste"
+              onClick={() => onBaixar(certificado)}
+              disabled={baixando || busyBaixar}
+            >
               <span className="inline-flex items-center gap-2">
                 {baixando ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <Download className="h-4 w-4" aria-hidden="true" />
                 )}
@@ -493,9 +508,9 @@ function CertificadoCard({
             </Botao>
           ) : (
             <Botao
-  type="button"
-  variant="sucesso"
-  onClick={() => onGerar(certificado)}
+              type="button"
+              variant="sucesso"
+              onClick={() => onGerar(certificado)}
               disabled={
                 gerando ||
                 busyGerar ||
@@ -505,7 +520,10 @@ function CertificadoCard({
             >
               <span className="inline-flex items-center gap-2">
                 {gerando ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <FilePlus2 className="h-4 w-4" aria-hidden="true" />
                 )}
@@ -543,7 +561,9 @@ export default function Certificadosorganizador() {
   const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message;
+    if (liveRef.current) {
+      liveRef.current.textContent = message;
+    }
   }, []);
 
   const keyCertificado = useCallback((certificado) => {
@@ -553,47 +573,51 @@ export default function Certificadosorganizador() {
   const carregarCertificados = useCallback(async () => {
     try {
       validarFacade(
-  "api.certificado.elegivelorganizador",
-  api?.certificado?.elegivelorganizador
-);
+        "api.certificado.elegivelorganizador",
+        api?.certificado?.elegivelorganizador,
+      );
 
-setCarregando(true);
-setErro("");
-setLive("Carregando certificados de organizador.");
+      setCarregando(true);
+      setErro("");
+      setLive("Carregando certificados de organizador.");
 
-const params = new URLSearchParams(window.location.search);
-const usuarioIdUrl = Number(params.get("usuario_id"));
-const deveEnviarUsuarioId =
-  usuarioAdministrador(usuario) &&
-  Number.isInteger(usuarioIdUrl) &&
-  usuarioIdUrl > 0;
+      const params = new URLSearchParams(window.location.search);
+      const usuarioIdUrl = Number(params.get("usuario_id"));
+      const deveEnviarUsuarioId =
+        usuarioAdministrador(usuario) &&
+        Number.isInteger(usuarioIdUrl) &&
+        usuarioIdUrl > 0;
 
-const response = await api.certificado.elegivelorganizador(
-  deveEnviarUsuarioId ? { usuario_id: usuarioIdUrl } : undefined
-);
+      const response = await api.certificado.elegivelorganizador(
+        deveEnviarUsuarioId ? { usuario_id: usuarioIdUrl } : undefined,
+      );
 
       const data = extrairData(response);
       const lista = Array.isArray(data) ? data : [];
 
       const certificadosNormalizados = deduplicarCertificadosorganizador(lista);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setCertificados(certificadosNormalizados);
 
       setLive(
         certificadosNormalizados.length
           ? `${certificadosNormalizados.length} certificado(s) de organizador encontrado(s).`
-          : "Nenhum certificado de organizador encontrado."
+          : "Nenhum certificado de organizador encontrado.",
       );
     } catch (error) {
       console.error("[Certificadosorganizador] erro ao carregar:", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = obterMensagemErro(
         error,
-        "Erro ao carregar certificados de organizador."
+        "Erro ao carregar certificados de organizador.",
       );
 
       setErro(message);
@@ -601,7 +625,9 @@ const response = await api.certificado.elegivelorganizador(
       notifyError(message);
       setLive("Erro ao carregar certificados de organizador.");
     } finally {
-      if (mountedRef.current) setCarregando(false);
+      if (mountedRef.current) {
+        setCarregando(false);
+      }
     }
   }, [usuario, setLive]);
 
@@ -617,7 +643,9 @@ const response = await api.certificado.elegivelorganizador(
 
   const gerarCertificado = useCallback(
     async (certificado) => {
-      if (busyGerar) return;
+      if (busyGerar) {
+        return;
+      }
 
       if (!usuario?.id) {
         notifyError("Usuário não identificado. Faça login novamente.");
@@ -659,7 +687,7 @@ const response = await api.certificado.elegivelorganizador(
         notifySuccess(
           envelope?.code === "CERTIFICADO_JA_EMITIDO"
             ? "Certificado já estava emitido. O documento existente foi preservado."
-            : "Certificado de organizador emitido com sucesso."
+            : "Certificado de organizador emitido com sucesso.",
         );
 
         setCertificados((prev) =>
@@ -670,7 +698,8 @@ const response = await api.certificado.elegivelorganizador(
             ) {
               return {
                 ...item,
-                certificado_id: data?.id || data?.certificado_id || item.certificado_id,
+                certificado_id:
+                  data?.id || data?.certificado_id || item.certificado_id,
                 numero_certificado:
                   data?.numero_certificado || item.numero_certificado,
                 codigo_validacao:
@@ -682,7 +711,7 @@ const response = await api.certificado.elegivelorganizador(
             }
 
             return item;
-          })
+          }),
         );
 
         await carregarCertificados();
@@ -692,8 +721,8 @@ const response = await api.certificado.elegivelorganizador(
         notifyError(
           obterMensagemErro(
             error,
-            "Não foi possível emitir o certificado de organizador."
-          )
+            "Não foi possível emitir o certificado de organizador.",
+          ),
         );
         setLive("Erro ao emitir certificado de organizador.");
       } finally {
@@ -701,14 +730,18 @@ const response = await api.certificado.elegivelorganizador(
         setBusyGerar(false);
       }
     },
-    [busyGerar, usuario?.id, keyCertificado, carregarCertificados, setLive]
+    [busyGerar, usuario?.id, keyCertificado, carregarCertificados, setLive],
   );
 
   const baixarCertificado = useCallback(
     async (certificado) => {
-      if (busyBaixar) return;
+      if (busyBaixar) {
+        return;
+      }
 
-      const certificadoId = Number(certificado?.certificado_id || certificado?.id);
+      const certificadoId = Number(
+        certificado?.certificado_id || certificado?.id,
+      );
 
       if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
         notifyWarning("Certificado sem ID para download.");
@@ -733,7 +766,7 @@ const response = await api.certificado.elegivelorganizador(
             getNumeroCertificado(certificado) ||
               `certificado_organizador_${obterTitulo(certificado)}_turma_${
                 certificado?.turma_id || certificadoId
-              }`
+              }`,
           )}.pdf`;
 
         downloadBlob(filename, blob);
@@ -744,8 +777,8 @@ const response = await api.certificado.elegivelorganizador(
         notifyError(
           obterMensagemErro(
             error,
-            "Não foi possível baixar o certificado de organizador."
-          )
+            "Não foi possível baixar o certificado de organizador.",
+          ),
         );
         setLive("Erro ao baixar certificado de organizador.");
       } finally {
@@ -753,7 +786,7 @@ const response = await api.certificado.elegivelorganizador(
         setBusyBaixar(false);
       }
     },
-    [busyBaixar, keyCertificado, setLive]
+    [busyBaixar, keyCertificado, setLive],
   );
 
   const certificadosFiltrados = useMemo(() => {
@@ -770,7 +803,9 @@ const response = await api.certificado.elegivelorganizador(
         return true;
       })
       .filter((certificado) => {
-        if (!buscaNorm) return true;
+        if (!buscaNorm) {
+          return true;
+        }
 
         const texto = normalizarBusca(
           [
@@ -778,7 +813,7 @@ const response = await api.certificado.elegivelorganizador(
             obterTurma(certificado),
             certificado?.numero_certificado,
             certificado?.codigo_validacao,
-          ].join(" ")
+          ].join(" "),
         );
 
         return texto.includes(buscaNorm);
@@ -808,9 +843,10 @@ const response = await api.certificado.elegivelorganizador(
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
       <HeaderHero
-  titulo="Certificados de organizador"
-subtitulo="Emita, acompanhe e baixe seus certificados eletrônicos como organizador de atividade formativa."  icon={Award}
-/>
+        titulo="Certificados de organizador"
+        subtitulo="Emita, acompanhe e baixe seus certificados eletrônicos como organizador de atividade formativa."
+        icon={Award}
+      />
 
       <p ref={liveRef} className="sr-only" aria-live="polite" />
 
@@ -823,7 +859,7 @@ subtitulo="Emita, acompanhe e baixe seus certificados eletrônicos como organiza
           <div
             className={cx(
               "h-full w-1/3 bg-amber-600",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -834,63 +870,66 @@ subtitulo="Emita, acompanhe e baixe seus certificados eletrônicos como organiza
         className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6"
       >
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
-  <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
-    <div className="flex items-start gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-900">
-        <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-      </div>
+          <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-900">
+                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+              </div>
 
-      <div>
-        <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
-          Certificação v2.0
-        </p>
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
+                  Certificação v2.0
+                </p>
 
-        <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-          Certificados com número oficial, código único de validação, QR Code e rastreabilidade documental.
-        </p>
-      </div>
-    </div>
-  </div>
+                <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+                  Certificados com número oficial, código único de validação, QR
+                  Code e rastreabilidade documental.
+                </p>
+              </div>
+            </div>
+          </div>
 
-  <button
-    type="button"
-    onClick={carregarCertificados}
-    disabled={carregando}
-    className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
-  >
-    <RefreshCw className={cx("h-4 w-4", carregando && "animate-spin")} />
-    {carregando ? "Atualizando..." : "Atualizar certificados"}
-  </button>
-</section>
+          <button
+            type="button"
+            onClick={carregarCertificados}
+            disabled={carregando}
+            className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
+          >
+            <RefreshCw
+              className={cx("h-4 w-4", carregando && "animate-spin")}
+            />
+            {carregando ? "Atualizando..." : "Atualizar certificados"}
+          </button>
+        </section>
 
-<section
-  aria-label="Resumo dos certificados de organizador"
-  className="grid grid-cols-1 gap-4 sm:grid-cols-3"
->
-  <MiniStat
-    icon={Award}
-    label="Elegíveis"
-    value={kpis.total}
-    description="Certificados disponíveis"
-    tone="amber"
-  />
+        <section
+          aria-label="Resumo dos certificados de organizador"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        >
+          <MiniStat
+            icon={Award}
+            label="Elegíveis"
+            value={kpis.total}
+            description="Certificados disponíveis"
+            tone="amber"
+          />
 
-  <MiniStat
-    icon={CheckCircle2}
-    label="Emitidos"
-    value={kpis.emitidos}
-    description="Documentos já gerados"
-    tone="emerald"
-  />
+          <MiniStat
+            icon={CheckCircle2}
+            label="Emitidos"
+            value={kpis.emitidos}
+            description="Documentos já gerados"
+            tone="emerald"
+          />
 
-  <MiniStat
-    icon={FilePlus2}
-    label="A emitir"
-    value={kpis.pendentes}
-    description="Pendentes de emissão"
-    tone="orange"
-  />
-</section>
+          <MiniStat
+            icon={FilePlus2}
+            label="A emitir"
+            value={kpis.pendentes}
+            description="Pendentes de emissão"
+            tone="orange"
+          />
+        </section>
         <Toolbar
           busca={busca}
           setBusca={setBusca}

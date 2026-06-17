@@ -1,7 +1,7 @@
-// 📁 src/components/agendaSalas/ModalReservaAdmin.jsx
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/components/agendaSalas/ModalReservaAdmin.jsx — v2.3
+// Atualizado em: 16/06/2026
 //
-// Plataforma Escola da Saúde — v2.0
+// Plataforma Escola da Saúde
 //
 // Modal administrativo de reserva/agendamento de salas.
 //
@@ -34,7 +34,7 @@
 // - acessível;
 // - anti-fuso: date-only em YYYY-MM-DD.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import {
   AlertCircle,
@@ -47,7 +47,6 @@ import {
   Coffee,
   ExternalLink,
   FileSignature,
-  FileText,
   Info,
   Loader2,
   Repeat,
@@ -76,11 +75,6 @@ const STATUS_OFICIAL = [
 ];
 
 const STATUS_SET = new Set(STATUS_OFICIAL.map((item) => item.value));
-
-const PERIODOS = {
-  manha: "Período da manhã",
-  tarde: "Período da tarde",
-};
 
 const DIAS_SEMANA_LABEL_COMPLETO = [
   "domingo",
@@ -128,18 +122,24 @@ function isYMD(value) {
 function toBrDateFromISO(dateISO) {
   const iso = String(dateISO || "").slice(0, 10);
 
-  if (!isYMD(iso)) return iso || "—";
+  if (!isYMD(iso)) {
+    return iso || "—";
+  }
 
   const [year, month, day] = iso.split("-");
   return `${day}/${month}/${year}`;
 }
 
 function toBrDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return String(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
 
   return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()} às ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
@@ -147,7 +147,9 @@ function toBrDateTime(value) {
 function dateFromYMD(dateISO) {
   const iso = String(dateISO || "").slice(0, 10);
 
-  if (!isYMD(iso)) return null;
+  if (!isYMD(iso)) {
+    return null;
+  }
 
   const [year, month, day] = iso.split("-").map(Number);
   const date = new Date(year, month - 1, day, 12, 0, 0, 0);
@@ -161,7 +163,9 @@ function trimmedOrNull(value) {
 }
 
 function normalizarStatus(value) {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
 
   return STATUS_SET.has(status) ? status : "aprovado";
 }
@@ -175,12 +179,18 @@ function normalizarPeriodo(value) {
 function normalizarSala(value) {
   const sala = String(value || "").trim();
 
-  return sala === "auditorio" || sala === "sala_reuniao" ? sala : "sala_reuniao";
+  return sala === "auditorio" || sala === "sala_reuniao"
+    ? sala
+    : "sala_reuniao";
 }
 
 function salaLabel(value) {
-  if (value === "auditorio") return "Auditório";
-  if (value === "sala_reuniao") return "Sala de Reunião";
+  if (value === "auditorio") {
+    return "Auditório";
+  }
+  if (value === "sala_reuniao") {
+    return "Sala de Reunião";
+  }
   return "Sala";
 }
 
@@ -194,7 +204,11 @@ function getErrorMessage(error, fallback) {
 }
 
 function unwrapData(response) {
-  if (response?.data && typeof response.data === "object" && "ok" in response.data) {
+  if (
+    response?.data &&
+    typeof response.data === "object" &&
+    "ok" in response.data
+  ) {
     return response.data.data || {};
   }
 
@@ -203,18 +217,6 @@ function unwrapData(response) {
   }
 
   return response?.data || response || {};
-}
-
-function prioridadeStatus(status) {
-  const normalized = normalizarStatus(status);
-
-  if (normalized === "pendente") return 5;
-  if (normalized === "aprovado") return 4;
-  if (normalized === "bloqueado") return 3;
-  if (normalized === "rejeitado") return 2;
-  if (normalized === "cancelado") return 1;
-
-  return 0;
 }
 
 function statusBadgeClass(status) {
@@ -237,7 +239,10 @@ function statusBadgeClass(status) {
 }
 
 function statusLabel(status) {
-  return STATUS_OFICIAL.find((item) => item.value === normalizarStatus(status))?.label || "Aprovado";
+  return (
+    STATUS_OFICIAL.find((item) => item.value === normalizarStatus(status))
+      ?.label || "Aprovado"
+  );
 }
 
 /* =========================================================================
@@ -300,7 +305,9 @@ function MiniCard({ icon: Icon, label, value }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
         <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-        <span className="text-xs font-black uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-black uppercase tracking-wide">
+          {label}
+        </span>
       </div>
       <div className="mt-1 break-words text-base font-black text-slate-900 dark:text-white">
         {value}
@@ -336,7 +343,9 @@ function Section({ title, description, icon: Icon, children }) {
 }
 
 function ConfirmCancelModal({ open, loading, reserva, onClose, onConfirm }) {
-  if (!open || !reserva) return null;
+  if (!open || !reserva) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[1300]">
@@ -363,7 +372,8 @@ function ConfirmCancelModal({ open, loading, reserva, onClose, onConfirm }) {
                   Cancelar reserva?
                 </h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-                  O backend v2.0 preserva o histórico e altera o status para cancelado.
+                  O backend v2.0 preserva o histórico e altera o status para
+                  cancelado.
                 </p>
               </div>
 
@@ -396,7 +406,8 @@ function ConfirmCancelModal({ open, loading, reserva, onClose, onConfirm }) {
             </div>
 
             <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-              O horário será liberado para novas solicitações, mas o registro continuará disponível para rastreabilidade.
+              O horário será liberado para novas solicitações, mas o registro
+              continuará disponível para rastreabilidade.
             </p>
           </div>
 
@@ -416,7 +427,11 @@ function ConfirmCancelModal({ open, loading, reserva, onClose, onConfirm }) {
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               {loading ? "Cancelando..." : "Cancelar reserva"}
             </button>
           </footer>
@@ -455,8 +470,12 @@ export default function ModalReservaAdmin({
   const isEdicao = Boolean(reserva?.id);
 
   const dataISO = String(slot?.dataISO || reserva?.data || "").slice(0, 10);
-  const periodo = normalizarPeriodo(slot?.periodo || reserva?.periodo || "manha");
-  const salaKey = normalizarSala(sala || slot?.sala || reserva?.sala || "sala_reuniao");
+  const periodo = normalizarPeriodo(
+    slot?.periodo || reserva?.periodo || "manha",
+  );
+  const salaKey = normalizarSala(
+    sala || slot?.sala || reserva?.sala || "sala_reuniao",
+  );
 
   const safeCap = capacidadeSala || {
     conforto: salaKey === "auditorio" ? 50 : 25,
@@ -473,7 +492,9 @@ export default function ModalReservaAdmin({
     DIAS_SEMANA_LABEL_COMPLETO[diaSemanaBaseIndex] || "dia da semana";
 
   const { ordemSemanaBase, ehUltimaSemana } = useMemo(() => {
-    if (!dataBase) return { ordemSemanaBase: 1, ehUltimaSemana: false };
+    if (!dataBase) {
+      return { ordemSemanaBase: 1, ehUltimaSemana: false };
+    }
 
     const dia = dataBase.getDate();
     const ordem = Math.floor((dia - 1) / 7) + 1;
@@ -497,20 +518,25 @@ export default function ModalReservaAdmin({
   const aprovadorNome = reserva?.aprovador_nome || "";
 
   const assinaturaEm = reserva?.termo_assinado_em || "";
-  const assinaturaNomeCompleto = reserva?.assinatura_nome_completo || solicitanteNome || "";
+  const assinaturaNomeCompleto =
+    reserva?.assinatura_nome_completo || solicitanteNome || "";
 
   const termoAssinadoDisponivel = Boolean(
     reserva?.id &&
-      reserva?.termo_aceito &&
-      reserva?.termo_assinado_em &&
-      reserva?.assinatura_id
+    reserva?.termo_aceito &&
+    reserva?.termo_assinado_em &&
+    reserva?.assinatura_id,
   );
 
   const [qtdPessoas, setQtdPessoas] = useState(
-    reserva?.qtd_pessoas != null ? String(reserva.qtd_pessoas) : ""
+    reserva?.qtd_pessoas != null ? String(reserva.qtd_pessoas) : "",
   );
-  const [coffeeBreak, setCoffeeBreak] = useState(Boolean(reserva?.coffee_break));
-  const [status, setStatus] = useState(normalizarStatus(reserva?.status || "aprovado"));
+  const [coffeeBreak, setCoffeeBreak] = useState(
+    Boolean(reserva?.coffee_break),
+  );
+  const [status, setStatus] = useState(
+    normalizarStatus(reserva?.status || "aprovado"),
+  );
   const [observacao, setObservacao] = useState(reserva?.observacao || "");
   const [finalidade, setFinalidade] = useState(reserva?.finalidade || "");
 
@@ -538,9 +564,13 @@ export default function ModalReservaAdmin({
   }
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
-    setQtdPessoas(reserva?.qtd_pessoas != null ? String(reserva.qtd_pessoas) : "");
+    setQtdPessoas(
+      reserva?.qtd_pessoas != null ? String(reserva.qtd_pessoas) : "",
+    );
     setCoffeeBreak(Boolean(reserva?.coffee_break));
     setStatus(normalizarStatus(reserva?.status || "aprovado"));
     setObservacao(reserva?.observacao || "");
@@ -585,10 +615,12 @@ export default function ModalReservaAdmin({
       pessoas: Number(qtdPessoas) > 0 ? Number(qtdPessoas) : "—",
       cap: max,
     }),
-    [dataISO, salaKey, periodo, qtdPessoas, max]
+    [dataISO, salaKey, periodo, qtdPessoas, max],
   );
 
-  const tituloModal = isEdicao ? "Editar reserva / solicitação" : "Criar reserva / bloqueio";
+  const tituloModal = isEdicao
+    ? "Editar reserva / solicitação"
+    : "Criar reserva / bloqueio";
 
   function toggleDiaSemanaRecorrencia(index) {
     setDiasSemanaRecorrencia((current) => {
@@ -613,10 +645,15 @@ export default function ModalReservaAdmin({
   }
 
   function construirRecorrenciaPayload() {
-    if (!usarRecorrencia || isEdicao) return null;
+    if (!usarRecorrencia || isEdicao) {
+      return null;
+    }
 
     if (tipoRecorrencia === "sempre") {
-      const limite = Math.max(1, Math.min(120, Number(limiteMesesSempre) || 24));
+      const limite = Math.max(
+        1,
+        Math.min(120, Number(limiteMesesSempre) || 24),
+      );
       return { tipo: "sempre", limiteMeses: limite };
     }
 
@@ -629,7 +666,10 @@ export default function ModalReservaAdmin({
     }
 
     if (tipoRecorrencia === "semanal") {
-      const intervalo = Math.max(1, Math.min(52, Number(intervaloSemanas) || 1));
+      const intervalo = Math.max(
+        1,
+        Math.min(52, Number(intervaloSemanas) || 1),
+      );
 
       if (!diasSemanaRecorrencia.length) {
         return {
@@ -749,7 +789,7 @@ export default function ModalReservaAdmin({
 
     try {
       const { blob, filename } = await apiGetFile(
-        `/sala/admin/reservas/${reserva.id}/termo-pdf`
+        `/sala/admin/reservas/${reserva.id}/termo-pdf`,
       );
 
       if (!blob || typeof blob.size !== "number" || blob.size <= 0) {
@@ -775,14 +815,16 @@ export default function ModalReservaAdmin({
         title: "Erro ao abrir termo",
         message: getErrorMessage(
           error,
-          "Não foi possível abrir o PDF do termo assinado."
+          "Não foi possível abrir o PDF do termo assinado.",
         ),
       });
     }
   }
 
   async function salvar() {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setMensagem(null);
     setLoading(true);
@@ -865,7 +907,8 @@ export default function ModalReservaAdmin({
           showMessage({
             type: "info",
             title: "Nenhuma reserva criada",
-            message: "Nenhuma reserva foi criada. Verifique se houve conflito de agenda.",
+            message:
+              "Nenhuma reserva foi criada. Verifique se houve conflito de agenda.",
           });
         }
       }
@@ -884,12 +927,16 @@ export default function ModalReservaAdmin({
   }
 
   function abrirCancelamento() {
-    if (!isEdicao || loading) return;
+    if (!isEdicao || loading) {
+      return;
+    }
     setConfirmCancelOpen(true);
   }
 
   async function executarCancelamento() {
-    if (!isEdicao || loading) return;
+    if (!isEdicao || loading) {
+      return;
+    }
 
     setLoading(true);
     setMensagem(null);
@@ -919,7 +966,9 @@ export default function ModalReservaAdmin({
     }
   }
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <>
@@ -983,7 +1032,11 @@ export default function ModalReservaAdmin({
             <MiniCard icon={Building2} label="Sala" value={minis.sala} />
             <MiniCard icon={Clock} label="Período" value={minis.periodo} />
             <MiniCard icon={Users} label="Pessoas" value={minis.pessoas} />
-            <MiniCard icon={CalendarDays} label="Capacidade" value={minis.cap} />
+            <MiniCard
+              icon={CalendarDays}
+              label="Capacidade"
+              value={minis.cap}
+            />
           </section>
 
           <div className="space-y-4">
@@ -1016,14 +1069,14 @@ export default function ModalReservaAdmin({
                     <span
                       className={cx(
                         "inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-black",
-                        statusBadgeClass(reserva?.status)
+                        statusBadgeClass(reserva?.status),
                       )}
                     >
                       Status atual: {statusLabel(reserva?.status)}
                     </span>
                   </div>
 
-                  {(aprovadorNome || termoAssinadoDisponivel) ? (
+                  {aprovadorNome || termoAssinadoDisponivel ? (
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 space-y-1 text-sm text-emerald-900 dark:text-emerald-100">
@@ -1033,7 +1086,9 @@ export default function ModalReservaAdmin({
                           </p>
 
                           <p>
-                            <span className="font-black">Assinante do termo:</span>{" "}
+                            <span className="font-black">
+                              Assinante do termo:
+                            </span>{" "}
                             {assinaturaNomeCompleto || "—"}
                           </p>
 
@@ -1051,7 +1106,7 @@ export default function ModalReservaAdmin({
                             "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-black transition disabled:opacity-60",
                             termoAssinadoDisponivel
                               ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                              : "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                              : "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
                           )}
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -1071,10 +1126,14 @@ export default function ModalReservaAdmin({
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label
+                    htmlFor={`${uid}-qtd`}
+                    className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                  >
                     Quantidade de pessoas
                   </label>
                   <input
+                    id={`${uid}-qtd`}
                     ref={firstFocusRef}
                     type="number"
                     min={1}
@@ -1091,10 +1150,14 @@ export default function ModalReservaAdmin({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label
+                    htmlFor={`${uid}-status`}
+                    className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                  >
                     Status
                   </label>
                   <select
+                    id={`${uid}-status`}
                     value={status}
                     onChange={(event) => setStatus(event.target.value)}
                     disabled={loading}
@@ -1114,11 +1177,15 @@ export default function ModalReservaAdmin({
                   ) : null}
                 </div>
 
-                <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 sm:col-span-2">
+                <label
+                  htmlFor={`${uid}-coffee`}
+                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 sm:col-span-2 cursor-pointer"
+                >
                   <Coffee className="h-4 w-4 text-slate-500" />
                   <input
+                    id={`${uid}-coffee`}
                     type="checkbox"
-                    className="rounded border-slate-300"
+                    className="rounded border-slate-300 cursor-pointer"
                     checked={coffeeBreak}
                     onChange={(event) => setCoffeeBreak(event.target.checked)}
                     disabled={loading}
@@ -1127,10 +1194,17 @@ export default function ModalReservaAdmin({
                 </label>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Finalidade / evento {status === "bloqueado" ? <span className="text-rose-500">*</span> : null}
+                  <label
+                    htmlFor={`${uid}-finalidade`}
+                    className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                  >
+                    Finalidade / evento{" "}
+                    {status === "bloqueado" ? (
+                      <span className="text-rose-500">*</span>
+                    ) : null}
                   </label>
                   <textarea
+                    id={`${uid}-finalidade`}
                     rows={3}
                     value={finalidade}
                     onChange={(event) => setFinalidade(event.target.value)}
@@ -1141,10 +1215,14 @@ export default function ModalReservaAdmin({
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <label
+                    htmlFor={`${uid}-obs`}
+                    className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                  >
                     Observações internas
                   </label>
                   <textarea
+                    id={`${uid}-obs`}
                     rows={3}
                     value={observacao}
                     onChange={(event) => setObservacao(event.target.value)}
@@ -1163,36 +1241,53 @@ export default function ModalReservaAdmin({
                 icon={Repeat}
               >
                 <div className="space-y-4">
-                  <label className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
-                    <span>
-                      <span className="block text-sm font-black text-emerald-900 dark:text-emerald-100">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                    <div>
+                      <label
+                        htmlFor={`${uid}-usar-rec`}
+                        className="block text-sm font-black text-emerald-900 dark:text-emerald-100 cursor-pointer"
+                      >
                         Aplicar recorrência
+                      </label>
+                      <span
+                        id={`${uid}-usar-rec-desc`}
+                        className="block text-xs text-emerald-800/80 dark:text-emerald-100/75"
+                      >
+                        Datas em finais de semana, feriados e bloqueios podem
+                        ser ignoradas pelo backend.
                       </span>
-                      <span className="block text-xs text-emerald-800/80 dark:text-emerald-100/75">
-                        Datas em finais de semana, feriados e bloqueios podem ser ignoradas pelo backend.
-                      </span>
-                    </span>
+                    </div>
 
                     <input
+                      id={`${uid}-usar-rec`}
+                      aria-describedby={`${uid}-usar-rec-desc`}
                       type="checkbox"
                       checked={usarRecorrencia}
-                      onChange={(event) => setUsarRecorrencia(event.target.checked)}
+                      onChange={(event) =>
+                        setUsarRecorrencia(event.target.checked)
+                      }
                       disabled={loading}
-                      className="h-5 w-5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+                      className="h-5 w-5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                     />
-                  </label>
+                  </div>
 
                   {usarRecorrencia ? (
                     <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>
-                          <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          <label
+                            htmlFor={`${uid}-tipo-rec`}
+                            className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                          >
                             Tipo de recorrência
                           </label>
                           <div className="relative mt-1">
                             <select
+                              id={`${uid}-tipo-rec`}
                               value={tipoRecorrencia}
-                              onChange={(event) => setTipoRecorrencia(event.target.value)}
+                              onChange={(event) =>
+                                setTipoRecorrencia(event.target.value)
+                              }
                               disabled={loading}
                               className="h-11 w-full appearance-none rounded-2xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950"
                             >
@@ -1207,30 +1302,42 @@ export default function ModalReservaAdmin({
 
                         {tipoRecorrencia !== "sempre" ? (
                           <div>
-                            <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            <label
+                              htmlFor={`${uid}-qtd-rep`}
+                              className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                            >
                               Quantidade de repetições
                             </label>
                             <input
+                              id={`${uid}-qtd-rep`}
                               type="number"
                               min={1}
                               max={120}
                               value={qtdRepeticao}
-                              onChange={(event) => setQtdRepeticao(event.target.value)}
+                              onChange={(event) =>
+                                setQtdRepeticao(event.target.value)
+                              }
                               disabled={loading}
                               className="mt-1 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950"
                             />
                           </div>
                         ) : (
                           <div>
-                            <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            <label
+                              htmlFor={`${uid}-limite-meses`}
+                              className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                            >
                               Limite em meses
                             </label>
                             <input
+                              id={`${uid}-limite-meses`}
                               type="number"
                               min={1}
                               max={120}
                               value={limiteMesesSempre}
-                              onChange={(event) => setLimiteMesesSempre(event.target.value)}
+                              onChange={(event) =>
+                                setLimiteMesesSempre(event.target.value)
+                              }
                               disabled={loading}
                               className="mt-1 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950"
                             />
@@ -1241,15 +1348,21 @@ export default function ModalReservaAdmin({
                       {tipoRecorrencia === "semanal" ? (
                         <div className="space-y-3">
                           <div>
-                            <label className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            <label
+                              htmlFor={`${uid}-int-sem`}
+                              className="block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                            >
                               Intervalo em semanas
                             </label>
                             <input
+                              id={`${uid}-int-sem`}
                               type="number"
                               min={1}
                               max={52}
                               value={intervaloSemanas}
-                              onChange={(event) => setIntervaloSemanas(event.target.value)}
+                              onChange={(event) =>
+                                setIntervaloSemanas(event.target.value)
+                              }
                               disabled={loading}
                               className="mt-1 h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950 sm:w-48"
                             />
@@ -1264,13 +1377,15 @@ export default function ModalReservaAdmin({
                                 <button
                                   key={label}
                                   type="button"
-                                  onClick={() => toggleDiaSemanaRecorrencia(index)}
+                                  onClick={() =>
+                                    toggleDiaSemanaRecorrencia(index)
+                                  }
                                   disabled={loading}
                                   className={cx(
                                     "rounded-full border px-3 py-1.5 text-xs font-black transition",
                                     diasSemanaRecorrencia.includes(index)
                                       ? "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-                                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
                                   )}
                                 >
                                   {label}
@@ -1289,41 +1404,49 @@ export default function ModalReservaAdmin({
 
                           <div className="grid gap-2 sm:grid-cols-2">
                             <label
+                              htmlFor={`${uid}-mensal-diames`}
                               className={cx(
-                                "rounded-2xl border p-3 text-sm transition",
+                                "flex items-center rounded-2xl border p-3 text-sm transition cursor-pointer",
                                 mensalModo === "dia_mes"
                                   ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100"
-                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
                               )}
                             >
                               <input
+                                id={`${uid}-mensal-diames`}
                                 type="radio"
                                 name="mensalModo"
                                 value="dia_mes"
                                 checked={mensalModo === "dia_mes"}
-                                onChange={(event) => setMensalModo(event.target.value)}
+                                onChange={(event) =>
+                                  setMensalModo(event.target.value)
+                                }
                                 disabled={loading}
-                                className="mr-2"
+                                className="mr-2 cursor-pointer"
                               />
                               Todo dia {diaMesBase || "—"} do mês
                             </label>
 
                             <label
+                              htmlFor={`${uid}-mensal-ordem`}
                               className={cx(
-                                "rounded-2xl border p-3 text-sm transition",
+                                "flex items-center rounded-2xl border p-3 text-sm transition cursor-pointer",
                                 mensalModo === "ordem_semana"
                                   ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100"
-                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
                               )}
                             >
                               <input
+                                id={`${uid}-mensal-ordem`}
                                 type="radio"
                                 name="mensalModo"
                                 value="ordem_semana"
                                 checked={mensalModo === "ordem_semana"}
-                                onChange={(event) => setMensalModo(event.target.value)}
+                                onChange={(event) =>
+                                  setMensalModo(event.target.value)
+                                }
                                 disabled={loading}
-                                className="mr-2"
+                                className="mr-2 cursor-pointer"
                               />
                               {ehUltimaSemana
                                 ? `Última ${diaSemanaBaseLabel} do mês`
@@ -1341,41 +1464,49 @@ export default function ModalReservaAdmin({
 
                           <div className="grid gap-2 sm:grid-cols-2">
                             <label
+                              htmlFor={`${uid}-anual-diames`}
                               className={cx(
-                                "rounded-2xl border p-3 text-sm transition",
+                                "flex items-center rounded-2xl border p-3 text-sm transition cursor-pointer",
                                 anualModo === "dia_mes"
                                   ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100"
-                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
                               )}
                             >
                               <input
+                                id={`${uid}-anual-diames`}
                                 type="radio"
                                 name="anualModo"
                                 value="dia_mes"
                                 checked={anualModo === "dia_mes"}
-                                onChange={(event) => setAnualModo(event.target.value)}
+                                onChange={(event) =>
+                                  setAnualModo(event.target.value)
+                                }
                                 disabled={loading}
-                                className="mr-2"
+                                className="mr-2 cursor-pointer"
                               />
                               Mesmo dia do mês
                             </label>
 
                             <label
+                              htmlFor={`${uid}-anual-ordem`}
                               className={cx(
-                                "rounded-2xl border p-3 text-sm transition",
+                                "flex items-center rounded-2xl border p-3 text-sm transition cursor-pointer",
                                 anualModo === "ordem_semana"
                                   ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100"
-                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                  : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
                               )}
                             >
                               <input
+                                id={`${uid}-anual-ordem`}
                                 type="radio"
                                 name="anualModo"
                                 value="ordem_semana"
                                 checked={anualModo === "ordem_semana"}
-                                onChange={(event) => setAnualModo(event.target.value)}
+                                onChange={(event) =>
+                                  setAnualModo(event.target.value)
+                                }
                                 disabled={loading}
-                                className="mr-2"
+                                className="mr-2 cursor-pointer"
                               />
                               Mesma ordem semanal
                             </label>
@@ -1396,7 +1527,7 @@ export default function ModalReservaAdmin({
                                     "rounded-full border px-3 py-1.5 text-xs font-black transition",
                                     mesesAnual.includes(index)
                                       ? "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-                                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
                                   )}
                                 >
                                   {label}
@@ -1415,8 +1546,9 @@ export default function ModalReservaAdmin({
             <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
               <Info className="mt-0.5 h-4 w-4 flex-none text-emerald-600 dark:text-emerald-300" />
               <p>
-                Use esta tela para aprovar, rejeitar, cancelar, bloquear ou criar reservas internas.
-                A recorrência é aplicada somente na criação. Cancelamentos preservam histórico e liberam o horário.
+                Use esta tela para aprovar, rejeitar, cancelar, bloquear ou
+                criar reservas internas. A recorrência é aplicada somente na
+                criação. Cancelamentos preservam histórico e liberam o horário.
               </p>
             </div>
           </div>
@@ -1466,7 +1598,11 @@ export default function ModalReservaAdmin({
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
               aria-busy={loading ? "true" : "false"}
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               {loading
                 ? isEdicao
                   ? "Salvando..."
@@ -1484,7 +1620,9 @@ export default function ModalReservaAdmin({
         loading={loading}
         reserva={reserva}
         onClose={() => {
-          if (loading) return;
+          if (loading) {
+            return;
+          }
           setConfirmCancelOpen(false);
         }}
         onConfirm={executarCancelamento}

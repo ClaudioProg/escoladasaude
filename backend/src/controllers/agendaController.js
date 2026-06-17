@@ -60,7 +60,14 @@ function responderSucesso(res, statusCode, data, message, code, extra = {}) {
   });
 }
 
-function responderErro(res, statusCode, message, code, adminHint, details = null) {
+function responderErro(
+  res,
+  statusCode,
+  message,
+  code,
+  adminHint,
+  details = null,
+) {
   return res.status(statusCode).json({
     ok: false,
     data: null,
@@ -94,7 +101,7 @@ function logInfo(req, msg, extra) {
 function logErr(req, msg, error) {
   console.error(
     `[agenda][${rid(req)}][ERR] ${msg}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -143,7 +150,7 @@ function validarPeriodoQuery(req, res) {
       400,
       "O parâmetro 'start' deve estar no formato YYYY-MM-DD.",
       "AGENDA_START_INVALIDO",
-      "A consulta de agenda recebeu start fora do contrato date-only."
+      "A consulta de agenda recebeu start fora do contrato date-only.",
     );
     return null;
   }
@@ -154,7 +161,7 @@ function validarPeriodoQuery(req, res) {
       400,
       "O parâmetro 'end' deve estar no formato YYYY-MM-DD.",
       "AGENDA_END_INVALIDO",
-      "A consulta de agenda recebeu end fora do contrato date-only."
+      "A consulta de agenda recebeu end fora do contrato date-only.",
     );
     return null;
   }
@@ -165,7 +172,7 @@ function validarPeriodoQuery(req, res) {
       400,
       "O período informado é inválido: a data inicial não pode ser maior que a data final.",
       "AGENDA_PERIODO_INVALIDO",
-      "A consulta recebeu start maior que end."
+      "A consulta recebeu start maior que end.",
     );
     return null;
   }
@@ -418,7 +425,7 @@ async function buscarAgenda(req, res) {
 
         ${sqlStatusFromTurmas(
           "MIN(t.data_inicio::timestamp + COALESCE(t.horario_inicio, '00:00'::time))",
-          "MAX(t.data_fim::timestamp + COALESCE(t.horario_fim, '23:59'::time))"
+          "MAX(t.data_fim::timestamp + COALESCE(t.horario_fim, '23:59'::time))",
         )} AS status,
 
         ${sqlOrganizadoresPorEvento("e.id")} AS organizadores,
@@ -450,7 +457,7 @@ async function buscarAgenda(req, res) {
       200,
       agenda,
       "Agenda carregada com sucesso.",
-      "AGENDA_LISTADA"
+      "AGENDA_LISTADA",
     );
   } catch (error) {
     logErr(req, "Erro ao buscar agenda administrativa", error);
@@ -461,7 +468,7 @@ async function buscarAgenda(req, res) {
       "Erro ao carregar a agenda.",
       "AGENDA_ERRO_LISTAR",
       "Falha inesperada em agendaController.buscarAgenda.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -483,7 +490,7 @@ async function buscarAgendaorganizador(req, res) {
         401,
         "Usuário não autenticado.",
         "AGENDA_USUARIO_NAO_AUTENTICADO",
-        "req.user.id não foi encontrado no request."
+        "req.user.id não foi encontrado no request.",
       );
     }
 
@@ -495,7 +502,7 @@ async function buscarAgendaorganizador(req, res) {
       params,
       periodo.start,
       periodo.end,
-      "t"
+      "t",
     );
 
     const sql = `
@@ -527,7 +534,7 @@ async function buscarAgendaorganizador(req, res) {
 
         ${sqlStatusFromTurmas(
           "MIN(eo.data_inicio::timestamp + COALESCE(eo.horario_inicio, '00:00'::time))",
-          "MAX(eo.data_fim::timestamp + COALESCE(eo.horario_fim, '23:59'::time))"
+          "MAX(eo.data_fim::timestamp + COALESCE(eo.horario_fim, '23:59'::time))",
         )} AS status,
 
         ${sqlOrganizadoresPorEvento("eo.evento_id")} AS organizadores,
@@ -550,14 +557,17 @@ async function buscarAgendaorganizador(req, res) {
       },
     });
 
-    res.set("X-Agenda-Handler", "agendaController:buscarAgendaorganizador@v2.1");
+    res.set(
+      "X-Agenda-Handler",
+      "agendaController:buscarAgendaorganizador@v2.1",
+    );
 
     return responderSucesso(
       res,
       200,
       agenda,
       "Agenda do organizador carregada com sucesso.",
-      "AGENDA_ORGANIZADOR_LISTADA"
+      "AGENDA_ORGANIZADOR_LISTADA",
     );
   } catch (error) {
     logErr(req, "Erro ao buscar agenda do organizador", error);
@@ -568,7 +578,7 @@ async function buscarAgendaorganizador(req, res) {
       "Erro ao carregar a agenda do organizador.",
       "AGENDA_ORGANIZADOR_ERRO_LISTAR",
       "Falha inesperada em agendaController.buscarAgendaorganizador.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -590,7 +600,7 @@ async function buscarAgendaMinha(req, res) {
         401,
         "Usuário não autenticado.",
         "AGENDA_USUARIO_NAO_AUTENTICADO",
-        "req.user.id não foi encontrado no request."
+        "req.user.id não foi encontrado no request.",
       );
     }
 
@@ -602,7 +612,7 @@ async function buscarAgendaMinha(req, res) {
       params,
       periodo.start,
       periodo.end,
-      "t"
+      "t",
     );
 
     const sql = `
@@ -618,7 +628,7 @@ async function buscarAgendaMinha(req, res) {
 
         ${sqlStatusFromTurmas(
           "MIN(t.data_inicio::timestamp + COALESCE(t.horario_inicio, '00:00'::time))",
-          "MAX(t.data_fim::timestamp + COALESCE(t.horario_fim, '23:59'::time))"
+          "MAX(t.data_fim::timestamp + COALESCE(t.horario_fim, '23:59'::time))",
         )} AS status,
 
         ${sqlOrganizadoresPorEvento("e.id")} AS organizadores,
@@ -652,7 +662,7 @@ async function buscarAgendaMinha(req, res) {
       200,
       agenda,
       "Sua agenda foi carregada com sucesso.",
-      "AGENDA_MINHA_LISTADA"
+      "AGENDA_MINHA_LISTADA",
     );
   } catch (error) {
     logErr(req, "Erro ao buscar minha agenda", error);
@@ -663,7 +673,7 @@ async function buscarAgendaMinha(req, res) {
       "Erro ao carregar sua agenda.",
       "AGENDA_MINHA_ERRO_LISTAR",
       "Falha inesperada em agendaController.buscarAgendaMinha.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -685,7 +695,7 @@ async function buscarAgendaMinhaorganizador(req, res) {
         401,
         "Usuário não autenticado.",
         "AGENDA_USUARIO_NAO_AUTENTICADO",
-        "req.user.id não foi encontrado no request."
+        "req.user.id não foi encontrado no request.",
       );
     }
 
@@ -697,7 +707,7 @@ async function buscarAgendaMinhaorganizador(req, res) {
       params,
       periodo.start,
       periodo.end,
-      "t"
+      "t",
     );
 
     const sql = `
@@ -732,7 +742,7 @@ async function buscarAgendaMinhaorganizador(req, res) {
 
         ${sqlStatusFromTurmas(
           "MIN(tdo.data_inicio::timestamp + COALESCE(tdo.horario_inicio, '00:00'::time))",
-          "MAX(tdo.data_fim::timestamp + COALESCE(tdo.horario_fim, '23:59'::time))"
+          "MAX(tdo.data_fim::timestamp + COALESCE(tdo.horario_fim, '23:59'::time))",
         )} AS status,
 
         ${sqlOrganizadoresPorEvento("tdo.evento_id")} AS organizadores,
@@ -757,7 +767,7 @@ async function buscarAgendaMinhaorganizador(req, res) {
 
     res.set(
       "X-Agenda-Handler",
-      "agendaController:buscarAgendaMinhaorganizador@v2.1"
+      "agendaController:buscarAgendaMinhaorganizador@v2.1",
     );
 
     return responderSucesso(
@@ -765,7 +775,7 @@ async function buscarAgendaMinhaorganizador(req, res) {
       200,
       agenda,
       "Sua agenda como organizador foi carregada com sucesso.",
-      "AGENDA_MINHA_ORGANIZADOR_LISTADA"
+      "AGENDA_MINHA_ORGANIZADOR_LISTADA",
     );
   } catch (error) {
     logErr(req, "Erro ao buscar minha agenda como organizador", error);
@@ -776,7 +786,7 @@ async function buscarAgendaMinhaorganizador(req, res) {
       "Erro ao carregar sua agenda como organizador.",
       "AGENDA_MINHA_ORGANIZADOR_ERRO_LISTAR",
       "Falha inesperada em agendaController.buscarAgendaMinhaorganizador.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -816,7 +826,7 @@ async function listarBloqueios(req, res) {
       200,
       bloqueios,
       "Calendário de bloqueios carregado com sucesso.",
-      "AGENDA_CALENDARIO_LISTADO"
+      "AGENDA_CALENDARIO_LISTADO",
     );
   } catch (error) {
     logErr(req, "Erro ao listar bloqueios do calendário", error);
@@ -827,7 +837,7 @@ async function listarBloqueios(req, res) {
       "Erro ao listar o calendário de bloqueios.",
       "AGENDA_CALENDARIO_ERRO_LISTAR",
       "Falha inesperada em agendaController.listarBloqueios.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -851,7 +861,7 @@ async function criarBloqueio(req, res) {
         400,
         "O campo 'data' deve estar no formato YYYY-MM-DD.",
         "AGENDA_CALENDARIO_DATA_INVALIDA",
-        "O payload de criação de bloqueio recebeu data fora do contrato date-only."
+        "O payload de criação de bloqueio recebeu data fora do contrato date-only.",
       );
     }
 
@@ -861,7 +871,7 @@ async function criarBloqueio(req, res) {
         400,
         "O campo 'tipo' é obrigatório.",
         "AGENDA_CALENDARIO_TIPO_OBRIGATORIO",
-        "O payload de criação de bloqueio não recebeu tipo válido."
+        "O payload de criação de bloqueio não recebeu tipo válido.",
       );
     }
 
@@ -883,11 +893,7 @@ async function criarBloqueio(req, res) {
         atualizado_em
     `;
 
-    const resultado = await db.query(sql, [
-      data,
-      tipo,
-      descricao || null,
-    ]);
+    const resultado = await db.query(sql, [data, tipo, descricao || null]);
 
     const item = resultado.rows?.[0] || null;
 
@@ -902,7 +908,7 @@ async function criarBloqueio(req, res) {
       201,
       item,
       "Bloqueio cadastrado com sucesso.",
-      "AGENDA_CALENDARIO_CRIADO"
+      "AGENDA_CALENDARIO_CRIADO",
     );
   } catch (error) {
     if (error?.code === "23505") {
@@ -912,7 +918,7 @@ async function criarBloqueio(req, res) {
         "Já existe um bloqueio ou feriado cadastrado para esta data.",
         "AGENDA_CALENDARIO_DUPLICADO",
         "Violação de unicidade ao inserir em calendario_bloqueios.",
-        IS_DEV ? error?.detail || error?.message : null
+        IS_DEV ? error?.detail || error?.message : null,
       );
     }
 
@@ -923,7 +929,7 @@ async function criarBloqueio(req, res) {
         "O tipo informado não é aceito pelo calendário.",
         "AGENDA_CALENDARIO_TIPO_INVALIDO",
         "Violação de CHECK constraint em calendario_bloqueios.tipo.",
-        IS_DEV ? error?.detail || error?.message : null
+        IS_DEV ? error?.detail || error?.message : null,
       );
     }
 
@@ -935,7 +941,7 @@ async function criarBloqueio(req, res) {
       "Erro ao salvar o bloqueio no calendário.",
       "AGENDA_CALENDARIO_ERRO_CRIAR",
       "Falha inesperada em agendaController.criarBloqueio.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -957,7 +963,7 @@ async function removerBloqueio(req, res) {
         400,
         "ID inválido.",
         "AGENDA_CALENDARIO_ID_INVALIDO",
-        "O parâmetro id da rota não é um inteiro positivo."
+        "O parâmetro id da rota não é um inteiro positivo.",
       );
     }
 
@@ -980,7 +986,7 @@ async function removerBloqueio(req, res) {
         404,
         "Bloqueio não encontrado.",
         "AGENDA_CALENDARIO_NAO_ENCONTRADO",
-        "Nenhum registro foi removido de calendario_bloqueios para o id informado."
+        "Nenhum registro foi removido de calendario_bloqueios para o id informado.",
       );
     }
 
@@ -996,7 +1002,7 @@ async function removerBloqueio(req, res) {
       200,
       itemRemovido,
       "Bloqueio removido com sucesso.",
-      "AGENDA_CALENDARIO_REMOVIDO"
+      "AGENDA_CALENDARIO_REMOVIDO",
     );
   } catch (error) {
     logErr(req, "Erro ao remover bloqueio do calendário", error);
@@ -1007,7 +1013,7 @@ async function removerBloqueio(req, res) {
       "Erro ao remover o bloqueio do calendário.",
       "AGENDA_CALENDARIO_ERRO_REMOVER",
       "Falha inesperada em agendaController.removerBloqueio.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }

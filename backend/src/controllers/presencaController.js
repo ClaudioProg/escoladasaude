@@ -74,7 +74,7 @@ const MILISSEGUNDOS_POR_DIA = 24 * MILISSEGUNDOS_POR_HORA;
 
 if (!PRESENCA_TOKEN_SECRET && !IS_DEV) {
   console.warn(
-    "[presencaController] PRESENCA_TOKEN_SECRET ausente em produção."
+    "[presencaController] PRESENCA_TOKEN_SECRET ausente em produção.",
   );
 }
 
@@ -101,7 +101,7 @@ function logWarn(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[${rid}] ${message}`,
-    error?.stack || error?.message || error || ""
+    error?.stack || error?.message || error || "",
   );
 }
 
@@ -109,7 +109,12 @@ function logError(rid, message, error) {
  * Envelope oficial
  * ───────────────────────────────────────────────────────────── */
 
-function ok(res, data = null, message = "Operação realizada com sucesso.", status = 200) {
+function ok(
+  res,
+  data = null,
+  message = "Operação realizada com sucesso.",
+  status = 200,
+) {
   return res.status(status).json({
     ok: true,
     data,
@@ -360,7 +365,7 @@ async function buscarTurma(q, turmaId) {
     WHERE t.id = $1
     LIMIT 1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -375,7 +380,7 @@ async function usuarioEstaInscrito(q, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return result.rowCount > 0;
@@ -395,7 +400,7 @@ async function usuarioEstaInscritoNoEvento(q, usuarioId, eventoId) {
     ORDER BY i.id DESC
     LIMIT 1
     `,
-    [usuarioId, eventoId]
+    [usuarioId, eventoId],
   );
 
   return result.rows?.[0] || null;
@@ -410,7 +415,7 @@ async function usuarioEhorganizadorDaTurma(q, usuarioId, turmaId) {
       AND organizador_id = $2
     LIMIT 1
     `,
-    [turmaId, usuarioId]
+    [turmaId, usuarioId],
   );
 
   return result.rowCount > 0;
@@ -479,7 +484,7 @@ async function obterDatasDaTurma(q, turmaId) {
     WHERE turma_id = $1
     ORDER BY data ASC, horario_inicio ASC
     `,
-    [turmaId]
+    [turmaId],
   );
 
   if (datas.rowCount > 0) {
@@ -497,7 +502,7 @@ async function obterDatasDaTurma(q, turmaId) {
       AND data_inicio IS NOT NULL
     LIMIT 1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return turma.rows || [];
@@ -543,7 +548,7 @@ async function obterFimRealTurma(q, turmaId) {
       (SELECT fim_real FROM fim_turma)
     ) AS fim_real
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0]?.fim_real || null;
@@ -553,13 +558,10 @@ async function obterFimRealTurma(q, turmaId) {
  * Presença
  * ───────────────────────────────────────────────────────────── */
 
-async function gravarPresenca(q, {
-  usuarioId,
-  turmaId,
-  dataPresenca,
-  presente,
-  atualizarConfirmadoEm = true,
-}) {
+async function gravarPresenca(
+  q,
+  { usuarioId, turmaId, dataPresenca, presente, atualizarConfirmadoEm = true },
+) {
   const update = await q(
     `
     UPDATE presencas
@@ -580,7 +582,7 @@ async function gravarPresenca(q, {
       presente,
       confirmado_em
     `,
-    [usuarioId, turmaId, dataPresenca, presente, atualizarConfirmadoEm]
+    [usuarioId, turmaId, dataPresenca, presente, atualizarConfirmadoEm],
   );
 
   if (update.rowCount > 0) {
@@ -605,7 +607,7 @@ async function gravarPresenca(q, {
       presente,
       confirmado_em
     `,
-    [usuarioId, turmaId, dataPresenca, presente]
+    [usuarioId, turmaId, dataPresenca, presente],
   );
 
   return insert.rows[0];
@@ -620,7 +622,7 @@ async function contarPresencasUsuarioTurma(q, usuarioId, turmaId) {
       AND turma_id = $2
       AND presente = TRUE
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rows?.[0]?.presentes || 0);
@@ -732,7 +734,7 @@ async function validarPresencaPublica(req, res) {
         AND p.presente = TRUE
       LIMIT 1
       `,
-      [usuarioId, eventoId]
+      [usuarioId, eventoId],
     );
 
     return ok(
@@ -740,7 +742,7 @@ async function validarPresencaPublica(req, res) {
       {
         presente: result.rowCount > 0,
       },
-      "Validação de presença realizada."
+      "Validação de presença realizada.",
     );
   } catch (error) {
     logError(rid, "Erro em validarPresencaPublica.", error);
@@ -759,7 +761,7 @@ async function registrarPresenca(req, res) {
     const usuarioId = getUserId(req);
     const turmaId = toPositiveInt(req.body?.turma_id);
     const dataPresenca = normalizeDateOnly(
-      req.body?.data_presenca || hojeSaoPaulo()
+      req.body?.data_presenca || hojeSaoPaulo(),
     );
 
     if (!usuarioId) return fail(res, 401, "Não autenticado.");
@@ -809,7 +811,7 @@ async function registrarPresenca(req, res) {
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -864,7 +866,7 @@ async function confirmarPresencaViaQR(req, res) {
           data_presenca: dataPresenca,
           hoje,
           motivo: "QR_DATA_DIFERENTE_DE_HOJE",
-        }
+        },
       );
     }
 
@@ -899,20 +901,21 @@ async function confirmarPresencaViaQR(req, res) {
         };
       }
 
-const inicio = dateTimeLocal(
-  dataPresenca,
-  dataTurma.horario_inicio || "08:00"
-);
+      const inicio = dateTimeLocal(
+        dataPresenca,
+        dataTurma.horario_inicio || "08:00",
+      );
 
-if (!inicio) {
-  return {
-    status: 409,
-    error: true,
-    message: "Horário de início da aula inválido para confirmação de presença.",
-  };
-}
+      if (!inicio) {
+        return {
+          status: 409,
+          error: true,
+          message:
+            "Horário de início da aula inválido para confirmação de presença.",
+        };
+      }
 
-const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
+      const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
 
       if (new Date() < permitidoDesde) {
         return {
@@ -932,7 +935,7 @@ const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -949,11 +952,11 @@ const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
       return fail(res, resultado.status, resultado.message, resultado.details);
     }
 
- logDev(rid, "confirmarPresencaViaQR OK", {
-  usuario_id: usuarioId,
-  turma_id: turmaId,
-  data_presenca: dataPresenca,
-});
+    logDev(rid, "confirmarPresencaViaQR OK", {
+      usuario_id: usuarioId,
+      turma_id: turmaId,
+      data_presenca: dataPresenca,
+    });
 
     return ok(res, resultado.data, resultado.message, resultado.status);
   } catch (error) {
@@ -983,9 +986,13 @@ async function confirmarPresencaViaToken(req, res) {
       return fail(res, 400, "Token inválido ou expirado.");
     }
 
-    const usuarioId = toPositiveInt(payload.usuario_id || payload.usuarioId || getUserId(req));
+    const usuarioId = toPositiveInt(
+      payload.usuario_id || payload.usuarioId || getUserId(req),
+    );
     const turmaId = toPositiveInt(payload.turma_id || payload.turmaId);
-    const dataPresenca = normalizeDateOnly(payload.data_presenca || hojeSaoPaulo());
+    const dataPresenca = normalizeDateOnly(
+      payload.data_presenca || hojeSaoPaulo(),
+    );
 
     if (!usuarioId) return fail(res, 401, "Não autenticado.");
     if (!turmaId) return fail(res, 400, "Token sem turma_id válido.");
@@ -1034,7 +1041,7 @@ async function confirmarPresencaViaToken(req, res) {
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -1115,7 +1122,7 @@ async function registrarPresencaManual(req, res) {
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -1188,7 +1195,7 @@ async function confirmarPresencaManualHoje(req, res) {
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -1244,7 +1251,7 @@ async function validarPresencaManual(req, res) {
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -1288,7 +1295,11 @@ async function confirmarPresencaorganizador(req, res) {
 
     const resultado = await withTransaction(async (q) => {
       if (!isAdministrador(req)) {
-        const vinculado = await usuarioEhorganizadorDaTurma(q, organizadorId, turmaId);
+        const vinculado = await usuarioEhorganizadorDaTurma(
+          q,
+          organizadorId,
+          turmaId,
+        );
 
         if (!vinculado) {
           return {
@@ -1309,9 +1320,9 @@ async function confirmarPresencaorganizador(req, res) {
         };
       }
 
-            const fimAula = dateTimeLocal(
+      const fimAula = dateTimeLocal(
         dataPresenca,
-        dataTurma.horario_fim || "23:59"
+        dataTurma.horario_fim || "23:59",
       );
 
       const regraPrazo = calcularLimiteConfirmacaoManual(req, fimAula);
@@ -1350,7 +1361,7 @@ async function confirmarPresencaorganizador(req, res) {
       const elegibilidade = await verificarElegibilidadeParaAvaliacao(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       return {
@@ -1390,7 +1401,9 @@ async function listarTurmasDoorganizador(req, res) {
 
   try {
     const organizadorId = getUserId(req);
-    const statusFiltro = normalizeText(req.query?.status || "todos").toLowerCase();
+    const statusFiltro = normalizeText(
+      req.query?.status || "todos",
+    ).toLowerCase();
 
     if (!organizadorId) {
       return fail(res, 401, "Não autenticado.");
@@ -1425,7 +1438,7 @@ async function listarTurmasDoorganizador(req, res) {
       FROM base
       ORDER BY data_inicio DESC, turma_id DESC
       `,
-      [organizadorId, TZ]
+      [organizadorId, TZ],
     );
 
     const turmas = (result.rows || []).map((row) => {
@@ -1476,7 +1489,7 @@ async function listarTurmasDoorganizador(req, res) {
         status_filtro: statusFiltro,
         turmas: filtradas,
       },
-      "Turmas do organizador carregadas."
+      "Turmas do organizador carregadas.",
     );
   } catch (error) {
     logError(rid, "Erro em listarTurmasDoorganizador.", error);
@@ -1520,7 +1533,7 @@ async function obterDetalhesTurma(req, res) {
           AND usuario_id = $2
         ORDER BY data_presenca ASC
         `,
-        [turmaId, usuarioId]
+        [turmaId, usuarioId],
       );
 
       return ok(
@@ -1531,7 +1544,7 @@ async function obterDetalhesTurma(req, res) {
           datas,
           minhas_presencas: presencas.rows || [],
         },
-        "Presenças da turma carregadas."
+        "Presenças da turma carregadas.",
       );
     }
 
@@ -1547,7 +1560,7 @@ async function obterDetalhesTurma(req, res) {
       WHERE i.turma_id = $1
       ORDER BY u.nome ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const presencas = await query(
@@ -1561,7 +1574,7 @@ async function obterDetalhesTurma(req, res) {
       WHERE turma_id = $1
       ORDER BY usuario_id ASC, data_presenca ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const presencaMap = new Map();
@@ -1613,7 +1626,7 @@ async function obterDetalhesTurma(req, res) {
         datas,
         usuarios,
       },
-      "Detalhes de presença da turma carregados."
+      "Detalhes de presença da turma carregados.",
     );
   } catch (error) {
     logError(rid, "Erro em obterDetalhesTurma.", error);
@@ -1648,7 +1661,7 @@ async function listarFrequenciasPorTurma(req, res) {
       WHERE i.turma_id = $1
       ORDER BY u.nome ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const presencas = await query(
@@ -1661,14 +1674,14 @@ async function listarFrequenciasPorTurma(req, res) {
         AND presente = TRUE
       GROUP BY usuario_id
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const mapa = new Map(
       (presencas.rows || []).map((row) => [
         Number(row.usuario_id),
         Number(row.presentes || 0),
-      ])
+      ]),
     );
 
     const total = datas.length;
@@ -1736,7 +1749,7 @@ async function exportarPresencasPdfPorTurma(req, res) {
       WHERE i.turma_id = $1
       ORDER BY u.nome ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const presencas = await query(
@@ -1750,7 +1763,7 @@ async function exportarPresencasPdfPorTurma(req, res) {
       WHERE turma_id = $1
       ORDER BY usuario_id ASC, data_presenca ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const presencaMap = new Map();
@@ -1772,7 +1785,7 @@ async function exportarPresencasPdfPorTurma(req, res) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="lista_presenca_turma_${turmaId}.pdf"`
+      `attachment; filename="lista_presenca_turma_${turmaId}.pdf"`,
     );
 
     doc.pipe(res);
@@ -1814,17 +1827,17 @@ async function exportarPresencasPdfPorTurma(req, res) {
         .text(`Turma: ${turma.nome || "—"}`, margin, 82, { width: 360 })
         .text(
           `Período: ${formatarDataBR(turma.data_inicio)} a ${formatarDataBR(
-            turma.data_fim
+            turma.data_fim,
           )}`,
           margin + 365,
           82,
-          { width: 210 }
+          { width: 210 },
         )
         .text(
           `Horário: ${turma.horario_inicio || "—"} às ${turma.horario_fim || "—"}`,
           margin + 580,
           82,
-          { width: 160 }
+          { width: 160 },
         );
 
       if (turma.evento_local) {
@@ -1875,7 +1888,7 @@ async function exportarPresencasPdfPorTurma(req, res) {
           });
 
           x += cols[index];
-        }
+        },
       );
 
       return y + 30;
@@ -1894,13 +1907,13 @@ async function exportarPresencasPdfPorTurma(req, res) {
         .fontSize(12)
         .text(
           `Data da aula: ${formatarDataBR(
-            dataTurma.data
+            dataTurma.data,
           )} • Horário previsto: ${dataTurma.horario_inicio} às ${
             dataTurma.horario_fim
           }`,
           margin,
           y,
-          { width: contentWidth }
+          { width: contentWidth },
         );
 
       y += 22;
@@ -1917,7 +1930,9 @@ async function exportarPresencasPdfPorTurma(req, res) {
         const confirmacao = presente
           ? formatarDataHoraBR(presenca?.confirmado_em)
           : "—";
-        const assinatura = presente ? "—" : "__________________________________";
+        const assinatura = presente
+          ? "—"
+          : "__________________________________";
 
         doc
           .save()
@@ -2020,7 +2035,7 @@ async function listarTodasPresencasParaAdmin(_req, res) {
         t.horario_inicio,
         t.horario_fim
       ORDER BY e.titulo ASC, t.data_inicio ASC, t.id ASC
-      `
+      `,
     );
 
     const eventosMap = new Map();
@@ -2055,7 +2070,7 @@ async function listarTodasPresencasParaAdmin(_req, res) {
       {
         eventos: Array.from(eventosMap.values()),
       },
-      "Presenças administrativas carregadas."
+      "Presenças administrativas carregadas.",
     );
   } catch (error) {
     logError(rid, "Erro em listarTodasPresencasParaAdmin.", error);
@@ -2129,7 +2144,7 @@ async function obterMeuResumoPresencas(req, res) {
         ON p.turma_id = db.turma_id
        AND p.data_presenca = db.data_presenca
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     return ok(
@@ -2138,7 +2153,7 @@ async function obterMeuResumoPresencas(req, res) {
         presencas_total: Number(result.rows?.[0]?.presencas_total || 0),
         faltas_total: Number(result.rows?.[0]?.faltas_total || 0),
       },
-      "Resumo de presenças carregado."
+      "Resumo de presenças carregado.",
     );
   } catch (error) {
     logError(rid, "Erro em obterMeuResumoPresencas.", error);
@@ -2233,26 +2248,26 @@ COALESCE(SUM(CASE WHEN p.presente IS TRUE THEN 1 ELSE 0 END), 0)::int AS present
       FROM base
       ORDER BY data_inicio DESC, turma_id DESC
       `,
-      [usuarioId, TZ]
+      [usuarioId, TZ],
     );
 
     const turmas = (result.rows || []).map((row) => {
-const datasEncontros = Array.isArray(row.datas_encontros)
-  ? row.datas_encontros.filter(Boolean)
-  : [];
+      const datasEncontros = Array.isArray(row.datas_encontros)
+        ? row.datas_encontros.filter(Boolean)
+        : [];
 
-const datasPresentes = Array.isArray(row.datas_presentes)
-  ? row.datas_presentes.filter(Boolean)
-  : [];
+      const datasPresentes = Array.isArray(row.datas_presentes)
+        ? row.datas_presentes.filter(Boolean)
+        : [];
 
-const datasAusencias = datasEncontros.filter(
-  (data) => !datasPresentes.includes(data)
-);
+      const datasAusencias = datasEncontros.filter(
+        (data) => !datasPresentes.includes(data),
+      );
 
-const totalDatas = datasEncontros.length;
-const totalEncontros = totalDatas > 0 ? totalDatas : 1;
-const presentes = datasPresentes.length;
-const ausencias = datasAusencias.length;
+      const totalDatas = datasEncontros.length;
+      const totalEncontros = totalDatas > 0 ? totalDatas : 1;
+      const presentes = datasPresentes.length;
+      const ausencias = datasAusencias.length;
 
       let status = "programado";
 
@@ -2286,14 +2301,14 @@ const ausencias = datasAusencias.length;
         pre_elegivel_avaliacao:
           status === "encerrado" && frequenciaDecimal >= 0.75,
         frequencia,
-       datas: {
-  encontros: datasEncontros,
-  registradas: Array.isArray(row.datas_registradas)
-    ? row.datas_registradas
-    : [],
-  presentes: datasPresentes,
-  ausencias: datasAusencias,
-},
+        datas: {
+          encontros: datasEncontros,
+          registradas: Array.isArray(row.datas_registradas)
+            ? row.datas_registradas
+            : [],
+          presentes: datasPresentes,
+          ausencias: datasAusencias,
+        },
       };
     });
 
@@ -2309,7 +2324,7 @@ const ausencias = datasAusencias.length;
         total_turmas: turmas.length,
         turmas,
       },
-      "Minhas presenças carregadas."
+      "Minhas presenças carregadas.",
     );
   } catch (error) {
     logError(rid, "Erro em listarMinhasPresencas.", error);

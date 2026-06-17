@@ -84,7 +84,9 @@ function pad2(value) {
 }
 
 function normalizarStatusTeste(status) {
-  const value = String(status || "").trim().toLowerCase();
+  const value = String(status || "")
+    .trim()
+    .toLowerCase();
 
   return STATUS_TESTE.has(value) ? value : "bloqueado";
 }
@@ -92,7 +94,9 @@ function normalizarStatusTeste(status) {
 function parseLocalDateTime(raw) {
   const s = String(raw || "").trim();
 
-  if (!s) return null;
+  if (!s) {
+    return null;
+  }
 
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
@@ -104,9 +108,7 @@ function parseLocalDateTime(raw) {
     return new Date(year, month - 1, day, 0, 0, 0, 0);
   }
 
-  m = s.match(
-    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/
-  );
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
 
   if (m) {
     const year = Number(m[1]);
@@ -127,16 +129,20 @@ function parseLocalDateTime(raw) {
 function fmtDateTimeBR(raw, { withTime = true } = {}) {
   const date = parseLocalDateTime(raw);
 
-  if (!date) return "—";
+  if (!date) {
+    return "—";
+  }
 
   const day = pad2(date.getDate());
   const month = pad2(date.getMonth() + 1);
   const year = date.getFullYear();
 
-  if (!withTime) return `${day}/${month}/${year}`;
+  if (!withTime) {
+    return `${day}/${month}/${year}`;
+  }
 
   return `${day}/${month}/${year} ${pad2(date.getHours())}:${pad2(
-    date.getMinutes()
+    date.getMinutes(),
   )}`;
 }
 
@@ -168,7 +174,9 @@ function getErrorMessage(error, fallback) {
 function notaTexto(value) {
   const nota = Number(value);
 
-  if (!Number.isFinite(nota)) return "—";
+  if (!Number.isFinite(nota)) {
+    return "—";
+  }
 
   return `${nota.toFixed(1)} / 10`;
 }
@@ -264,7 +272,7 @@ function Badge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        map[normalized] || map.bloqueado
+        map[normalized] || map.bloqueado,
       )}
     >
       {label[normalized] || "Bloqueado"}
@@ -285,8 +293,7 @@ function ActionButton({
       "border-indigo-700 bg-indigo-700 text-white hover:bg-indigo-600 dark:border-indigo-500 dark:bg-indigo-600 dark:hover:bg-indigo-500",
     secondary:
       "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900",
-    hero:
-      "border-white/20 bg-white/10 text-white backdrop-blur hover:bg-white/20",
+    hero: "border-white/20 bg-white/10 text-white backdrop-blur hover:bg-white/20",
     heroPrimary:
       "border-white bg-white text-indigo-950 shadow-md hover:bg-indigo-50",
   };
@@ -300,7 +307,7 @@ function ActionButton({
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
         "disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant] || variants.primary,
-        className
+        className,
       )}
     >
       {loading ? (
@@ -318,7 +325,7 @@ function Card({ children, className = "" }) {
     <div
       className={cx(
         "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950",
-        className
+        className,
       )}
     >
       {children}
@@ -350,7 +357,7 @@ function MiniStat({
         <div
           className={cx(
             "grid h-11 w-11 shrink-0 place-items-center rounded-2xl",
-            tones[tone] || tones.indigo
+            tones[tone] || tones.indigo,
           )}
         >
           {loading ? (
@@ -411,7 +418,10 @@ function Progress({ value = 0, label = "Progresso" }) {
 
 function HeaderHero({ onRefresh, loading }) {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div
         className="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-900 to-violet-800"
         aria-hidden="true"
@@ -457,7 +467,8 @@ function HeaderHero({ onRefresh, loading }) {
                   Teste do Curso
                 </h1>
                 <p className="mt-1 max-w-3xl text-sm leading-relaxed text-white/85 sm:text-base">
-                  Consulte testes disponíveis, continue tentativas em andamento e acompanhe seus resultados.
+                  Consulte testes disponíveis, continue tentativas em andamento
+                  e acompanhe seus resultados.
                 </p>
               </div>
             </div>
@@ -713,7 +724,7 @@ export default function Teste() {
         title: "Erro ao carregar testes",
         message: getErrorMessage(
           error,
-          "Não foi possível carregar os testes. Verifique sua conexão e tente novamente."
+          "Não foi possível carregar os testes. Verifique sua conexão e tente novamente.",
         ),
       });
 
@@ -762,7 +773,7 @@ export default function Teste() {
       Number(stats.concluidos || 0) +
       Number(stats.emAndamento || 0) +
       Number(stats.disponiveis || 0),
-    [stats]
+    [stats],
   );
 
   const progressoGeral = useMemo(() => {
@@ -770,25 +781,32 @@ export default function Teste() {
 
     return Math.min(
       100,
-      Math.round((Number(stats.concluidos || 0) / denom) * 100)
+      Math.round((Number(stats.concluidos || 0) / denom) * 100),
     );
   }, [stats.concluidos, totalItens]);
 
-  const notaMediaTxt = useMemo(() => notaTexto(stats.notaMedia), [stats.notaMedia]);
+  const notaMediaTxt = useMemo(
+    () => notaTexto(stats.notaMedia),
+    [stats.notaMedia],
+  );
 
   const testesFiltrados = useMemo(() => {
-    const termo = String(busca || "").trim().toLowerCase();
+    const termo = String(busca || "")
+      .trim()
+      .toLowerCase();
 
     return testes.filter((teste) => {
       const status = normalizarStatusTeste(teste.status);
 
-      if (filtroStatus !== "todos" && status !== filtroStatus) return false;
+      if (filtroStatus !== "todos" && status !== filtroStatus) {
+        return false;
+      }
 
-      if (!termo) return true;
+      if (!termo) {
+        return true;
+      }
 
-      const haystack = [teste.curso, teste.turma]
-        .join(" ")
-        .toLowerCase();
+      const haystack = [teste.curso, teste.turma].join(" ").toLowerCase();
 
       return haystack.includes(termo);
     });
@@ -801,7 +819,7 @@ export default function Teste() {
 
   const testesPaginados = useMemo(
     () => testesFiltrados.slice(start, end),
-    [testesFiltrados, start, end]
+    [testesFiltrados, start, end],
   );
 
   function abrirModalTeste(teste) {
@@ -810,7 +828,9 @@ export default function Teste() {
   }
 
   async function confirmarInicioTeste() {
-    if (!testeSelecionado?.id || loadingStartId) return;
+    if (!testeSelecionado?.id || loadingStartId) {
+      return;
+    }
 
     setLoadingStartId(testeSelecionado.id);
     setMensagem(null);
@@ -843,7 +863,7 @@ export default function Teste() {
         title: "Erro ao iniciar teste",
         message: getErrorMessage(
           error,
-          "Não foi possível iniciar o teste. Verifique se ele ainda está disponível e tente novamente."
+          "Não foi possível iniciar o teste. Verifique se ele ainda está disponível e tente novamente.",
         ),
       });
 
@@ -855,7 +875,12 @@ export default function Teste() {
 
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       <HeaderHero onRefresh={fetchTudo} loading={loading} />
 
@@ -868,7 +893,7 @@ export default function Teste() {
           <div
             className={cx(
               "h-full w-1/3 bg-indigo-600",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -943,7 +968,8 @@ export default function Teste() {
                 </div>
 
                 <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-                  Selecione um teste disponível para iniciar ou continue uma tentativa em andamento.
+                  Selecione um teste disponível para iniciar ou continue uma
+                  tentativa em andamento.
                 </p>
               </div>
 
@@ -1034,7 +1060,9 @@ export default function Teste() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
                     disabled={pageClamped <= 1}
                     className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold transition hover:bg-slate-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
                   >
@@ -1079,7 +1107,8 @@ export default function Teste() {
                       Tempo e tentativas
                     </div>
                     <div className="mt-1 text-slate-600 dark:text-zinc-300">
-                      O teste pode ter limite de tempo e/ou tentativas. Leia as instruções antes de iniciar.
+                      O teste pode ter limite de tempo e/ou tentativas. Leia as
+                      instruções antes de iniciar.
                     </div>
                   </div>
                 </li>
@@ -1093,7 +1122,8 @@ export default function Teste() {
                       Conexão
                     </div>
                     <div className="mt-1 text-slate-600 dark:text-zinc-300">
-                      Garanta conexão estável. Evite atualizar ou fechar a página durante o teste.
+                      Garanta conexão estável. Evite atualizar ou fechar a
+                      página durante o teste.
                     </div>
                   </div>
                 </li>
@@ -1107,7 +1137,8 @@ export default function Teste() {
                       Certificado
                     </div>
                     <div className="mt-1 text-slate-600 dark:text-zinc-300">
-                      Alguns cursos podem exigir nota mínima para emissão de certificado.
+                      Alguns cursos podem exigir nota mínima para emissão de
+                      certificado.
                     </div>
                   </div>
                 </li>
@@ -1127,7 +1158,9 @@ export default function Teste() {
               </div>
 
               <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-                Confira se você tem tempo suficiente para concluir a tentativa. Após iniciar, o sistema poderá registrar a tentativa conforme as regras do curso.
+                Confira se você tem tempo suficiente para concluir a tentativa.
+                Após iniciar, o sistema poderá registrar a tentativa conforme as
+                regras do curso.
               </p>
             </Card>
           </aside>
@@ -1152,7 +1185,10 @@ export default function Teste() {
               >
                 Iniciar teste
               </h2>
-              <p id="modal-iniciar-teste-desc" className="mt-1 text-sm text-white/85">
+              <p
+                id="modal-iniciar-teste-desc"
+                className="mt-1 text-sm text-white/85"
+              >
                 Leia as orientações antes de iniciar a tentativa.
               </p>
             </div>
@@ -1186,7 +1222,10 @@ export default function Teste() {
 
               <ul className="space-y-3 text-sm text-slate-700 dark:text-zinc-300">
                 <li className="flex gap-2">
-                  <Clock3 className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true" />
+                  <Clock3
+                    className="mt-0.5 h-4 w-4 flex-none"
+                    aria-hidden="true"
+                  />
                   <span>
                     O cronômetro pode iniciar ao clicar em{" "}
                     <strong>Iniciar teste</strong>.
@@ -1198,7 +1237,8 @@ export default function Teste() {
                     aria-hidden="true"
                   />
                   <span>
-                    Não feche nem atualize a página durante a tentativa, salvo orientação específica da plataforma.
+                    Não feche nem atualize a página durante a tentativa, salvo
+                    orientação específica da plataforma.
                   </span>
                 </li>
               </ul>

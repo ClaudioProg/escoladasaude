@@ -92,7 +92,7 @@ async function listarCargo(_req, res) {
     ORDER BY display_order NULLS LAST, nome ASC, id ASC
     `,
     "LOOKUP-CARGO-500-LISTAR",
-    "Erro ao listar cargos."
+    "Erro ao listar cargos.",
   );
 }
 
@@ -113,7 +113,7 @@ async function listarUnidade(_req, res) {
     ORDER BY nome ASC, sigla ASC, id ASC
     `,
     "LOOKUP-UNIDADE-500-LISTAR",
-    "Erro ao listar unidades."
+    "Erro ao listar unidades.",
   );
 }
 
@@ -135,7 +135,7 @@ async function listarGenero(_req, res) {
     ORDER BY display_order NULLS LAST, id ASC
     `,
     "LOOKUP-GENERO-500-LISTAR",
-    "Erro ao listar gêneros."
+    "Erro ao listar gêneros.",
   );
 }
 
@@ -157,7 +157,7 @@ async function listarOrientacaoSexual(_req, res) {
     ORDER BY display_order NULLS LAST, nome ASC, id ASC
     `,
     "LOOKUP-ORIENTACAO-SEXUAL-500-LISTAR",
-    "Erro ao listar orientações sexuais."
+    "Erro ao listar orientações sexuais.",
   );
 }
 
@@ -179,7 +179,7 @@ async function listarCorRaca(_req, res) {
     ORDER BY display_order NULLS LAST, nome ASC, id ASC
     `,
     "LOOKUP-COR-RACA-500-LISTAR",
-    "Erro ao listar cores/raças."
+    "Erro ao listar cores/raças.",
   );
 }
 
@@ -201,7 +201,7 @@ async function listarEscolaridade(_req, res) {
     ORDER BY display_order NULLS LAST, nome ASC, id ASC
     `,
     "LOOKUP-ESCOLARIDADE-500-LISTAR",
-    "Erro ao listar escolaridades."
+    "Erro ao listar escolaridades.",
   );
 }
 
@@ -223,7 +223,7 @@ async function listarDeficiencia(_req, res) {
     ORDER BY display_order NULLS LAST, nome ASC, id ASC
     `,
     "LOOKUP-DEFICIENCIA-500-LISTAR",
-    "Erro ao listar deficiências."
+    "Erro ao listar deficiências.",
   );
 }
 

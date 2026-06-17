@@ -152,7 +152,9 @@ function formatISO(ano, mesIndex, dia) {
 }
 
 function splitISO(dateISO) {
-  const [year, month, day] = String(dateISO || "").split("-").map(Number);
+  const [year, month, day] = String(dateISO || "")
+    .split("-")
+    .map(Number);
 
   return {
     year: Number.isFinite(year) ? year : 0,
@@ -164,7 +166,9 @@ function splitISO(dateISO) {
 function formatDataBR(dateISO) {
   const { year, month, day } = splitISO(dateISO);
 
-  if (!year || !month || !day) return "—";
+  if (!year || !month || !day) {
+    return "—";
+  }
 
   return `${pad2(day)}/${pad2(month)}/${year}`;
 }
@@ -172,7 +176,9 @@ function formatDataBR(dateISO) {
 function getDateFromISO(dateISO) {
   const { year, month, day } = splitISO(dateISO);
 
-  if (!year || !month || !day) return null;
+  if (!year || !month || !day) {
+    return null;
+  }
 
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
@@ -236,12 +242,18 @@ function addMonths(ano, mesIndex, delta) {
 }
 
 function compareMonthKeys(a, b) {
-  if (a === b) return 0;
+  if (a === b) {
+    return 0;
+  }
   return a < b ? -1 : 1;
 }
 
 function unwrapData(response) {
-  if (response?.data && typeof response.data === "object" && "ok" in response.data) {
+  if (
+    response?.data &&
+    typeof response.data === "object" &&
+    "ok" in response.data
+  ) {
     return response.data.data || {};
   }
 
@@ -262,19 +274,25 @@ function getErrorMessage(error, fallback) {
 }
 
 function normalizarStatus(status) {
-  const value = String(status || "pendente").trim().toLowerCase();
+  const value = String(status || "pendente")
+    .trim()
+    .toLowerCase();
 
   return STATUS_OFICIAL.has(value) ? value : "pendente";
 }
 
 function reservaOcupaSlot(reserva) {
-  if (!reserva) return false;
+  if (!reserva) {
+    return false;
+  }
 
   return STATUS_OCUPA_SLOT.has(normalizarStatus(reserva.status));
 }
 
 function getSlotStatus(reserva) {
-  if (!reserva) return "livre";
+  if (!reserva) {
+    return "livre";
+  }
 
   const status = normalizarStatus(reserva.status);
 
@@ -282,9 +300,15 @@ function getSlotStatus(reserva) {
     return reservaOcupaSlot(reserva) ? "ocupado_por_outro" : "livre";
   }
 
-  if (status === "pendente") return "minha_pendente";
-  if (status === "aprovado") return "minha_aprovada";
-  if (status === "rejeitado" || status === "cancelado") return "minha_finalizada";
+  if (status === "pendente") {
+    return "minha_pendente";
+  }
+  if (status === "aprovado") {
+    return "minha_aprovada";
+  }
+  if (status === "rejeitado" || status === "cancelado") {
+    return "minha_finalizada";
+  }
 
   return reservaOcupaSlot(reserva) ? "minha_pendente" : "livre";
 }
@@ -292,9 +316,15 @@ function getSlotStatus(reserva) {
 function getMinhaCorStatus(status) {
   const normalized = normalizarStatus(status);
 
-  if (normalized === "pendente") return "pendente";
-  if (normalized === "aprovado") return "aprovado";
-  if (normalized === "rejeitado" || normalized === "cancelado") return "finalizada";
+  if (normalized === "pendente") {
+    return "pendente";
+  }
+  if (normalized === "aprovado") {
+    return "aprovado";
+  }
+  if (normalized === "rejeitado" || normalized === "cancelado") {
+    return "finalizada";
+  }
 
   return null;
 }
@@ -302,7 +332,9 @@ function getMinhaCorStatus(status) {
 function limparPrefixosFeriado(texto) {
   const value = String(texto || "").trim();
 
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   return value
     .replace(/^feriado\s*[-—:]\s*/i, "")
@@ -322,7 +354,7 @@ function motivoBloqueio({
       bloqueioObj?.motivo ||
         bloqueioObj?.descricao ||
         bloqueioObj?.titulo ||
-        ""
+        "",
     ).trim();
 
     return motivo ? `Bloqueado — ${motivo}` : "Bloqueado";
@@ -337,16 +369,26 @@ function motivoBloqueio({
       "";
 
     const nome = limparPrefixosFeriado(nomeCru);
-    const tipo = String(feriadoObj?.tipo || "").trim().toLowerCase();
+    const tipo = String(feriadoObj?.tipo || "")
+      .trim()
+      .toLowerCase();
 
-    if (nome) return nome;
-    if (tipo === "ponto_facultativo") return "Ponto Facultativo";
+    if (nome) {
+      return nome;
+    }
+    if (tipo === "ponto_facultativo") {
+      return "Ponto Facultativo";
+    }
 
     return "Feriado";
   }
 
-  if (diaSemana === 6) return "Sábado";
-  if (diaSemana === 0) return "Domingo";
+  if (diaSemana === 6) {
+    return "Sábado";
+  }
+  if (diaSemana === 0) {
+    return "Domingo";
+  }
 
   return "Indisponível";
 }
@@ -381,26 +423,34 @@ function statusBadgeClass(slotStatus) {
 function addDaysISO(dateISO, delta) {
   const { year, month, day } = splitISO(dateISO);
 
-  if (!year || !month || !day) return null;
+  if (!year || !month || !day) {
+    return null;
+  }
 
   const date = new Date(year, month - 1, day, 12, 0, 0, 0);
   date.setDate(date.getDate() + Number(delta || 0));
 
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
 function getConfirmacaoUsoStatus(reserva, hojeISO) {
-  if (!reserva || reserva?.minha !== true) return null;
+  if (!reserva || reserva?.minha !== true) {
+    return null;
+  }
 
   const status = normalizarStatus(reserva.status);
 
-  if (status !== "aprovado") return null;
+  if (status !== "aprovado") {
+    return null;
+  }
 
   const dataReserva = String(reserva.data || "").slice(0, 10);
 
-  if (!dataReserva) return null;
+  if (!dataReserva) {
+    return null;
+  }
 
   if (reserva.confirmado_em) {
     return {
@@ -413,14 +463,16 @@ function getConfirmacaoUsoStatus(reserva, hojeISO) {
   const inicioJanela = addDaysISO(dataReserva, -7);
   const fimJanela = addDaysISO(dataReserva, -2);
 
-  if (!inicioJanela || !fimJanela) return null;
+  if (!inicioJanela || !fimJanela) {
+    return null;
+  }
 
   if (hojeISO < inicioJanela) {
     return {
       status: "aguardando_prazo",
       label: "Confirmação ainda não aberta",
       message: `A confirmação poderá ser feita entre ${formatDataBR(
-        inicioJanela
+        inicioJanela,
       )} e ${formatDataBR(fimJanela)}.`,
     };
   }
@@ -526,7 +578,7 @@ function SoftIconButton({
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
         disabled
           ? "cursor-not-allowed opacity-45"
-          : "hover:bg-slate-50 dark:hover:bg-zinc-700"
+          : "hover:bg-slate-50 dark:hover:bg-zinc-700",
       )}
     >
       {children}
@@ -550,22 +602,44 @@ function MiniStat({ icon: Icon, label, children }) {
 }
 
 function ModalRegrasAgenda({ open, onClose }) {
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   const regras = [
     ["Solicitação", "Escolha uma data útil, sala e período disponível."],
-    ["Análise", "Solicitações pendentes aguardam avaliação da Escola da Saúde."],
-    ["Confirmação obrigatória", "Reservas aprovadas devem ser confirmadas entre 7 dias e 48 horas antes da data."],
+    [
+      "Análise",
+      "Solicitações pendentes aguardam avaliação da Escola da Saúde.",
+    ],
+    [
+      "Confirmação obrigatória",
+      "Reservas aprovadas devem ser confirmadas entre 7 dias e 48 horas antes da data.",
+    ],
     ["Sem confirmação", "A reserva poderá ser cancelada pela Escola da Saúde."],
-    ["Edição", "Solicitações pendentes podem ser editadas; reservas aprovadas exigem contato com a administração."],
-    ["Indisponíveis", "Fins de semana, feriados, pontos facultativos e datas bloqueadas não aceitam solicitação."],
+    [
+      "Edição",
+      "Solicitações pendentes podem ser editadas; reservas aprovadas exigem contato com a administração.",
+    ],
+    [
+      "Indisponíveis",
+      "Fins de semana, feriados, pontos facultativos e datas bloqueadas não aceitam solicitação.",
+    ],
     ["Capacidade", "Respeite a lotação da sala escolhida."],
-    ["Coffee break", "A indicação na reserva não garante aprovação automática."],
-    ["Histórico", "Cancelamentos e alterações preservam rastreabilidade operacional."],
+    [
+      "Coffee break",
+      "A indicação na reserva não garante aprovação automática.",
+    ],
+    [
+      "Histórico",
+      "Cancelamentos e alterações preservam rastreabilidade operacional.",
+    ],
   ];
 
   return createPortal(
-<div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-md">      <section
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-md">
+      {" "}
+      <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="regras-agenda-title"
@@ -588,7 +662,8 @@ function ModalRegrasAgenda({ open, onClose }) {
               </h2>
 
               <p className="mt-1 max-w-xl text-sm font-medium text-slate-600 dark:text-zinc-300">
-                Orientações essenciais para solicitar, acompanhar e confirmar o uso dos espaços da Escola da Saúde.
+                Orientações essenciais para solicitar, acompanhar e confirmar o
+                uso dos espaços da Escola da Saúde.
               </p>
             </div>
           </div>
@@ -605,7 +680,9 @@ function ModalRegrasAgenda({ open, onClose }) {
 
         <div className="max-h-[70vh] overflow-y-auto p-6">
           <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
-            <strong>Atenção:</strong> reservas aprovadas precisam ser confirmadas dentro do prazo. A falta de confirmação pode liberar o espaço para outras demandas institucionais.
+            <strong>Atenção:</strong> reservas aprovadas precisam ser
+            confirmadas dentro do prazo. A falta de confirmação pode liberar o
+            espaço para outras demandas institucionais.
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -627,7 +704,8 @@ function ModalRegrasAgenda({ open, onClose }) {
 
         <footer className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/80 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-            Em caso de dúvida, acompanhe o status da solicitação ou procure a administração.
+            Em caso de dúvida, acompanhe o status da solicitação ou procure a
+            administração.
           </p>
 
           <button
@@ -640,7 +718,7 @@ function ModalRegrasAgenda({ open, onClose }) {
         </footer>
       </section>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -651,7 +729,9 @@ function ModalCancelamentoUsuario({
   onClose,
   onConfirm,
 }) {
-  if (!open || !reserva) return null;
+  if (!open || !reserva) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -709,7 +789,8 @@ function ModalCancelamentoUsuario({
             </div>
 
             <p className="mt-4 text-sm text-slate-600 dark:text-zinc-300">
-              Você só pode cancelar solicitações pendentes. Após aprovação, procure a administração da Escola da Saúde.
+              Você só pode cancelar solicitações pendentes. Após aprovação,
+              procure a administração da Escola da Saúde.
             </p>
           </div>
 
@@ -729,7 +810,11 @@ function ModalCancelamentoUsuario({
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-rose-700 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               {loading ? "Cancelando..." : "Cancelar solicitação"}
             </button>
           </div>
@@ -751,7 +836,9 @@ function ModalDiaUsuario({
   loadingCancelamento,
   loadingConfirmacaoUso,
 }) {
-  if (!open || !detalheDia) return null;
+  if (!open || !detalheDia) {
+    return null;
+  }
 
   const {
     dataISO,
@@ -831,12 +918,17 @@ function ModalDiaUsuario({
 
                     <div className="grid grid-cols-1 gap-3">
                       {minhasReservas.map((reserva) => {
-  const slotStatus = reserva.slotStatus;
-  const ehPendente = slotStatus === "minha_pendente";
-  const confirmacaoUso = getConfirmacaoUsoStatus(reserva, hojeISO);
-  const podeConfirmarUso = confirmacaoUso?.status === "prazo_aberto";
-  const confirmandoEstaReserva =
-    String(loadingConfirmacaoUso || "") === String(reserva.id || "");
+                        const slotStatus = reserva.slotStatus;
+                        const ehPendente = slotStatus === "minha_pendente";
+                        const confirmacaoUso = getConfirmacaoUsoStatus(
+                          reserva,
+                          hojeISO,
+                        );
+                        const podeConfirmarUso =
+                          confirmacaoUso?.status === "prazo_aberto";
+                        const confirmandoEstaReserva =
+                          String(loadingConfirmacaoUso || "") ===
+                          String(reserva.id || "");
 
                         return (
                           <div
@@ -847,7 +939,7 @@ function ModalDiaUsuario({
                                 ? "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/15"
                                 : slotStatus === "minha_finalizada"
                                   ? "border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/15"
-                                  : "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/15"
+                                  : "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/15",
                             )}
                           >
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -860,7 +952,7 @@ function ModalDiaUsuario({
                                   <span
                                     className={cx(
                                       "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold",
-                                      statusBadgeClass(slotStatus)
+                                      statusBadgeClass(slotStatus),
                                     )}
                                   >
                                     {labelStatusUsuario(reserva.status)}
@@ -868,59 +960,78 @@ function ModalDiaUsuario({
                                 </div>
 
                                 <p className="mt-2 break-words text-sm font-extrabold text-slate-900 dark:text-white">
-                                  {String(reserva.finalidade || "Sem finalidade").trim()}
+                                  {String(
+                                    reserva.finalidade || "Sem finalidade",
+                                  ).trim()}
                                 </p>
 
                                 {reserva.qtd_pessoas ? (
                                   <p className="mt-2 text-xs text-slate-600 dark:text-zinc-300">
-                                    <span className="font-semibold">Pessoas:</span>{" "}
+                                    <span className="font-semibold">
+                                      Pessoas:
+                                    </span>{" "}
                                     {reserva.qtd_pessoas}
                                   </p>
                                 ) : null}
 
                                 {reserva.coffee_break ? (
                                   <p className="mt-1 text-xs text-slate-600 dark:text-zinc-300">
-                                    <span className="font-semibold">Coffee break:</span> Sim
+                                    <span className="font-semibold">
+                                      Coffee break:
+                                    </span>{" "}
+                                    Sim
                                   </p>
                                 ) : null}
                                 {confirmacaoUso ? (
-  <div
-    className={cx(
-      "mt-3 rounded-2xl border px-3 py-3 text-xs",
-      confirmacaoUsoBadgeClass(confirmacaoUso.status)
-    )}
-  >
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <p className="font-extrabold">{confirmacaoUso.label}</p>
-        <p className="mt-1 leading-relaxed">{confirmacaoUso.message}</p>
-      </div>
+                                  <div
+                                    className={cx(
+                                      "mt-3 rounded-2xl border px-3 py-3 text-xs",
+                                      confirmacaoUsoBadgeClass(
+                                        confirmacaoUso.status,
+                                      ),
+                                    )}
+                                  >
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div className="min-w-0">
+                                        <p className="font-extrabold">
+                                          {confirmacaoUso.label}
+                                        </p>
+                                        <p className="mt-1 leading-relaxed">
+                                          {confirmacaoUso.message}
+                                        </p>
+                                      </div>
 
-      {podeConfirmarUso ? (
-        <button
-          type="button"
-          onClick={() => onConfirmarUsoSala(reserva)}
-          disabled={confirmandoEstaReserva}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {confirmandoEstaReserva ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4" />
-          )}
-          {confirmandoEstaReserva ? "Confirmando..." : "Confirmar uso"}
-        </button>
-      ) : null}
-    </div>
-  </div>
-) : null}
+                                      {podeConfirmarUso ? (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            onConfirmarUsoSala(reserva)
+                                          }
+                                          disabled={confirmandoEstaReserva}
+                                          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                          {confirmandoEstaReserva ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <CheckCircle2 className="h-4 w-4" />
+                                          )}
+                                          {confirmandoEstaReserva
+                                            ? "Confirmando..."
+                                            : "Confirmar uso"}
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                ) : null}
                               </div>
 
                               {ehPendente ? (
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => onEditarMinhaReserva(reserva)}
+                                    onClick={() =>
+                                      onEditarMinhaReserva(reserva)
+                                    }
                                     className="inline-flex items-center justify-center rounded-xl border border-amber-300 p-2 text-amber-700 transition hover:bg-amber-100"
                                     title="Editar solicitação"
                                     aria-label="Editar solicitação"
@@ -930,7 +1041,9 @@ function ModalDiaUsuario({
 
                                   <button
                                     type="button"
-                                    onClick={() => onCancelarMinhaReserva(reserva)}
+                                    onClick={() =>
+                                      onCancelarMinhaReserva(reserva)
+                                    }
                                     disabled={loadingCancelamento}
                                     className="inline-flex items-center justify-center rounded-xl border border-rose-300 p-2 text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
                                     title="Cancelar solicitação"
@@ -963,7 +1076,8 @@ function ModalDiaUsuario({
                 ) : (
                   <>
                     <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/15 dark:text-sky-100">
-                      Selecione um local e período disponível para solicitar o agendamento.
+                      Selecione um local e período disponível para solicitar o
+                      agendamento.
                     </div>
 
                     {disponibilidade.map((salaItem) => (
@@ -1046,7 +1160,7 @@ function AgendaSalasUsuario() {
 
   const minUserMonthKey = useMemo(
     () => getMonthKey(hojeParts.ano, 0),
-    [hojeParts.ano]
+    [hojeParts.ano],
   );
 
   const maxUserMonthKey = useMemo(() => {
@@ -1061,7 +1175,10 @@ function AgendaSalasUsuario() {
     return getMonthKey(hojeParts.ano, 11);
   }, [hojeParts.ano, hojeParts.mesIndex]);
 
-  const viewedMonthKey = useMemo(() => getMonthKey(ano, mesIndex), [ano, mesIndex]);
+  const viewedMonthKey = useMemo(
+    () => getMonthKey(ano, mesIndex),
+    [ano, mesIndex],
+  );
   const podeVoltar = compareMonthKeys(viewedMonthKey, minUserMonthKey) > 0;
   const podeAvancar = compareMonthKeys(viewedMonthKey, maxUserMonthKey) < 0;
 
@@ -1092,29 +1209,36 @@ function AgendaSalasUsuario() {
   const semanas = useMemo(() => criarMatrixMes(ano, mesIndex), [ano, mesIndex]);
   const liveRef = useRef(null);
 
-  function setLive(texto) {
+  const setLive = useCallback((texto) => {
     if (liveRef.current) {
-      liveRef.current.textContent = texto;
+      liveRef.current.textContent = texto || "";
     }
-  }
+  }, []);
 
-  function showMessage(payload) {
-    setMensagem(payload);
-    setLive(`${payload.title || ""} ${payload.message || ""}`.trim());
-  }
+  const showMessage = useCallback(
+    (payload) => {
+      setMensagem(payload);
+      setLive(`${payload?.title || ""} ${payload?.message || ""}`.trim());
+    },
+    [setLive],
+  );
 
   const mudarMes = useCallback(
     (delta) => {
       const novo = addMonths(ano, mesIndex, delta);
       const novoKey = getMonthKey(novo.ano, novo.mesIndex);
 
-      if (compareMonthKeys(novoKey, minUserMonthKey) < 0) return;
-      if (compareMonthKeys(novoKey, maxUserMonthKey) > 0) return;
+      if (compareMonthKeys(novoKey, minUserMonthKey) < 0) {
+        return;
+      }
+      if (compareMonthKeys(novoKey, maxUserMonthKey) > 0) {
+        return;
+      }
 
       setAno(novo.ano);
       setMesIndex(novo.mesIndex);
     },
-    [ano, mesIndex, minUserMonthKey, maxUserMonthKey]
+    [ano, mesIndex, minUserMonthKey, maxUserMonthKey],
   );
 
   const hojeClick = useCallback(() => {
@@ -1126,12 +1250,18 @@ function AgendaSalasUsuario() {
     (event) => {
       const tag = String(event?.target?.tagName || "").toLowerCase();
 
-      if (["input", "select", "textarea"].includes(tag)) return;
+      if (["input", "select", "textarea"].includes(tag)) {
+        return;
+      }
 
-      if (event.key === "ArrowLeft" && podeVoltar) mudarMes(-1);
-      if (event.key === "ArrowRight" && podeAvancar) mudarMes(1);
+      if (event.key === "ArrowLeft" && podeVoltar) {
+        mudarMes(-1);
+      }
+      if (event.key === "ArrowRight" && podeAvancar) {
+        mudarMes(1);
+      }
     },
-    [podeVoltar, podeAvancar, mudarMes]
+    [podeVoltar, podeAvancar, mudarMes],
   );
 
   useEffect(() => {
@@ -1165,10 +1295,16 @@ function AgendaSalasUsuario() {
         const salaKey = reserva.sala;
         const periodoKey = reserva.periodo;
 
-        if (!dataISO || !salaKey || !periodoKey) continue;
+        if (!dataISO || !salaKey || !periodoKey) {
+          continue;
+        }
 
-        if (!map[dataISO]) map[dataISO] = {};
-        if (!map[dataISO][salaKey]) map[dataISO][salaKey] = {};
+        if (!map[dataISO]) {
+          map[dataISO] = {};
+        }
+        if (!map[dataISO][salaKey]) {
+          map[dataISO][salaKey] = {};
+        }
         if (!map[dataISO][salaKey][periodoKey]) {
           map[dataISO][salaKey][periodoKey] = [];
         }
@@ -1184,12 +1320,16 @@ function AgendaSalasUsuario() {
 
       for (const feriado of data.feriados || []) {
         const dataISO = String(feriado.data || "").slice(0, 10);
-        if (dataISO) feriados[dataISO] = feriado;
+        if (dataISO) {
+          feriados[dataISO] = feriado;
+        }
       }
 
       for (const bloqueio of data.datas_bloqueadas || []) {
         const dataISO = String(bloqueio.data || "").slice(0, 10);
-        if (dataISO) bloqueios[dataISO] = bloqueio;
+        if (dataISO) {
+          bloqueios[dataISO] = bloqueio;
+        }
       }
 
       setReservasMap(map);
@@ -1205,7 +1345,7 @@ function AgendaSalasUsuario() {
         title: "Erro ao carregar disponibilidade",
         message: getErrorMessage(
           error,
-          "Não foi possível carregar a disponibilidade das salas. Verifique sua conexão e tente novamente."
+          "Não foi possível carregar a disponibilidade das salas. Verifique sua conexão e tente novamente.",
         ),
       });
 
@@ -1213,7 +1353,7 @@ function AgendaSalasUsuario() {
     } finally {
       setLoading(false);
     }
-  }, [ano, mesIndex]);
+  }, [ano, mesIndex, showMessage, setLive]);
 
   useEffect(() => {
     carregarAgenda();
@@ -1223,10 +1363,18 @@ function AgendaSalasUsuario() {
     const status = normalizarStatus(reserva?.status);
     const minha = reserva?.minha === true;
 
-    if (minha && status === "pendente") return 70;
-    if (minha && status === "aprovado") return 60;
-    if (!minha && STATUS_OCUPA_SLOT.has(status)) return 50;
-    if (minha && (status === "rejeitado" || status === "cancelado")) return 40;
+    if (minha && status === "pendente") {
+      return 70;
+    }
+    if (minha && status === "aprovado") {
+      return 60;
+    }
+    if (!minha && STATUS_OCUPA_SLOT.has(status)) {
+      return 50;
+    }
+    if (minha && (status === "rejeitado" || status === "cancelado")) {
+      return 40;
+    }
 
     return 10;
   }
@@ -1234,7 +1382,9 @@ function AgendaSalasUsuario() {
   function getReservasDoSlot(salaValue, dataISO, periodo) {
     const raw = reservasMap[dataISO]?.[salaValue]?.[periodo];
 
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
 
     return Array.isArray(raw) ? raw : [raw];
   }
@@ -1242,9 +1392,13 @@ function AgendaSalasUsuario() {
   function getReservaDoSlot(salaValue, dataISO, periodo) {
     const reservas = getReservasDoSlot(salaValue, dataISO, periodo);
 
-    if (!reservas.length) return null;
+    if (!reservas.length) {
+      return null;
+    }
 
-    return [...reservas].sort((a, b) => prioridadeReserva(b) - prioridadeReserva(a))[0];
+    return [...reservas].sort(
+      (a, b) => prioridadeReserva(b) - prioridadeReserva(a),
+    )[0];
   }
 
   function getMinhasReservasDoDia(dataISO) {
@@ -1252,7 +1406,11 @@ function AgendaSalasUsuario() {
 
     SALAS.forEach((salaItem) => {
       PERIODOS.forEach((periodo) => {
-        const reservas = getReservasDoSlot(salaItem.value, dataISO, periodo.value);
+        const reservas = getReservasDoSlot(
+          salaItem.value,
+          dataISO,
+          periodo.value,
+        );
 
         reservas
           .filter((reserva) => reserva?.minha === true)
@@ -1309,21 +1467,29 @@ function AgendaSalasUsuario() {
         const reservasDoSlot = getReservasDoSlot(
           salaItem.value,
           dataISO,
-          periodo.value
+          periodo.value,
         );
 
         const reservaPrincipal = getReservaDoSlot(
           salaItem.value,
           dataISO,
-          periodo.value
+          periodo.value,
         );
 
         const slotStatus = getSlotStatus(reservaPrincipal);
-        const slotOcupado = reservasDoSlot.some((item) => reservaOcupaSlot(item));
+        const slotOcupado = reservasDoSlot.some((item) =>
+          reservaOcupaSlot(item),
+        );
 
-        if (slotOcupado) ocupados += 1;
-        if (slotStatus === "minha_pendente") minhasPendentes += 1;
-        if (slotStatus === "minha_aprovada") minhasAprovadas += 1;
+        if (slotOcupado) {
+          ocupados += 1;
+        }
+        if (slotStatus === "minha_pendente") {
+          minhasPendentes += 1;
+        }
+        if (slotStatus === "minha_aprovada") {
+          minhasAprovadas += 1;
+        }
 
         if (!slotOcupado) {
           slotsDisponiveis.push({
@@ -1350,8 +1516,11 @@ function AgendaSalasUsuario() {
 
     let estado = "disponivel";
 
-    if (bloqueado) estado = "bloqueado";
-    else if (ocupados >= totalSlots) estado = "lotado";
+    if (bloqueado) {
+      estado = "bloqueado";
+    } else if (ocupados >= totalSlots) {
+      estado = "lotado";
+    }
 
     const indicadoresUsuario = {
       pendente: false,
@@ -1361,7 +1530,9 @@ function AgendaSalasUsuario() {
 
     minhasReservas.forEach((reserva) => {
       const cor = getMinhaCorStatus(reserva?.status);
-      if (cor) indicadoresUsuario[cor] = true;
+      if (cor) {
+        indicadoresUsuario[cor] = true;
+      }
     });
 
     return {
@@ -1398,7 +1569,9 @@ function AgendaSalasUsuario() {
   }, [ano, mesIndex, diasDoMes, reservasMap, feriadosMap, datasBloqueadasMap]);
 
   const detalheDiaSelecionado = useMemo(() => {
-    if (!diaSelecionadoISO) return null;
+    if (!diaSelecionadoISO) {
+      return null;
+    }
 
     return diaInfosMap[diaSelecionadoISO] || null;
   }, [diaSelecionadoISO, diaInfosMap]);
@@ -1424,13 +1597,17 @@ function AgendaSalasUsuario() {
   }, [diaInfosMap]);
 
   const diasComDisponibilidade = useMemo(
-    () => Object.values(diaInfosMap).filter((dia) => dia?.estado === "disponivel").length,
-    [diaInfosMap]
+    () =>
+      Object.values(diaInfosMap).filter((dia) => dia?.estado === "disponivel")
+        .length,
+    [diaInfosMap],
   );
 
   const diasLotados = useMemo(
-    () => Object.values(diaInfosMap).filter((dia) => dia?.estado === "lotado").length,
-    [diaInfosMap]
+    () =>
+      Object.values(diaInfosMap).filter((dia) => dia?.estado === "lotado")
+        .length,
+    [diaInfosMap],
   );
 
   function abrirDia(dataISO) {
@@ -1479,7 +1656,9 @@ function AgendaSalasUsuario() {
   }
 
   function solicitarCancelamentoReserva(reserva) {
-    if (!reserva?.id || cancelandoId) return;
+    if (!reserva?.id || cancelandoId) {
+      return;
+    }
 
     setCancelamento({
       open: true,
@@ -1488,7 +1667,9 @@ function AgendaSalasUsuario() {
   }
 
   function fecharCancelamento() {
-    if (cancelandoId) return;
+    if (cancelandoId) {
+      return;
+    }
 
     setCancelamento({
       open: false,
@@ -1530,7 +1711,7 @@ function AgendaSalasUsuario() {
         title: "Não foi possível cancelar",
         message: getErrorMessage(
           error,
-          "A solicitação não pôde ser cancelada. Verifique se ela ainda está pendente."
+          "A solicitação não pôde ser cancelada. Verifique se ela ainda está pendente.",
         ),
       });
     } finally {
@@ -1542,38 +1723,40 @@ function AgendaSalasUsuario() {
     }
   }
 
-async function executarConfirmacaoUsoSala(reserva) {
-  if (!reserva?.id || confirmandoUsoId) return;
+  async function executarConfirmacaoUsoSala(reserva) {
+    if (!reserva?.id || confirmandoUsoId) {
+      return;
+    }
 
-  try {
-    setConfirmandoUsoId(reserva.id);
-    setMensagem(null);
+    try {
+      setConfirmandoUsoId(reserva.id);
+      setMensagem(null);
 
-    await api.post(`/sala/minhas/${reserva.id}/confirmar-uso`);
+      await api.post(`/sala/minhas/${reserva.id}/confirmar-uso`);
 
-    showMessage({
-      type: "success",
-      title: "Uso da sala confirmado",
-      message:
-        "Sua confirmação foi registrada com sucesso. A Escola da Saúde foi informada de que você utilizará o espaço reservado.",
-    });
+      showMessage({
+        type: "success",
+        title: "Uso da sala confirmado",
+        message:
+          "Sua confirmação foi registrada com sucesso. A Escola da Saúde foi informada de que você utilizará o espaço reservado.",
+      });
 
-    await carregarAgenda();
-  } catch (error) {
-    console.error("[AgendaSalasUsuario][confirmarUsoSala]", error);
+      await carregarAgenda();
+    } catch (error) {
+      console.error("[AgendaSalasUsuario][confirmarUsoSala]", error);
 
-    showMessage({
-      type: "error",
-      title: "Não foi possível confirmar o uso da sala",
-      message: getErrorMessage(
-        error,
-        "A confirmação não pôde ser registrada. Verifique se a reserva está aprovada e dentro do prazo de 7 dias a 48 horas antes da data."
-      ),
-    });
-  } finally {
-    setConfirmandoUsoId(null);
+      showMessage({
+        type: "error",
+        title: "Não foi possível confirmar o uso da sala",
+        message: getErrorMessage(
+          error,
+          "A confirmação não pôde ser registrada. Verifique se a reserva está aprovada e dentro do prazo de 7 dias a 48 horas antes da data.",
+        ),
+      });
+    } finally {
+      setConfirmandoUsoId(null);
+    }
   }
-}
 
   const HOJE_BG = "bg-sky-100/70 dark:bg-sky-950/25";
   const HOJE_RING = "ring-2 ring-sky-500/70 dark:ring-sky-700/60";
@@ -1583,69 +1766,73 @@ async function executarConfirmacaoUsoSala(reserva) {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 via-white to-white text-gray-900 dark:from-gray-950 dark:via-gray-950 dark:to-black dark:text-gray-100">
       <div className="mx-auto w-full max-w-7xl px-4 pt-5 pb-1">
-  <HeaderHero
-    titulo="Agendamento de Salas"
-    subtitulo="Solicite horários disponíveis para o Auditório e a Sala de Reunião da Escola da Saúde."
-    icone={CalendarDays}
-    tamanho="lg"
-    raio="xl"
-  />
-</div>
+        <HeaderHero
+          titulo="Agendamento de Salas"
+          subtitulo="Solicite horários disponíveis para o Auditório e a Sala de Reunião da Escola da Saúde."
+          icone={CalendarDays}
+          tamanho="lg"
+          raio="xl"
+        />
+      </div>
 
-<section className="mx-auto mt-4 flex w-full max-w-7xl flex-col gap-3 px-4 lg:flex-row lg:items-center lg:justify-between">
-  <div>
-    <h2 className="text-base font-black text-slate-950 dark:text-white">
-      Disponibilidade e minhas reservas
-    </h2>
+      <section className="mx-auto mt-4 flex w-full max-w-7xl flex-col gap-3 px-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-base font-black text-slate-950 dark:text-white">
+            Disponibilidade e minhas reservas
+          </h2>
 
-    <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-      Navegue pelo calendário, veja horários disponíveis e acompanhe suas solicitações.
-    </p>
-  </div>
+          <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
+            Navegue pelo calendário, veja horários disponíveis e acompanhe suas
+            solicitações.
+          </p>
+        </div>
 
-  <div className="flex flex-wrap items-center gap-2">
-    <button
-      type="button"
-      onClick={() => setRegrasAberto(true)}
-      className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-black text-sky-800 shadow-sm transition hover:bg-sky-50 dark:border-sky-900/60 dark:bg-zinc-900 dark:text-sky-200 dark:hover:bg-sky-950/30"
-    >
-      <Info className="h-4 w-4" />
-      Dicas e regras
-    </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setRegrasAberto(true)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-black text-sky-800 shadow-sm transition hover:bg-sky-50 dark:border-sky-900/60 dark:bg-zinc-900 dark:text-sky-200 dark:hover:bg-sky-950/30"
+          >
+            <Info className="h-4 w-4" />
+            Dicas e regras
+          </button>
 
-    <button
-      type="button"
-      onClick={carregarAgenda}
-      disabled={loading}
-      className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      <RefreshCcw className={cx("h-4 w-4", loading && "animate-spin")} />
-      {loading ? "Atualizando..." : "Atualizar"}
-    </button>
-  </div>
-</section>
+          <button
+            type="button"
+            onClick={carregarAgenda}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCcw className={cx("h-4 w-4", loading && "animate-spin")} />
+            {loading ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
+      </section>
 
-<section className="mx-auto mt-4 grid w-full max-w-7xl grid-cols-1 gap-3 px-4 sm:grid-cols-2 xl:grid-cols-4">
-  {SALAS.map((sala) => (
-    <MiniStat key={sala.value} icon={Users} label={sala.label}>
-      <strong>{sala.conforto}</strong> conforto / {sala.max} máximo
-    </MiniStat>
-  ))}
+      <section className="mx-auto mt-4 grid w-full max-w-7xl grid-cols-1 gap-3 px-4 sm:grid-cols-2 xl:grid-cols-4">
+        {SALAS.map((sala) => (
+          <MiniStat key={sala.value} icon={Users} label={sala.label}>
+            <strong>{sala.conforto}</strong> conforto / {sala.max} máximo
+          </MiniStat>
+        ))}
 
-  <MiniStat icon={Sparkles} label="Minhas reservas">
-    <strong>Pendentes:</strong> {loading ? "—" : minhasPendentes}
-    <br />
-    <strong>Aprovadas:</strong> {loading ? "—" : minhasAprovadas}
-  </MiniStat>
+        <MiniStat icon={Sparkles} label="Minhas reservas">
+          <strong>Pendentes:</strong> {loading ? "—" : minhasPendentes}
+          <br />
+          <strong>Aprovadas:</strong> {loading ? "—" : minhasAprovadas}
+        </MiniStat>
 
-  <MiniStat icon={CheckCircle2} label="Dias úteis">
-    <strong>Com vaga:</strong> {loading ? "—" : diasComDisponibilidade}
-    <br />
-    <strong>Lotados:</strong> {loading ? "—" : diasLotados}
-  </MiniStat>
-</section>
+        <MiniStat icon={CheckCircle2} label="Dias úteis">
+          <strong>Com vaga:</strong> {loading ? "—" : diasComDisponibilidade}
+          <br />
+          <strong>Lotados:</strong> {loading ? "—" : diasLotados}
+        </MiniStat>
+      </section>
 
-      <main id="conteudo" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">
+      <main
+        id="conteudo"
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8"
+      >
         <p ref={liveRef} className="sr-only" aria-live="polite" />
 
         {mensagem ? (
@@ -1672,7 +1859,9 @@ async function executarConfirmacaoUsoSala(reserva) {
               </SoftIconButton>
 
               <div className="min-w-[160px] text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-300">Mês</p>
+                <p className="text-xs text-slate-500 dark:text-slate-300">
+                  Mês
+                </p>
                 <p className="text-base font-semibold text-slate-800 dark:text-white sm:text-lg">
                   {NOMES_MESES[mesIndex]} {ano}
                 </p>
@@ -1699,7 +1888,6 @@ async function executarConfirmacaoUsoSala(reserva) {
               >
                 Hoje
               </button>
-
             </div>
 
             <div className="flex items-center gap-2">
@@ -1805,7 +1993,7 @@ async function executarConfirmacaoUsoSala(reserva) {
                         "min-h-[110px] border-r border-slate-100 p-2 text-left transition dark:border-zinc-800 sm:min-h-[140px]",
                         cellTone,
                         eHoje ? cx(HOJE_BG, HOJE_RING) : "",
-                        "hover:brightness-[0.985] focus:outline-none focus:ring-2 focus:ring-sky-500/60"
+                        "hover:brightness-[0.985] focus:outline-none focus:ring-2 focus:ring-sky-500/60",
                       )}
                       aria-label={`Dia ${dia}`}
                       title={
@@ -1823,7 +2011,7 @@ async function executarConfirmacaoUsoSala(reserva) {
                               "text-xs font-extrabold sm:text-sm",
                               eHoje
                                 ? "text-sky-800 dark:text-sky-200"
-                                : "text-slate-800 dark:text-white"
+                                : "text-slate-800 dark:text-white",
                             )}
                           >
                             {dia}
@@ -1838,14 +2026,16 @@ async function executarConfirmacaoUsoSala(reserva) {
                             <span
                               className={cx(
                                 "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
-                                HOJE_BADGE
+                                HOJE_BADGE,
                               )}
                             >
                               Hoje
                             </span>
                           ) : null}
 
-                          {indicadores.pendente || indicadores.aprovado || indicadores.finalizada ? (
+                          {indicadores.pendente ||
+                          indicadores.aprovado ||
+                          indicadores.finalizada ? (
                             <div className="flex items-center gap-1.5">
                               {indicadores.pendente ? (
                                 <span
@@ -1873,14 +2063,15 @@ async function executarConfirmacaoUsoSala(reserva) {
                       <div className="mt-3 flex flex-col gap-2">
                         {diaInfo?.estado === "disponivel" ? (
                           <span className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700 sm:text-[11px]">
-                            {salasDisponiveis} sala{salasDisponiveis === 1 ? "" : "s"}
+                            {salasDisponiveis} sala
+                            {salasDisponiveis === 1 ? "" : "s"}
                           </span>
                         ) : null}
 
                         <span
                           className={cx(
                             "inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-extrabold sm:text-[11px]",
-                            chipTone
+                            chipTone,
                           )}
                         >
                           {diaInfo?.estado === "bloqueado"
@@ -1902,60 +2093,60 @@ async function executarConfirmacaoUsoSala(reserva) {
       <Footer />
 
       <ModalRegrasAgenda
-  open={regrasAberto}
-  onClose={() => setRegrasAberto(false)}
-/>
+        open={regrasAberto}
+        onClose={() => setRegrasAberto(false)}
+      />
 
-{modalDiaAberto
-  ? createPortal(
-      <ModalDiaUsuario
-        open={modalDiaAberto}
-        detalheDia={detalheDiaSelecionado}
-        hojeISO={hojeISO}
-        onClose={fecharModalDia}
-        onSolicitar={abrirSolicitacao}
-        onEditarMinhaReserva={iniciarEdicao}
-        onCancelarMinhaReserva={solicitarCancelamentoReserva}
-        onConfirmarUsoSala={executarConfirmacaoUsoSala}
-        loadingCancelamento={Boolean(cancelandoId)}
-        loadingConfirmacaoUso={confirmandoUsoId}
-      />,
-      document.body
-    )
-  : null}
+      {modalDiaAberto
+        ? createPortal(
+            <ModalDiaUsuario
+              open={modalDiaAberto}
+              detalheDia={detalheDiaSelecionado}
+              hojeISO={hojeISO}
+              onClose={fecharModalDia}
+              onSolicitar={abrirSolicitacao}
+              onEditarMinhaReserva={iniciarEdicao}
+              onCancelarMinhaReserva={solicitarCancelamentoReserva}
+              onConfirmarUsoSala={executarConfirmacaoUsoSala}
+              loadingCancelamento={Boolean(cancelandoId)}
+              loadingConfirmacaoUso={confirmandoUsoId}
+            />,
+            document.body,
+          )
+        : null}
 
-{modalSolicitacaoAberto && slotSelecionado
-  ? createPortal(
-      <ModalSolicitarReserva
-        onClose={fecharModalSolicitacao}
-        recarregar={carregarAgenda}
-        slot={modalModo === "criar" ? slotSelecionado : null}
-        sala={slotSelecionado.sala}
-        capacidadeSala={
-          SALAS.find((sala) => sala.value === slotSelecionado.sala) || {
-            conforto: 0,
-            max: 0,
-          }
-        }
-        modo={modalModo}
-        reservaAtual={modalModo === "editar" ? reservaEmEdicao : null}
-      />,
-      document.body
-    )
-  : null}
+      {modalSolicitacaoAberto && slotSelecionado
+        ? createPortal(
+            <ModalSolicitarReserva
+              onClose={fecharModalSolicitacao}
+              recarregar={carregarAgenda}
+              slot={modalModo === "criar" ? slotSelecionado : null}
+              sala={slotSelecionado.sala}
+              capacidadeSala={
+                SALAS.find((sala) => sala.value === slotSelecionado.sala) || {
+                  conforto: 0,
+                  max: 0,
+                }
+              }
+              modo={modalModo}
+              reservaAtual={modalModo === "editar" ? reservaEmEdicao : null}
+            />,
+            document.body,
+          )
+        : null}
 
       {cancelamento.open
-  ? createPortal(
-      <ModalCancelamentoUsuario
-        open={cancelamento.open}
-        reserva={cancelamento.reserva}
-        loading={Boolean(cancelandoId)}
-        onClose={fecharCancelamento}
-        onConfirm={executarCancelamentoReserva}
-      />,
-      document.body
-    )
-  : null}
+        ? createPortal(
+            <ModalCancelamentoUsuario
+              open={cancelamento.open}
+              reserva={cancelamento.reserva}
+              loading={Boolean(cancelandoId)}
+              onClose={fecharCancelamento}
+              onConfirm={executarCancelamentoReserva}
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

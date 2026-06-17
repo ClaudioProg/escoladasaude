@@ -9,7 +9,6 @@ import {
   Info,
   MessageSquare,
   ShieldCheck,
-  Sparkles,
   Star,
   UserStar,
   X,
@@ -35,12 +34,10 @@ const NOTA_PONTUACAO = {
 const NOTA_STYLE = {
   Ótimo:
     "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60",
-  Bom:
-    "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
+  Bom: "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
   Regular:
     "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60",
-  Ruim:
-    "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
+  Ruim: "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
   Péssimo:
     "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-800/60",
 };
@@ -94,35 +91,53 @@ function notaParaPontuacao(value) {
 }
 
 function classificarMedia(media) {
-  if (media == null) return "Sem dados";
-  if (media >= 9) return "Excelente";
-  if (media >= 8) return "Muito bom";
-  if (media >= 6) return "Regular";
-  if (media >= 4) return "Atenção";
+  if (media == null) {
+    return "Sem dados";
+  }
+  if (media >= 9) {
+    return "Excelente";
+  }
+  if (media >= 8) {
+    return "Muito bom";
+  }
+  if (media >= 6) {
+    return "Regular";
+  }
+  if (media >= 4) {
+    return "Atenção";
+  }
   return "Crítico";
 }
 
 function calcularMedia(avaliacao, campos) {
-  if (!avaliacao) return null;
+  if (!avaliacao) {
+    return null;
+  }
 
   const valores = campos
     .map(({ chave }) => notaParaPontuacao(avaliacao[chave]))
     .filter((nota) => Number.isFinite(nota));
 
-  if (!valores.length) return null;
+  if (!valores.length) {
+    return null;
+  }
 
   return Number(
-    (valores.reduce((acc, value) => acc + value, 0) / valores.length).toFixed(2)
+    (valores.reduce((acc, value) => acc + value, 0) / valores.length).toFixed(
+      2,
+    ),
   );
 }
 
 function formatIsoToBR(input) {
-  if (!input) return "—";
+  if (!input) {
+    return "—";
+  }
 
   const value = String(input).trim();
 
   const datetime = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::\d{2})?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::\d{2})?/,
   );
 
   if (datetime) {
@@ -139,7 +154,9 @@ function formatIsoToBR(input) {
 }
 
 function valorTextoPreenchido(value) {
-  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
   return Boolean(value);
 }
 
@@ -158,7 +175,7 @@ function MiniCard({ icon: Icon, title, children, destaque = false }) {
         "relative overflow-hidden rounded-3xl p-4 shadow-sm ring-1",
         destaque
           ? "bg-gradient-to-br from-violet-700 to-fuchsia-700 text-white ring-violet-400/40"
-          : "bg-white text-slate-950 ring-slate-200 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800"
+          : "bg-white text-slate-950 ring-slate-200 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800",
       )}
     >
       <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
@@ -169,7 +186,7 @@ function MiniCard({ icon: Icon, title, children, destaque = false }) {
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1",
             destaque
               ? "bg-white/15 ring-white/20"
-              : "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-950/50 dark:text-violet-200 dark:ring-violet-900"
+              : "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-950/50 dark:text-violet-200 dark:ring-violet-900",
           )}
         >
           <Icon className="h-5 w-5" aria-hidden="true" />
@@ -179,7 +196,7 @@ function MiniCard({ icon: Icon, title, children, destaque = false }) {
           <p
             className={cls(
               "text-xs font-black uppercase tracking-wide",
-              destaque ? "text-white/75" : "text-slate-500 dark:text-zinc-400"
+              destaque ? "text-white/75" : "text-slate-500 dark:text-zinc-400",
             )}
           >
             {title}
@@ -205,7 +222,7 @@ function NotaBadge({ nota }) {
     <span
       className={cls(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1",
-        NOTA_STYLE[nota]
+        NOTA_STYLE[nota],
       )}
       aria-label={`Nota: ${nota}, ${NOTA_PONTUACAO[nota]} de 10`}
     >
@@ -224,7 +241,7 @@ function CampoNotaCard({ rotulo, valor, destaque = false }) {
         "rounded-3xl p-4 shadow-sm ring-1",
         destaque
           ? "bg-violet-50 ring-violet-100 dark:bg-violet-950/30 dark:ring-violet-800/60"
-          : "bg-white ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
+          : "bg-white ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800",
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -273,7 +290,9 @@ function TextoCard({ rotulo, valor }) {
  * ───────────────────────────────────────────── */
 
 export default function ModalAvaliacoes({ isOpen, onClose, avaliacao }) {
-  if (!isOpen || !avaliacao) return null;
+  if (!isOpen || !avaliacao) {
+    return null;
+  }
 
   const dataAval =
     avaliacao.data_avaliacao ||
@@ -286,15 +305,15 @@ export default function ModalAvaliacoes({ isOpen, onClose, avaliacao }) {
   const desempenhoPontuacao = notaParaPontuacao(desempenhoValor);
 
   const notasPrincipais = CAMPOS_MEDIA.filter(({ chave }) =>
-    isNotaOficial(avaliacao[chave])
+    isNotaOficial(avaliacao[chave]),
   );
 
   const extrasVisiveis = CAMPOS_EXTRAS.filter(({ chave }) =>
-    isNotaOficial(avaliacao[chave])
+    isNotaOficial(avaliacao[chave]),
   );
 
   const textosVisiveis = CAMPOS_TEXTO.filter(({ chave }) =>
-    valorTextoPreenchido(avaliacao?.[chave])
+    valorTextoPreenchido(avaliacao?.[chave]),
   );
 
   const totalCrit = CAMPOS_MEDIA.length;
@@ -369,7 +388,9 @@ export default function ModalAvaliacoes({ isOpen, onClose, avaliacao }) {
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <MiniCard icon={Star} title="Média do evento" destaque>
             <div className="text-2xl font-black">
-              {mediaEvento != null ? `${mediaEvento.toFixed(2)} / 10` : "— / 10"}
+              {mediaEvento != null
+                ? `${mediaEvento.toFixed(2)} / 10`
+                : "— / 10"}
             </div>
 
             <div className="text-xs text-white/75">
@@ -451,13 +472,18 @@ export default function ModalAvaliacoes({ isOpen, onClose, avaliacao }) {
         {isNotaOficial(desempenhoValor) ? (
           <section className="pt-6">
             <h3 className="mb-3 flex items-center gap-2 text-lg font-black text-slate-950 dark:text-white">
-              <UserStar className="h-5 w-5 text-violet-600" aria-hidden="true" />
+              <UserStar
+                className="h-5 w-5 text-violet-600"
+                aria-hidden="true"
+              />
               Desempenho do organizador
             </h3>
 
             <CampoNotaCard
               rotulo={`${CAMPO_DESEMPENHO.rotulo}${
-                desempenhoPontuacao != null ? ` · ${desempenhoPontuacao}/10` : ""
+                desempenhoPontuacao != null
+                  ? ` · ${desempenhoPontuacao}/10`
+                  : ""
               }`}
               valor={desempenhoValor}
               destaque
@@ -486,7 +512,10 @@ export default function ModalAvaliacoes({ isOpen, onClose, avaliacao }) {
         {textosVisiveis.length > 0 ? (
           <section className="space-y-4 pt-6">
             <h3 className="flex items-center gap-2 text-lg font-black text-slate-950 dark:text-white">
-              <MessageSquare className="h-5 w-5 text-violet-600" aria-hidden="true" />
+              <MessageSquare
+                className="h-5 w-5 text-violet-600"
+                aria-hidden="true"
+              />
               Comentários textuais
             </h3>
 
@@ -505,8 +534,8 @@ export default function ModalAvaliacoes({ isOpen, onClose, avaliacao }) {
 
       <div className="sticky bottom-0 left-0 right-0 flex justify-end border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-6">
         <Botao type="button" variant="contorno" onClick={onClose}>
-  Fechar
-</Botao>
+          Fechar
+        </Botao>
       </div>
     </Modal>
   );

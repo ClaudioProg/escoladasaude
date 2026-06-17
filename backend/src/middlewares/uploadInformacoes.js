@@ -31,11 +31,7 @@ const multer = require("multer");
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
 
-const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const MIME_TO_EXTENSION = {
   "image/jpeg": ".jpg",
@@ -154,7 +150,9 @@ function uploadInformacaoImagem(req, res, next) {
       if (req.file) {
         req.file.logicalFilename = buildLogicalFilename(req.file);
         req.file.detectedExtension = getDetectedExtension(req.file);
-        req.file.originalExtension = getOriginalExtension(req.file.originalname);
+        req.file.originalExtension = getOriginalExtension(
+          req.file.originalname,
+        );
       }
 
       return next();
@@ -166,7 +164,7 @@ function uploadInformacaoImagem(req, res, next) {
           res,
           400,
           "INFORMACAO-UPLOAD-400-FILE-TOO-LARGE",
-          "A imagem deve ter no máximo 5 MB."
+          "A imagem deve ter no máximo 5 MB.",
         );
       }
 
@@ -175,7 +173,7 @@ function uploadInformacaoImagem(req, res, next) {
           res,
           400,
           "INFORMACAO-UPLOAD-400-TOO-MANY-FILES",
-          "Envie apenas uma imagem por publicação."
+          "Envie apenas uma imagem por publicação.",
         );
       }
 
@@ -184,7 +182,7 @@ function uploadInformacaoImagem(req, res, next) {
           res,
           400,
           "INFORMACAO-UPLOAD-400-UNEXPECTED-FIELD",
-          'Campo de arquivo inválido. Envie a imagem no campo "imagem".'
+          'Campo de arquivo inválido. Envie a imagem no campo "imagem".',
         );
       }
 
@@ -200,7 +198,7 @@ function uploadInformacaoImagem(req, res, next) {
         "Não foi possível processar o upload da imagem.",
         {
           uploadCode: error.code,
-        }
+        },
       );
     }
 
@@ -213,7 +211,7 @@ function uploadInformacaoImagem(req, res, next) {
       res,
       400,
       "INFORMACAO-UPLOAD-400-INVALID-IMAGE",
-      error?.message || "Falha ao enviar a imagem."
+      error?.message || "Falha ao enviar a imagem.",
     );
   });
 }

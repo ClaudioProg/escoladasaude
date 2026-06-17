@@ -19,7 +19,7 @@
 // - Mobile-first, acessível, dark mode e UX premium.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   Award,
@@ -106,7 +106,9 @@ function getUsuarioLogado() {
     const raw = localStorage.getItem("usuario");
     const parsed = raw ? JSON.parse(raw) : null;
 
-    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
 
     const id = Number(parsed.id);
 
@@ -158,19 +160,25 @@ function obterTitulo(item) {
 }
 
 function obterTurmaNome(item) {
-  return item?.nome_turma || item?.turma_nome || `Turma #${item?.turma_id || "—"}`;
+  return (
+    item?.nome_turma || item?.turma_nome || `Turma #${item?.turma_id || "—"}`
+  );
 }
 
 function obterPeriodo(item) {
   const inicio = item?.data_inicio || item?.inicio || item?.di;
   const fim = item?.data_fim || item?.fim || item?.df;
 
-  if (!inicio && !fim) return "Período não informado";
+  if (!inicio && !fim) {
+    return "Período não informado";
+  }
 
   const inicioLabel = dataBR(inicio);
   const fimLabel = dataBR(fim || inicio);
 
-  return inicioLabel === fimLabel ? inicioLabel : `${inicioLabel} até ${fimLabel}`;
+  return inicioLabel === fimLabel
+    ? inicioLabel
+    : `${inicioLabel} até ${fimLabel}`;
 }
 
 function isStatusCertificadoValido(status) {
@@ -186,9 +194,15 @@ function getNumeroCertificadoLabel(certificado) {
 }
 
 function getCertificadoId(cert) {
-  if (cert?.certificado_id) return cert.certificado_id;
-  if (cert?.id_certificado) return cert.id_certificado;
-  if (cert?.certificado?.id) return cert.certificado.id;
+  if (cert?.certificado_id) {
+    return cert.certificado_id;
+  }
+  if (cert?.id_certificado) {
+    return cert.id_certificado;
+  }
+  if (cert?.certificado?.id) {
+    return cert.certificado.id;
+  }
 
   if (
     cert?.arquivo_pdf ||
@@ -257,7 +271,9 @@ function keyCertificadoFromItem(certificado) {
 function filtrarPorBusca(lista, buscaNormalizada, extraText = () => "") {
   const base = Array.isArray(lista) ? lista : [];
 
-  if (!buscaNormalizada) return base;
+  if (!buscaNormalizada) {
+    return base;
+  }
 
   return base.filter((item) => {
     const texto = normalizarBusca(
@@ -268,7 +284,7 @@ function filtrarPorBusca(lista, buscaNormalizada, extraText = () => "") {
         item?.numero_certificado,
         item?.codigo_validacao,
         extraText(item),
-      ].join(" ")
+      ].join(" "),
     );
 
     return texto.includes(buscaNormalizada);
@@ -334,10 +350,8 @@ function Badge({ tone = "slate", children }) {
       "bg-emerald-50 text-emerald-800 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/60",
     amber:
       "bg-amber-50 text-amber-800 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800/60",
-    rose:
-      "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
-    cyan:
-      "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
+    rose: "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
+    cyan: "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
     violet:
       "bg-violet-50 text-violet-800 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-800/60",
   };
@@ -346,7 +360,7 @@ function Badge({ tone = "slate", children }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {children}
@@ -372,7 +386,10 @@ function Card({ children, tone = "emerald", busy = false }) {
       className="overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
       aria-busy={busy ? "true" : "false"}
     >
-      <div className={cx("h-1.5 bg-gradient-to-r", tones[tone])} aria-hidden="true" />
+      <div
+        className={cx("h-1.5 bg-gradient-to-r", tones[tone])}
+        aria-hidden="true"
+      />
       <div className="p-4">{children}</div>
     </motion.article>
   );
@@ -392,15 +409,14 @@ function MiniStatCard({
       "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100",
     violet:
       "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-100",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-100",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-100",
   };
 
   return (
     <article
       className={cx(
         "rounded-[1.75rem] border p-4 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-lg dark:ring-white/10",
-        tones[tone] || tones.emerald
+        tones[tone] || tones.emerald,
       )}
     >
       <div className="flex items-start gap-3">
@@ -417,9 +433,7 @@ function MiniStatCard({
             {value}
           </p>
 
-          <p className="mt-1 text-xs font-semibold opacity-70">
-            {description}
-          </p>
+          <p className="mt-1 text-xs font-semibold opacity-70">{description}</p>
         </div>
       </div>
     </article>
@@ -473,7 +487,8 @@ function BarraContextual({ refreshing, onRefresh }) {
         </h2>
 
         <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-          Responda pendências, acompanhe certificados e atualize os dados quando necessário.
+          Responda pendências, acompanhe certificados e atualize os dados quando
+          necessário.
         </p>
       </div>
 
@@ -610,7 +625,15 @@ function SecaoModulo({
       className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
       aria-labelledby={`${id}-titulo`}
     >
-      <div className={cx("h-1.5 bg-gradient-to-r", toneMap[tone]?.split(" ")[0], toneMap[tone]?.split(" ")[1], toneMap[tone]?.split(" ")[2])} aria-hidden="true" />
+      <div
+        className={cx(
+          "h-1.5 bg-gradient-to-r",
+          toneMap[tone]?.split(" ")[0],
+          toneMap[tone]?.split(" ")[1],
+          toneMap[tone]?.split(" ")[2],
+        )}
+        aria-hidden="true"
+      />
 
       <div className="p-4 sm:p-5">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -623,7 +646,7 @@ function SecaoModulo({
                 tone === "amber" &&
                   "bg-amber-50 text-amber-800 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800/60",
                 tone === "emerald" &&
-                  "bg-emerald-50 text-emerald-800 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/60"
+                  "bg-emerald-50 text-emerald-800 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/60",
               )}
             >
               <Icon className="h-6 w-6" aria-hidden="true" />
@@ -655,7 +678,10 @@ function SecaoModulo({
             </Badge>
           ) : loading ? (
             <Badge tone="cyan">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="h-3.5 w-3.5 animate-spin"
+                aria-hidden="true"
+              />
               Carregando
             </Badge>
           ) : (
@@ -703,7 +729,9 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
   const turmaId = item?.turma_id;
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message;
+    if (liveRef.current) {
+      liveRef.current.textContent = message;
+    }
   }, []);
 
   const questoes = useMemo(() => {
@@ -714,7 +742,9 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
     return questoes.filter((questao) => {
       const resposta = respostas[questao.id];
 
-      if (!resposta) return false;
+      if (!resposta) {
+        return false;
+      }
 
       if (questao.tipo === "multipla_escolha") {
         return Number.isInteger(Number(resposta.alternativa_id));
@@ -732,7 +762,9 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
     let ativo = true;
 
     async function carregar() {
-      if (!open || !questionarioId || !turmaId) return;
+      if (!open || !questionarioId || !turmaId) {
+        return;
+      }
 
       try {
         setLoading(true);
@@ -757,25 +789,34 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
           turma_id: turmaId,
         });
 
-        if (!ativo) return;
+        if (!ativo) {
+          return;
+        }
 
         setQuestionario(extrairData(response));
         setLive("Questionário carregado.");
       } catch (error) {
-        console.error("[CertificadoUsuario] erro ao carregar questionário:", error);
+        console.error(
+          "[CertificadoUsuario] erro ao carregar questionário:",
+          error,
+        );
 
-        if (!ativo) return;
+        if (!ativo) {
+          return;
+        }
 
         setQuestionario(null);
         notifyError(
           obterMensagemErro(
             error,
-            "Não foi possível carregar o questionário. Tente novamente."
-          )
+            "Não foi possível carregar o questionário. Tente novamente.",
+          ),
         );
         setLive("Erro ao carregar questionário.");
       } finally {
-        if (ativo) setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
 
@@ -817,13 +858,17 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
   }, []);
 
   const enviar = useCallback(async () => {
-    if (!questionarioId || !turmaId || sending) return;
+    if (!questionarioId || !turmaId || sending) {
+      return;
+    }
 
     const payload = questoes
       .map((questao) => {
         const resposta = respostas[questao.id];
 
-        if (!resposta) return null;
+        if (!resposta) {
+          return null;
+        }
 
         if (questao.tipo === "multipla_escolha" && resposta.alternativa_id) {
           return {
@@ -876,18 +921,29 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
       notifyError(
         obterMensagemErro(
           error,
-          "Não foi possível enviar o questionário. Tente novamente."
-        )
+          "Não foi possível enviar o questionário. Tente novamente.",
+        ),
       );
       setLive("Erro ao enviar questionário.");
     } finally {
       setSending(false);
     }
-  }, [questionarioId, turmaId, sending, questoes, respostas, onSubmitted, setLive]);
+  }, [
+    questionarioId,
+    turmaId,
+    sending,
+    questoes,
+    respostas,
+    onSubmitted,
+    setLive,
+  ]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
-  const titulo = questionario?.titulo || item?.questionario_titulo || "Questionário";
+  const titulo =
+    questionario?.titulo || item?.questionario_titulo || "Questionário";
   const eventoTitulo = obterTitulo(item);
   const turmaNome = obterTurmaNome(item);
 
@@ -896,7 +952,9 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
       <div
         className="absolute inset-0 bg-black/55 backdrop-blur-sm"
         onClick={() => {
-          if (!sending) onClose?.();
+          if (!sending) {
+            onClose?.();
+          }
         }}
         aria-hidden="true"
       />
@@ -937,7 +995,9 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
               <button
                 type="button"
                 onClick={() => {
-                  if (!sending) onClose?.();
+                  if (!sending) {
+                    onClose?.();
+                  }
                 }}
                 className="rounded-full bg-white/10 p-2 ring-1 ring-white/15 transition hover:bg-white/15"
                 aria-label="Fechar questionário"
@@ -1019,7 +1079,13 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
                           </h3>
                         </div>
 
-                        <Badge tone={questao.tipo === "multipla_escolha" ? "cyan" : "slate"}>
+                        <Badge
+                          tone={
+                            questao.tipo === "multipla_escolha"
+                              ? "cyan"
+                              : "slate"
+                          }
+                        >
                           {questao.tipo === "multipla_escolha"
                             ? "Múltipla escolha"
                             : "Dissertativa"}
@@ -1030,7 +1096,8 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
                         <div className="mt-4 space-y-2">
                           {alternativas.map((alternativa) => {
                             const selected =
-                              Number(resposta.alternativa_id) === Number(alternativa.id);
+                              Number(resposta.alternativa_id) ===
+                              Number(alternativa.id);
 
                             return (
                               <button
@@ -1044,7 +1111,7 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
                                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
                                   selected
                                     ? "border-violet-400 bg-violet-50 text-violet-950 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-100"
-                                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900",
                                 )}
                                 aria-pressed={selected}
                               >
@@ -1094,7 +1161,10 @@ function ModalQuestionario({ open, item, onClose, onSubmitted }) {
               >
                 <span className="inline-flex items-center gap-2">
                   {sending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                   ) : (
                     <Send className="h-4 w-4" aria-hidden="true" />
                   )}
@@ -1135,7 +1205,8 @@ export default function CertificadoUsuario() {
 
   const [endpointQuestionarioAusente, setEndpointQuestionarioAusente] =
     useState(false);
-  const [endpointAvaliacaoAusente, setEndpointAvaliacaoAusente] = useState(false);
+  const [endpointAvaliacaoAusente, setEndpointAvaliacaoAusente] =
+    useState(false);
   const [endpointCertificadoAusente, setEndpointCertificadoAusente] =
     useState(false);
 
@@ -1161,7 +1232,9 @@ export default function CertificadoUsuario() {
     loadingQuestionarios || loadingAvaliacoes || loadingCertificados;
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message;
+    if (liveRef.current) {
+      liveRef.current.textContent = message;
+    }
   }, []);
 
   const keyCertificado = useCallback((certificado) => {
@@ -1193,32 +1266,32 @@ export default function CertificadoUsuario() {
   }, []);
 
   const carregarCertificados = useCallback(async () => {
-  if (
-    typeof api?.certificado?.meus !== "function" ||
-    typeof api?.certificado?.disponiveis !== "function"
-  ) {
-    setEndpointCertificadoAusente(true);
-    return [];
-  }
+    if (
+      typeof api?.certificado?.meus !== "function" ||
+      typeof api?.certificado?.disponiveis !== "function"
+    ) {
+      setEndpointCertificadoAusente(true);
+      return [];
+    }
 
-  const [responseEmitidos, responseDisponiveis] = await Promise.all([
-    api.certificado.meus(),
-    api.certificado.disponiveis(),
-  ]);
+    const [responseEmitidos, responseDisponiveis] = await Promise.all([
+      api.certificado.meus(),
+      api.certificado.disponiveis(),
+    ]);
 
-  const emitidos = extrairData(responseEmitidos);
-  const disponiveis = extrairData(responseDisponiveis);
+    const emitidos = extrairData(responseEmitidos);
+    const disponiveis = extrairData(responseDisponiveis);
 
-  const listaEmitidos = Array.isArray(emitidos)
-    ? emitidos.map(normalizarCertificadoEmitido)
-    : [];
+    const listaEmitidos = Array.isArray(emitidos)
+      ? emitidos.map(normalizarCertificadoEmitido)
+      : [];
 
-  const listaDisponiveis = Array.isArray(disponiveis)
-    ? disponiveis.map(normalizarCertificadoDisponivel)
-    : [];
+    const listaDisponiveis = Array.isArray(disponiveis)
+      ? disponiveis.map(normalizarCertificadoDisponivel)
+      : [];
 
-  return deduplicarCertificados([...listaEmitidos, ...listaDisponiveis]);
-}, []);
+    return deduplicarCertificados([...listaEmitidos, ...listaDisponiveis]);
+  }, []);
 
   const carregarModulo = useCallback(
     async ({
@@ -1236,11 +1309,15 @@ export default function CertificadoUsuario() {
       try {
         const dados = await carregar();
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         setDados(dados);
       } catch (error) {
-        if (isAbortLike(error) || !mountedRef.current) return;
+        if (isAbortLike(error) || !mountedRef.current) {
+          return;
+        }
 
         if (is404(error)) {
           setEndpointAusente(true);
@@ -1250,16 +1327,18 @@ export default function CertificadoUsuario() {
 
         const message = obterMensagemErro(
           error,
-          `Não foi possível carregar ${nome}.`
+          `Não foi possível carregar ${nome}.`,
         );
 
         setErro(message);
         setDados([]);
       } finally {
-        if (mountedRef.current) setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     },
-    []
+    [],
   );
 
   const carregarTudo = useCallback(async () => {
@@ -1308,7 +1387,9 @@ export default function CertificadoUsuario() {
         }),
       ]);
 
-      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      if (!mountedRef.current || requestId !== requestIdRef.current) {
+        return;
+      }
 
       setLive("Dados pós-curso atualizados.");
     } finally {
@@ -1335,7 +1416,9 @@ export default function CertificadoUsuario() {
       const tag = document.activeElement?.tagName?.toLowerCase();
       const typing = ["input", "textarea", "select"].includes(tag);
 
-      if (typing) return;
+      if (typing) {
+        return;
+      }
 
       if (event.key === "r" || event.key === "R") {
         event.preventDefault();
@@ -1352,21 +1435,25 @@ export default function CertificadoUsuario() {
   }, [carregarTudo]);
 
   const questionariosFiltrados = useMemo(() => {
-    return filtrarPorBusca(questionarios, buscaNormalizada).slice().sort((a, b) => {
-      const da = String(a?.data_fim || "");
-      const db = String(b?.data_fim || "");
+    return filtrarPorBusca(questionarios, buscaNormalizada)
+      .slice()
+      .sort((a, b) => {
+        const da = String(a?.data_fim || "");
+        const db = String(b?.data_fim || "");
 
-      return db.localeCompare(da);
-    });
+        return db.localeCompare(da);
+      });
   }, [questionarios, buscaNormalizada]);
 
   const avaliacoesFiltradas = useMemo(() => {
-    return filtrarPorBusca(avaliacoes, buscaNormalizada).slice().sort((a, b) => {
-      const da = String(a?.data_fim || "");
-      const db = String(b?.data_fim || "");
+    return filtrarPorBusca(avaliacoes, buscaNormalizada)
+      .slice()
+      .sort((a, b) => {
+        const da = String(a?.data_fim || "");
+        const db = String(b?.data_fim || "");
 
-      return db.localeCompare(da);
-    });
+        return db.localeCompare(da);
+      });
   }, [avaliacoes, buscaNormalizada]);
 
   const certificadosFiltrados = useMemo(() => {
@@ -1375,9 +1462,15 @@ export default function CertificadoUsuario() {
     const porStatus = lista.filter((certificado) => {
       const state = getCertificadoState(certificado);
 
-      if (filtroCertificado === "prontos") return state.estado === "pronto";
-      if (filtroCertificado === "disponiveis") return state.estado === "geravel";
-      if (filtroCertificado === "pendentes") return state.estado === "pendente";
+      if (filtroCertificado === "prontos") {
+        return state.estado === "pronto";
+      }
+      if (filtroCertificado === "disponiveis") {
+        return state.estado === "geravel";
+      }
+      if (filtroCertificado === "pendentes") {
+        return state.estado === "pendente";
+      }
 
       return true;
     });
@@ -1449,7 +1542,9 @@ export default function CertificadoUsuario() {
 
   const gerarCertificado = useCallback(
     async (certificado) => {
-      if (busyCertificado) return;
+      if (busyCertificado) {
+        return;
+      }
 
       const state = getCertificadoState(certificado);
 
@@ -1499,14 +1594,14 @@ export default function CertificadoUsuario() {
         const code = getEnvelopeCode(response);
 
         console.warn("[CertificadoUsuario] retorno gerar certificado", {
-  response,
-  data,
-});
+          response,
+          data,
+        });
 
         notifySuccess(
           code === "CERTIFICADO_JA_EMITIDO"
             ? "Certificado já estava emitido. O documento existente foi preservado."
-            : "Certificado emitido com sucesso."
+            : "Certificado emitido com sucesso.",
         );
 
         setCertificados((prev) =>
@@ -1517,29 +1612,35 @@ export default function CertificadoUsuario() {
             ) {
               return {
                 ...item,
-                certificado_id: data?.certificado_id || data?.id || item.certificado_id,
-id_certificado: data?.certificado_id || data?.id || item.id_certificado,
+                certificado_id:
+                  data?.certificado_id || data?.id || item.certificado_id,
+                id_certificado:
+                  data?.certificado_id || data?.id || item.id_certificado,
                 numero_certificado:
                   data?.numero_certificado || item.numero_certificado,
-                codigo_validacao: data?.codigo_validacao || item.codigo_validacao,
+                codigo_validacao:
+                  data?.codigo_validacao || item.codigo_validacao,
                 arquivo_pdf: data?.arquivo_pdf || item.arquivo_pdf,
                 status: data?.status || "emitido",
               };
             }
 
             return item;
-          })
+          }),
         );
 
         await carregarTudo();
       } catch (error) {
-        console.error("[CertificadoUsuario] erro ao emitir certificado:", error);
+        console.error(
+          "[CertificadoUsuario] erro ao emitir certificado:",
+          error,
+        );
 
         notifyError(
           obterMensagemErro(
             error,
-            "Não foi possível emitir o certificado. Verifique as pendências e tente novamente."
-          )
+            "Não foi possível emitir o certificado. Verifique as pendências e tente novamente.",
+          ),
         );
       } finally {
         setBusyCertificado(false);
@@ -1547,29 +1648,29 @@ id_certificado: data?.certificado_id || data?.id || item.id_certificado,
         setLive("Emissão finalizada.");
       }
     },
-    [busyCertificado, usuario?.id, keyCertificado, carregarTudo, setLive]
+    [busyCertificado, usuario?.id, keyCertificado, carregarTudo, setLive],
   );
 
   const baixarCertificado = useCallback(
     async (certificado) => {
       const certificadoId = Number(getCertificadoId(certificado) || 0);
 
-if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
-  console.warn("[CertificadoUsuario] certificado sem certificado_id", {
-    certificado,
-    id: certificado?.id,
-    certificado_id: certificado?.certificado_id,
-    id_certificado: certificado?.id_certificado,
-    turma_id: certificado?.turma_id,
-    evento_id: certificado?.evento_id,
-  });
+      if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
+        console.warn("[CertificadoUsuario] certificado sem certificado_id", {
+          certificado,
+          id: certificado?.id,
+          certificado_id: certificado?.certificado_id,
+          id_certificado: certificado?.id_certificado,
+          turma_id: certificado?.turma_id,
+          evento_id: certificado?.evento_id,
+        });
 
-  notifyError(
-    "Este item ainda não possui certificado emitido para download. Tente emitir o certificado antes de baixar."
-  );
+        notifyError(
+          "Este item ainda não possui certificado emitido para download. Tente emitir o certificado antes de baixar.",
+        );
 
-  return;
-}
+        return;
+      }
 
       if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
         notifyError("Certificado sem ID para download.");
@@ -1594,26 +1695,29 @@ if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
             getNumeroCertificado(certificado) ||
               `certificado_${obterTitulo(certificado)}_turma_${
                 certificado?.turma_id || certificadoId
-              }`
+              }`,
           )}.pdf`;
 
         downloadBlob(filename, blob);
         notifySuccess("Download iniciado.");
       } catch (error) {
-        console.error("[CertificadoUsuario] erro ao baixar certificado:", error);
+        console.error(
+          "[CertificadoUsuario] erro ao baixar certificado:",
+          error,
+        );
 
         notifyError(
           obterMensagemErro(
             error,
-            "Não foi possível baixar o certificado. Tente novamente."
-          )
+            "Não foi possível baixar o certificado. Tente novamente.",
+          ),
         );
       } finally {
         setBusyDownloadId(null);
         setLive("Download finalizado.");
       }
     },
-    [setLive]
+    [setLive],
   );
 
   return (
@@ -1643,7 +1747,7 @@ if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
           <div
             className={cx(
               "h-full w-1/3 bg-emerald-700",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -1678,93 +1782,27 @@ if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
           </div>
         </div>
 
-          <SecaoModulo
-            id="questionarios"
-            title="Questionários"
-            description="Responda questionários pós-curso vinculados às turmas em que você participou."
-            icon={BookOpenCheck}
-            tone="violet"
-            loading={loadingQuestionarios}
-            error={erroQuestionarios}
-            endpointAusente={endpointQuestionarioAusente}
-            emptyTitle="Nenhum questionário disponível"
-            emptyDescription="Quando houver questionário pós-curso liberado, ele aparecerá aqui."
-          >
-            {questionariosFiltrados.length ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {questionariosFiltrados.map((item) => {
-                  const bloqueado = Boolean(item?.bloqueado_por_tentativas);
+        <SecaoModulo
+          id="questionarios"
+          title="Questionários"
+          description="Responda questionários pós-curso vinculados às turmas em que você participou."
+          icon={BookOpenCheck}
+          tone="violet"
+          loading={loadingQuestionarios}
+          error={erroQuestionarios}
+          endpointAusente={endpointQuestionarioAusente}
+          emptyTitle="Nenhum questionário disponível"
+          emptyDescription="Quando houver questionário pós-curso liberado, ele aparecerá aqui."
+        >
+          {questionariosFiltrados.length ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {questionariosFiltrados.map((item) => {
+                const bloqueado = Boolean(item?.bloqueado_por_tentativas);
 
-                  return (
-                    <Card
-                      key={`questionario-${item.questionario_id}-${item.turma_id}`}
-                      tone={bloqueado ? "amber" : "violet"}
-                    >
-                      <div className="flex flex-col gap-4">
-                        <div>
-                          <h3 className="text-lg font-black text-slate-950 dark:text-white">
-                            {obterTitulo(item)}
-                          </h3>
-
-                          <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-                            {obterTurmaNome(item)} • {obterPeriodo(item)}
-                          </p>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Badge tone={bloqueado ? "amber" : "violet"}>
-                              {bloqueado ? (
-                                <AlertCircle className="h-3.5 w-3.5" />
-                              ) : (
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                              )}
-                              {bloqueado ? "Bloqueado" : "Disponível"}
-                            </Badge>
-
-                            {item?.tentativas_enviadas != null ? (
-                              <Badge tone="cyan">
-                                Tentativas: {item.tentativas_enviadas}
-                              </Badge>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <Botao
-                          type="button"
-                          variant="sucesso"
-                          onClick={() => abrirQuestionario(item)}
-                          disabled={bloqueado}
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            Responder
-                            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                          </span>
-                        </Botao>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : null}
-          </SecaoModulo>
-
-          <SecaoModulo
-            id="avaliacoes"
-            title="Avaliações"
-            description="Avalie os eventos concluídos quando a avaliação estiver liberada."
-            icon={ClipboardList}
-            tone="amber"
-            loading={loadingAvaliacoes}
-            error={erroAvaliacoes}
-            endpointAusente={endpointAvaliacaoAusente}
-            emptyTitle="Nenhuma avaliação pendente"
-            emptyDescription="Quando houver avaliação pós-curso liberada, ela aparecerá aqui."
-          >
-            {avaliacoesFiltradas.length ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {avaliacoesFiltradas.map((item) => (
+                return (
                   <Card
-                    key={`avaliacao-${item.turma_id}-${item.evento_id || obterTitulo(item)}`}
-                    tone="amber"
+                    key={`questionario-${item.questionario_id}-${item.turma_id}`}
+                    tone={bloqueado ? "amber" : "violet"}
                   >
                     <div className="flex flex-col gap-4">
                       <div>
@@ -1777,213 +1815,293 @@ if (!Number.isInteger(certificadoId) || certificadoId <= 0) {
                         </p>
 
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge tone="amber">
-                            <ClipboardList className="h-3.5 w-3.5" />
-                            Avaliação pendente
+                          <Badge tone={bloqueado ? "amber" : "violet"}>
+                            {bloqueado ? (
+                              <AlertCircle className="h-3.5 w-3.5" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            )}
+                            {bloqueado ? "Bloqueado" : "Disponível"}
                           </Badge>
+
+                          {item?.tentativas_enviadas != null ? (
+                            <Badge tone="cyan">
+                              Tentativas: {item.tentativas_enviadas}
+                            </Badge>
+                          ) : null}
                         </div>
                       </div>
 
                       <Botao
                         type="button"
                         variant="sucesso"
-                        onClick={() => abrirAvaliacao(item)}
+                        onClick={() => abrirQuestionario(item)}
+                        disabled={bloqueado}
                       >
                         <span className="inline-flex items-center gap-2">
-                          Avaliar agora
-                          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                          Responder
+                          <ChevronRight
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
                         </span>
                       </Botao>
                     </div>
                   </Card>
-                ))}
-              </div>
-            ) : null}
-          </SecaoModulo>
+                );
+              })}
+            </div>
+          ) : null}
+        </SecaoModulo>
 
-          <SecaoModulo
-            id="certificados"
-            title="Certificados"
-            description="Emita ou baixe certificados com número oficial, validação pública e QR Code."
-            icon={Award}
-            tone="emerald"
-            loading={loadingCertificados}
-            error={erroCertificados}
-            endpointAusente={endpointCertificadoAusente}
-            emptyTitle="Nenhum certificado encontrado"
-            emptyDescription="Certificados aparecem aqui quando o curso encerra e as regras de liberação são cumpridas."
-          >
-            {certificadosFiltrados.length ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {certificadosFiltrados.map((certificado) => {
-                  const state = getCertificadoState(certificado);
-                  const key = keyCertificado(certificado);
-                  const gerando = gerandoKey === key;
-                  const certificadoId = Number(
-                    certificado?.certificado_id || certificado?.id || 0
-                  );
-                  const baixando = busyDownloadId === certificadoId;
-                  const numeroCertificado = getNumeroCertificado(certificado);
+        <SecaoModulo
+          id="avaliacoes"
+          title="Avaliações"
+          description="Avalie os eventos concluídos quando a avaliação estiver liberada."
+          icon={ClipboardList}
+          tone="amber"
+          loading={loadingAvaliacoes}
+          error={erroAvaliacoes}
+          endpointAusente={endpointAvaliacaoAusente}
+          emptyTitle="Nenhuma avaliação pendente"
+          emptyDescription="Quando houver avaliação pós-curso liberada, ela aparecerá aqui."
+        >
+          {avaliacoesFiltradas.length ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {avaliacoesFiltradas.map((item) => (
+                <Card
+                  key={`avaliacao-${item.turma_id}-${item.evento_id || obterTitulo(item)}`}
+                  tone="amber"
+                >
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-950 dark:text-white">
+                        {obterTitulo(item)}
+                      </h3>
 
-                  const tone =
-                    state.estado === "pronto"
-                      ? "emerald"
-                      : state.estado === "pendente" || state.estado === "bloqueado"
-                        ? "amber"
-                        : "slate";
+                      <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+                        {obterTurmaNome(item)} • {obterPeriodo(item)}
+                      </p>
 
-                  return (
-                    <Card key={key} tone={tone} busy={gerando || baixando}>
-                      <div className="flex flex-col gap-4">
-                        <div>
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                              <h3 className="text-lg font-black text-slate-950 dark:text-white">
-                                {obterTitulo(certificado)}
-                              </h3>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge tone="amber">
+                          <ClipboardList className="h-3.5 w-3.5" />
+                          Avaliação pendente
+                        </Badge>
+                      </div>
+                    </div>
 
-                              <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-                                {obterTurmaNome(certificado)} •{" "}
-                                {obterPeriodo(certificado)}
-                              </p>
-                            </div>
+                    <Botao
+                      type="button"
+                      variant="sucesso"
+                      onClick={() => abrirAvaliacao(item)}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        Avaliar agora
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    </Botao>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : null}
+        </SecaoModulo>
 
-                            <Badge
-                              tone={
-                                state.estado === "pronto"
-                                  ? "emerald"
-                                  : state.estado === "geravel"
-                                    ? "cyan"
-                                    : "amber"
-                              }
-                            >
-                              {state.estado === "pronto" ? (
-                                <FileCheck2 className="h-3.5 w-3.5" />
-                              ) : state.estado === "geravel" ? (
-                                <FilePlus2 className="h-3.5 w-3.5" />
-                              ) : (
-                                <HelpCircle className="h-3.5 w-3.5" />
-                              )}
-                              {state.label}
-                            </Badge>
-                          </div>
+        <SecaoModulo
+          id="certificados"
+          title="Certificados"
+          description="Emita ou baixe certificados com número oficial, validação pública e QR Code."
+          icon={Award}
+          tone="emerald"
+          loading={loadingCertificados}
+          error={erroCertificados}
+          endpointAusente={endpointCertificadoAusente}
+          emptyTitle="Nenhum certificado encontrado"
+          emptyDescription="Certificados aparecem aqui quando o curso encerra e as regras de liberação são cumpridas."
+        >
+          {certificadosFiltrados.length ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {certificadosFiltrados.map((certificado) => {
+                const state = getCertificadoState(certificado);
+                const key = keyCertificado(certificado);
+                const gerando = gerandoKey === key;
+                const certificadoId = Number(
+                  certificado?.certificado_id || certificado?.id || 0,
+                );
+                const baixando = busyDownloadId === certificadoId;
+                const numeroCertificado = getNumeroCertificado(certificado);
 
-                          <div className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-100 dark:ring-emerald-800/60">
-                            Certificado nº:{" "}
-                            <span className="font-black">
-                              {numeroCertificado || getNumeroCertificadoLabel(certificado)}
-                            </span>
-                          </div>
+                const tone =
+                  state.estado === "pronto"
+                    ? "emerald"
+                    : state.estado === "pendente" ||
+                        state.estado === "bloqueado"
+                      ? "amber"
+                      : "slate";
 
-                          {certificado?.codigo_validacao ? (
-                            <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-zinc-950 dark:text-zinc-300 dark:ring-zinc-800">
-                              Código de validação:{" "}
-                              <span className="font-black">
-                                {certificado.codigo_validacao}
-                              </span>
-                            </p>
-                          ) : null}
+                return (
+                  <Card key={key} tone={tone} busy={gerando || baixando}>
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <h3 className="text-lg font-black text-slate-950 dark:text-white">
+                              {obterTitulo(certificado)}
+                            </h3>
 
-                          {state.motivo ? (
-                            <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800/60">
-                              {state.motivo}
-                            </p>
-                          ) : null}
-
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-zinc-400">
-                            <span className="inline-flex items-center gap-1">
-                              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
+                              {obterTurmaNome(certificado)} •{" "}
                               {obterPeriodo(certificado)}
-                            </span>
+                            </p>
                           </div>
+
+                          <Badge
+                            tone={
+                              state.estado === "pronto"
+                                ? "emerald"
+                                : state.estado === "geravel"
+                                  ? "cyan"
+                                  : "amber"
+                            }
+                          >
+                            {state.estado === "pronto" ? (
+                              <FileCheck2 className="h-3.5 w-3.5" />
+                            ) : state.estado === "geravel" ? (
+                              <FilePlus2 className="h-3.5 w-3.5" />
+                            ) : (
+                              <HelpCircle className="h-3.5 w-3.5" />
+                            )}
+                            {state.label}
+                          </Badge>
                         </div>
 
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          {state.estado === "pronto" ? (
-                            <Botao
-                              type="button"
-                              variant="sucesso"
-                              onClick={() => baixarCertificado(certificado)}
-                              disabled={baixando}
-                            >
-                              <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
-                                {baixando ? (
-                                  <Loader2
-                                    className="h-4 w-4 animate-spin"
-                                    aria-hidden="true"
-                                  />
-                                ) : (
-                                  <Download className="h-4 w-4" aria-hidden="true" />
-                                )}
-                                {baixando ? "Baixando..." : "Baixar"}
-                              </span>
-                            </Botao>
-                          ) : (
-                            <Botao
-                              type="button"
-                              variant="sucesso"
-                              onClick={() => gerarCertificado(certificado)}
-                              disabled={
-                                gerando ||
-                                busyCertificado ||
-                                state.estado === "pendente" ||
-                                state.estado === "bloqueado"
-                              }
-                            >
-                              <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
-                                {gerando ? (
-                                  <Loader2
-                                    className="h-4 w-4 animate-spin"
-                                    aria-hidden="true"
-                                  />
-                                ) : (
-                                  <FilePlus2 className="h-4 w-4" aria-hidden="true" />
-                                )}
-                                {gerando ? "Emitindo..." : "Emitir certificado"}
-                              </span>
-                            </Botao>
-                          )}
+                        <div className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-100 dark:ring-emerald-800/60">
+                          Certificado nº:{" "}
+                          <span className="font-black">
+                            {numeroCertificado ||
+                              getNumeroCertificadoLabel(certificado)}
+                          </span>
+                        </div>
 
-                          <Botao
-                            type="button"
-                            variant="contorno"
-                            onClick={carregarTudo}
-                            disabled={refreshing}
-                          >
-                            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
-                              <RefreshCw
-                                className={cx(
-                                  "h-4 w-4",
-                                  refreshing && "animate-spin"
-                                )}
-                                aria-hidden="true"
-                              />
-                              Recarregar
+                        {certificado?.codigo_validacao ? (
+                          <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-zinc-950 dark:text-zinc-300 dark:ring-zinc-800">
+                            Código de validação:{" "}
+                            <span className="font-black">
+                              {certificado.codigo_validacao}
                             </span>
-                          </Botao>
+                          </p>
+                        ) : null}
+
+                        {state.motivo ? (
+                          <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800/60">
+                            {state.motivo}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-zinc-400">
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
+                            {obterPeriodo(certificado)}
+                          </span>
                         </div>
                       </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : null}
 
-            {!loadingCertificados && !endpointCertificadoAusente ? (
-              <div className="mt-6 rounded-[1.5rem] bg-white p-4 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-950 dark:text-zinc-300 dark:ring-zinc-800">
-                <p className="font-black text-slate-950 dark:text-white">
-                  Como o certificado é liberado?
-                </p>
-                <p className="mt-1">
-                  O certificado eletrônico fica disponível após o encerramento da
-                  turma e conforme as regras aplicáveis: frequência mínima,
-                  avaliação do evento e questionário obrigatório, quando houver.
-                  Após emitido, o documento recebe número oficial, código de
-                  validação e QR Code, sendo preservado como documento eletrônico.
-                </p>
-              </div>
-            ) : null}
-          </SecaoModulo>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        {state.estado === "pronto" ? (
+                          <Botao
+                            type="button"
+                            variant="sucesso"
+                            onClick={() => baixarCertificado(certificado)}
+                            disabled={baixando}
+                          >
+                            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+                              {baixando ? (
+                                <Loader2
+                                  className="h-4 w-4 animate-spin"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Download
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              {baixando ? "Baixando..." : "Baixar"}
+                            </span>
+                          </Botao>
+                        ) : (
+                          <Botao
+                            type="button"
+                            variant="sucesso"
+                            onClick={() => gerarCertificado(certificado)}
+                            disabled={
+                              gerando ||
+                              busyCertificado ||
+                              state.estado === "pendente" ||
+                              state.estado === "bloqueado"
+                            }
+                          >
+                            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+                              {gerando ? (
+                                <Loader2
+                                  className="h-4 w-4 animate-spin"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <FilePlus2
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              {gerando ? "Emitindo..." : "Emitir certificado"}
+                            </span>
+                          </Botao>
+                        )}
+
+                        <Botao
+                          type="button"
+                          variant="contorno"
+                          onClick={carregarTudo}
+                          disabled={refreshing}
+                        >
+                          <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+                            <RefreshCw
+                              className={cx(
+                                "h-4 w-4",
+                                refreshing && "animate-spin",
+                              )}
+                              aria-hidden="true"
+                            />
+                            Recarregar
+                          </span>
+                        </Botao>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {!loadingCertificados && !endpointCertificadoAusente ? (
+            <div className="mt-6 rounded-[1.5rem] bg-white p-4 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-950 dark:text-zinc-300 dark:ring-zinc-800">
+              <p className="font-black text-slate-950 dark:text-white">
+                Como o certificado é liberado?
+              </p>
+              <p className="mt-1">
+                O certificado eletrônico fica disponível após o encerramento da
+                turma e conforme as regras aplicáveis: frequência mínima,
+                avaliação do evento e questionário obrigatório, quando houver.
+                Após emitido, o documento recebe número oficial, código de
+                validação e QR Code, sendo preservado como documento eletrônico.
+              </p>
+            </div>
+          ) : null}
+        </SecaoModulo>
       </main>
 
       <ModalAvaliacaoFormulario

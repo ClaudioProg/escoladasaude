@@ -124,10 +124,7 @@ function getAggConfig(key) {
 }
 
 async function aggWithJoin(configKey, options = {}) {
-  const {
-    nullLabel = "Não informado",
-    labelMode = "base-only",
-  } = options;
+  const { nullLabel = "Não informado", labelMode = "base-only" } = options;
 
   const config = getAggConfig(configKey);
 
@@ -228,7 +225,7 @@ async function montarEstatisticaUsuarios() {
   `);
 
   const idadeMap = new Map(
-    rowsIdade.map((row) => [row.faixa, Number(row.value) || 0])
+    rowsIdade.map((row) => [row.faixa, Number(row.value) || 0]),
   );
 
   const faixaEtaria = [
@@ -305,7 +302,7 @@ async function obterEstatistica(req, res, opts = {}) {
       res,
       500,
       "USUARIO-ESTATISTICA-500-GERAL",
-      "Erro ao obter estatísticas de usuários."
+      "Erro ao obter estatísticas de usuários.",
     );
   }
 }
@@ -358,12 +355,15 @@ async function obterEstatisticaDetalhada(req, res, opts = {}) {
       data: payload,
     });
   } catch (err) {
-    console.error("[usuarioEstatisticaController.obterEstatisticaDetalhada] ERRO", {
-      message: err?.message,
-      code: err?.code,
-      detail: err?.detail,
-      constraint: err?.constraint,
-    });
+    console.error(
+      "[usuarioEstatisticaController.obterEstatisticaDetalhada] ERRO",
+      {
+        message: err?.message,
+        code: err?.code,
+        detail: err?.detail,
+        constraint: err?.constraint,
+      },
+    );
 
     if (opts.preview) return null;
     if (internal) throw err;
@@ -372,7 +372,7 @@ async function obterEstatisticaDetalhada(req, res, opts = {}) {
       res,
       500,
       "USUARIO-ESTATISTICA-500-DETALHE",
-      "Erro ao obter estatísticas detalhadas de usuários."
+      "Erro ao obter estatísticas detalhadas de usuários.",
     );
   }
 }

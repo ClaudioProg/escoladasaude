@@ -32,13 +32,7 @@
 // - mensagens orientativas;
 // - dark mode.
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
@@ -88,7 +82,7 @@ const downloadBlob = apiSvc.downloadBlob;
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").replace(
   /\/+$/,
-  ""
+  "",
 );
 
 function getToken() {
@@ -122,7 +116,9 @@ async function apiPatchLocal(path, payload) {
   const json = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    const err = new Error(json?.message || json?.erro || "Falha na requisição.");
+    const err = new Error(
+      json?.message || json?.erro || "Falha na requisição.",
+    );
     err.status = response.status;
     err.data = json;
     throw err;
@@ -132,7 +128,12 @@ async function apiPatchLocal(path, payload) {
 }
 
 function unwrap(response, fallback = null) {
-  if (response && typeof response === "object" && "ok" in response && "data" in response) {
+  if (
+    response &&
+    typeof response === "object" &&
+    "ok" in response &&
+    "data" in response
+  ) {
     return response.data;
   }
 
@@ -149,7 +150,8 @@ const chamadaApi = {
 
   obter: async (id) => unwrap(await apiGet(`chamada/${id}`), null),
 
-  criar: async (payload) => unwrap(await apiPost("chamada/admin", payload), null),
+  criar: async (payload) =>
+    unwrap(await apiPost("chamada/admin", payload), null),
 
   atualizar: async (id, payload) =>
     unwrap(await apiPut(`chamada/admin/${id}`, payload), null),
@@ -159,7 +161,7 @@ const chamadaApi = {
       await apiPatchLocal(`chamada/admin/${id}/publicacao`, {
         publicado: Boolean(publicado),
       }),
-      null
+      null,
     ),
 
   remover: async (id) => apiDelete(`chamada/admin/${id}`),
@@ -201,7 +203,7 @@ function pad2(n) {
 function nowDatetimeLocal() {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(
-    d.getHours()
+    d.getHours(),
   )}:${pad2(d.getMinutes())}`;
 }
 
@@ -209,9 +211,11 @@ function wallToDatetimeLocal(value) {
   const text = String(value || "").trim();
 
   const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::\d{2})?/.exec(text);
-  if (match) return `${match[1]}T${match[2]}`;
+  if (match) {
+    return `${match[1]}T${match[2]}`;
+  }
 
-  if (/[zZ]$|[+\-]\d{2}:\d{2}$/.test(text)) {
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(text)) {
     const d = new Date(text);
     if (!Number.isNaN(d.getTime())) {
       const parts = new Intl.DateTimeFormat("sv-SE", {
@@ -242,7 +246,9 @@ function datetimeLocalToWall(value) {
 
 function fmtPrazo(value) {
   const text = String(value || "").trim();
-  if (!text) return "—";
+  if (!text) {
+    return "—";
+  }
 
   const wall = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(text);
   if (wall) {
@@ -263,7 +269,9 @@ function fmtPrazo(value) {
 
 function fmtYYYYMM(value) {
   const match = /^(\d{4})-(\d{2})$/.exec(String(value || ""));
-  if (!match) return "—";
+  if (!match) {
+    return "—";
+  }
 
   const meses = [
     "jan",
@@ -297,8 +305,12 @@ function toCodigo(value) {
 
 function formatBytes(bytes) {
   const n = Number(bytes);
-  if (!Number.isFinite(n) || n < 0) return "—";
-  if (n === 0) return "0 B";
+  if (!Number.isFinite(n) || n < 0) {
+    return "—";
+  }
+  if (n === 0) {
+    return "0 B";
+  }
 
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
@@ -309,7 +321,9 @@ function formatBytes(bytes) {
 
 function clampLimit(value) {
   const n = Number(value);
-  if (!Number.isInteger(n)) return LIMIT_MIN;
+  if (!Number.isInteger(n)) {
+    return LIMIT_MIN;
+  }
   return Math.max(LIMIT_MIN, Math.min(LIMIT_MAX, n));
 }
 
@@ -361,7 +375,7 @@ function GlassCard({ children, className = "" }) {
       className={cx(
         "rounded-[1.75rem] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur-xl",
         "dark:border-white/10 dark:bg-slate-900/80 dark:shadow-black/20",
-        className
+        className,
       )}
     >
       {children}
@@ -384,8 +398,14 @@ function Field({ label, hint, error, children, htmlFor, required = false }) {
 
       {children}
 
-      {hint ? <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{hint}</p> : null}
-      {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
+      {hint ? (
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-xs font-medium text-rose-600">{error}</p>
+      ) : null}
     </div>
   );
 }
@@ -396,12 +416,10 @@ function Badge({ children, tone = "slate", icon: Icon }) {
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
   };
@@ -410,7 +428,7 @@ function Badge({ children, tone = "slate", icon: Icon }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -457,7 +475,7 @@ function Button({
         "focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         sizes[size],
         tones[tone],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -473,7 +491,9 @@ function Button({
 }
 
 function LiveRegion({ message, type = "polite" }) {
-  if (!message) return null;
+  if (!message) {
+    return null;
+  }
   return (
     <div aria-live={type} className="sr-only">
       {message}
@@ -510,7 +530,9 @@ function Modal({
   const lastFocusRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     lastFocusRef.current = document.activeElement;
     document.body.style.overflow = "hidden";
@@ -526,10 +548,14 @@ function Modal({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
-      if (event.key === "Escape") onClose?.();
+      if (event.key === "Escape") {
+        onClose?.();
+      }
     }
 
     document.addEventListener("keydown", onKeyDown);
@@ -538,13 +564,17 @@ function Modal({
   }, [open, onClose]);
 
   function onBackdrop(event) {
-    if (event.target === event.currentTarget) onClose?.();
+    if (event.target === event.currentTarget) {
+      onClose?.();
+    }
   }
 
   const portalTarget =
     typeof document !== "undefined" && document.body ? document.body : null;
 
-  if (!portalTarget) return null;
+  if (!portalTarget) {
+    return null;
+  }
 
   return createPortal(
     <AnimatePresence>
@@ -565,7 +595,7 @@ function Modal({
             className={cx(
               "flex h-[100dvh] w-full flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950",
               "sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20",
-              size
+              size,
             )}
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -621,11 +651,18 @@ function Modal({
         </motion.div>
       ) : null}
     </AnimatePresence>,
-    portalTarget
+    portalTarget,
   );
 }
 
-function ConfirmDialog({ open, title, description, onCancel, onConfirm, busy }) {
+function ConfirmDialog({
+  open,
+  title,
+  description,
+  onCancel,
+  onConfirm,
+  busy,
+}) {
   return (
     <Modal
       open={open}
@@ -638,14 +675,21 @@ function ConfirmDialog({ open, title, description, onCancel, onConfirm, busy }) 
           <Button tone="ghost" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button tone="danger" icon={Trash2} loading={busy} onClick={onConfirm}>
+          <Button
+            tone="danger"
+            icon={Trash2}
+            loading={busy}
+            onClick={onConfirm}
+          >
             Excluir
           </Button>
         </>
       }
     >
       <div className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm leading-relaxed text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
-        Esta ação só deve ser usada para chamadas sem submissões vinculadas. Se houver histórico, o backend bloqueará a exclusão para preservar rastreabilidade institucional.
+        Esta ação só deve ser usada para chamadas sem submissões vinculadas. Se
+        houver histórico, o backend bloqueará a exclusão para preservar
+        rastreabilidade institucional.
       </div>
     </Modal>
   );
@@ -655,7 +699,20 @@ function ConfirmDialog({ open, title, description, onCancel, onConfirm, busy }) 
    Month picker
 =========================================================================== */
 
-const MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MONTHS_PT = [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+];
 
 function MonthYearPicker({ value, onChange, min, max, label }) {
   const minParsed = parseYYYYMM(min);
@@ -669,12 +726,16 @@ function MonthYearPicker({ value, onChange, min, max, label }) {
   const yearEnd = maxParsed?.y ?? current.y + 6;
 
   const years = [];
-  for (let y = yearStart; y <= yearEnd; y += 1) years.push(y);
+  for (let y = yearStart; y <= yearEnd; y += 1) {
+    years.push(y);
+  }
 
   const monthMin = minParsed && current.y === minParsed.y ? minParsed.m : 1;
   const monthMax = maxParsed && current.y === maxParsed.y ? maxParsed.m : 12;
   const months = [];
-  for (let m = monthMin; m <= monthMax; m += 1) months.push(m);
+  for (let m = monthMin; m <= monthMax; m += 1) {
+    months.push(m);
+  }
 
   function emit(next) {
     let y = next.y;
@@ -698,7 +759,9 @@ function MonthYearPicker({ value, onChange, min, max, label }) {
       <select
         className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900"
         value={current.y}
-        onChange={(event) => emit({ y: Number(event.target.value), m: current.m })}
+        onChange={(event) =>
+          emit({ y: Number(event.target.value), m: current.m })
+        }
         aria-label={`${label} — ano`}
       >
         {years.map((year) => (
@@ -711,7 +774,9 @@ function MonthYearPicker({ value, onChange, min, max, label }) {
       <select
         className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900"
         value={current.m}
-        onChange={(event) => emit({ y: current.y, m: Number(event.target.value) })}
+        onChange={(event) =>
+          emit({ y: current.y, m: Number(event.target.value) })
+        }
         aria-label={`${label} — mês`}
       >
         {months.map((month) => (
@@ -728,73 +793,6 @@ function MonthYearPicker({ value, onChange, min, max, label }) {
    Header
 =========================================================================== */
 
-function Hero({ counts, onNova }) {
-  return (
-    <header className="relative overflow-hidden bg-slate-950 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(34,211,238,.30),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(139,92,246,.28),transparent_30%),radial-gradient(circle_at_55%_90%,rgba(16,185,129,.25),transparent_28%)]" />
-      <div className="relative mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr] lg:items-end">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
-              Chamadas de trabalhos — administração v2.0
-            </div>
-
-            <h1 className="max-w-4xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Gestão premium de chamadas, critérios e modelos institucionais.
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72 sm:text-base">
-              Crie chamadas, controle prazos, linhas temáticas, limites de submissão,
-              critérios de avaliação escrita e oral, publicação e modelos oficiais de banner/apresentação.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button tone="primary" icon={Plus} onClick={onNova} size="lg">
-                Nova mostra
-              </Button>
-
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur">
-                <ShieldCheck className="h-4 w-4 text-emerald-200" />
-                Sem rotas legadas. Sem compatibilidade paralela.
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Metric label="Chamadas" value={counts.total} icon={ClipboardList} />
-            <Metric label="Abertas" value={counts.abertas} icon={Eye} tone="emerald" />
-            <Metric label="Encerradas" value={counts.encerradas} icon={EyeOff} tone="amber" />
-            <Metric label="Publicadas" value={counts.publicadas} icon={CheckCircle2} tone="cyan" />
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function Metric({ label, value, icon: Icon, tone = "violet" }) {
-  const tones = {
-    violet: "from-violet-400/25 to-white/5",
-    emerald: "from-emerald-400/25 to-white/5",
-    amber: "from-amber-400/25 to-white/5",
-    cyan: "from-cyan-400/25 to-white/5",
-  };
-
-  return (
-    <div className={cx("rounded-3xl border border-white/15 bg-gradient-to-br p-4 backdrop-blur", tones[tone])}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
-          {label}
-        </span>
-        <Icon className="h-4 w-4 text-white/70" />
-      </div>
-      <div className="mt-2 text-3xl font-black">{value ?? "—"}</div>
-    </div>
-  );
-}
-
-
 function PainelOperacionalChamadas({ counts, onNova, onAtualizar }) {
   return (
     <section
@@ -810,7 +808,8 @@ function PainelOperacionalChamadas({ counts, onNova, onAtualizar }) {
             </p>
 
             <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {counts.total} chamada(s) cadastrada(s) • {counts.publicadas} publicada(s)
+              {counts.total} chamada(s) cadastrada(s) • {counts.publicadas}{" "}
+              publicada(s)
             </p>
           </div>
 
@@ -862,23 +861,19 @@ function PainelOperacionalChamadas({ counts, onNova, onAtualizar }) {
 function PainelKpiCard({ label, value, icon: Icon, tone = "cyan" }) {
   const tones = {
     cyan: {
-      wrap:
-        "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
+      wrap: "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
       gradient: "from-cyan-600 via-sky-500 to-blue-500",
     },
     emerald: {
-      wrap:
-        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      wrap: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
       gradient: "from-emerald-600 via-teal-500 to-cyan-500",
     },
     amber: {
-      wrap:
-        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      wrap: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
       gradient: "from-amber-500 via-orange-400 to-yellow-500",
     },
     violet: {
-      wrap:
-        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      wrap: "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
       gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
     },
   };
@@ -886,7 +881,9 @@ function PainelKpiCard({ label, value, icon: Icon, tone = "cyan" }) {
   const cfg = tones[tone] || tones.cyan;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -936,7 +933,7 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
             ? "from-rose-500 via-orange-400 to-amber-400"
             : chamada.publicado
               ? "from-emerald-500 via-cyan-400 to-sky-500"
-              : "from-slate-400 via-violet-400 to-cyan-400"
+              : "from-slate-400 via-violet-400 to-cyan-400",
         )}
       />
 
@@ -947,7 +944,10 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
               <Badge tone={status.tone} icon={status.icon}>
                 {status.label}
               </Badge>
-              <Badge tone={chamada.publicado ? "emerald" : "slate"} icon={chamada.publicado ? CheckCircle2 : XCircle}>
+              <Badge
+                tone={chamada.publicado ? "emerald" : "slate"}
+                icon={chamada.publicado ? CheckCircle2 : XCircle}
+              >
                 {chamada.publicado ? "Publicada" : "Não publicada"}
               </Badge>
             </div>
@@ -957,20 +957,33 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
             </h3>
 
             <div className="mt-3 grid gap-2 text-sm text-slate-500 dark:text-slate-400 sm:grid-cols-3">
-              <InfoPill icon={CalendarClock} label="Prazo" value={fmtPrazo(chamada.prazo_final_br)} />
+              <InfoPill
+                icon={CalendarClock}
+                label="Prazo"
+                value={fmtPrazo(chamada.prazo_final_br)}
+              />
               <InfoPill
                 icon={Archive}
                 label="Experiência"
                 value={`${fmtYYYYMM(chamada.periodo_experiencia_inicio)} — ${fmtYYYYMM(
-                  chamada.periodo_experiencia_fim
+                  chamada.periodo_experiencia_fim,
                 )}`}
               />
-              <InfoPill icon={Users} label="Coautores" value={`${chamada.max_coautores ?? 0}`} />
+              <InfoPill
+                icon={Users}
+                label="Coautores"
+                value={`${chamada.max_coautores ?? 0}`}
+              />
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            <Button tone="slate" size="sm" icon={Pencil} onClick={() => onEditar(chamada.id)}>
+            <Button
+              tone="slate"
+              size="sm"
+              icon={Pencil}
+              onClick={() => onEditar(chamada.id)}
+            >
               Editar
             </Button>
 
@@ -984,7 +997,13 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
               {chamada.publicado ? "Despublicar" : "Publicar"}
             </Button>
 
-            <Button tone="danger" size="sm" icon={Trash2} loading={busy} onClick={() => onExcluir(chamada.id)}>
+            <Button
+              tone="danger"
+              size="sm"
+              icon={Trash2}
+              loading={busy}
+              onClick={() => onExcluir(chamada.id)}
+            >
               Excluir
             </Button>
           </div>
@@ -1057,8 +1076,8 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
       setErro(
         getMessage(
           error,
-          "Não foi possível carregar as chamadas. Verifique sua conexão ou tente novamente."
-        )
+          "Não foi possível carregar as chamadas. Verifique sua conexão ou tente novamente.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -1072,7 +1091,9 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
   const counts = useMemo(() => {
     const total = lista.length;
     const abertas = lista.filter((item) => item.dentro_prazo === true).length;
-    const encerradas = lista.filter((item) => item.dentro_prazo === false).length;
+    const encerradas = lista.filter(
+      (item) => item.dentro_prazo === false,
+    ).length;
     const publicadas = lista.filter((item) => item.publicado === true).length;
 
     return { total, abertas, encerradas, publicadas };
@@ -1088,8 +1109,12 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
     return lista.filter((item) => {
       const matchesBusca =
         !term ||
-        String(item.titulo || "").toLowerCase().includes(term) ||
-        String(item.descricao_markdown || "").toLowerCase().includes(term);
+        String(item.titulo || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(item.descricao_markdown || "")
+          .toLowerCase()
+          .includes(term);
 
       const matchesFiltro =
         filtro === "todas"
@@ -1121,8 +1146,8 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
                 ...(atualizado || {}),
                 publicado: Boolean(publicado),
               }
-            : item
-        )
+            : item,
+        ),
       );
     } catch (error) {
       setErro(
@@ -1130,8 +1155,8 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
           error,
           publicado
             ? "Não foi possível publicar a chamada. Confira se há linha temática e critério escrito cadastrados."
-            : "Não foi possível despublicar a chamada."
-        )
+            : "Não foi possível despublicar a chamada.",
+        ),
       );
     } finally {
       setBusyId(null);
@@ -1140,7 +1165,9 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
 
   async function excluirConfirmado() {
     const id = confirmId;
-    if (!id) return;
+    if (!id) {
+      return;
+    }
 
     setBusyId(id);
     setErro("");
@@ -1153,121 +1180,122 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
       setErro(
         getMessage(
           error,
-          "Não foi possível excluir a chamada. Se houver submissões vinculadas, a exclusão é bloqueada para preservar o histórico."
-        )
+          "Não foi possível excluir a chamada. Se houver submissões vinculadas, a exclusão é bloqueada para preservar o histórico.",
+        ),
       );
     } finally {
       setBusyId(null);
     }
   }
 
-return (
-  <div className="space-y-5">
-    <section className="space-y-5">
+  return (
+    <div className="space-y-5">
+      <section className="space-y-5">
         <GlassCard className="overflow-hidden p-0">
-  {loading ? (
-    <div className="h-1 overflow-hidden bg-slate-100 dark:bg-slate-800">
-      <div
-        className={cx(
-          "h-full w-1/3 rounded-full bg-gradient-to-r from-cyan-500 via-violet-500 to-emerald-500",
-          reduceMotion ? "" : "animate-pulse"
-        )}
-      />
-    </div>
-  ) : (
-    <div className="h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-emerald-500" />
-  )}
+          {loading ? (
+            <div className="h-1 overflow-hidden bg-slate-100 dark:bg-slate-800">
+              <div
+                className={cx(
+                  "h-full w-1/3 rounded-full bg-gradient-to-r from-cyan-500 via-violet-500 to-emerald-500",
+                  reduceMotion ? "" : "animate-pulse",
+                )}
+              />
+            </div>
+          ) : (
+            <div className="h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-emerald-500" />
+          )}
 
-  <div className="p-4 sm:p-5">
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-      <div className="min-w-0">
-        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-cyan-800 dark:border-cyan-900/50 dark:bg-cyan-950/30 dark:text-cyan-200">
-          <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
-          Chamadas de trabalhos
-        </div>
+          <div className="p-4 sm:p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-cyan-800 dark:border-cyan-900/50 dark:bg-cyan-950/30 dark:text-cyan-200">
+                  <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Chamadas de trabalhos
+                </div>
 
-        <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-white">
-          Chamadas cadastradas
-        </h2>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-white">
+                  Chamadas cadastradas
+                </h2>
 
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-          Filtre, publique, edite e acompanhe chamadas institucionais com contrato único da v2.0.
-        </p>
-      </div>
+                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                  Filtre, publique, edite e acompanhe chamadas institucionais
+                  com contrato único da v2.0.
+                </p>
+              </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Button
-          tone="slate"
-          icon={RefreshCw}
-          onClick={carregar}
-          loading={loading}
-          className="w-full sm:w-auto"
-        >
-          Recarregar
-        </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  tone="slate"
+                  icon={RefreshCw}
+                  onClick={carregar}
+                  loading={loading}
+                  className="w-full sm:w-auto"
+                >
+                  Recarregar
+                </Button>
 
-        <Button
-          tone="primary"
-          icon={Plus}
-          onClick={onNova}
-          className="w-full sm:w-auto"
-        >
-          Nova mostra
-        </Button>
-      </div>
-    </div>
+                <Button
+                  tone="primary"
+                  icon={Plus}
+                  onClick={onNova}
+                  className="w-full sm:w-auto"
+                >
+                  Nova mostra
+                </Button>
+              </div>
+            </div>
 
-    <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto] xl:items-center">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto] xl:items-center">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
-        <input
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-          className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-cyan-950/40"
-          placeholder="Buscar por título ou descrição..."
-          aria-label="Buscar chamada por título ou descrição"
-        />
-      </div>
+                <input
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-cyan-950/40"
+                  placeholder="Buscar por título ou descrição..."
+                  aria-label="Buscar chamada por título ou descrição"
+                />
+              </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-[1.35rem] border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-800 dark:bg-slate-950 sm:flex sm:flex-wrap">
-        {[
-          ["ativas", "Ativas"],
-          ["publicadas", "Publicadas"],
-          ["rascunho", "Rascunhos"],
-          ["encerradas", "Encerradas"],
-          ["todas", "Todas"],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFiltro(key)}
-            className={cx(
-              "min-h-[38px] rounded-2xl px-3 py-2 text-xs font-black transition focus:outline-none focus:ring-2 focus:ring-cyan-500",
-              filtro === key
-                ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
-                : "text-slate-500 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
-            )}
-            aria-pressed={filtro === key}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
+              <div className="grid grid-cols-2 gap-2 rounded-[1.35rem] border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-800 dark:bg-slate-950 sm:flex sm:flex-wrap">
+                {[
+                  ["ativas", "Ativas"],
+                  ["publicadas", "Publicadas"],
+                  ["rascunho", "Rascunhos"],
+                  ["encerradas", "Encerradas"],
+                  ["todas", "Todas"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFiltro(key)}
+                    className={cx(
+                      "min-h-[38px] rounded-2xl px-3 py-2 text-xs font-black transition focus:outline-none focus:ring-2 focus:ring-cyan-500",
+                      filtro === key
+                        ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                        : "text-slate-500 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white",
+                    )}
+                    aria-pressed={filtro === key}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-    <LiveRegion message={erro} type="assertive" />
+            <LiveRegion message={erro} type="assertive" />
 
-    {erro ? (
-      <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
-        <div className="flex gap-2">
-          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
-          <p>{erro}</p>
-        </div>
-      </div>
-    ) : null}
-  </div>
-</GlassCard>
+            {erro ? (
+              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
+                <div className="flex gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+                  <p>{erro}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </GlassCard>
 
         {loading ? (
           <SkeletonList />
@@ -1280,7 +1308,8 @@ return (
               Nenhuma chamada encontrada
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-              Ajuste os filtros ou crie uma nova mostra de experiências institucional para iniciar o fluxo de submissão.
+              Ajuste os filtros ou crie uma nova mostra de experiências
+              institucional para iniciar o fluxo de submissão.
             </p>
             <div className="mt-5">
               <Button tone="primary" icon={Plus} onClick={onNova}>
@@ -1306,7 +1335,7 @@ return (
         )}
       </section>
 
-     <ConfirmDialog
+      <ConfirmDialog
         open={confirmId != null}
         title="Excluir mostra?"
         description="A exclusão física só é permitida quando não há submissões vinculadas."
@@ -1314,19 +1343,6 @@ return (
         onCancel={() => setConfirmId(null)}
         onConfirm={excluirConfirmado}
       />
-    </div>
-  );
-}
-
-function ChecklistItem({ children, ok = false }) {
-  return (
-    <div className="flex items-start gap-2">
-      {ok ? (
-        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-500" />
-      ) : (
-        <AlertCircle className="mt-0.5 h-4 w-4 flex-none text-amber-500" />
-      )}
-      <span>{children}</span>
     </div>
   );
 }
@@ -1407,7 +1423,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
   }
 
   const carregar = useCallback(async () => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     setErro("");
     setSucesso("");
@@ -1433,9 +1451,11 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
         titulo: chamada.titulo || "",
         descricao_markdown: chamada.descricao_markdown || "",
         periodo_experiencia_inicio:
-          chamada.periodo_experiencia_inicio || DEFAULT_FORM.periodo_experiencia_inicio,
+          chamada.periodo_experiencia_inicio ||
+          DEFAULT_FORM.periodo_experiencia_inicio,
         periodo_experiencia_fim:
-          chamada.periodo_experiencia_fim || DEFAULT_FORM.periodo_experiencia_fim,
+          chamada.periodo_experiencia_fim ||
+          DEFAULT_FORM.periodo_experiencia_fim,
         prazo_final_br: wallToDatetimeLocal(chamada.prazo_final_br),
         aceita_poster: Boolean(chamada.aceita_poster),
         link_modelo_poster: chamada.link_modelo_poster || "",
@@ -1478,12 +1498,25 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
   }, [carregar]);
 
   function validar() {
-    if (!form.titulo.trim()) return "Informe o título da chamada.";
-    if (!form.descricao_markdown.trim()) return "Informe a descrição/normas da chamada.";
-    if (!parseYYYYMM(form.periodo_experiencia_inicio)) return "Período inicial inválido.";
-    if (!parseYYYYMM(form.periodo_experiencia_fim)) return "Período final inválido.";
+    if (!form.titulo.trim()) {
+      return "Informe o título da chamada.";
+    }
+    if (!form.descricao_markdown.trim()) {
+      return "Informe a descrição/normas da chamada.";
+    }
+    if (!parseYYYYMM(form.periodo_experiencia_inicio)) {
+      return "Período inicial inválido.";
+    }
+    if (!parseYYYYMM(form.periodo_experiencia_fim)) {
+      return "Período final inválido.";
+    }
 
-    if (compareYYYYMM(form.periodo_experiencia_inicio, form.periodo_experiencia_fim) > 0) {
+    if (
+      compareYYYYMM(
+        form.periodo_experiencia_inicio,
+        form.periodo_experiencia_fim,
+      ) > 0
+    ) {
       return "O período inicial não pode ser maior que o período final.";
     }
 
@@ -1491,11 +1524,17 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
       return "Informe o prazo final corretamente.";
     }
 
-    if (!Array.isArray(form.linhas) || form.linhas.filter((l) => l.nome?.trim()).length === 0) {
+    if (
+      !Array.isArray(form.linhas) ||
+      form.linhas.filter((l) => l.nome?.trim()).length === 0
+    ) {
       return "Inclua pelo menos uma linha temática.";
     }
 
-    if (!Array.isArray(form.criterios) || form.criterios.filter((c) => c.titulo?.trim()).length === 0) {
+    if (
+      !Array.isArray(form.criterios) ||
+      form.criterios.filter((c) => c.titulo?.trim()).length === 0
+    ) {
       return "Inclua pelo menos um critério de avaliação escrita.";
     }
 
@@ -1572,7 +1611,11 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
 
       const savedId = data?.id || chamadaId;
 
-      setSucesso(isEdit ? "Chamada atualizada com sucesso." : "Chamada criada com sucesso.");
+      setSucesso(
+        isEdit
+          ? "Chamada atualizada com sucesso."
+          : "Chamada criada com sucesso.",
+      );
       onSaved?.(savedId);
 
       if (savedId) {
@@ -1586,8 +1629,8 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
       setErro(
         getMessage(
           error,
-          "Não foi possível salvar a chamada. Revise os campos e tente novamente."
-        )
+          "Não foi possível salvar a chamada. Revise os campos e tente novamente.",
+        ),
       );
     } finally {
       setSaving(false);
@@ -1595,7 +1638,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
   }
 
   async function importarModelo(tipo, file) {
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     setErro("");
     setModeloMsg("");
@@ -1625,15 +1670,19 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
       }
 
       await carregarMetaModelos(chamadaId);
-      setModeloMsg(tipo === "banner" ? "Modelo de banner importado." : "Modelo oral importado.");
+      setModeloMsg(
+        tipo === "banner"
+          ? "Modelo de banner importado."
+          : "Modelo oral importado.",
+      );
     } catch (error) {
       setErro(
         getMessage(
           error,
           tipo === "banner"
             ? "Não foi possível importar o modelo de banner."
-            : "Não foi possível importar o modelo oral."
-        )
+            : "Não foi possível importar o modelo oral.",
+        ),
       );
     } finally {
       setModeloBusy("");
@@ -1655,7 +1704,7 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
           (tipo === "banner"
             ? `modelo-banner-chamada-${chamadaId}.pptx`
             : `modelo-oral-chamada-${chamadaId}.pptx`),
-        result.blob
+        result.blob,
       );
 
       setModeloMsg("Download iniciado.");
@@ -1665,8 +1714,8 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
           error,
           tipo === "banner"
             ? "Não foi possível baixar o modelo de banner."
-            : "Não foi possível baixar o modelo oral."
-        )
+            : "Não foi possível baixar o modelo oral.",
+        ),
       );
     }
   }
@@ -1680,8 +1729,12 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
       footer={
         <>
           <div className="mr-auto min-w-0 text-sm">
-            {erro ? <span className="font-medium text-rose-600">{erro}</span> : null}
-            {!erro && sucesso ? <span className="font-medium text-emerald-600">{sucesso}</span> : null}
+            {erro ? (
+              <span className="font-medium text-rose-600">{erro}</span>
+            ) : null}
+            {!erro && sucesso ? (
+              <span className="font-medium text-emerald-600">{sucesso}</span>
+            ) : null}
             {!erro && !sucesso && modeloMsg ? (
               <span className="font-medium text-cyan-600">{modeloMsg}</span>
             ) : null}
@@ -1696,7 +1749,10 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
         </>
       }
     >
-      <LiveRegion message={erro || sucesso || modeloMsg} type={erro ? "assertive" : "polite"} />
+      <LiveRegion
+        message={erro || sucesso || modeloMsg}
+        type={erro ? "assertive" : "polite"}
+      />
 
       {loading ? (
         <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
@@ -1707,7 +1763,14 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
         <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div className="space-y-6">
             <FormSection title="Informações gerais" icon={Settings2}>
-              <Field label={<span>Título <Counter value={form.titulo} max={200} /></span>} required>
+              <Field
+                label={
+                  <span>
+                    Título <Counter value={form.titulo} max={200} />
+                  </span>
+                }
+                required
+              >
                 <input
                   className={cx(inputBase, "h-12 text-base font-semibold")}
                   value={form.titulo}
@@ -1722,7 +1785,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                     label="Período inicial"
                     value={form.periodo_experiencia_inicio}
                     max={form.periodo_experiencia_fim}
-                    onChange={(value) => setValue("periodo_experiencia_inicio", value)}
+                    onChange={(value) =>
+                      setValue("periodo_experiencia_inicio", value)
+                    }
                   />
                 </Field>
 
@@ -1731,7 +1796,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                     label="Período final"
                     value={form.periodo_experiencia_fim}
                     min={form.periodo_experiencia_inicio}
-                    onChange={(value) => setValue("periodo_experiencia_fim", value)}
+                    onChange={(value) =>
+                      setValue("periodo_experiencia_fim", value)
+                    }
                   />
                 </Field>
               </div>
@@ -1745,7 +1812,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                   type="datetime-local"
                   className={inputBase}
                   value={form.prazo_final_br}
-                  onChange={(event) => setValue("prazo_final_br", event.target.value)}
+                  onChange={(event) =>
+                    setValue("prazo_final_br", event.target.value)
+                  }
                 />
               </Field>
 
@@ -1753,7 +1822,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                 <textarea
                   className={cx(textAreaBase, "min-h-[180px]")}
                   value={form.descricao_markdown}
-                  onChange={(event) => setValue("descricao_markdown", event.target.value)}
+                  onChange={(event) =>
+                    setValue("descricao_markdown", event.target.value)
+                  }
                   placeholder="Descreva regras, público-alvo, formato de submissão, etapas e critérios gerais."
                 />
               </Field>
@@ -1764,11 +1835,16 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                 items={form.linhas}
                 addLabel="Adicionar linha"
                 emptyText="Nenhuma linha temática cadastrada."
-                onAdd={() => setValue("linhas", [...form.linhas, { nome: "", descricao: "" }])}
+                onAdd={() =>
+                  setValue("linhas", [
+                    ...form.linhas,
+                    { nome: "", descricao: "" },
+                  ])
+                }
                 onRemove={(index) =>
                   setValue(
                     "linhas",
-                    form.linhas.filter((_, itemIndex) => itemIndex !== index)
+                    form.linhas.filter((_, itemIndex) => itemIndex !== index),
                   )
                 }
                 render={(item, index) => (
@@ -1779,7 +1855,10 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                       placeholder="Nome da linha temática"
                       onChange={(event) => {
                         const next = [...form.linhas];
-                        next[index] = { ...next[index], nome: event.target.value };
+                        next[index] = {
+                          ...next[index],
+                          nome: event.target.value,
+                        };
                         setValue("linhas", next);
                       }}
                     />
@@ -1789,7 +1868,10 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                       placeholder="Descrição da linha temática"
                       onChange={(event) => {
                         const next = [...form.linhas];
-                        next[index] = { ...next[index], descricao: event.target.value };
+                        next[index] = {
+                          ...next[index],
+                          descricao: event.target.value,
+                        };
                         setValue("linhas", next);
                       }}
                     />
@@ -1798,7 +1880,10 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
               />
             </FormSection>
 
-            <FormSection title="Limites do formulário de submissão" icon={ClipboardList}>
+            <FormSection
+              title="Limites do formulário de submissão"
+              icon={ClipboardList}
+            >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   ["titulo", "Título"],
@@ -1808,7 +1893,11 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                   ["resultados", "Resultados"],
                   ["consideracao", "Considerações finais"],
                 ].map(([key, label]) => (
-                  <Field key={key} label={label} hint={`Entre ${LIMIT_MIN} e ${LIMIT_MAX} caracteres.`}>
+                  <Field
+                    key={key}
+                    label={label}
+                    hint={`Entre ${LIMIT_MIN} e ${LIMIT_MAX} caracteres.`}
+                  >
                     <input
                       type="number"
                       min={LIMIT_MIN}
@@ -1822,7 +1911,10 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
               </div>
             </FormSection>
 
-            <FormSection title="Critérios de avaliação escrita" icon={CheckCircle2}>
+            <FormSection
+              title="Critérios de avaliação escrita"
+              icon={CheckCircle2}
+            >
               <CriteriaEditor
                 criterios={form.criterios}
                 defaultMax={5}
@@ -1833,7 +1925,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                 <textarea
                   className={cx(textAreaBase, "min-h-[110px]")}
                   value={form.criterios_outros}
-                  onChange={(event) => setValue("criterios_outros", event.target.value)}
+                  onChange={(event) =>
+                    setValue("criterios_outros", event.target.value)
+                  }
                 />
               </Field>
             </FormSection>
@@ -1849,7 +1943,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                 <textarea
                   className={cx(textAreaBase, "min-h-[110px]")}
                   value={form.oral_outros}
-                  onChange={(event) => setValue("oral_outros", event.target.value)}
+                  onChange={(event) =>
+                    setValue("oral_outros", event.target.value)
+                  }
                 />
               </Field>
             </FormSection>
@@ -1859,7 +1955,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                 <textarea
                   className={cx(textAreaBase, "min-h-[110px]")}
                   value={form.premiacao_texto}
-                  onChange={(event) => setValue("premiacao_texto", event.target.value)}
+                  onChange={(event) =>
+                    setValue("premiacao_texto", event.target.value)
+                  }
                 />
               </Field>
 
@@ -1867,7 +1965,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                 <textarea
                   className={cx(textAreaBase, "min-h-[110px]")}
                   value={form.disposicao_finais_texto}
-                  onChange={(event) => setValue("disposicao_finais_texto", event.target.value)}
+                  onChange={(event) =>
+                    setValue("disposicao_finais_texto", event.target.value)
+                  }
                 />
               </Field>
             </FormSection>
@@ -1887,7 +1987,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                     min={0}
                     className={inputBase}
                     value={form.max_coautores}
-                    onChange={(event) => setValue("max_coautores", event.target.value)}
+                    onChange={(event) =>
+                      setValue("max_coautores", event.target.value)
+                    }
                   />
                 </Field>
 
@@ -1896,7 +1998,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                   <input
                     type="checkbox"
                     checked={form.aceita_poster}
-                    onChange={(event) => setValue("aceita_poster", event.target.checked)}
+                    onChange={(event) =>
+                      setValue("aceita_poster", event.target.checked)
+                    }
                     className="h-5 w-5 rounded border-slate-300"
                   />
                 </label>
@@ -1906,7 +2010,9 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
                   <input
                     type="checkbox"
                     checked={form.publicado}
-                    onChange={(event) => setValue("publicado", event.target.checked)}
+                    onChange={(event) =>
+                      setValue("publicado", event.target.checked)
+                    }
                     className="h-5 w-5 rounded border-slate-300"
                   />
                 </label>
@@ -1946,7 +2052,9 @@ function FormSection({ title, icon: Icon, children }) {
         <div className="rounded-2xl bg-slate-100 p-3 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           <Icon className="h-5 w-5" />
         </div>
-        <h3 className="text-lg font-black text-slate-900 dark:text-white">{title}</h3>
+        <h3 className="text-lg font-black text-slate-900 dark:text-white">
+          {title}
+        </h3>
       </div>
       <div className="space-y-4">{children}</div>
     </GlassCard>
@@ -1977,7 +2085,12 @@ function DynamicList({ items, onAdd, onRemove, render, addLabel, emptyText }) {
                 <span className="text-sm font-black text-slate-700 dark:text-slate-200">
                   Item {index + 1}
                 </span>
-                <Button tone="ghost" size="sm" icon={Trash2} onClick={() => onRemove(index)}>
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={Trash2}
+                  onClick={() => onRemove(index)}
+                >
                   Remover
                 </Button>
               </div>
@@ -2013,14 +2126,18 @@ function CriteriaEditor({ criterios, defaultMax, onChange }) {
           },
         ])
       }
-      onRemove={(index) => onChange(criterios.filter((_, itemIndex) => itemIndex !== index))}
+      onRemove={(index) =>
+        onChange(criterios.filter((_, itemIndex) => itemIndex !== index))
+      }
       render={(criterio, index) => (
         <div className="grid gap-3 lg:grid-cols-[1fr_110px_110px_110px]">
           <Field label="Critério">
             <input
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900"
               value={criterio.titulo || ""}
-              onChange={(event) => update(index, { titulo: event.target.value })}
+              onChange={(event) =>
+                update(index, { titulo: event.target.value })
+              }
               placeholder="Título do critério"
             />
           </Field>
@@ -2030,7 +2147,9 @@ function CriteriaEditor({ criterios, defaultMax, onChange }) {
               type="number"
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900"
               value={criterio.escala_min ?? 1}
-              onChange={(event) => update(index, { escala_min: Number(event.target.value) || 1 })}
+              onChange={(event) =>
+                update(index, { escala_min: Number(event.target.value) || 1 })
+              }
             />
           </Field>
 
@@ -2039,7 +2158,11 @@ function CriteriaEditor({ criterios, defaultMax, onChange }) {
               type="number"
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900"
               value={criterio.escala_max ?? defaultMax}
-              onChange={(event) => update(index, { escala_max: Number(event.target.value) || defaultMax })}
+              onChange={(event) =>
+                update(index, {
+                  escala_max: Number(event.target.value) || defaultMax,
+                })
+              }
             />
           </Field>
 
@@ -2049,7 +2172,9 @@ function CriteriaEditor({ criterios, defaultMax, onChange }) {
               step="0.1"
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900"
               value={criterio.peso ?? 1}
-              onChange={(event) => update(index, { peso: Number(event.target.value) || 1 })}
+              onChange={(event) =>
+                update(index, { peso: Number(event.target.value) || 1 })
+              }
             />
           </Field>
         </div>
@@ -2058,7 +2183,15 @@ function CriteriaEditor({ criterios, defaultMax, onChange }) {
   );
 }
 
-function ModeloBox({ title, description, meta, disabled, busy, onUpload, onDownload }) {
+function ModeloBox({
+  title,
+  description,
+  meta,
+  disabled,
+  busy,
+  onUpload,
+  onDownload,
+}) {
   const inputRef = useRef(null);
   const exists = Boolean(meta?.exists);
 
@@ -2109,7 +2242,12 @@ function ModeloBox({ title, description, meta, disabled, busy, onUpload, onDownl
         >
           Importar
         </Button>
-        <Button tone="slate" icon={Download} disabled={disabled || !exists} onClick={onDownload}>
+        <Button
+          tone="slate"
+          icon={Download}
+          disabled={disabled || !exists}
+          onClick={onDownload}
+        >
           Baixar
         </Button>
       </div>
@@ -2155,7 +2293,9 @@ export default function MostraExperiencias() {
 
   function handleSaved(savedId) {
     setRefreshSignal((current) => current + 1);
-    if (savedId) setEditingId(savedId);
+    if (savedId) {
+      setEditingId(savedId);
+    }
   }
 
   return (

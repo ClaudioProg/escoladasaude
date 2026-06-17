@@ -44,7 +44,9 @@ function uniq(values) {
 }
 
 function normalizePerfil(value) {
-  const perfil = String(value || "").trim().toLowerCase();
+  const perfil = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!perfil) {
     return "";
@@ -60,11 +62,7 @@ function toPerfilArray(value) {
 
   const raw = Array.isArray(value) ? value : String(value).split(",");
 
-  return uniq(
-    raw
-      .map((item) => normalizePerfil(item))
-      .filter(Boolean)
-  );
+  return uniq(raw.map((item) => normalizePerfil(item)).filter(Boolean));
 }
 
 function validarPerfisOficiais(perfis, origem = "authorize") {
@@ -73,7 +71,7 @@ function validarPerfisOficiais(perfis, origem = "authorize") {
   if (invalidos.length > 0) {
     throw new Error(
       `[${origem}] Perfil não oficial informado: ${invalidos.join(", ")}. ` +
-        `Use apenas: ${Array.from(PERFIS_OFICIAIS).join(", ")}.`
+        `Use apenas: ${Array.from(PERFIS_OFICIAIS).join(", ")}.`,
     );
   }
 }
@@ -142,7 +140,7 @@ function makeAuthorize({ mode = "any" } = {}) {
           buildAuthzLog(req, {
             mode: safeMode,
             allowed,
-          })
+          }),
         );
 
         return sendUnauthorized(res);
@@ -158,7 +156,7 @@ function makeAuthorize({ mode = "any" } = {}) {
           buildAuthzLog(req, {
             mode: safeMode,
             userPerfis,
-          })
+          }),
         );
 
         return next();
@@ -176,7 +174,7 @@ function makeAuthorize({ mode = "any" } = {}) {
             mode: safeMode,
             allowed,
             userPerfis,
-          })
+          }),
         );
 
         return sendForbidden(res, {

@@ -136,7 +136,7 @@ function safeBooleanEnv(name, fallback = false) {
   if (raw == null) return fallback;
 
   return ["1", "true", "yes", "on", "sim"].includes(
-    String(raw).trim().toLowerCase()
+    String(raw).trim().toLowerCase(),
   );
 }
 
@@ -159,7 +159,7 @@ function sendEnvelopeError(
     code = "ERRO_INTERNO",
     adminHint = null,
     details = null,
-  } = {}
+  } = {},
 ) {
   return res.status(status).json({
     ok: false,
@@ -174,13 +174,7 @@ function sendEnvelopeError(
 
 function sendEnvelopeOk(
   res,
-  {
-    status = 200,
-    data = null,
-    message = "OK",
-    code = "OK",
-    meta = null,
-  } = {}
+  { status = 200, data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(status).json({
     ok: true,
@@ -405,7 +399,7 @@ if (!IS_TEST) {
   console.log("[FILES] UPLOADS/eventos:", path.join(UPLOADS_DIR, "eventos"));
   console.log(
     "[FILES] UPLOADS/informacoes:",
-    path.join(UPLOADS_DIR, "informacoes")
+    path.join(UPLOADS_DIR, "informacoes"),
   );
 }
 
@@ -426,7 +420,7 @@ app.use(
     fallthrough: false,
     maxAge: IS_DEV ? 0 : "1h",
     setHeaders: setUploadHeaders,
-  })
+  }),
 );
 
 app.use(
@@ -436,7 +430,7 @@ app.use(
     fallthrough: false,
     maxAge: IS_DEV ? 0 : "1h",
     setHeaders: setUploadHeaders,
-  })
+  }),
 );
 
 app.use(
@@ -446,7 +440,7 @@ app.use(
     fallthrough: true,
     maxAge: IS_DEV ? 0 : "1h",
     setHeaders: setUploadHeaders,
-  })
+  }),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -463,7 +457,7 @@ if (fs.existsSync(PUBLIC_DIR)) {
           res.setHeader("Cache-Control", "public, max-age=3600");
         }
       },
-    })
+    }),
   );
 }
 
@@ -492,8 +486,8 @@ app.use(
     ":date[iso] :ip :rid :uid :method :url :status :res[content-length] - :response-time ms",
     {
       skip: () => process.env.LOG_HTTP === "false",
-    }
-  )
+    },
+  ),
 );
 
 if (IS_DEV && safeBooleanEnv("DEBUG_REQUESTS", true)) {
@@ -587,7 +581,7 @@ app.get(
       message: "Versão da API carregada com sucesso.",
       code: "VERSION_OK",
     });
-  })
+  }),
 );
 
 app.head("/__version", (_req, res) => res.sendStatus(204));
@@ -611,7 +605,7 @@ app.get(
       message: "API ativa.",
       code: "PING_OK",
     });
-  })
+  }),
 );
 
 app.head("/__ping", (_req, res) => res.sendStatus(204));

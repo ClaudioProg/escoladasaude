@@ -30,7 +30,9 @@ function formatarPeriodoMes(data) {
 }
 
 function voltarAoTopo() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
 
   window.scrollTo({
     top: 0,
@@ -47,7 +49,7 @@ function AccentPill({ campanha, children }) {
         "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black shadow-sm ring-1 backdrop-blur",
         claro
           ? "border-slate-200 bg-white/85 text-slate-900 ring-white/70 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:ring-white/10"
-          : "border-white/15 bg-white/10 text-white ring-white/10"
+          : "border-white/15 bg-white/10 text-white ring-white/10",
       )}
     >
       {children}
@@ -61,7 +63,7 @@ export default function Footer() {
 
   const campanha = getCampanhaSaudeVisual();
   const fundoClaroFooter = true;
-const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
+  const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
   const periodoCampanha = formatarPeriodoMes(agora);
 
   return (
@@ -81,7 +83,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
           className={classNames(
             "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r blur-3xl",
             "opacity-75 dark:opacity-30",
-            campanha.topbarGlow
+            campanha.topbarGlow,
           )}
         />
 
@@ -92,7 +94,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
         className={classNames(
           "relative overflow-hidden border-b px-4 pb-6 pt-7 text-center sm:px-6",
           "border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white",
-          "dark:border-white/10 dark:bg-none dark:bg-slate-950"
+          "dark:border-white/10 dark:bg-none dark:bg-slate-950",
         )}
         aria-label="Campanha mensal de saúde"
       >
@@ -105,7 +107,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
           className={classNames(
             "pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full blur-3xl",
             "opacity-80 dark:opacity-30",
-            campanha.brilhoPrimario
+            campanha.brilhoPrimario,
           )}
           aria-hidden="true"
         />
@@ -114,7 +116,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
           className={classNames(
             "pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full blur-3xl",
             "opacity-80 dark:opacity-25",
-            campanha.brilhoSecundario
+            campanha.brilhoSecundario,
           )}
           aria-hidden="true"
         />
@@ -130,7 +132,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
           <h2
             className={classNames(
               "mt-3 text-base font-black tracking-tight sm:text-lg",
-              claro ? "text-slate-950 dark:text-white" : "text-white"
+              claro ? "text-slate-950 dark:text-white" : "text-white",
             )}
           >
             {campanha.nome}
@@ -141,7 +143,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
           <p
             className={classNames(
               "mt-1 text-xs font-medium",
-              claro ? "text-slate-600 dark:text-slate-400" : "text-white/70"
+              claro ? "text-slate-600 dark:text-slate-400" : "text-white/70",
             )}
           >
             Período: {periodoCampanha}
@@ -161,13 +163,13 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
               className={classNames(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black shadow-sm",
                 "border-slate-200 bg-slate-50 text-slate-900",
-                "dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                "dark:border-white/10 dark:bg-slate-900 dark:text-slate-100",
               )}
             >
               <span
                 className={classNames(
                   "h-1.5 w-1.5 rounded-full bg-gradient-to-r",
-                  campanha.topbar
+                  campanha.topbar,
                 )}
                 aria-hidden="true"
               />
@@ -191,7 +193,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
               <span
                 className={classNames(
                   "grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white ring-1 ring-white/30",
-                  campanha.topbar
+                  campanha.topbar,
                 )}
               >
                 <MapPin className="h-5 w-5" aria-hidden="true" />
@@ -213,7 +215,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
                   className={classNames(
                     "mt-3 inline-flex items-center gap-1.5 rounded-xl text-sm font-black transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2",
                     "text-slate-900 dark:text-slate-100",
-                    campanha.foco
+                    campanha.foco,
                   )}
                 >
                   Ver no mapa
@@ -230,7 +232,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
               <span
                 className={classNames(
                   "grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white ring-1 ring-white/30",
-                  campanha.topbar
+                  campanha.topbar,
                 )}
               >
                 <Phone className="h-5 w-5" aria-hidden="true" />
@@ -247,7 +249,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
                       href="tel:+551332135100"
                       className={classNames(
                         "rounded-lg transition hover:text-slate-950 hover:underline focus-visible:outline-none focus-visible:ring-2 dark:hover:text-white",
-                        campanha.foco
+                        campanha.foco,
                       )}
                     >
                       (13) 3213-5100
@@ -266,7 +268,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
                       rel="noopener noreferrer"
                       className={classNames(
                         "rounded-lg transition hover:text-slate-950 hover:underline focus-visible:outline-none focus-visible:ring-2 dark:hover:text-white",
-                        campanha.foco
+                        campanha.foco,
                       )}
                     >
                       WhatsApp: (13) 99618-2615
@@ -283,7 +285,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
                       href="mailto:escoladasaude@santos.sp.gov.br"
                       className={classNames(
                         "break-all rounded-lg transition hover:text-slate-950 hover:underline focus-visible:outline-none focus-visible:ring-2 dark:hover:text-white",
-                        campanha.foco
+                        campanha.foco,
                       )}
                     >
                       escoladasaude@santos.sp.gov.br
@@ -350,7 +352,7 @@ const claro = fundoClaroFooter || campanha.textoContraste === "escuro";
               "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 font-black transition focus-visible:outline-none focus-visible:ring-2",
               "bg-slate-100 text-slate-900 hover:bg-slate-200",
               "dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
-              campanha.foco
+              campanha.foco,
             )}
             aria-label="Voltar ao topo da página"
           >

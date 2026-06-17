@@ -565,7 +565,7 @@ function IndicadorCard({ indicador, onAbrir }) {
             event.preventDefault();
             event.stopPropagation();
 
-            console.log(
+            console.warn(
               "[SaudePlataformaAdmin] Clique no botão Ver detalhes:",
               item,
             );
@@ -1378,7 +1378,7 @@ export default function SaudePlataformaAdmin() {
   );
 
   const abrirDetalhe = useCallback(async (indicador) => {
-    console.log("[SaudePlataformaAdmin] abrirDetalhe chamado:", indicador);
+    console.warn("[SaudePlataformaAdmin] abrirDetalhe chamado:", indicador);
 
     const indicadorBase = normalizarIndicador(indicador);
 

@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
-  BarChart3,
   CalendarDays,
   CheckCircle2,
   Download,
@@ -16,7 +15,6 @@ import {
   History,
   Loader2,
   Mail,
-  PenLine,
   RefreshCcw,
   Search,
   ShieldCheck,
@@ -109,7 +107,7 @@ function hojeYMD() {
   const pad = (number) => String(number).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
@@ -123,7 +121,9 @@ function periodoEvento(item) {
   const inicio = item?.data_inicio;
   const fim = item?.data_fim || inicio;
 
-  if (!inicio && !fim) return "Período não informado";
+  if (!inicio && !fim) {
+    return "Período não informado";
+  }
 
   return `${dataBR(inicio)} até ${dataBR(fim)}`;
 }
@@ -136,7 +136,8 @@ function csvEscape(value) {
 
 function downloadCsv(filename, linhas) {
   const bom = "\uFEFF";
-  const content = bom + linhas.map((row) => row.map(csvEscape).join(";")).join("\n");
+  const content =
+    bom + linhas.map((row) => row.map(csvEscape).join(";")).join("\n");
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -162,7 +163,9 @@ function getOrganizadorId(organizador) {
 
 function getNomeOrganizador(organizador) {
   return safeText(
-    organizador?.nome || organizador?.usuario_nome || organizador?.nome_organizador
+    organizador?.nome ||
+      organizador?.usuario_nome ||
+      organizador?.nome_organizador,
   );
 }
 
@@ -171,29 +174,35 @@ function getEmailOrganizador(organizador) {
 }
 
 function possuiAssinaturaOficial(organizador) {
-  return Boolean(organizador?.possui_assinatura || organizador?.possuiAssinatura);
+  return Boolean(
+    organizador?.possui_assinatura || organizador?.possuiAssinatura,
+  );
 }
 
 function getEventosMinistrados(organizador) {
   return toSafeNumber(
-    organizador?.eventos_ministrados ?? organizador?.eventosMinistrados
+    organizador?.eventos_ministrados ?? organizador?.eventosMinistrados,
   );
 }
 
 function getTurmasVinculadas(organizador) {
   return toSafeNumber(
-    organizador?.turmas_vinculadas ?? organizador?.turmasVinculadas
+    organizador?.turmas_vinculadas ?? organizador?.turmasVinculadas,
   );
 }
 
 function getTotalRespostas(organizador) {
-  return toSafeNumber(organizador?.total_respostas ?? organizador?.totalRespostas);
+  return toSafeNumber(
+    organizador?.total_respostas ?? organizador?.totalRespostas,
+  );
 }
 
 function getMediaAvaliacao(organizador) {
   const value = organizador?.media_avaliacao ?? organizador?.mediaAvaliacao;
 
-  if (value === null || value === undefined || value === "") return null;
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
 
   const number = Number(value);
 
@@ -201,11 +210,15 @@ function getMediaAvaliacao(organizador) {
 }
 
 function formatarMedia(value) {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) {
+    return "—";
+  }
 
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return "—";
+  if (!Number.isFinite(number)) {
+    return "—";
+  }
 
   return number.toFixed(1).replace(".", ",");
 }
@@ -222,10 +235,8 @@ function Badge({ tone = "slate", children }) {
       "bg-emerald-50 text-emerald-800 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/60",
     amber:
       "bg-amber-50 text-amber-800 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800/60",
-    rose:
-      "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
-    cyan:
-      "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
+    rose: "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
+    cyan: "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
     violet:
       "bg-violet-50 text-violet-800 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-800/60",
   };
@@ -234,7 +245,7 @@ function Badge({ tone = "slate", children }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {children}
@@ -250,12 +261,16 @@ function KpiCard({ icon: Icon, label, value, tone = "violet" }) {
       "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-100",
   };
 
   return (
-    <div className={cx("rounded-3xl border p-4 shadow-sm", tones[tone] || tones.violet)}>
+    <div
+      className={cx(
+        "rounded-3xl border p-4 shadow-sm",
+        tones[tone] || tones.violet,
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-black uppercase tracking-wide opacity-70">
@@ -288,9 +303,16 @@ function PainelOperacionalOrganizadores({
       const tag = document.activeElement?.tagName?.toLowerCase();
       const typing = ["input", "textarea", "select"].includes(tag);
 
-      if (typing) return;
+      if (typing) {
+        return;
+      }
 
-      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (
+        event.key === "/" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
         event.preventDefault();
         inputRef.current?.focus();
       }
@@ -315,7 +337,8 @@ function PainelOperacionalOrganizadores({
             </p>
 
             <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
-              Pesquise, atualize, exporte e acompanhe indicadores dos organizadores cadastrados.
+              Pesquise, atualize, exporte e acompanhe indicadores dos
+              organizadores cadastrados.
             </p>
           </div>
 
@@ -350,8 +373,18 @@ function PainelOperacionalOrganizadores({
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard icon={UsersRound} label="Total" value={kpis.total} tone="violet" />
-          <KpiCard icon={Search} label="Encontrados" value={kpis.encontrados} tone="cyan" />
+          <KpiCard
+            icon={UsersRound}
+            label="Total"
+            value={kpis.total}
+            tone="violet"
+          />
+          <KpiCard
+            icon={Search}
+            label="Encontrados"
+            value={kpis.encontrados}
+            tone="cyan"
+          />
           <KpiCard
             icon={ShieldCheck}
             label="Com assinatura"
@@ -566,7 +599,10 @@ function OrganizadorCard({ organizador, onVisualizar, reduceMotion }) {
 function TabelaOrganizadores({ organizadores, onVisualizar }) {
   return (
     <div className="hidden overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 lg:block">
-      <table className="min-w-full text-left text-sm" aria-label="Tabela de organizadores">
+      <table
+        className="min-w-full text-left text-sm"
+        aria-label="Tabela de organizadores"
+      >
         <thead className="bg-slate-950 text-white">
           <tr>
             <th className="px-4 py-3 font-black">Organizador</th>
@@ -590,7 +626,7 @@ function TabelaOrganizadores({ organizadores, onVisualizar }) {
                 key={
                   id ||
                   `${getNomeOrganizador(organizador)}-${getEmailOrganizador(
-                    organizador
+                    organizador,
                   )}`
                 }
                 className="border-t border-slate-200 transition hover:bg-slate-50 dark:border-zinc-800 dark:hover:bg-zinc-950"
@@ -805,7 +841,9 @@ export default function GestaoOrganizador() {
   const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message;
+    if (liveRef.current) {
+      liveRef.current.textContent = message;
+    }
   }, []);
 
   const carregarOrganizadores = useCallback(async () => {
@@ -820,18 +858,25 @@ export default function GestaoOrganizador() {
       const data = extrairData(response);
       const lista = Array.isArray(data) ? data : [];
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setOrganizadores(lista);
       setLive(`${lista.length} organizador(es) carregado(s).`);
     } catch (error) {
-      console.error("[GestaoOrganizador] erro ao carregar organizadores:", error);
+      console.error(
+        "[GestaoOrganizador] erro ao carregar organizadores:",
+        error,
+      );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = obterMensagemErro(
         error,
-        "Não foi possível carregar organizadores."
+        "Não foi possível carregar organizadores.",
       );
 
       setErro(message);
@@ -839,7 +884,9 @@ export default function GestaoOrganizador() {
       notifyError(message);
       setLive("Erro ao carregar organizadores.");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [setLive]);
 
@@ -864,10 +911,15 @@ export default function GestaoOrganizador() {
 
   const organizadoresFiltrados = useMemo(() => {
     const filtrados = organizadores.filter((organizador) => {
-      if (!buscaAplicada) return true;
+      if (!buscaAplicada) {
+        return true;
+      }
 
       const texto = normalizarBusca(
-        [getNomeOrganizador(organizador), getEmailOrganizador(organizador)].join(" ")
+        [
+          getNomeOrganizador(organizador),
+          getEmailOrganizador(organizador),
+        ].join(" "),
       );
 
       return texto.includes(buscaAplicada);
@@ -883,10 +935,18 @@ export default function GestaoOrganizador() {
       const turmasA = getTurmasVinculadas(a);
       const turmasB = getTurmasVinculadas(b);
 
-      if (ordenarPor === "nome_desc") return nomeB.localeCompare(nomeA);
-      if (ordenarPor === "email_asc") return emailA.localeCompare(emailB);
-      if (ordenarPor === "avaliacao_desc") return mediaB - mediaA;
-      if (ordenarPor === "turmas_desc") return turmasB - turmasA;
+      if (ordenarPor === "nome_desc") {
+        return nomeB.localeCompare(nomeA);
+      }
+      if (ordenarPor === "email_asc") {
+        return emailA.localeCompare(emailB);
+      }
+      if (ordenarPor === "avaliacao_desc") {
+        return mediaB - mediaA;
+      }
+      if (ordenarPor === "turmas_desc") {
+        return turmasB - turmasA;
+      }
 
       return nomeA.localeCompare(nomeB);
     });
@@ -895,7 +955,9 @@ export default function GestaoOrganizador() {
   const kpis = useMemo(() => {
     const total = organizadores.length;
     const encontrados = organizadoresFiltrados.length;
-    const comAssinatura = organizadoresFiltrados.filter(possuiAssinaturaOficial).length;
+    const comAssinatura = organizadoresFiltrados.filter(
+      possuiAssinaturaOficial,
+    ).length;
 
     return {
       total,
@@ -917,7 +979,7 @@ export default function GestaoOrganizador() {
       try {
         validarFacade(
           "api.organizador.eventosAvaliacao",
-          api?.organizador?.eventosAvaliacao
+          api?.organizador?.eventosAvaliacao,
         );
 
         setLoadingHistorico(true);
@@ -942,29 +1004,35 @@ export default function GestaoOrganizador() {
           total_respostas: toSafeNumber(item?.total_respostas),
         }));
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         setHistorico(eventos);
         setLive("Histórico do organizador carregado.");
       } catch (error) {
         console.error("[GestaoOrganizador] erro ao carregar histórico:", error);
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         notifyError(
           obterMensagemErro(
             error,
-            "Não foi possível carregar o histórico do organizador."
-          )
+            "Não foi possível carregar o histórico do organizador.",
+          ),
         );
 
         setHistorico([]);
         setLive("Erro ao carregar histórico do organizador.");
       } finally {
-        if (mountedRef.current) setLoadingHistorico(false);
+        if (mountedRef.current) {
+          setLoadingHistorico(false);
+        }
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const abrirHistorico = useCallback(
@@ -974,7 +1042,7 @@ export default function GestaoOrganizador() {
       setModalOpen(true);
       await carregarHistorico(organizador);
     },
-    [carregarHistorico]
+    [carregarHistorico],
   );
 
   const fecharHistorico = useCallback(() => {
@@ -1019,7 +1087,12 @@ export default function GestaoOrganizador() {
         icone={GraduationCap}
       />
 
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       {loading ? (
         <div
@@ -1030,7 +1103,7 @@ export default function GestaoOrganizador() {
           <div
             className={cx(
               "h-full w-1/3 bg-violet-700",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -1111,7 +1184,7 @@ export default function GestaoOrganizador() {
                   key={
                     getOrganizadorId(organizador) ||
                     `${getNomeOrganizador(organizador)}-${getEmailOrganizador(
-                      organizador
+                      organizador,
                     )}`
                   }
                   organizador={organizador}

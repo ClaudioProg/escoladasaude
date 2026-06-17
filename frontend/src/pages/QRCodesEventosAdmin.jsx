@@ -67,7 +67,11 @@ import {
 
 import { apiTurmaDatas } from "../services/api";
 import { gerarQrCodePresencaPDF } from "../utils/gerarQrCodePresencaPDF";
-import { notifyError, notifyInfo, notifySuccess } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+} from "../components/ui/AppToast";
 
 /* ─────────────────────────────────────────────────────────────
  * Helpers
@@ -83,27 +87,41 @@ function toPositiveInt(value) {
 }
 
 function safeStr(value, max = 260) {
-  return String(value ?? "").slice(0, max).trim();
+  return String(value ?? "")
+    .slice(0, max)
+    .trim();
 }
 
 function ymd(value) {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") {
+    return "";
+  }
 
   const clean = value.trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(clean)) return clean.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(clean)) {
+    return clean.slice(0, 10);
+  }
 
   return "";
 }
 
 function hhmm(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const clean = value.trim();
 
-  if (/^\d{2}:\d{2}$/.test(clean)) return clean;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(clean)) return clean.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(clean)) {
+    return clean;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(clean)) {
+    return clean.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -111,7 +129,9 @@ function hhmm(value, fallback = "") {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
@@ -120,7 +140,9 @@ function formatarDataBR(value) {
 function formatarDataCurta(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano.slice(2)}`;
@@ -132,8 +154,10 @@ function tituloEvento(evento) {
 
 function tituloTurma(turma) {
   return safeStr(
-    turma?.nome || turma?.turma_nome || `Turma #${turma?.id ?? turma?.turma_id ?? "—"}`,
-    180
+    turma?.nome ||
+      turma?.turma_nome ||
+      `Turma #${turma?.id ?? turma?.turma_id ?? "—"}`,
+    180,
   );
 }
 
@@ -166,7 +190,9 @@ function normalizarDataItem(item, turma = {}) {
   if (typeof item === "string") {
     const data = ymd(item);
 
-    if (!data) return null;
+    if (!data) {
+      return null;
+    }
 
     return {
       data,
@@ -176,17 +202,21 @@ function normalizarDataItem(item, turma = {}) {
     };
   }
 
-  if (!item || typeof item !== "object") return null;
+  if (!item || typeof item !== "object") {
+    return null;
+  }
 
   const data = ymd(
     item.data ||
       item.data_presenca ||
       item.data_inicio ||
       item.dia ||
-      item.date
+      item.date,
   );
 
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     ...item,
@@ -194,7 +224,7 @@ function normalizarDataItem(item, turma = {}) {
     data_presenca: data,
     horario_inicio: hhmm(
       item.horario_inicio || item.inicio || turma?.horario_inicio,
-      ""
+      "",
     ),
     horario_fim: hhmm(item.horario_fim || item.fim || turma?.horario_fim, ""),
   };
@@ -221,7 +251,9 @@ function extrairDatasDaTurmaLocal(turma) {
   const dataInicio = ymd(turma?.data_inicio || turma?.data);
   const dataFim = ymd(turma?.data_fim || turma?.data_inicio || turma?.data);
 
-  if (!dataInicio) return [];
+  if (!dataInicio) {
+    return [];
+  }
 
   if (!dataFim || dataFim === dataInicio) {
     return [
@@ -245,16 +277,15 @@ function extrairDatasDaTurmaLocal(turma) {
 }
 
 function normalizarRespostaDatas(response, turma) {
-  const raw =
-    Array.isArray(response)
-      ? response
-      : Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response?.data?.datas)
-          ? response.data.datas
-          : Array.isArray(response?.datas)
-            ? response.datas
-            : [];
+  const raw = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.data?.datas)
+        ? response.data.datas
+        : Array.isArray(response?.datas)
+          ? response.datas
+          : [];
 
   return raw
     .map((item) => normalizarDataItem(item, turma))
@@ -302,10 +333,8 @@ function ActionButton({
       "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800 dark:border-emerald-600",
     indigo:
       "border-indigo-700 bg-indigo-700 text-white hover:bg-indigo-800 dark:border-indigo-600",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200",
-    rose:
-      "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 dark:border-rose-600",
+    sky: "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200",
+    rose: "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 dark:border-rose-600",
   };
 
   return (
@@ -315,7 +344,7 @@ function ActionButton({
       disabled={disabled}
       className={classNames(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       {children}
@@ -328,7 +357,7 @@ function Pill({ children, className = "" }) {
     <span
       className={classNames(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
-        className
+        className,
       )}
     >
       {children}
@@ -342,8 +371,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100",
     indigo:
       "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-900/40 dark:bg-indigo-950/25 dark:text-indigo-100",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
+    sky: "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
     slate:
@@ -357,7 +385,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
           <span
             className={classNames(
               "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
-              tones[tone] || tones.emerald
+              tones[tone] || tones.emerald,
             )}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
@@ -398,8 +426,8 @@ function ContextoAusente({ onVoltar }) {
           </h2>
 
           <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
-            O endereço precisa conter um <strong>evento_id</strong> válido para
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor. O
+            endereço precisa conter um <strong>evento_id</strong> válido para
             carregar as turmas e gerar QR Codes do evento específico.
           </p>
 
@@ -436,7 +464,7 @@ export default function QRCodesEventosAdmin() {
 
   const eventoIdParam = useMemo(
     () => toPositiveInt(searchParams.get("evento_id")),
-    [searchParams]
+    [searchParams],
   );
 
   const [evento, setEvento] = useState(null);
@@ -481,7 +509,9 @@ export default function QRCodesEventosAdmin() {
   const carregarDatasDaTurma = useCallback(async (turma) => {
     const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
 
-    if (!turmaId) return [];
+    if (!turmaId) {
+      return [];
+    }
 
     const datasLocais = extrairDatasDaTurmaLocal(turma);
 
@@ -532,7 +562,9 @@ export default function QRCodesEventosAdmin() {
         signal: controller.signal,
       });
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       const eventos = Array.isArray(listaEventos) ? listaEventos : [];
       const eventoEncontrado =
@@ -551,7 +583,9 @@ export default function QRCodesEventosAdmin() {
         signal: controller.signal,
       });
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       const turmasValidas = (Array.isArray(listaTurmas) ? listaTurmas : [])
         .map((turma) => {
@@ -566,17 +600,21 @@ export default function QRCodesEventosAdmin() {
         .filter((turma) => Boolean(turma.turma_id));
 
       setTurmas(turmasValidas);
-      setLive(`${turmasValidas.length} turma(s) carregada(s). Carregando datas.`);
+      setLive(
+        `${turmasValidas.length} turma(s) carregada(s). Carregando datas.`,
+      );
 
       const pares = await Promise.all(
         turmasValidas.map(async (turma) => {
           const datas = await carregarDatasDaTurma(turma);
 
           return [turma.turma_id, datas];
-        })
+        }),
       );
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       const mapaDatas = pares.reduce((acc, [turmaId, datas]) => {
         acc[turmaId] = Array.isArray(datas) ? datas : [];
@@ -586,12 +624,16 @@ export default function QRCodesEventosAdmin() {
       setDatasPorTurma(mapaDatas);
       setLive("Evento, turmas e datas carregados.");
     } catch (error) {
-      if (isAbortLike(error)) return;
-      if (!mountedRef.current) return;
+      if (isAbortLike(error)) {
+        return;
+      }
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar os dados para geração de QR Codes."
+        "Não foi possível carregar os dados para geração de QR Codes.",
       );
 
       setErro(message);
@@ -614,7 +656,7 @@ export default function QRCodesEventosAdmin() {
   const totalDatas = useMemo(() => {
     return Object.values(datasPorTurma).reduce(
       (acc, datas) => acc + (Array.isArray(datas) ? datas.length : 0),
-      0
+      0,
     );
   }, [datasPorTurma]);
 
@@ -645,10 +687,14 @@ export default function QRCodesEventosAdmin() {
 
       const key = `${turmaId}|${dataPresenca}`;
 
-      if (gerando) return false;
+      if (gerando) {
+        return false;
+      }
 
       setGerando(key);
-      setLive(`Gerando QR da turma ${turmaId} para ${formatarDataBR(dataPresenca)}.`);
+      setLive(
+        `Gerando QR da turma ${turmaId} para ${formatarDataBR(dataPresenca)}.`,
+      );
 
       try {
         await gerarQrCodePresencaPDF(
@@ -662,7 +708,7 @@ export default function QRCodesEventosAdmin() {
               turma,
               dataPresenca,
             }),
-          }
+          },
         );
 
         notifySuccess("PDF do QR Code gerado com sucesso.");
@@ -678,7 +724,7 @@ export default function QRCodesEventosAdmin() {
         setGerando("");
       }
     },
-    [evento, eventoTitulo, gerando, setLive]
+    [evento, eventoTitulo, gerando, setLive],
   );
 
   const gerarTodosDaTurma = useCallback(
@@ -692,11 +738,15 @@ export default function QRCodesEventosAdmin() {
       }
 
       if (!datas.length) {
-        notifyError("Esta turma não possui datas válidas para geração de QR Code.");
+        notifyError(
+          "Esta turma não possui datas válidas para geração de QR Code.",
+        );
         return;
       }
 
-      if (gerando) return;
+      if (gerando) {
+        return;
+      }
 
       setGerando(`turma|${turmaId}`);
       setLive(`Gerando todos os QRs da turma ${turmaId}.`);
@@ -705,7 +755,9 @@ export default function QRCodesEventosAdmin() {
         for (const dataItem of datas) {
           const dataPresenca = ymd(dataItem?.data_presenca || dataItem?.data);
 
-          if (!dataPresenca) continue;
+          if (!dataPresenca) {
+            continue;
+          }
 
           await gerarQrCodePresencaPDF(
             montarTurmaParaQr(turma, dataPresenca),
@@ -718,7 +770,7 @@ export default function QRCodesEventosAdmin() {
                 turma,
                 dataPresenca,
               }),
-            }
+            },
           );
         }
 
@@ -731,7 +783,7 @@ export default function QRCodesEventosAdmin() {
         setGerando("");
       }
     },
-    [datasPorTurma, evento, eventoTitulo, gerando, setLive]
+    [datasPorTurma, evento, eventoTitulo, gerando, setLive],
   );
 
   const gerarTodosDoEvento = useCallback(async () => {
@@ -740,7 +792,9 @@ export default function QRCodesEventosAdmin() {
       return;
     }
 
-    if (gerando) return;
+    if (gerando) {
+      return;
+    }
 
     setGerando("evento");
     setLive("Gerando todos os QR Codes do evento.");
@@ -753,7 +807,9 @@ export default function QRCodesEventosAdmin() {
         for (const dataItem of datas) {
           const dataPresenca = ymd(dataItem?.data_presenca || dataItem?.data);
 
-          if (!turmaId || !dataPresenca) continue;
+          if (!turmaId || !dataPresenca) {
+            continue;
+          }
 
           await gerarQrCodePresencaPDF(
             montarTurmaParaQr(turma, dataPresenca),
@@ -766,7 +822,7 @@ export default function QRCodesEventosAdmin() {
                 turma,
                 dataPresenca,
               }),
-            }
+            },
           );
         }
       }
@@ -853,11 +909,16 @@ export default function QRCodesEventosAdmin() {
 
               <ActionButton
                 onClick={gerarTodosDoEvento}
-                disabled={anyLoading || !evento || !turmas.length || totalDatas <= 0}
+                disabled={
+                  anyLoading || !evento || !turmas.length || totalDatas <= 0
+                }
                 tone="emerald"
               >
                 {gerando === "evento" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <FileDown className="h-4 w-4" aria-hidden="true" />
                 )}
@@ -984,7 +1045,10 @@ export default function QRCodesEventosAdmin() {
                     </div>
 
                     <Pill className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
-                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      <CheckCircle2
+                        className="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
                       Contrato turma_id + data_presenca
                     </Pill>
                   </div>
@@ -1002,16 +1066,22 @@ export default function QRCodesEventosAdmin() {
                       </p>
 
                       <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-                        Este evento não possui turmas disponíveis para geração de QR Code.
+                        Este evento não possui turmas disponíveis para geração
+                        de QR Code.
                       </p>
                     </section>
                   ) : (
                     <div className="grid gap-5">
                       {turmas.map((turma) => {
-                        const turmaId = toPositiveInt(turma?.turma_id || turma?.id);
+                        const turmaId = toPositiveInt(
+                          turma?.turma_id || turma?.id,
+                        );
                         const datas = datasPorTurma[turmaId] || [];
                         const turmaTitulo = tituloTurma(turma);
-                        const organizadores = getOrganizadoresNomes(evento, turma);
+                        const organizadores = getOrganizadoresNomes(
+                          evento,
+                          turma,
+                        );
                         const loadingTurma = gerando === `turma|${turmaId}`;
 
                         return (
@@ -1034,18 +1104,23 @@ export default function QRCodesEventosAdmin() {
 
                                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-zinc-300">
                                     <span>
-                                      Organizador: <strong>{organizadores}</strong>
+                                      Organizador:{" "}
+                                      <strong>{organizadores}</strong>
                                     </span>
 
                                     <span>
-                                      Datas válidas: <strong>{datas.length}</strong>
+                                      Datas válidas:{" "}
+                                      <strong>{datas.length}</strong>
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2">
                                   <Pill className="border-slate-200 bg-slate-50 text-slate-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
-                                    <QrCode className="h-3.5 w-3.5" aria-hidden="true" />
+                                    <QrCode
+                                      className="h-3.5 w-3.5"
+                                      aria-hidden="true"
+                                    />
                                     turma_id {turmaId}
                                   </Pill>
 
@@ -1070,7 +1145,10 @@ export default function QRCodesEventosAdmin() {
                                         aria-hidden="true"
                                       />
                                     ) : (
-                                      <FileDown className="h-4 w-4" aria-hidden="true" />
+                                      <FileDown
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                      />
                                     )}
                                     Gerar todos da turma
                                   </ActionButton>
@@ -1081,13 +1159,14 @@ export default function QRCodesEventosAdmin() {
                             <div className="border-t border-slate-100 bg-slate-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
                               {!datas.length ? (
                                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm font-semibold text-slate-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-                                  Nenhuma data válida encontrada para esta turma.
+                                  Nenhuma data válida encontrada para esta
+                                  turma.
                                 </div>
                               ) : (
                                 <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                                   {datas.map((dataItem) => {
                                     const dataPresenca = ymd(
-                                      dataItem.data_presenca || dataItem.data
+                                      dataItem.data_presenca || dataItem.data,
                                     );
 
                                     const key = `${turmaId}|${dataPresenca}`;
@@ -1109,7 +1188,8 @@ export default function QRCodesEventosAdmin() {
                                             </p>
 
                                             <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                                              {dataItem.horario_inicio || "Horário a definir"}
+                                              {dataItem.horario_inicio ||
+                                                "Horário a definir"}
                                               {dataItem.horario_fim
                                                 ? ` às ${dataItem.horario_fim}`
                                                 : ""}
@@ -1129,7 +1209,9 @@ export default function QRCodesEventosAdmin() {
                                                 dataItem,
                                               })
                                             }
-                                            disabled={anyLoading || !dataPresenca}
+                                            disabled={
+                                              anyLoading || !dataPresenca
+                                            }
                                             tone="emerald"
                                           >
                                             {isLoading ? (

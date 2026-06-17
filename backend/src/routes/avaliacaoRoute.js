@@ -60,7 +60,7 @@ if (typeof authMiddleware !== "function") {
   console.error("[avaliacaoRoute] authMiddleware inválido:", authMiddleware);
 
   throw new Error(
-    "Contrato inválido: ../auth/authMiddleware deve exportar uma função."
+    "Contrato inválido: ../auth/authMiddleware deve exportar uma função.",
   );
 }
 
@@ -68,7 +68,7 @@ if (typeof authorize !== "function") {
   console.error("[avaliacaoRoute] authorize inválido:", authorize);
 
   throw new Error(
-    "Contrato inválido: ../middlewares/authorize deve expor { authorize } como função."
+    "Contrato inválido: ../middlewares/authorize deve expor { authorize } como função.",
   );
 }
 
@@ -87,11 +87,11 @@ for (const nomeFuncao of controllerObrigatorio) {
   if (typeof avaliacaoController?.[nomeFuncao] !== "function") {
     console.error(
       `[avaliacaoRoute] avaliacaoController.${nomeFuncao} inválido:`,
-      avaliacaoController?.[nomeFuncao]
+      avaliacaoController?.[nomeFuncao],
     );
 
     throw new Error(
-      `Contrato inválido: avaliacaoController.${nomeFuncao} deve ser uma função.`
+      `Contrato inválido: avaliacaoController.${nomeFuncao} deve ser uma função.`,
     );
   }
 }
@@ -99,11 +99,11 @@ for (const nomeFuncao of controllerObrigatorio) {
 if (typeof debugPosCursoController?.debugPosCursoPorUsuario !== "function") {
   console.error(
     "[avaliacaoRoute] debugPosCursoController.debugPosCursoPorUsuario inválido:",
-    debugPosCursoController?.debugPosCursoPorUsuario
+    debugPosCursoController?.debugPosCursoPorUsuario,
   );
 
   throw new Error(
-    "Contrato inválido: debugPosCursoController.debugPosCursoPorUsuario deve ser uma função."
+    "Contrato inválido: debugPosCursoController.debugPosCursoPorUsuario deve ser uma função.",
   );
 }
 
@@ -165,7 +165,9 @@ function getUsuarioId(req) {
 }
 
 function getPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 function ensureSelfOrAdmin(req, res, next) {
@@ -256,7 +258,7 @@ router.get(
   authorize("administrador"),
   [idParam("usuario_id")],
   validate,
-  asyncHandler(debugPosCursoController.debugPosCursoPorUsuario)
+  asyncHandler(debugPosCursoController.debugPosCursoPorUsuario),
 );
 
 /* ─────────────────────────────────────────────
@@ -278,7 +280,7 @@ adminRouter.use(authorize("administrador"));
  */
 adminRouter.get(
   "/eventos",
-  asyncHandler(avaliacaoController.listarEventosComAvaliacao)
+  asyncHandler(avaliacaoController.listarEventosComAvaliacao),
 );
 
 /**
@@ -297,7 +299,7 @@ adminRouter.get(
   "/evento/:evento_id",
   [idParam("evento_id")],
   validate,
-  asyncHandler(avaliacaoController.obterAvaliacaoDoEvento)
+  asyncHandler(avaliacaoController.obterAvaliacaoDoEvento),
 );
 
 /**
@@ -316,7 +318,7 @@ adminRouter.get(
   "/turma/:turma_id",
   [idParam("turma_id")],
   validate,
-  asyncHandler(avaliacaoController.obterAvaliacaoDaTurma)
+  asyncHandler(avaliacaoController.obterAvaliacaoDaTurma),
 );
 
 router.use("/admin", adminRouter);
@@ -339,7 +341,7 @@ router.use("/admin", adminRouter);
 router.post(
   "/",
   authorize("usuario", "organizador", "administrador"),
-  asyncHandler(avaliacaoController.enviarAvaliacao)
+  asyncHandler(avaliacaoController.enviarAvaliacao),
 );
 
 /**
@@ -357,7 +359,7 @@ router.get(
   "/disponivel",
   authorize("usuario", "organizador", "administrador"),
   injectCurrentUserIdIntoParams,
-  asyncHandler(avaliacaoController.listarAvaliacaoDisponiveis)
+  asyncHandler(avaliacaoController.listarAvaliacaoDisponiveis),
 );
 
 /**
@@ -380,7 +382,7 @@ router.get(
   [idParam("usuario_id")],
   validate,
   ensureSelfOrAdmin,
-  asyncHandler(avaliacaoController.listarAvaliacaoDisponiveis)
+  asyncHandler(avaliacaoController.listarAvaliacaoDisponiveis),
 );
 
 /**
@@ -400,7 +402,7 @@ router.get(
   authorize("administrador"),
   [idParam("turma_id")],
   validate,
-  asyncHandler(avaliacaoController.avaliacaoPorTurma)
+  asyncHandler(avaliacaoController.avaliacaoPorTurma),
 );
 
 /**
@@ -421,7 +423,7 @@ router.get(
   authorize("organizador", "administrador"),
   [idParam("turma_id")],
   validate,
-  asyncHandler(avaliacaoController.listarPorTurmaParaorganizador)
+  asyncHandler(avaliacaoController.listarPorTurmaParaorganizador),
 );
 
 /**
@@ -441,7 +443,7 @@ router.get(
   authorize("administrador"),
   [idParam("evento_id")],
   validate,
-  asyncHandler(avaliacaoController.avaliacaoPorEvento)
+  asyncHandler(avaliacaoController.avaliacaoPorEvento),
 );
 
 module.exports = router;

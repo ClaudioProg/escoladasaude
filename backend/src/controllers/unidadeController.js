@@ -107,7 +107,9 @@ function asLimit(value) {
 }
 
 function sanitizeSearch(value) {
-  return String(value || "").trim().slice(0, 120);
+  return String(value || "")
+    .trim()
+    .slice(0, 120);
 }
 
 function parseQueryParams(query = {}) {
@@ -124,9 +126,7 @@ function parseQueryParams(query = {}) {
     .trim()
     .toLowerCase();
 
-  const ordenar_por = ORDENACOES_OFICIAIS.has(ordenarRaw)
-    ? ordenarRaw
-    : "nome";
+  const ordenar_por = ORDENACOES_OFICIAIS.has(ordenarRaw) ? ordenarRaw : "nome";
 
   const direcao = DIRECOES_OFICIAIS.has(direcaoRaw) ? direcaoRaw : "asc";
 
@@ -150,7 +150,7 @@ function setCachingHeaders(req, res, payload) {
   res.setHeader("ETag", etag);
   res.setHeader(
     "Cache-Control",
-    "public, max-age=300, stale-while-revalidate=600"
+    "public, max-age=300, stale-while-revalidate=600",
   );
 
   if (req.headers["if-none-match"] === etag) {
@@ -189,7 +189,7 @@ async function listar(req, res) {
     if (params.q) {
       values.push(`%${params.q}%`);
       where.push(
-        `(unaccent(u.nome) ILIKE unaccent($1) OR unaccent(COALESCE(u.sigla, '')) ILIKE unaccent($1))`
+        `(unaccent(u.nome) ILIKE unaccent($1) OR unaccent(COALESCE(u.sigla, '')) ILIKE unaccent($1))`,
       );
     }
 
@@ -202,7 +202,7 @@ async function listar(req, res) {
       FROM unidades u
       ${whereSql}
       `,
-      values
+      values,
     );
 
     const total = Number(countResult.rows?.[0]?.total || 0);
@@ -219,7 +219,7 @@ async function listar(req, res) {
       LIMIT $${values.length + 1}
       OFFSET $${values.length + 2}
       `,
-      [...values, params.limite, params.deslocamento]
+      [...values, params.limite, params.deslocamento],
     );
 
     const rows = dataResult.rows || [];
@@ -258,7 +258,7 @@ async function listar(req, res) {
       res,
       500,
       "UNIDADE-500-LISTAR",
-      "Erro ao listar unidades."
+      "Erro ao listar unidades.",
     );
   }
 }
@@ -275,7 +275,7 @@ async function obterPorId(req, res) {
       res,
       400,
       "UNIDADE-400-ID-INVALIDO",
-      "ID de unidade inválido."
+      "ID de unidade inválido.",
     );
   }
 
@@ -290,7 +290,7 @@ async function obterPorId(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     const unidade = result.rows?.[0] || null;
@@ -300,7 +300,7 @@ async function obterPorId(req, res) {
         res,
         404,
         "UNIDADE-404-NAO-ENCONTRADA",
-        "Unidade não encontrada."
+        "Unidade não encontrada.",
       );
     }
 
@@ -328,7 +328,7 @@ async function obterPorId(req, res) {
       res,
       500,
       "UNIDADE-500-OBTER",
-      "Erro ao buscar unidade."
+      "Erro ao buscar unidade.",
     );
   }
 }
@@ -350,7 +350,7 @@ async function existePorId(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     return res.sendStatus(result.rows?.length ? 204 : 404);

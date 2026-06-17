@@ -58,28 +58,22 @@ const STATUS_AGENDA = {
 const STATUS_CONFIG = {
   programado: {
     label: "Programado",
-    chip:
-      "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/35 dark:text-emerald-100 dark:ring-emerald-800/60",
-    card:
-      "bg-emerald-50 text-emerald-950 ring-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-100 dark:ring-emerald-800/60",
+    chip: "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/35 dark:text-emerald-100 dark:ring-emerald-800/60",
+    card: "bg-emerald-50 text-emerald-950 ring-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-100 dark:ring-emerald-800/60",
     dot: "bg-emerald-500",
     gradient: "from-emerald-500 via-teal-500 to-cyan-500",
   },
   andamento: {
     label: "Em andamento",
-    chip:
-      "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/35 dark:text-amber-100 dark:ring-amber-800/60",
-    card:
-      "bg-amber-50 text-amber-950 ring-amber-200 dark:bg-amber-950/25 dark:text-amber-100 dark:ring-amber-800/60",
+    chip: "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/35 dark:text-amber-100 dark:ring-amber-800/60",
+    card: "bg-amber-50 text-amber-950 ring-amber-200 dark:bg-amber-950/25 dark:text-amber-100 dark:ring-amber-800/60",
     dot: "bg-amber-500",
     gradient: "from-amber-400 via-orange-400 to-yellow-500",
   },
   encerrado: {
     label: "Encerrado",
-    chip:
-      "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/35 dark:text-rose-100 dark:ring-rose-800/60",
-    card:
-      "bg-rose-50 text-rose-950 ring-rose-200 dark:bg-rose-950/25 dark:text-rose-100 dark:ring-rose-800/60",
+    chip: "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/35 dark:text-rose-100 dark:ring-rose-800/60",
+    card: "bg-rose-50 text-rose-950 ring-rose-200 dark:bg-rose-950/25 dark:text-rose-100 dark:ring-rose-800/60",
     dot: "bg-rose-500",
     gradient: "from-rose-500 via-red-500 to-orange-500",
   },
@@ -131,7 +125,9 @@ function hh(value, fallback = "") {
 }
 
 function toLocalDate(input) {
-  if (!input) return null;
+  if (!input) {
+    return null;
+  }
 
   if (input instanceof Date) {
     return Number.isNaN(input.getTime()) ? null : input;
@@ -139,13 +135,14 @@ function toLocalDate(input) {
 
   const value = stripTZ(input);
   const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
   );
 
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
 
-  const [, year, month, day, hour = "00", minute = "00", second = "00"] =
-    match;
+  const [, year, month, day, hour = "00", minute = "00", second = "00"] = match;
 
   const date = new Date(
     Number(year),
@@ -153,14 +150,16 @@ function toLocalDate(input) {
     Number(day),
     Number(hour),
     Number(minute),
-    Number(second)
+    Number(second),
   );
 
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function ymd(value) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   if (typeof value === "string") {
     const head = stripTZ(value).slice(0, 10);
@@ -172,7 +171,9 @@ function ymd(value) {
 
   const date = toLocalDate(value);
 
-  if (!date) return null;
+  if (!date) {
+    return null;
+  }
 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -184,12 +185,16 @@ function ymd(value) {
 function rangeDiasYMD(dataInicio, dataFim) {
   const dias = [];
 
-  if (!dataInicio) return dias;
+  if (!dataInicio) {
+    return dias;
+  }
 
   const inicio = toLocalDate(`${dataInicio}T12:00:00`);
   const fim = toLocalDate(`${dataFim || dataInicio}T12:00:00`);
 
-  if (!inicio || !fim || inicio > fim) return dias;
+  if (!inicio || !fim || inicio > fim) {
+    return dias;
+  }
 
   for (
     const cursor = new Date(inicio);
@@ -197,7 +202,9 @@ function rangeDiasYMD(dataInicio, dataFim) {
     cursor.setDate(cursor.getDate() + 1)
   ) {
     const dia = ymd(cursor);
-    if (dia) dias.push(dia);
+    if (dia) {
+      dias.push(dia);
+    }
   }
 
   return dias;
@@ -206,11 +213,15 @@ function rangeDiasYMD(dataInicio, dataFim) {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const date = toLocalDate(`${data}T12:00:00`);
 
-  if (!date) return "—";
+  if (!date) {
+    return "—";
+  }
 
   return format(date, "dd/MM/yyyy");
 }
@@ -220,7 +231,7 @@ function formatarMesAno(value) {
 
   return format(date, "MMMM 'de' yyyy", { locale: ptBR }).replace(
     /^\w/,
-    (char) => char.toUpperCase()
+    (char) => char.toUpperCase(),
   );
 }
 
@@ -228,9 +239,15 @@ function formatarHorario(inicio, fim) {
   const hi = hh(inicio, "");
   const hf = hh(fim, "");
 
-  if (hi && hf) return `${hi} às ${hf}`;
-  if (hi) return `A partir de ${hi}`;
-  if (hf) return `Até ${hf}`;
+  if (hi && hf) {
+    return `${hi} às ${hf}`;
+  }
+  if (hi) {
+    return `A partir de ${hi}`;
+  }
+  if (hf) {
+    return `Até ${hf}`;
+  }
 
   return "Horário não informado";
 }
@@ -240,7 +257,9 @@ function formatarHorario(inicio, fim) {
  * ───────────────────────────────────────────── */
 
 function deriveStatus(item) {
-  const statusBackend = String(item?.status || "").trim().toLowerCase();
+  const statusBackend = String(item?.status || "")
+    .trim()
+    .toLowerCase();
 
   if (
     statusBackend === STATUS_AGENDA.PROGRAMADO ||
@@ -264,11 +283,15 @@ function deriveStatus(item) {
   const agora = new Date();
 
   if (inicio && fim) {
-    if (isBefore(agora, inicio)) return STATUS_AGENDA.PROGRAMADO;
+    if (isBefore(agora, inicio)) {
+      return STATUS_AGENDA.PROGRAMADO;
+    }
     if (isWithinInterval(agora, { start: inicio, end: fim })) {
       return STATUS_AGENDA.ANDAMENTO;
     }
-    if (isAfter(agora, fim)) return STATUS_AGENDA.ENCERRADO;
+    if (isAfter(agora, fim)) {
+      return STATUS_AGENDA.ENCERRADO;
+    }
   }
 
   return STATUS_AGENDA.PROGRAMADO;
@@ -277,18 +300,32 @@ function deriveStatus(item) {
 function extrairListaAgenda(response) {
   const payload = unwrap(response);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.turmas)) return payload.turmas;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.rows)) return payload.rows;
-  if (Array.isArray(payload?.lista)) return payload.lista;
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (Array.isArray(payload?.turmas)) {
+    return payload.turmas;
+  }
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+  if (Array.isArray(payload?.rows)) {
+    return payload.rows;
+  }
+  if (Array.isArray(payload?.lista)) {
+    return payload.lista;
+  }
 
   return [];
 }
 
 function normalizarOrganizadores(item) {
-  if (Array.isArray(item?.organizadores)) return item.organizadores;
+  if (Array.isArray(item?.organizadores)) {
+    return item.organizadores;
+  }
 
   if (Array.isArray(item?.organizadores_nome)) {
     return item.organizadores_nome.map((nome, index) => ({
@@ -326,7 +363,9 @@ function textoDeObjetoOuString(value, campos = []) {
   if (value && typeof value === "object") {
     for (const campo of campos) {
       const texto = safeText(value?.[campo], "");
-      if (texto) return texto;
+      if (texto) {
+        return texto;
+      }
     }
   }
 
@@ -342,7 +381,9 @@ function idDeObjetoOuValor(value, campos = []) {
   if (value && typeof value === "object") {
     for (const campo of campos) {
       const id = Number(value?.[campo]);
-      if (Number.isInteger(id) && id > 0) return id;
+      if (Number.isInteger(id) && id > 0) {
+        return id;
+      }
     }
   }
 
@@ -357,40 +398,46 @@ function normalizarAgendaResponse(response) {
       const dataInicio = ymd(item?.data_inicio || item?.inicio);
       const dataFim = ymd(item?.data_fim || item?.fim || item?.data_inicio);
 
-      if (!dataInicio) return null;
+      if (!dataInicio) {
+        return null;
+      }
 
       const eventoTitulo = safeText(
-  item?.evento_titulo ||
-    textoDeObjetoOuString(item?.evento, ["titulo", "nome", "descricao"]) ||
-    item?.titulo_evento ||
-    item?.titulo,
-  "Evento"
-);
+        item?.evento_titulo ||
+          textoDeObjetoOuString(item?.evento, [
+            "titulo",
+            "nome",
+            "descricao",
+          ]) ||
+          item?.titulo_evento ||
+          item?.titulo,
+        "Evento",
+      );
 
-const turmaNome = safeText(
-  item?.turma_nome ||
-    textoDeObjetoOuString(item?.turma, ["nome", "titulo"]) ||
-    item?.nome,
-  ""
-);
+      const turmaNome = safeText(
+        item?.turma_nome ||
+          textoDeObjetoOuString(item?.turma, ["nome", "titulo"]) ||
+          item?.nome,
+        "",
+      );
 
-const turmaId =
-  idDeObjetoOuValor(item?.turma_id) ||
-  idDeObjetoOuValor(item?.turma, ["id", "turma_id"]) ||
-  idDeObjetoOuValor(item?.id);
+      const turmaId =
+        idDeObjetoOuValor(item?.turma_id) ||
+        idDeObjetoOuValor(item?.turma, ["id", "turma_id"]) ||
+        idDeObjetoOuValor(item?.id);
 
-const eventoId =
-  idDeObjetoOuValor(item?.evento_id) ||
-  idDeObjetoOuValor(item?.evento, ["id", "evento_id"]) ||
-  null;
+      const eventoId =
+        idDeObjetoOuValor(item?.evento_id) ||
+        idDeObjetoOuValor(item?.evento, ["id", "evento_id"]) ||
+        null;
 
-const normalizado = {
-  id: item?.id,
-  turma_id: turmaId,
-  evento_id: eventoId,
-  titulo: turmaNome ? `${eventoTitulo} — ${turmaNome}` : eventoTitulo,
-  evento_titulo: eventoTitulo,
-  turma_nome: turmaNome,
+      const normalizado = {
+        id: item?.id,
+        turma_id: turmaId,
+        evento_id: eventoId,
+        titulo: turmaNome ? `${eventoTitulo} — ${turmaNome}` : eventoTitulo,
+        evento_titulo: eventoTitulo,
+        turma_nome: turmaNome,
         local: item?.local || item?.sala || item?.sala_nome || null,
         data_inicio: dataInicio,
         data_fim: dataFim,
@@ -463,7 +510,13 @@ function StatusChip({ status }) {
   );
 }
 
-function KpiCard({ titulo, valor, descricao, status, icon: Icon = CalendarDays }) {
+function KpiCard({
+  titulo,
+  valor,
+  descricao,
+  status,
+  icon: Icon = CalendarDays,
+}) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.programado;
 
   return (
@@ -493,7 +546,9 @@ function KpiCard({ titulo, valor, descricao, status, icon: Icon = CalendarDays }
 
         <p className="mt-3 text-3xl font-black">{valor}</p>
 
-        {descricao ? <p className="mt-1 text-xs opacity-75">{descricao}</p> : null}
+        {descricao ? (
+          <p className="mt-1 text-xs opacity-75">{descricao}</p>
+        ) : null}
       </div>
     </motion.div>
   );
@@ -714,7 +769,7 @@ function CalendarioPremiumOrganizador({
                     "min-h-[122px] bg-white p-2 transition dark:bg-zinc-900",
                     !inMonth &&
                       "bg-slate-50 text-slate-400 dark:bg-zinc-950/60 dark:text-zinc-600",
-                    today && "ring-2 ring-inset ring-cyan-500"
+                    today && "ring-2 ring-inset ring-cyan-500",
                   )}
                 >
                   <div className="mb-2 flex items-center justify-between gap-1">
@@ -725,7 +780,7 @@ function CalendarioPremiumOrganizador({
                         "inline-flex h-7 w-7 items-center justify-center rounded-xl text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700",
                         today
                           ? "bg-cyan-700 text-white"
-                          : "text-slate-700 hover:bg-slate-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                          : "text-slate-700 hover:bg-slate-100 dark:text-zinc-200 dark:hover:bg-zinc-800",
                       )}
                       aria-label={`Selecionar ${formatarDataBR(key)}`}
                     >
@@ -753,7 +808,7 @@ function CalendarioPremiumOrganizador({
                           className={cx(
                             "block w-full truncate rounded-xl px-2 py-1 text-left text-[10px] font-bold ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700",
                             config.chip,
-                            reduceMotion ? "" : "hover:-translate-y-0.5"
+                            reduceMotion ? "" : "hover:-translate-y-0.5",
                           )}
                           title={item.titulo}
                         >
@@ -799,7 +854,9 @@ function EventoDetalheModalLocal({ evento, onClose }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  if (!evento) return null;
+  if (!evento) {
+    return null;
+  }
 
   const status = deriveStatus(evento);
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.programado;
@@ -938,7 +995,7 @@ function EventoDetalheModalLocal({ evento, onClose }) {
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -975,37 +1032,41 @@ export default function Agendaorganizador() {
     try {
       if (typeof api?.organizador?.minhasTurmas !== "function") {
         throw new Error(
-          "Facade api.organizador.minhasTurmas não encontrada em frontend/src/services/api.js."
+          "Facade api.organizador.minhasTurmas não encontrada em frontend/src/services/api.js.",
         );
       }
 
       const response = await api.organizador.minhasTurmas();
       const agendaNormalizada = normalizarAgendaResponse(response);
 
-      if (!mountedRef.current || requestId !== requestSeqRef.current) return;
+      if (!mountedRef.current || requestId !== requestSeqRef.current) {
+        return;
+      }
 
       setEventos(agendaNormalizada);
 
       setLive(
         agendaNormalizada.length
           ? `Agenda carregada com ${agendaNormalizada.length} turma(s) com data.`
-          : "Nenhuma turma localizada na agenda do organizador."
+          : "Nenhuma turma localizada na agenda do organizador.",
       );
     } catch (error) {
       console.error("[Agendaorganizador] erro ao carregar agenda:", error);
 
-      if (!mountedRef.current || requestId !== requestSeqRef.current) return;
+      if (!mountedRef.current || requestId !== requestSeqRef.current) {
+        return;
+      }
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar sua agenda de organizador."
+        "Não foi possível carregar sua agenda de organizador.",
       );
 
       setEventos([]);
       setErro(message);
 
       notifyError(
-        "Não foi possível carregar sua agenda. Tente novamente ou acione o suporte se o problema continuar."
+        "Não foi possível carregar sua agenda. Tente novamente ou acione o suporte se o problema continuar.",
       );
 
       setLive("Falha ao carregar agenda do organizador.");
@@ -1036,7 +1097,9 @@ export default function Agendaorganizador() {
       const dias = obterDiasDoEvento(evento);
 
       for (const dia of dias) {
-        if (!map[dia]) map[dia] = [];
+        if (!map[dia]) {
+          map[dia] = [];
+        }
         map[dia].push(evento);
       }
     }
@@ -1044,13 +1107,15 @@ export default function Agendaorganizador() {
     for (const dia of Object.keys(map)) {
       map[dia].sort((a, b) => {
         const aStart = toLocalDate(
-          `${ymd(a.data_inicio || dia)}T${hh(a.horario_inicio, "00:00")}`
+          `${ymd(a.data_inicio || dia)}T${hh(a.horario_inicio, "00:00")}`,
         );
         const bStart = toLocalDate(
-          `${ymd(b.data_inicio || dia)}T${hh(b.horario_inicio, "00:00")}`
+          `${ymd(b.data_inicio || dia)}T${hh(b.horario_inicio, "00:00")}`,
         );
 
-        if (!aStart || !bStart) return 0;
+        if (!aStart || !bStart) {
+          return 0;
+        }
 
         return compareAsc(aStart, bStart);
       });
@@ -1064,9 +1129,13 @@ export default function Agendaorganizador() {
       (acc, evento) => {
         const status = deriveStatus(evento);
 
-        if (status === STATUS_AGENDA.PROGRAMADO) acc.programados += 1;
-        else if (status === STATUS_AGENDA.ANDAMENTO) acc.andamento += 1;
-        else acc.encerrados += 1;
+        if (status === STATUS_AGENDA.PROGRAMADO) {
+          acc.programados += 1;
+        } else if (status === STATUS_AGENDA.ANDAMENTO) {
+          acc.andamento += 1;
+        } else {
+          acc.encerrados += 1;
+        }
 
         return acc;
       },
@@ -1074,7 +1143,7 @@ export default function Agendaorganizador() {
         programados: 0,
         andamento: 0,
         encerrados: 0,
-      }
+      },
     );
   }, [eventos]);
 
@@ -1114,7 +1183,9 @@ export default function Agendaorganizador() {
     for (const [dia, lista] of Object.entries(eventosPorData)) {
       const dataDia = toLocalDate(`${dia}T12:00:00`);
 
-      if (!dataDia || dataDia < inicio || dataDia > fim) continue;
+      if (!dataDia || dataDia < inicio || dataDia > fim) {
+        continue;
+      }
 
       for (const evento of lista) {
         const status = deriveStatus(evento);
@@ -1132,7 +1203,7 @@ export default function Agendaorganizador() {
             safe(formatarDataBR(evento.data_fim)),
             safe(hh(evento.horario_fim, "")),
             safe(evento.local || ""),
-          ].join(separator)
+          ].join(separator),
         );
       }
     }
@@ -1179,7 +1250,7 @@ export default function Agendaorganizador() {
           <div
             className={cx(
               "h-full w-1/3 bg-cyan-700",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -1261,7 +1332,8 @@ export default function Agendaorganizador() {
             <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {eventosDoDia.map((evento) => {
                 const status = deriveStatus(evento);
-                const config = STATUS_CONFIG[status] || STATUS_CONFIG.programado;
+                const config =
+                  STATUS_CONFIG[status] || STATUS_CONFIG.programado;
 
                 return (
                   <li
@@ -1272,7 +1344,9 @@ export default function Agendaorganizador() {
                     }
                     className={`overflow-hidden rounded-3xl ring-1 ${config.card}`}
                   >
-                    <div className={`h-1.5 bg-gradient-to-r ${config.gradient}`} />
+                    <div
+                      className={`h-1.5 bg-gradient-to-r ${config.gradient}`}
+                    />
 
                     <div className="p-4">
                       <div className="min-w-0">
@@ -1293,20 +1367,30 @@ export default function Agendaorganizador() {
 
                       <div className="mt-3 flex flex-col gap-2 text-sm">
                         <div className="inline-flex items-center gap-2">
-                          <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Clock
+                            className="h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             {formatarDataBR(evento.data_inicio)}
                             {evento.data_fim &&
                             evento.data_fim !== evento.data_inicio
                               ? ` até ${formatarDataBR(evento.data_fim)}`
                               : ""}{" "}
-                            • {formatarHorario(evento.horario_inicio, evento.horario_fim)}
+                            •{" "}
+                            {formatarHorario(
+                              evento.horario_inicio,
+                              evento.horario_fim,
+                            )}
                           </span>
                         </div>
 
                         {evento.local ? (
                           <div className="inline-flex items-center gap-2">
-                            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <MapPin
+                              className="h-4 w-4 shrink-0"
+                              aria-hidden="true"
+                            />
                             <span className="break-words">{evento.local}</span>
                           </div>
                         ) : null}

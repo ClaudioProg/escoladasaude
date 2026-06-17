@@ -202,7 +202,9 @@ export default function CabecalhoPagina({
   const larguraClasse = getLargura(largura);
 
   const usarSolido = intensidade === "solido" || !gradiente;
-  const fundoClasse = usarSolido ? tema.solido : classNames("bg-gradient-to-br", tema.fundo);
+  const fundoClasse = usarSolido
+    ? tema.solido
+    : classNames("bg-gradient-to-br", tema.fundo);
 
   const motionProps = reduzirMovimento
     ? {}
@@ -223,7 +225,7 @@ export default function CabecalhoPagina({
         ocultarImpressao && "print:hidden",
         fixo &&
           "sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 py-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md dark:border-white/10 dark:bg-slate-950/75",
-        className
+        className,
       )}
     >
       <div className={classNames("mx-auto w-full px-4", larguraClasse)}>
@@ -239,16 +241,19 @@ export default function CabecalhoPagina({
             comBorda && "border ring-1 ring-black/5 dark:ring-white/10",
             comBorda && tema.borda,
             fundoClasse,
-            tamanho.painel
+            tamanho.painel,
           )}
         >
-          <div className="absolute inset-0 bg-slate-950/12 dark:bg-slate-950/24" aria-hidden="true" />
+          <div
+            className="absolute inset-0 bg-slate-950/12 dark:bg-slate-950/24"
+            aria-hidden="true"
+          />
 
           <div
             aria-hidden="true"
             className={classNames(
               "pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full blur-3xl",
-              tema.brilho
+              tema.brilho,
             )}
           />
 
@@ -261,13 +266,13 @@ export default function CabecalhoPagina({
             <div
               className={classNames(
                 "flex flex-col gap-3 md:flex-row md:items-center md:justify-between",
-                alinhamento === "centro" && !acoes && "md:justify-center"
+                alinhamento === "centro" && !acoes && "md:justify-center",
               )}
             >
               <div
                 className={classNames(
                   "flex min-w-0 items-center gap-3",
-                  alinhamentoClasse.linha
+                  alinhamentoClasse.linha,
                 )}
               >
                 {Icone && !carregando && (
@@ -275,7 +280,7 @@ export default function CabecalhoPagina({
                     className={classNames(
                       "grid shrink-0 place-items-center shadow-sm ring-1 backdrop-blur",
                       tema.icone,
-                      tamanho.iconeBox
+                      tamanho.iconeBox,
                     )}
                     aria-hidden="true"
                   >
@@ -288,12 +293,14 @@ export default function CabecalhoPagina({
                 {carregando ? (
                   <SkeletonTitulo subtitulo={subtitulo} />
                 ) : (
-                  <div className={classNames("min-w-0", alinhamentoClasse.bloco)}>
+                  <div
+                    className={classNames("min-w-0", alinhamentoClasse.bloco)}
+                  >
                     <HeadingTag
                       id={headingId}
                       className={classNames(
                         "font-black leading-tight tracking-tight",
-                        tamanho.titulo
+                        tamanho.titulo,
                       )}
                     >
                       {titulo}
@@ -304,7 +311,7 @@ export default function CabecalhoPagina({
                         id={subtitleId}
                         className={classNames(
                           "mt-1 max-w-2xl font-medium leading-relaxed text-white/90",
-                          tamanho.subtitulo
+                          tamanho.subtitulo,
                         )}
                       >
                         {subtitulo}
@@ -318,7 +325,7 @@ export default function CabecalhoPagina({
                 <div
                   className={classNames(
                     "flex shrink-0 flex-wrap items-center gap-2",
-                    alinhamentoClasse.acoes
+                    alinhamentoClasse.acoes,
                   )}
                 >
                   {carregando ? <SkeletonAcoes /> : acoes}

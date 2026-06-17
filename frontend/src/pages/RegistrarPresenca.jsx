@@ -40,7 +40,6 @@ import {
   Keyboard,
   Loader2,
   QrCode,
-  RefreshCw,
   Repeat,
   ScanLine,
   ShieldCheck,
@@ -53,7 +52,6 @@ import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import Footer from "../components/layout/Footer";
 import {
-  notifyError,
   notifyInfo,
   notifySuccess,
   notifyWarning,
@@ -101,23 +99,29 @@ function getRawToken() {
 function getValidToken() {
   const raw = getRawToken();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw;
   const parts = token.split(".");
 
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
 
   try {
-    const payloadStr = safeAtob(
-      parts[1].replace(/-/g, "+").replace(/_/g, "/")
-    );
+    const payloadStr = safeAtob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
 
     const payload = JSON.parse(payloadStr || "{}");
     const now = Date.now() / 1000;
 
-    if (payload?.nbf && now < payload.nbf) return null;
-    if (payload?.exp && now >= payload.exp) return null;
+    if (payload?.nbf && now < payload.nbf) {
+      return null;
+    }
+    if (payload?.exp && now >= payload.exp) {
+      return null;
+    }
 
     return token;
   } catch {
@@ -245,7 +249,10 @@ function parseQrPayload(text) {
 
 function HeaderHero() {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-orange-800 to-rose-700" />
       <div
         aria-hidden="true"
@@ -310,7 +317,7 @@ function MiniStat({ icon: Icon, label, value, tone = "neutral" }) {
     <article
       className={classNames(
         "rounded-3xl border p-3 text-center shadow-sm sm:p-4",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       <div className="inline-flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wide opacity-80 sm:text-xs">
@@ -438,7 +445,7 @@ export default function RegistrarPresenca() {
         deviceId: deviceId ? { exact: deviceId } : undefined,
       },
     }),
-    [deviceId]
+    [deviceId],
   );
 
   const motionConfig = useMemo(
@@ -448,7 +455,7 @@ export default function RegistrarPresenca() {
       exit: reduceMotion ? {} : { opacity: 0, y: 8 },
       transition: { duration: 0.18 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   useEffect(() => {
@@ -462,7 +469,7 @@ export default function RegistrarPresenca() {
       ?.enumerateDevices?.()
       .then((allDevices) => {
         const cameras = (allDevices || []).filter(
-          (device) => device.kind === "videoinput"
+          (device) => device.kind === "videoinput",
         );
 
         setDevices(cameras);
@@ -481,7 +488,9 @@ export default function RegistrarPresenca() {
   }, [deviceId]);
 
   const detectTorchSupport = useCallback((track) => {
-    if (!track?.getCapabilities) return false;
+    if (!track?.getCapabilities) {
+      return false;
+    }
 
     const capabilities = track.getCapabilities();
 
@@ -492,7 +501,9 @@ export default function RegistrarPresenca() {
     try {
       const videoEl = videoWrapRef.current?.querySelector("video");
 
-      if (!videoEl?.srcObject) return;
+      if (!videoEl?.srcObject) {
+        return;
+      }
 
       const [track] = videoEl.srcObject.getVideoTracks?.() || [];
 
@@ -510,7 +521,9 @@ export default function RegistrarPresenca() {
   const toggleTorch = useCallback(async () => {
     const track = currentTrackRef.current;
 
-    if (!track) return;
+    if (!track) {
+      return;
+    }
 
     try {
       const capabilities = track.getCapabilities?.();
@@ -544,7 +557,7 @@ export default function RegistrarPresenca() {
         setLive(
           origem === "manual"
             ? "Registrando presença por inserção manual."
-            : "Registrando presença por QR Code."
+            : "Registrando presença por QR Code.",
         );
 
         if (parsed.tipo === "token") {
@@ -560,7 +573,7 @@ export default function RegistrarPresenca() {
       } catch (error) {
         const message = getErrorMessage(
           error,
-          "QR Code inválido ou presença já registrada."
+          "QR Code inválido ou presença já registrada.",
         );
 
         notifyWarning(message);
@@ -570,20 +583,26 @@ export default function RegistrarPresenca() {
         safeUnlock();
       }
     },
-    [navigate, safeUnlock, setLive]
+    [navigate, safeUnlock, setLive],
   );
 
   const handleScan = useCallback(
     async (data) => {
-      if (!data || carregando || paused) return;
+      if (!data || carregando || paused) {
+        return;
+      }
 
       const now = Date.now();
 
-      if (now - lastScanRef.current < 1200) return;
+      if (now - lastScanRef.current < 1200) {
+        return;
+      }
 
       lastScanRef.current = now;
 
-      if (lockRef.current) return;
+      if (lockRef.current) {
+        return;
+      }
 
       lockRef.current = true;
 
@@ -599,7 +618,7 @@ export default function RegistrarPresenca() {
 
       await registrar(parsed, "scan");
     },
-    [carregando, paused, registrar, setLive]
+    [carregando, paused, registrar, setLive],
   );
 
   const handleError = useCallback(
@@ -608,7 +627,7 @@ export default function RegistrarPresenca() {
       setErroCamera(true);
       setLive("Erro ao acessar câmera.");
     },
-    [setLive]
+    [setLive],
   );
 
   const togglePause = useCallback(() => {
@@ -622,7 +641,9 @@ export default function RegistrarPresenca() {
   }, [setLive]);
 
   const switchCamera = useCallback(() => {
-    if (!devices.length) return;
+    if (!devices.length) {
+      return;
+    }
 
     const index = devices.findIndex((device) => device.deviceId === deviceId);
     const next =
@@ -667,7 +688,7 @@ export default function RegistrarPresenca() {
       modo: paused ? "Pausado" : "Ativo",
       lanterna: hasTorch ? (torchOn ? "Ligada" : "Disponível") : "—",
     }),
-    [devices.length, hasTorch, paused, torchOn]
+    [devices.length, hasTorch, paused, torchOn],
   );
 
   if (!token) {
@@ -770,7 +791,7 @@ export default function RegistrarPresenca() {
                     <ScanLine
                       className={classNames(
                         "h-4 w-4",
-                        reduceMotion ? "" : "animate-pulse"
+                        reduceMotion ? "" : "animate-pulse",
                       )}
                       aria-hidden="true"
                     />
@@ -858,7 +879,10 @@ export default function RegistrarPresenca() {
                 </div>
 
                 <div className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
-                  <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <Info
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
 
                   <p>
                     Cole o conteúdo oficial do QR: uma URL com{" "}

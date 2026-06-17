@@ -71,13 +71,13 @@ const router = express.Router();
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[eventoRoute] Contrato inválido: ../auth/authMiddleware deve exportar uma função."
+    "[eventoRoute] Contrato inválido: ../auth/authMiddleware deve exportar uma função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[eventoRoute] Contrato inválido: ../middlewares/authorize deve expor { authorize } como função."
+    "[eventoRoute] Contrato inválido: ../middlewares/authorize deve expor { authorize } como função.",
   );
 }
 
@@ -94,7 +94,7 @@ const REQUIRED_PUBLIC_HANDLERS = [
 for (const fnName of REQUIRED_PUBLIC_HANDLERS) {
   if (typeof eventoPublicoController[fnName] !== "function") {
     throw new Error(
-      `[eventoRoute] Contrato inválido: eventoPublicoController.${fnName} deve existir como função.`
+      `[eventoRoute] Contrato inválido: eventoPublicoController.${fnName} deve existir como função.`,
     );
   }
 }
@@ -117,7 +117,7 @@ const REQUIRED_ADMIN_HANDLERS = [
 for (const fnName of REQUIRED_ADMIN_HANDLERS) {
   if (typeof eventoAdminController[fnName] !== "function") {
     throw new Error(
-      `[eventoRoute] Contrato inválido: eventoAdminController.${fnName} deve existir como função.`
+      `[eventoRoute] Contrato inválido: eventoAdminController.${fnName} deve existir como função.`,
     );
   }
 }
@@ -128,10 +128,8 @@ const requireAdmin = authorize("administrador");
    Helpers
 ─────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag, options = {}) {
   const { cacheControl = "no-store" } = options;
@@ -191,7 +189,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /:id/folder", {
     cacheControl: null,
   }),
-  asyncHandler(eventoPublicoController.obterFolderDoEvento)
+  asyncHandler(eventoPublicoController.obterFolderDoEvento),
 );
 
 router.get(
@@ -200,7 +198,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /:id/programacao", {
     cacheControl: null,
   }),
-  asyncHandler(eventoPublicoController.obterProgramacaoDoEvento)
+  asyncHandler(eventoPublicoController.obterProgramacaoDoEvento),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -214,7 +212,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /para-mim", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoPublicoController.listarEventosParaMim)
+  asyncHandler(eventoPublicoController.listarEventosParaMim),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -228,7 +226,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /agenda", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoPublicoController.getAgendaEventos)
+  asyncHandler(eventoPublicoController.getAgendaEventos),
 );
 
 router.get(
@@ -238,7 +236,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /organizador", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoPublicoController.listarEventosDoorganizador)
+  asyncHandler(eventoPublicoController.listarEventosDoorganizador),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -253,9 +251,8 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /administrador", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoAdminController.listarEventosAdmin)
+  asyncHandler(eventoAdminController.listarEventosAdmin),
 );
-
 
 router.get(
   "/administrador/:id",
@@ -266,7 +263,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /administrador/:id", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoAdminController.buscarEventoAdminPorId)
+  asyncHandler(eventoAdminController.buscarEventoAdminPorId),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -281,7 +278,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /organizador/disponivel", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoAdminController.listarOrganizadoresDisponiveis)
+  asyncHandler(eventoAdminController.listarOrganizadoresDisponiveis),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -298,7 +295,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoPublicoController.listarEventos)
+  asyncHandler(eventoPublicoController.listarEventos),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -315,7 +312,7 @@ router.post(
   routeTag("eventoRoute:v2.1 POST /:id/publicar", {
     cacheControl: "no-store",
   }),
-  asyncHandler(eventoAdminController.publicarEvento)
+  asyncHandler(eventoAdminController.publicarEvento),
 );
 
 router.post(
@@ -327,7 +324,7 @@ router.post(
   routeTag("eventoRoute:v2.1 POST /:id/despublicar", {
     cacheControl: "no-store",
   }),
-  asyncHandler(eventoAdminController.despublicarEvento)
+  asyncHandler(eventoAdminController.despublicarEvento),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -344,7 +341,7 @@ router.post(
     cacheControl: "no-store",
   }),
   eventoAdminController.uploadEventos,
-  asyncHandler(eventoAdminController.atualizarArquivosDoEvento)
+  asyncHandler(eventoAdminController.atualizarArquivosDoEvento),
 );
 
 router.post(
@@ -357,7 +354,7 @@ router.post(
     cacheControl: "no-store",
   }),
   eventoAdminController.uploadFolderOnly,
-  asyncHandler(eventoAdminController.atualizarArquivosDoEvento)
+  asyncHandler(eventoAdminController.atualizarArquivosDoEvento),
 );
 
 router.post(
@@ -370,7 +367,7 @@ router.post(
     cacheControl: "no-store",
   }),
   eventoAdminController.uploadProgramacaoOnly,
-  asyncHandler(eventoAdminController.atualizarArquivosDoEvento)
+  asyncHandler(eventoAdminController.atualizarArquivosDoEvento),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -386,7 +383,7 @@ router.get(
   routeTag("eventoRoute:v2.1 GET /:id", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(eventoPublicoController.buscarEventoPorId)
+  asyncHandler(eventoPublicoController.buscarEventoPorId),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -402,7 +399,7 @@ router.post(
     cacheControl: "no-store",
   }),
   eventoAdminController.uploadEventos,
-  asyncHandler(eventoAdminController.criarEvento)
+  asyncHandler(eventoAdminController.criarEvento),
 );
 
 router.put(
@@ -415,7 +412,7 @@ router.put(
     cacheControl: "no-store",
   }),
   eventoAdminController.uploadEventos,
-  asyncHandler(eventoAdminController.atualizarEvento)
+  asyncHandler(eventoAdminController.atualizarEvento),
 );
 
 router.delete(
@@ -427,7 +424,7 @@ router.delete(
   routeTag("eventoRoute:v2.1 DELETE /:id", {
     cacheControl: "no-store",
   }),
-  asyncHandler(eventoAdminController.excluirEvento)
+  asyncHandler(eventoAdminController.excluirEvento),
 );
 
 module.exports = router;

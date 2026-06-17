@@ -1,5 +1,5 @@
-// ✅ frontend/src/utils/gerarQrCodePresencaPDF.js — v2.1
-// Atualizado em: 02/06/2026
+// ✅ frontend/src/utils/gerarQrCodePresencaPDF.js — v2.2
+// Atualizado em: 16/06/2026
 // Plataforma Escola da Saúde
 //
 // Utilitário para gerar PDF institucional com QR Code de confirmação de presença.
@@ -101,35 +101,51 @@ function normalizeColor(value, fallback) {
 }
 
 function normalizeOrientacao(value) {
-  const orientacao = String(value || "").trim().toLowerCase();
+  const orientacao = String(value || "")
+    .trim()
+    .toLowerCase();
 
   return ORIENTACAO_PDF.has(orientacao) ? orientacao : "landscape";
 }
 
 function normalizeErrorCorrectionLevel(value) {
-  const level = String(value || "").trim().toUpperCase();
+  const level = String(value || "")
+    .trim()
+    .toUpperCase();
 
   return QR_ERROR_LEVEL.has(level) ? level : "M";
 }
 
 function ymd(value) {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") {
+    return "";
+  }
 
   const clean = value.trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(clean)) return clean.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(clean)) {
+    return clean.slice(0, 10);
+  }
 
   return "";
 }
 
 function hhmm(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const clean = value.trim();
 
-  if (/^\d{2}:\d{2}$/.test(clean)) return clean;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(clean)) return clean.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(clean)) {
+    return clean;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(clean)) {
+    return clean.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -137,7 +153,9 @@ function hhmm(value, fallback = "") {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
@@ -258,7 +276,7 @@ function extrairDataPresenca(turma, opcao) {
       turma?.data_presenca ||
       turma?.data ||
       turma?.qr_payload?.data_presenca ||
-      ""
+      "",
   );
 }
 
@@ -319,7 +337,7 @@ export async function gerarQrCodePresencaPDF(
   turma,
   nomeEvento = "Evento",
   nomeorganizador = "organizador",
-  opcao = {}
+  opcao = {},
 ) {
   if (typeof window === "undefined") {
     notifyError("Não é possível gerar o PDF fora do navegador.");
@@ -380,11 +398,11 @@ export async function gerarQrCodePresencaPDF(
     const titulo = textoSeguro(nomeEvento, "Evento");
     const turmaNome = textoSeguro(
       turma?.nome || turma?.turma_nome || `Turma ${turma_id}`,
-      `Turma ${turma_id}`
+      `Turma ${turma_id}`,
     );
     const local = textoSeguro(
       turma?.evento?.local || turma?.evento_local || turma?.local,
-      "Local a confirmar"
+      "Local a confirmar",
     );
     const organizador = textoSeguro(nomeorganizador, "Organizador");
     const periodo = periodoTurmaTexto(turma, data_presenca);
@@ -457,11 +475,15 @@ export async function gerarQrCodePresencaPDF(
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     setRgb(doc, "setTextColor", CORES.textoSuave);
-    doc.text("Abra a câmera do celular, escaneie o código e faça login.", 24, 165);
+    doc.text(
+      "Abra a câmera do celular, escaneie o código e faça login.",
+      24,
+      165,
+    );
     doc.text(
       "A presença será vinculada automaticamente à turma e à data desta aula.",
       24,
-      171
+      171,
     );
 
     setRgb(doc, "setFillColor", CORES.branco);
@@ -499,18 +521,18 @@ export async function gerarQrCodePresencaPDF(
     doc.text(`Organizador: ${organizador}`, 24, 193);
     doc.text(
       `Plataforma Escola da Saúde 2.0 • Turma ${turma_id} • ${formatarDataBR(
-        data_presenca
+        data_presenca,
       )}`,
       pageW - 24,
       193,
       {
         align: "right",
-      }
+      },
     );
 
     const nomePdf = sanitizeFilename(
       nomeArquivo || `qr_presenca_turma_${turma_id}_${data_presenca}.pdf`,
-      `qr_presenca_turma_${turma_id}_${data_presenca}.pdf`
+      `qr_presenca_turma_${turma_id}_${data_presenca}.pdf`,
     );
 
     doc.save(nomePdf);

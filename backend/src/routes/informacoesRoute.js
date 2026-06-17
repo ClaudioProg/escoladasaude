@@ -62,19 +62,19 @@ const router = express.Router();
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[informacoesRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[informacoesRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[informacoesRoute] authorize inválido. O export oficial de ../middlewares/authorize deve expor { authorize } como função."
+    "[informacoesRoute] authorize inválido. O export oficial de ../middlewares/authorize deve expor { authorize } como função.",
   );
 }
 
 if (typeof uploadInformacaoImagem !== "function") {
   throw new Error(
-    "[informacoesRoute] uploadInformacaoImagem inválido. Verifique ../middlewares/uploadInformacoes."
+    "[informacoesRoute] uploadInformacaoImagem inválido. Verifique ../middlewares/uploadInformacoes.",
   );
 }
 
@@ -89,7 +89,7 @@ for (const [nome, handler] of Object.entries({
 })) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[informacoesRoute] Controller inválido. Função ausente: ${nome}.`
+      `[informacoesRoute] Controller inválido. Função ausente: ${nome}.`,
     );
   }
 }
@@ -140,7 +140,7 @@ function validarIdParam(req, res, next) {
 function setPublicCache(_req, res, next) {
   res.setHeader(
     "Cache-Control",
-    "public, max-age=60, stale-while-revalidate=300"
+    "public, max-age=60, stale-while-revalidate=300",
   );
   return next();
 }
@@ -167,7 +167,8 @@ const publicLimiter = rateLimit({
     return res.status(429).json({
       ok: false,
       data: null,
-      message: "Muitas requisições. Aguarde alguns instantes e tente novamente.",
+      message:
+        "Muitas requisições. Aguarde alguns instantes e tente novamente.",
       code: "RATE_LIMIT_INFORMACOES_PUBLICAS",
       adminHint: "Rate limit aplicado à listagem pública de informações.",
       details: null,
@@ -210,17 +211,14 @@ router.get(
   "/publicadas",
   publicLimiter,
   setPublicCache,
-  wrap(getInformacoesPublicadas)
+  wrap(getInformacoesPublicadas),
 );
 
 /**
  * Health/check leve da rota pública.
  */
-router.head(
-  "/publicadas",
-  publicLimiter,
-  setPublicCache,
-  (_req, res) => res.sendStatus(204)
+router.head("/publicadas", publicLimiter, setPublicCache, (_req, res) =>
+  res.sendStatus(204),
 );
 
 /* =========================================================================
@@ -249,11 +247,7 @@ router.get("/:id", validarIdParam, wrap(getInformacaoById));
  * - multipart/form-data
  * - campo: imagem
  */
-router.post(
-  "/",
-  uploadInformacaoImagem,
-  wrap(postInformacao)
-);
+router.post("/", uploadInformacaoImagem, wrap(postInformacao));
 
 /**
  * Atualiza informação.
@@ -262,12 +256,7 @@ router.post(
  * - multipart/form-data
  * - campo: imagem
  */
-router.put(
-  "/:id",
-  validarIdParam,
-  uploadInformacaoImagem,
-  wrap(putInformacao)
-);
+router.put("/:id", validarIdParam, uploadInformacaoImagem, wrap(putInformacao));
 
 /**
  * Ativa/desativa informação.
@@ -275,19 +264,11 @@ router.put(
  * Body:
  * - ativo: boolean
  */
-router.patch(
-  "/:id/ativo",
-  validarIdParam,
-  wrap(patchAtivoInformacao)
-);
+router.patch("/:id/ativo", validarIdParam, wrap(patchAtivoInformacao));
 
 /**
  * Exclui informação.
  */
-router.delete(
-  "/:id",
-  validarIdParam,
-  wrap(deleteInformacao)
-);
+router.delete("/:id", validarIdParam, wrap(deleteInformacao));
 
 module.exports = router;

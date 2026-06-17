@@ -140,7 +140,9 @@ function normalizeInteger(value, fallback = 0) {
 }
 
 function normalizeTipoExibicao(value, fallback = "destaque") {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalized) {
     return fallback;
@@ -313,7 +315,7 @@ async function listarInformacaoAdmin() {
           ${SELECT_BASE}
         FROM informacoes_institucionais
         ORDER BY ordem ASC, criado_em DESC, id DESC
-      `
+      `,
     );
 
     const data = rows.map(mapRow);
@@ -339,7 +341,7 @@ async function listarInformacaoPublicada() {
         WHERE ativo = TRUE
           AND CURRENT_DATE BETWEEN data_inicio_exibicao AND data_fim_exibicao
         ORDER BY ordem ASC, criado_em DESC, id DESC
-      `
+      `,
     );
 
     const data = rows.map(mapRow);
@@ -375,7 +377,7 @@ async function buscarInformacaoPorId(id) {
         WHERE id = $1
         LIMIT 1
       `,
-      [informacaoId]
+      [informacaoId],
     );
 
     return row ? mapRow(row) : null;
@@ -396,20 +398,23 @@ async function criarInformacao(payload = {}) {
     const badge = normalizeNullableString(payload.badge, 100);
     const resumo = normalizeNullableString(payload.resumo, 500);
     const conteudoHtml = normalizeNullableString(payload.conteudo_html);
-    const tipoExibicao = normalizeTipoExibicao(payload.tipo_exibicao, "destaque");
+    const tipoExibicao = normalizeTipoExibicao(
+      payload.tipo_exibicao,
+      "destaque",
+    );
     const imagemUrl = normalizeNullableString(payload.imagem_url);
     const imagemNomeOriginal = normalizeNullableString(
       payload.imagem_nome_original,
-      255
+      255,
     );
     const imagemMimeType = normalizeNullableString(
       payload.imagem_mime_type,
-      120
+      120,
     );
     const imagemTamanhoBytes = resolveNextNullableNumber(
       { imagem_tamanho_bytes: payload.imagem_tamanho_bytes },
       "imagem_tamanho_bytes",
-      null
+      null,
     );
     const ativo = normalizeBoolean(payload.ativo, true);
     const ordem = normalizeInteger(payload.ordem, 0);
@@ -470,7 +475,7 @@ async function criarInformacao(payload = {}) {
         dataInicio,
         dataFim,
         criadoPor,
-      ]
+      ],
     );
 
     const informacao = await buscarInformacaoPorId(created.id);
@@ -511,52 +516,61 @@ async function atualizarInformacao(id, payload = {}) {
 
     const proximo = {
       titulo: resolveNextStringField(payload, "titulo", atual.titulo, 200),
-      subtitulo: resolveNextStringField(payload, "subtitulo", atual.subtitulo, 300),
+      subtitulo: resolveNextStringField(
+        payload,
+        "subtitulo",
+        atual.subtitulo,
+        300,
+      ),
       badge: resolveNextStringField(payload, "badge", atual.badge, 100),
       resumo: resolveNextStringField(payload, "resumo", atual.resumo, 500),
       conteudo_html: resolveNextStringField(
         payload,
         "conteudo_html",
-        atual.conteudo_html
+        atual.conteudo_html,
       ),
       tipo_exibicao: resolveNextTipoExibicao(
         payload,
         "tipo_exibicao",
-        atual.tipo_exibicao
+        atual.tipo_exibicao,
       ),
-      imagem_url: resolveNextStringField(payload, "imagem_url", atual.imagem_url),
+      imagem_url: resolveNextStringField(
+        payload,
+        "imagem_url",
+        atual.imagem_url,
+      ),
       imagem_nome_original: resolveNextStringField(
         payload,
         "imagem_nome_original",
         atual.imagem_nome_original,
-        255
+        255,
       ),
       imagem_mime_type: resolveNextStringField(
         payload,
         "imagem_mime_type",
         atual.imagem_mime_type,
-        120
+        120,
       ),
       imagem_tamanho_bytes: resolveNextNullableNumber(
         payload,
         "imagem_tamanho_bytes",
-        atual.imagem_tamanho_bytes
+        atual.imagem_tamanho_bytes,
       ),
       ativo: resolveNextBooleanField(payload, "ativo", atual.ativo),
       ordem: resolveNextIntegerField(payload, "ordem", atual.ordem),
       data_inicio_exibicao: resolveNextDateOnly(
         payload,
         "data_inicio_exibicao",
-        atual.data_inicio_exibicao
+        atual.data_inicio_exibicao,
       ),
       data_fim_exibicao: resolveNextDateOnly(
         payload,
         "data_fim_exibicao",
-        atual.data_fim_exibicao
+        atual.data_fim_exibicao,
       ),
       atualizado_por: Object.prototype.hasOwnProperty.call(
         payload,
-        "atualizado_por"
+        "atualizado_por",
       )
         ? toPositiveIntOrNull(payload.atualizado_por)
         : atual.atualizado_por,
@@ -611,7 +625,7 @@ async function atualizarInformacao(id, payload = {}) {
         proximo.data_fim_exibicao,
         proximo.atualizado_por,
         informacaoId,
-      ]
+      ],
     );
 
     const informacao = await buscarInformacaoPorId(informacaoId);
@@ -651,7 +665,11 @@ async function atualizarAtivoInformacao(id, ativo, atualizadoPor = null) {
           atualizado_em = NOW()
         WHERE id = $3
       `,
-      [normalizeBoolean(ativo, false), toPositiveIntOrNull(atualizadoPor), informacaoId]
+      [
+        normalizeBoolean(ativo, false),
+        toPositiveIntOrNull(atualizadoPor),
+        informacaoId,
+      ],
     );
 
     if (!result.rowCount) {
@@ -698,7 +716,7 @@ async function excluirInformacao(id) {
         DELETE FROM informacoes_institucionais
         WHERE id = $1
       `,
-      [informacaoId]
+      [informacaoId],
     );
 
     logInfo("excluirInformacao:ok", {

@@ -18,7 +18,14 @@
 // - diagnóstico silencioso sem console solto;
 // - preparado para reutilização em qualquer domínio.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import {
   Check,
@@ -84,7 +91,7 @@ function highlight(texto, query) {
       </mark>
     ) : (
       <span key={`${part}-${index}`}>{part}</span>
-    )
+    ),
   );
 }
 
@@ -181,7 +188,7 @@ export default function AccordionAjuda({
 
   const itens = useMemo(
     () => normalizarItens(perguntas, reactId),
-    [perguntas, reactId]
+    [perguntas, reactId],
   );
 
   const filtradas = useMemo(() => {
@@ -194,7 +201,7 @@ export default function AccordionAjuda({
     return itens.filter(
       (item) =>
         normalizarTexto(item.pergunta).includes(q) ||
-        normalizarTexto(item.resposta).includes(q)
+        normalizarTexto(item.resposta).includes(q),
     );
   }, [itens, query]);
 
@@ -206,7 +213,9 @@ export default function AccordionAjuda({
     : "Nenhum resultado";
 
   const setItemRef = useCallback((id, node) => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
 
     if (node) {
       itemRefs.current.set(id, node);
@@ -232,7 +241,7 @@ export default function AccordionAjuda({
         return next;
       });
     },
-    [onToggle]
+    [onToggle],
   );
 
   const expandAll = useCallback(() => {
@@ -259,11 +268,13 @@ export default function AccordionAjuda({
         setCopiedId(null);
       }
     },
-    [enableCopyLink, onCopyLink]
+    [enableCopyLink, onCopyLink],
   );
 
   useEffect(() => {
-    if (!copiedId) return undefined;
+    if (!copiedId) {
+      return undefined;
+    }
 
     const timeoutId = window.setTimeout(() => setCopiedId(null), 1500);
 
@@ -291,7 +302,9 @@ export default function AccordionAjuda({
       setOpenIds((prev) => new Set(prev).add(idFromHash));
 
       window.setTimeout(() => {
-        const node = itemRefs.current.get(idFromHash) || document.getElementById(idFromHash);
+        const node =
+          itemRefs.current.get(idFromHash) ||
+          document.getElementById(idFromHash);
         node?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
     };
@@ -337,7 +350,7 @@ export default function AccordionAjuda({
                 "w-full rounded-2xl border border-slate-300 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400",
                 "focus-visible:ring-2",
                 theme.focus,
-                "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
               )}
               aria-describedby={countId}
             />
@@ -360,7 +373,7 @@ export default function AccordionAjuda({
             onClick={expandAll}
             className={classNames(
               "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2",
-              theme.primary
+              theme.primary,
             )}
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
@@ -372,7 +385,7 @@ export default function AccordionAjuda({
             onClick={collapseAll}
             className={classNames(
               "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2",
-              theme.outline
+              theme.outline,
             )}
           >
             <Minus className="h-4 w-4" aria-hidden="true" />
@@ -396,10 +409,12 @@ export default function AccordionAjuda({
                 "scroll-mt-24 overflow-hidden rounded-2xl border bg-white shadow-sm transition dark:bg-slate-900",
                 isOpen
                   ? theme.activeBorder
-                  : "border-slate-200 dark:border-slate-800"
+                  : "border-slate-200 dark:border-slate-800",
               )}
             >
-              <div className={classNames("flex items-stretch", containerPadding)}>
+              <div
+                className={classNames("flex items-stretch", containerPadding)}
+              >
                 <button
                   id={buttonId}
                   type="button"
@@ -407,7 +422,7 @@ export default function AccordionAjuda({
                   className={classNames(
                     "flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl text-left transition focus-visible:outline-none focus-visible:ring-2",
                     buttonPadding,
-                    theme.focus
+                    theme.focus,
                   )}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
@@ -419,7 +434,7 @@ export default function AccordionAjuda({
                   <ChevronDown
                     className={classNames(
                       "h-5 w-5 shrink-0 text-slate-500 transition-transform dark:text-slate-300",
-                      isOpen && "rotate-180"
+                      isOpen && "rotate-180",
                     )}
                     aria-hidden="true"
                   />
@@ -431,13 +446,16 @@ export default function AccordionAjuda({
                     onClick={() => copyLink(item.id)}
                     className={classNames(
                       "ml-2 mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 dark:text-slate-300 dark:hover:bg-slate-800",
-                      theme.focus
+                      theme.focus,
                     )}
                     aria-label={`Copiar link da pergunta: ${item.pergunta}`}
                     title="Copiar link da pergunta"
                   >
                     {copiedId === item.id ? (
-                      <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                      <Check
+                        className="h-4 w-4 text-emerald-600"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <LinkIcon className="h-4 w-4" aria-hidden="true" />
                     )}
@@ -452,7 +470,7 @@ export default function AccordionAjuda({
                   aria-labelledby={buttonId}
                   className={classNames(
                     panelPadding,
-                    "text-sm leading-relaxed text-slate-700 dark:text-slate-300"
+                    "text-sm leading-relaxed text-slate-700 dark:text-slate-300",
                   )}
                 >
                   {highlight(item.resposta, query)}
@@ -492,7 +510,7 @@ AccordionAjuda.propTypes = {
       titulo: PropTypes.string,
       resposta: PropTypes.string,
       conteudo: PropTypes.string,
-    })
+    }),
   ),
   accent: PropTypes.oneOf(["emerald", "violet", "amber", "sky", "slate"]),
   compact: PropTypes.bool,

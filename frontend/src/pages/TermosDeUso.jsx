@@ -91,23 +91,29 @@ function isYMD(value) {
 function brDate(value) {
   const iso = String(value || "").slice(0, 10);
 
-  if (!isYMD(iso)) return iso || "—";
+  if (!isYMD(iso)) {
+    return iso || "—";
+  }
 
   const [year, month, day] = iso.split("-");
   return `${day}/${month}/${year}`;
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return String(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
 
   return `${pad2(date.getDate())}/${pad2(
-    date.getMonth() + 1
+    date.getMonth() + 1,
   )}/${date.getFullYear()} às ${pad2(date.getHours())}:${pad2(
-    date.getMinutes()
+    date.getMinutes(),
   )}`;
 }
 
@@ -120,8 +126,12 @@ function capacidadePorSala(sala) {
 }
 
 function salaLabel(value) {
-  if (value === "auditorio") return "Auditório";
-  if (value === "sala_reuniao") return "Sala de Reunião";
+  if (value === "auditorio") {
+    return "Auditório";
+  }
+  if (value === "sala_reuniao") {
+    return "Sala de Reunião";
+  }
   return "Sala";
 }
 
@@ -145,22 +155,32 @@ function normalizarPeriodo(value) {
 }
 
 function dataUrlFromBase64(rawBase64, mime = "image/png") {
-  if (!rawBase64) return null;
+  if (!rawBase64) {
+    return null;
+  }
 
   const raw = String(rawBase64).trim();
 
-  if (!raw) return null;
-  if (raw.startsWith("data:")) return raw;
+  if (!raw) {
+    return null;
+  }
+  if (raw.startsWith("data:")) {
+    return raw;
+  }
 
   return `data:${mime};base64,${raw}`;
 }
 
 function extractBase64Only(dataUrl) {
-  if (!dataUrl) return null;
+  if (!dataUrl) {
+    return null;
+  }
 
   const raw = String(dataUrl).trim();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const parts = raw.split(",");
   return parts.length > 1 ? parts[1] : raw;
@@ -181,7 +201,9 @@ function unwrapAssinatura(response) {
       ? response.data.data
       : response?.data || response || null;
 
-  if (!payload) return null;
+  if (!payload) {
+    return null;
+  }
 
   return (
     payload.assinatura ||
@@ -193,7 +215,9 @@ function unwrapAssinatura(response) {
 }
 
 function assinaturaToPreview(assinatura) {
-  if (!assinatura) return null;
+  if (!assinatura) {
+    return null;
+  }
 
   if (typeof assinatura === "string") {
     return dataUrlFromBase64(assinatura, "image/png");
@@ -218,13 +242,17 @@ function assinaturaToPreview(assinatura) {
 }
 
 function assinaturaId(assinatura) {
-  if (!assinatura || typeof assinatura === "string") return null;
+  if (!assinatura || typeof assinatura === "string") {
+    return null;
+  }
 
   return assinatura.id || assinatura.assinatura_id || null;
 }
 
 function getNomeAssinante(assinatura) {
-  if (!assinatura || typeof assinatura === "string") return "";
+  if (!assinatura || typeof assinatura === "string") {
+    return "";
+  }
 
   return (
     assinatura.nome_usuario ||
@@ -237,7 +265,9 @@ function getNomeAssinante(assinatura) {
 }
 
 function getDataAssinatura(assinatura) {
-  if (!assinatura || typeof assinatura === "string") return "";
+  if (!assinatura || typeof assinatura === "string") {
+    return "";
+  }
 
   return (
     assinatura.assinado_em ||
@@ -380,7 +410,9 @@ function SignatureCanvas({ onChange, disabled = false }) {
     const canvas = canvasRef.current;
     const wrapper = wrapperRef.current;
 
-    if (!canvas || !wrapper) return;
+    if (!canvas || !wrapper) {
+      return;
+    }
 
     const rect = wrapper.getBoundingClientRect();
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
@@ -431,7 +463,9 @@ function SignatureCanvas({ onChange, disabled = false }) {
   function getPoint(clientX, clientY) {
     const canvas = canvasRef.current;
 
-    if (!canvas) return null;
+    if (!canvas) {
+      return null;
+    }
 
     const rect = canvas.getBoundingClientRect();
 
@@ -442,24 +476,32 @@ function SignatureCanvas({ onChange, disabled = false }) {
   }
 
   function start(clientX, clientY) {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     drawingRef.current = true;
     lastPointRef.current = getPoint(clientX, clientY);
   }
 
   function move(clientX, clientY) {
-    if (disabled || !drawingRef.current) return;
+    if (disabled || !drawingRef.current) {
+      return;
+    }
 
     const canvas = canvasRef.current;
 
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
     const next = getPoint(clientX, clientY);
     const last = lastPointRef.current;
 
-    if (!next || !last) return;
+    if (!next || !last) {
+      return;
+    }
 
     ctx.beginPath();
     ctx.moveTo(last.x, last.y);
@@ -478,7 +520,9 @@ function SignatureCanvas({ onChange, disabled = false }) {
   function clearCanvas() {
     const canvas = canvasRef.current;
 
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
@@ -498,19 +542,26 @@ function SignatureCanvas({ onChange, disabled = false }) {
       >
         <canvas
           ref={canvasRef}
-          className={cx("block w-full touch-none", disabled ? "opacity-70" : "")}
+          className={cx(
+            "block w-full touch-none",
+            disabled ? "opacity-70" : "",
+          )}
           onMouseDown={(event) => start(event.clientX, event.clientY)}
           onMouseMove={(event) => move(event.clientX, event.clientY)}
           onMouseUp={end}
           onMouseLeave={end}
           onTouchStart={(event) => {
             const touch = event.touches[0];
-            if (!touch) return;
+            if (!touch) {
+              return;
+            }
             start(touch.clientX, touch.clientY);
           }}
           onTouchMove={(event) => {
             const touch = event.touches[0];
-            if (!touch) return;
+            if (!touch) {
+              return;
+            }
             move(touch.clientX, touch.clientY);
           }}
           onTouchEnd={end}
@@ -553,7 +604,9 @@ function ModalTermoUso({
   onAssinarTermo,
   loading = false,
 }) {
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <Modal
@@ -574,7 +627,10 @@ function ModalTermoUso({
               Termo de Uso das Salas
             </h2>
 
-            <p id="descricao-termo-uso-salas" className="mt-1 text-sm text-white/85">
+            <p
+              id="descricao-termo-uso-salas"
+              className="mt-1 text-sm text-white/85"
+            >
               Escola da Saúde / Secretaria Municipal de Saúde de Santos
             </p>
           </div>
@@ -639,9 +695,9 @@ function ModalTermoUso({
               </h4>
               <p className="mt-2">
                 As salas destinam-se, prioritariamente, às atividades de{" "}
-                <strong>Educação Permanente em Saúde</strong>, reuniões técnicas,
-                formações, oficinas, capacitações e demais ações institucionais
-                autorizadas pela Escola da Saúde.
+                <strong>Educação Permanente em Saúde</strong>, reuniões
+                técnicas, formações, oficinas, capacitações e demais ações
+                institucionais autorizadas pela Escola da Saúde.
               </p>
             </section>
 
@@ -656,8 +712,8 @@ function ModalTermoUso({
                   sala, organizar o espaço e verificar os recursos necessários.
                 </li>
                 <li>
-                  O notebook deve ser acessado com o SSHD do responsável. Em caso
-                  de visitante, utilizar o SSHD do servidor solicitante.
+                  O notebook deve ser acessado com o SSHD do responsável. Em
+                  caso de visitante, utilizar o SSHD do servidor solicitante.
                 </li>
                 <li>
                   Coffee break será autorizado somente se informado na
@@ -665,7 +721,9 @@ function ModalTermoUso({
                   Alimentos, descartáveis e limpeza são de responsabilidade do
                   solicitante.
                 </li>
-                <li>Não é permitido o consumo de alimentos no interior das salas.</li>
+                <li>
+                  Não é permitido o consumo de alimentos no interior das salas.
+                </li>
                 <li>
                   Ao final do evento, devolver a sala às condições originais,
                   recolocar mesas e cadeiras, desligar equipamentos e avisar a
@@ -726,7 +784,8 @@ function ModalTermoUso({
               <p className="mt-2">
                 A ausência de confirmação dentro do prazo estabelecido neste
                 termo poderá ser interpretada como desistência tácita do uso do
-                espaço, autorizando o cancelamento administrativo do agendamento.
+                espaço, autorizando o cancelamento administrativo do
+                agendamento.
               </p>
             </section>
 
@@ -737,61 +796,63 @@ function ModalTermoUso({
 
               <p className="mt-2">
                 Ao assinar este termo, o responsável declara estar ciente das
-                normas acima e compromete-se a cumpri-las integralmente, incluindo
-                a obrigação de confirmar o uso do espaço entre 7 dias e 48 horas
-                antes da data reservada.
+                normas acima e compromete-se a cumpri-las integralmente,
+                incluindo a obrigação de confirmar o uso do espaço entre 7 dias
+                e 48 horas antes da data reservada.
               </p>
             </section>
           </div>
 
           {assinaturaDisponivel ? (
-  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/15">
-    <div className="flex items-start gap-3">
-      <FileSignature className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" />
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/15">
+              <div className="flex items-start gap-3">
+                <FileSignature className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" />
 
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-emerald-900 dark:text-emerald-100">
-          Assinatura cadastrada encontrada
-        </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-emerald-900 dark:text-emerald-100">
+                    Assinatura cadastrada encontrada
+                  </p>
 
-        <p className="mt-1 text-xs text-emerald-800/90 dark:text-emerald-100/85">
-          Esta assinatura real será utilizada para o aceite digital do termo.
-        </p>
+                  <p className="mt-1 text-xs text-emerald-800/90 dark:text-emerald-100/85">
+                    Esta assinatura real será utilizada para o aceite digital do
+                    termo.
+                  </p>
 
-        {assinaturaPreview ? (
-          <div className="mt-3 inline-block rounded-xl border border-emerald-200 bg-white p-3">
-            <img
-              src={assinaturaPreview}
-              alt="Pré-visualização da assinatura digital cadastrada"
-              className="h-20 w-auto object-contain"
-            />
-          </div>
-        ) : null}
+                  {assinaturaPreview ? (
+                    <div className="mt-3 inline-block rounded-xl border border-emerald-200 bg-white p-3">
+                      <img
+                        src={assinaturaPreview}
+                        alt="Pré-visualização da assinatura digital cadastrada"
+                        className="h-20 w-auto object-contain"
+                      />
+                    </div>
+                  ) : null}
 
-        <p className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-emerald-950 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-50 dark:ring-emerald-800/60">
-          {textoDocumentoAssinado(assinaturaNome, assinaturaEm)}
-        </p>
-      </div>
-    </div>
-  </div>
-) : (
-  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/15">
-    <div className="flex items-start gap-3">
-      <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-300" />
+                  <p className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-emerald-950 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-50 dark:ring-emerald-800/60">
+                    {textoDocumentoAssinado(assinaturaNome, assinaturaEm)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/15">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-300" />
 
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-amber-950 dark:text-amber-100">
-          Nenhuma assinatura cadastrada
-        </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-amber-950 dark:text-amber-100">
+                    Nenhuma assinatura cadastrada
+                  </p>
 
-        <p className="mt-1 text-xs leading-5 text-amber-900 dark:text-amber-100/85">
-          Para assinar este termo, é necessário cadastrar uma assinatura digital
-          real. O sistema não criará assinatura automática com nome e sobrenome.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+                  <p className="mt-1 text-xs leading-5 text-amber-900 dark:text-amber-100/85">
+                    Para assinar este termo, é necessário cadastrar uma
+                    assinatura digital real. O sistema não criará assinatura
+                    automática com nome e sobrenome.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </article>
       </div>
 
@@ -816,26 +877,26 @@ function ModalTermoUso({
           </button>
 
           <button
-  type="button"
-  onClick={onAssinarTermo}
-  disabled={loading}
-  className={cx(
-    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-black text-white transition disabled:opacity-60",
-    assinaturaDisponivel
-      ? "bg-sky-600 hover:bg-sky-700"
-      : "bg-amber-600 hover:bg-amber-700"
-  )}
->
-  {loading ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : assinaturaDisponivel ? (
-    <FileSignature className="h-4 w-4" />
-  ) : (
-    <PenTool className="h-4 w-4" />
-  )}
+            type="button"
+            onClick={onAssinarTermo}
+            disabled={loading}
+            className={cx(
+              "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-black text-white transition disabled:opacity-60",
+              assinaturaDisponivel
+                ? "bg-sky-600 hover:bg-sky-700"
+                : "bg-amber-600 hover:bg-amber-700",
+            )}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : assinaturaDisponivel ? (
+              <FileSignature className="h-4 w-4" />
+            ) : (
+              <PenTool className="h-4 w-4" />
+            )}
 
-  {assinaturaDisponivel ? "Concordar e assinar" : "Criar assinatura"}
-</button>
+            {assinaturaDisponivel ? "Concordar e assinar" : "Criar assinatura"}
+          </button>
         </div>
       </footer>
     </Modal>
@@ -859,15 +920,25 @@ ModalTermoUso.propTypes = {
    Modal de criação de assinatura
 =========================================================================== */
 
-function ModalCriarAssinatura({ open, onClose, onSalvar, loading = false, onMessage }) {
+function ModalCriarAssinatura({
+  open,
+  onClose,
+  onSalvar,
+  loading = false,
+  onMessage,
+}) {
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState("");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     setAssinaturaDataUrl("");
   }, [open]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   async function salvar() {
     const base64 = extractBase64Only(assinaturaDataUrl);
@@ -902,7 +973,10 @@ function ModalCriarAssinatura({ open, onClose, onSalvar, loading = false, onMess
               <PenTool className="h-5 w-5 text-pink-300" />
               Criar assinatura digital
             </h2>
-            <p id="descricao-criar-assinatura" className="mt-1 text-sm text-white/85">
+            <p
+              id="descricao-criar-assinatura"
+              className="mt-1 text-sm text-white/85"
+            >
               Desenhe sua assinatura para utilizar nos termos de uso.
             </p>
           </div>
@@ -982,13 +1056,14 @@ export default function ModalSolicitarReserva({
   const isEdicao = modo === "editar";
 
   const salaInicial = normalizarSala(
-    (isEdicao ? reservaAtual?.sala : sala) || slot?.sala || "sala_reuniao"
+    (isEdicao ? reservaAtual?.sala : sala) || slot?.sala || "sala_reuniao",
   );
   const dataInicial =
-    (isEdicao ? String(reservaAtual?.data || "").slice(0, 10) : slot?.dataISO) ||
-    "";
+    (isEdicao
+      ? String(reservaAtual?.data || "").slice(0, 10)
+      : slot?.dataISO) || "";
   const periodoInicial = normalizarPeriodo(
-    (isEdicao ? reservaAtual?.periodo : slot?.periodo) || "manha"
+    (isEdicao ? reservaAtual?.periodo : slot?.periodo) || "manha",
   );
 
   const [salaSelecionada, setSalaSelecionada] = useState(salaInicial);
@@ -996,13 +1071,13 @@ export default function ModalSolicitarReserva({
   const [periodo, setPeriodo] = useState(periodoInicial);
 
   const [qtdPessoas, setQtdPessoas] = useState(
-    isEdicao ? String(reservaAtual?.qtd_pessoas ?? "") : ""
+    isEdicao ? String(reservaAtual?.qtd_pessoas ?? "") : "",
   );
   const [coffeeBreak, setCoffeeBreak] = useState(
-    isEdicao ? Boolean(reservaAtual?.coffee_break) : false
+    isEdicao ? Boolean(reservaAtual?.coffee_break) : false,
   );
   const [finalidade, setFinalidade] = useState(
-    isEdicao ? String(reservaAtual?.finalidade ?? "") : ""
+    isEdicao ? String(reservaAtual?.finalidade ?? "") : "",
   );
   const [observacao, setObservacao] = useState("");
 
@@ -1022,7 +1097,9 @@ export default function ModalSolicitarReserva({
   const firstFocusRef = useRef(null);
 
   const cap = useMemo(() => {
-    if (salaSelecionada === sala && capacidadeSala) return capacidadeSala;
+    if (salaSelecionada === sala && capacidadeSala) {
+      return capacidadeSala;
+    }
     return capacidadePorSala(salaSelecionada);
   }, [salaSelecionada, sala, capacidadeSala]);
 
@@ -1070,17 +1147,12 @@ export default function ModalSolicitarReserva({
     const timer = window.setTimeout(() => firstFocusRef.current?.focus?.(), 60);
 
     return () => window.clearTimeout(timer);
-  }, [
-    modo,
-    reservaAtual,
-    isEdicao,
-    salaInicial,
-    dataInicial,
-    periodoInicial,
-  ]);
+  }, [modo, reservaAtual, isEdicao, salaInicial, dataInicial, periodoInicial]);
 
   const carregarAssinaturaExistente = useCallback(async () => {
-    if (isEdicao) return null;
+    if (isEdicao) {
+      return null;
+    }
 
     setLoadingAssinatura(true);
 
@@ -1116,7 +1188,9 @@ export default function ModalSolicitarReserva({
   }, [isEdicao]);
 
   useEffect(() => {
-    if (isEdicao) return;
+    if (isEdicao) {
+      return;
+    }
     carregarAssinaturaExistente();
   }, [isEdicao, carregarAssinaturaExistente]);
 
@@ -1124,7 +1198,7 @@ export default function ModalSolicitarReserva({
 
   const subtitulo = useMemo(() => {
     return `${brDate(dataISO)} • ${periodoLabel(periodo)} • ${salaLabel(
-      salaSelecionada
+      salaSelecionada,
     )}`;
   }, [periodo, salaSelecionada, dataISO]);
 
@@ -1135,7 +1209,7 @@ export default function ModalSolicitarReserva({
       periodo: periodoLabel(periodo),
       cap: `${cap.conforto} conf. / ${cap.max} máx.`,
     }),
-    [salaSelecionada, dataISO, periodo, cap.conforto, cap.max]
+    [salaSelecionada, dataISO, periodo, cap.conforto, cap.max],
   );
 
   function podeFechar() {
@@ -1185,45 +1259,50 @@ export default function ModalSolicitarReserva({
       showMessage({
         type: "error",
         title: "Erro ao salvar assinatura",
-        message: getErrorMessage(error, "Não foi possível salvar sua assinatura."),
+        message: getErrorMessage(
+          error,
+          "Não foi possível salvar sua assinatura.",
+        ),
       });
     } finally {
       setLoadingAssinatura(false);
     }
   }
 
- function handleAssinarTermo() {
-  if (loading || loadingAssinatura) return;
+  function handleAssinarTermo() {
+    if (loading || loadingAssinatura) {
+      return;
+    }
 
-  if (!assinaturaSalva || !assinaturaPreview) {
-    setTermoAceito(false);
-    setTermoAssinadoEm("");
+    if (!assinaturaSalva || !assinaturaPreview) {
+      setTermoAceito(false);
+      setTermoAssinadoEm("");
+      setTermoModalOpen(false);
+      setAssinaturaModalOpen(true);
+
+      showMessage({
+        type: "warning",
+        title: "Assinatura necessária",
+        message:
+          "Cadastre sua assinatura digital real antes de concordar com o termo. O sistema não criará assinatura automática.",
+      });
+
+      return;
+    }
+
+    const agora = new Date().toISOString();
+
+    setTermoAceito(true);
+    setTermoAssinadoEm(agora);
     setTermoModalOpen(false);
-    setAssinaturaModalOpen(true);
 
     showMessage({
-      type: "warning",
-      title: "Assinatura necessária",
+      type: "success",
+      title: "Termo assinado",
       message:
-        "Cadastre sua assinatura digital real antes de concordar com o termo. O sistema não criará assinatura automática.",
+        "Termo assinado digitalmente com a assinatura cadastrada. A solicitação já pode ser enviada.",
     });
-
-    return;
   }
-
-  const agora = new Date().toISOString();
-
-  setTermoAceito(true);
-  setTermoAssinadoEm(agora);
-  setTermoModalOpen(false);
-
-  showMessage({
-    type: "success",
-    title: "Termo assinado",
-    message:
-      "Termo assinado digitalmente com a assinatura cadastrada. A solicitação já pode ser enviada.",
-  });
-}
 
   function validarFormulario() {
     const qtd = Number(qtdPessoas);
@@ -1260,7 +1339,9 @@ export default function ModalSolicitarReserva({
   }
 
   async function enviar() {
-    if (loading || loadingAssinatura) return;
+    if (loading || loadingAssinatura) {
+      return;
+    }
 
     setMensagem(null);
     setLoading(true);
@@ -1334,7 +1415,7 @@ export default function ModalSolicitarReserva({
           error,
           isEdicao
             ? "Erro ao atualizar solicitação."
-            : "Erro ao enviar solicitação."
+            : "Erro ao enviar solicitação.",
         ),
       });
     } finally {
@@ -1422,10 +1503,15 @@ export default function ModalSolicitarReserva({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor="reserva-sala"
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Sala
                 </label>
+
                 <input
+                  id="reserva-sala"
                   ref={firstFocusRef}
                   type="text"
                   value={salaLabel(salaSelecionada)}
@@ -1435,10 +1521,15 @@ export default function ModalSolicitarReserva({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor="reserva-data"
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Data
                 </label>
+
                 <input
+                  id="reserva-data"
                   type="text"
                   value={brDate(dataISO)}
                   disabled
@@ -1447,10 +1538,15 @@ export default function ModalSolicitarReserva({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor="reserva-periodo"
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Período
                 </label>
+
                 <input
+                  id="reserva-periodo"
                   type="text"
                   value={periodoLabel(periodo)}
                   disabled
@@ -1459,10 +1555,15 @@ export default function ModalSolicitarReserva({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor="reserva-qtd-pessoas"
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Quantidade de pessoas
                 </label>
+
                 <input
+                  id="reserva-qtd-pessoas"
                   type="number"
                   min={1}
                   max={cap.max}
@@ -1472,15 +1573,24 @@ export default function ModalSolicitarReserva({
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-500 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950"
                   placeholder={`Até ${cap.max} pessoas`}
                   inputMode="numeric"
+                  aria-describedby="reserva-qtd-pessoas-ajuda"
                 />
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+
+                <p
+                  id="reserva-qtd-pessoas-ajuda"
+                  className="mt-1 text-xs text-slate-500 dark:text-slate-400"
+                >
                   Capacidade máxima desta sala: {cap.max} pessoas.
                 </p>
               </div>
 
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <label
+                htmlFor="reserva-coffee-break"
+                className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+              >
                 <Coffee className="h-4 w-4 text-slate-500" />
                 <input
+                  id="reserva-coffee-break"
                   type="checkbox"
                   className="rounded border-slate-300"
                   checked={coffeeBreak}
@@ -1491,10 +1601,15 @@ export default function ModalSolicitarReserva({
               </label>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor="reserva-finalidade"
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Finalidade / evento <span className="text-rose-500">*</span>
                 </label>
+
                 <textarea
+                  id="reserva-finalidade"
                   rows={3}
                   value={finalidade}
                   onChange={(event) => setFinalidade(event.target.value)}
@@ -1506,10 +1621,15 @@ export default function ModalSolicitarReserva({
 
               {!isEdicao ? (
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <label
+                    htmlFor="reserva-observacao"
+                    className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                  >
                     Observações adicionais
                   </label>
+
                   <textarea
+                    id="reserva-observacao"
                     rows={2}
                     value={observacao}
                     onChange={(event) => setObservacao(event.target.value)}
@@ -1526,16 +1646,18 @@ export default function ModalSolicitarReserva({
             <div className="rounded-3xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-sky-950/15">
               <div className="flex items-start gap-3">
                 <FileSignature className="mt-0.5 h-5 w-5 text-sky-600 dark:text-sky-300" />
+
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-black text-sky-900 dark:text-sky-100">
                     Termo de compromisso para utilização da sala
                   </p>
+
                   <p className="mt-1 text-xs text-sky-900/80 dark:text-sky-100/80 sm:text-sm">
                     Para concluir esta solicitação, você precisa ler, concordar
                     e assinar digitalmente o termo de uso das salas. O termo
-                    inclui a ciência de que o uso do espaço deverá ser confirmado
-                    entre 7 dias e 48 horas antes da data reservada, sob risco de
-                    cancelamento administrativo do agendamento.
+                    inclui a ciência de que o uso do espaço deverá ser
+                    confirmado entre 7 dias e 48 horas antes da data reservada,
+                    sob risco de cancelamento administrativo do agendamento.
                   </p>
                 </div>
               </div>
@@ -1562,10 +1684,13 @@ export default function ModalSolicitarReserva({
                     </div>
 
                     {termoAceito && termoAssinadoEm ? (
-  <p className="mt-2 text-xs font-black uppercase tracking-wide text-slate-600 dark:text-slate-400">
-    {textoDocumentoAssinado(getNomeAssinante(assinaturaSalva), termoAssinadoEm)}
-  </p>
-) : null}
+                      <p className="mt-2 text-xs font-black uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                        {textoDocumentoAssinado(
+                          getNomeAssinante(assinaturaSalva),
+                          termoAssinadoEm,
+                        )}
+                      </p>
+                    ) : null}
                   </div>
 
                   <button
@@ -1584,16 +1709,21 @@ export default function ModalSolicitarReserva({
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       Assinatura vinculada
                     </p>
+
                     <img
                       src={assinaturaPreview}
                       alt="Assinatura digital cadastrada"
                       className="h-20 w-auto object-contain"
                     />
+
                     {termoAceito && termoAssinadoEm ? (
-  <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700">
-    {textoDocumentoAssinado(getNomeAssinante(assinaturaSalva), termoAssinadoEm)}
-  </p>
-) : null}
+                      <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700">
+                        {textoDocumentoAssinado(
+                          getNomeAssinante(assinaturaSalva),
+                          termoAssinadoEm,
+                        )}
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1602,6 +1732,7 @@ export default function ModalSolicitarReserva({
 
           <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             <Info className="mt-0.5 h-4 w-4 flex-none text-sky-500" />
+
             <p>
               {!isEdicao
                 ? "Sua solicitação será analisada pela equipe da Escola da Saúde. O envio só será concluído após a assinatura do termo de uso."
@@ -1623,11 +1754,14 @@ export default function ModalSolicitarReserva({
           <button
             type="button"
             onClick={enviar}
-            disabled={loading || loadingAssinatura || (!isEdicao && !termoAceito)}
+            disabled={
+              loading || loadingAssinatura || (!isEdicao && !termoAceito)
+            }
             className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
             aria-busy={loading ? "true" : "false"}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+
             {loading
               ? isEdicao
                 ? "Salvando..."
@@ -1642,14 +1776,19 @@ export default function ModalSolicitarReserva({
       <ModalTermoUso
         open={termoModalOpen}
         onClose={() => {
-          if (loadingAssinatura) return;
+          if (loadingAssinatura) {
+            return;
+          }
+
           setTermoModalOpen(false);
         }}
         finalidade={finalidade}
         dataISO={dataISO}
         assinaturaDisponivel={Boolean(assinaturaPreview)}
         assinaturaPreview={assinaturaPreview}
-        assinaturaNome={getNomeAssinante(assinaturaSalva) || getNomeUsuarioLocal()}
+        assinaturaNome={
+          getNomeAssinante(assinaturaSalva) || getNomeUsuarioLocal()
+        }
         assinaturaEm={termoAssinadoEm || getDataAssinatura(assinaturaSalva)}
         onAssinarTermo={handleAssinarTermo}
         loading={loadingAssinatura}
@@ -1658,7 +1797,10 @@ export default function ModalSolicitarReserva({
       <ModalCriarAssinatura
         open={assinaturaModalOpen}
         onClose={() => {
-          if (loadingAssinatura) return;
+          if (loadingAssinatura) {
+            return;
+          }
+
           setAssinaturaModalOpen(false);
         }}
         onSalvar={handleSalvarAssinatura}
@@ -1668,29 +1810,3 @@ export default function ModalSolicitarReserva({
     </>
   );
 }
-
-ModalSolicitarReserva.propTypes = {
-  onClose: PropTypes.func,
-  slot: PropTypes.shape({
-    dataISO: PropTypes.string,
-    periodo: PropTypes.string,
-    sala: PropTypes.string,
-  }),
-  sala: PropTypes.string,
-  capacidadeSala: PropTypes.shape({
-    conforto: PropTypes.number,
-    max: PropTypes.number,
-  }),
-  recarregar: PropTypes.func,
-  modo: PropTypes.oneOf(["criar", "editar"]),
-  reservaAtual: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    sala: PropTypes.string,
-    data: PropTypes.string,
-    periodo: PropTypes.string,
-    qtd_pessoas: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    coffee_break: PropTypes.bool,
-    finalidade: PropTypes.string,
-    termo_assinado_em: PropTypes.string,
-  }),
-};

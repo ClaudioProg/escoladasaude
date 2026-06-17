@@ -61,15 +61,17 @@ function normalizarPerfil(value) {
 
   return removerDuplicado(
     lista
-      .map((item) => String(item || "").trim().toLowerCase())
-      .filter(Boolean)
+      .map((item) =>
+        String(item || "")
+          .trim()
+          .toLowerCase(),
+      )
+      .filter(Boolean),
   );
 }
 
 function filtrarPerfilOficial(lista) {
-  return normalizarPerfil(lista).filter((perfil) =>
-    PERFIL_OFICIAL.has(perfil)
-  );
+  return normalizarPerfil(lista).filter((perfil) => PERFIL_OFICIAL.has(perfil));
 }
 
 function lerPerfilStorage() {
@@ -108,16 +110,16 @@ function possuiIntersecao(perfilPermitido, perfilUsuario) {
  */
 export default function usePerfilPermitido(
   perfilPermitido = [],
-  { perfilUsuario } = {}
+  { perfilUsuario } = {},
 ) {
   const perfilPermitidoNormalizado = useMemo(
     () => filtrarPerfilOficial(perfilPermitido),
-    [perfilPermitido]
+    [perfilPermitido],
   );
 
   const perfilUsuarioProp = useMemo(
     () => filtrarPerfilOficial(perfilUsuario),
-    [perfilUsuario]
+    [perfilUsuario],
   );
 
   const [perfilStorage, setPerfilStorage] = useState(() => lerPerfilStorage());

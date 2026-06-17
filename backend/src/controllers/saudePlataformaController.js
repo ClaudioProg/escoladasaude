@@ -99,7 +99,13 @@ function erroController(prefixo, error, req, contexto = {}) {
   });
 }
 
-function montarErro(error, fallbackMessage, fallbackCode, adminHint, details = {}) {
+function montarErro(
+  error,
+  fallbackMessage,
+  fallbackCode,
+  adminHint,
+  details = {},
+) {
   return {
     message: error.message || fallbackMessage,
     code: error.code || fallbackCode,
@@ -120,7 +126,7 @@ async function listar(req, res) {
   try {
     const resultado = await saudePlataformaService.listarIndicadores(
       req,
-      req.query || {}
+      req.query || {},
     );
 
     return respostaSucesso(res, resultado);
@@ -133,10 +139,10 @@ async function listar(req, res) {
         error,
         "Não foi possível carregar os indicadores da Saúde da Plataforma.",
         "SAUDE_PLATAFORMA_LISTAR_ERRO",
-        "Falha ao consultar v_saude_plataforma. Verifique permissões, filtros, view e logs do servidor."
+        "Falha ao consultar v_saude_plataforma. Verifique permissões, filtros, view e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -145,7 +151,7 @@ async function obterPorId(req, res) {
   try {
     const resultado = await saudePlataformaService.obterIndicador(
       req,
-      req.params?.indicador_id
+      req.params?.indicador_id,
     );
 
     return respostaSucesso(res, resultado);
@@ -163,10 +169,10 @@ async function obterPorId(req, res) {
         "Falha ao consultar indicador por indicador_id. Verifique se o indicador existe na view v_saude_plataforma.",
         {
           indicadorId: req.params?.indicador_id,
-        }
+        },
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -175,7 +181,7 @@ async function resumo(req, res) {
   try {
     const resultado = await saudePlataformaService.resumoSaude(
       req,
-      req.query || {}
+      req.query || {},
     );
 
     return respostaSucesso(res, resultado);
@@ -188,10 +194,10 @@ async function resumo(req, res) {
         error,
         "Não foi possível carregar o resumo da Saúde da Plataforma.",
         "SAUDE_PLATAFORMA_RESUMO_ERRO",
-        "Falha ao calcular resumo da view v_saude_plataforma. Verifique permissões, filtros e logs do servidor."
+        "Falha ao calcular resumo da view v_saude_plataforma. Verifique permissões, filtros e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -210,10 +216,10 @@ async function diagnosticoExecutivo(req, res) {
         error,
         "Não foi possível carregar o diagnóstico executivo da Saúde da Plataforma.",
         "SAUDE_PLATAFORMA_DIAGNOSTICO_EXECUTIVO_ERRO",
-        "Falha ao montar diagnóstico executivo. Verifique a view v_saude_plataforma, permissões e logs do servidor."
+        "Falha ao montar diagnóstico executivo. Verifique a view v_saude_plataforma, permissões e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }

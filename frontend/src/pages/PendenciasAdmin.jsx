@@ -244,23 +244,6 @@ function formatarDataHora(valor) {
   }).format(data);
 }
 
-function formatarDataBR(valor) {
-  const texto = String(valor || "").trim();
-
-  if (!texto) {
-    return "—";
-  }
-
-  const ymd = texto.slice(0, 10);
-
-  if (!isYMD(ymd)) {
-    return texto;
-  }
-
-  const [ano, mes, dia] = ymd.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
 function copiarTexto(texto, mensagem = "Conteúdo copiado.") {
   if (!texto) {
     notifyWarning("Não há conteúdo disponível para copiar.");
@@ -417,14 +400,6 @@ function BadgeStatus({ status }) {
   return (
     <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
       {statusLabel(status)}
-    </span>
-  );
-}
-
-function BadgeTecnico({ children }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-      {children}
     </span>
   );
 }
@@ -1111,16 +1086,19 @@ function ModalPendencia({ pendenciaSelecionada, carregandoDetalhe, onFechar }) {
   return createPortal(
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-pendencia-titulo"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onFechar();
         }
       }}
     >
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-pendencia-titulo"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+      >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -1264,7 +1242,7 @@ function ModalPendencia({ pendenciaSelecionada, carregandoDetalhe, onFechar }) {
             Fechar
           </button>
         </footer>
-      </div>
+      </section>
     </div>,
     document.body,
   );

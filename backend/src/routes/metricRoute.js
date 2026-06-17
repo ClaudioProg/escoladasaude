@@ -50,7 +50,7 @@ const router = express.Router();
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[metricRoute] Handler obrigatório ausente: metricService.${name}`
+      `[metricRoute] Handler obrigatório ausente: metricService.${name}`,
     );
   }
 }
@@ -67,10 +67,8 @@ assertHandler("obterAcessosApp", metricService.obterAcessosApp);
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -137,7 +135,8 @@ const metricLimiter = rateLimit({
   message: {
     ok: false,
     code: "METRICA-429-LIMITE",
-    message: "Muitas requisições de métricas. Aguarde antes de tentar novamente.",
+    message:
+      "Muitas requisições de métricas. Aguarde antes de tentar novamente.",
   },
 });
 
@@ -178,16 +177,14 @@ router.get(
         res,
         getErrorStatus(error),
         getMetricErrorCode(error, "METRICA-500-LISTAR"),
-        getMetricErrorMessage(error, "Erro ao listar métricas.")
+        getMetricErrorMessage(error, "Erro ao listar métricas."),
       );
     }
-  })
+  }),
 );
 
-router.head(
-  "/",
-  routeTag("metricRoute:v2.0:HEAD /"),
-  (_req, res) => res.sendStatus(204)
+router.head("/", routeTag("metricRoute:v2.0:HEAD /"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -215,10 +212,10 @@ router.get(
         res,
         500,
         "METRICA-500-ACESSO-APP-OBTER",
-        "Erro ao obter métrica de acessos do app."
+        "Erro ao obter métrica de acessos do app.",
       );
     }
-  })
+  }),
 );
 
 router.head(
@@ -231,7 +228,7 @@ router.head(
     } catch {
       return res.sendStatus(500);
     }
-  })
+  }),
 );
 
 router.post(
@@ -250,7 +247,7 @@ router.post(
         },
         {
           message: "Acesso ao app registrado com sucesso.",
-        }
+        },
       );
     } catch (error) {
       console.error("[metricRoute.registrarAcessoApp] ERRO", {
@@ -263,10 +260,10 @@ router.post(
         res,
         500,
         "METRICA-500-ACESSO-APP-REGISTRAR",
-        "Erro ao registrar acesso ao app."
+        "Erro ao registrar acesso ao app.",
       );
     }
-  })
+  }),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -287,7 +284,7 @@ router.get(
           res,
           404,
           "METRICA-404-NAO-ENCONTRADA",
-          "Métrica não encontrada."
+          "Métrica não encontrada.",
         );
       }
 
@@ -306,10 +303,10 @@ router.get(
         res,
         getErrorStatus(error),
         getMetricErrorCode(error, "METRICA-500-OBTER"),
-        getMetricErrorMessage(error, "Erro ao obter métrica.")
+        getMetricErrorMessage(error, "Erro ao obter métrica."),
       );
     }
-  })
+  }),
 );
 
 router.head(
@@ -324,7 +321,7 @@ router.head(
       const status = getErrorStatus(error);
       return res.sendStatus(status);
     }
-  })
+  }),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -343,7 +340,7 @@ router.post(
         res,
         400,
         "METRICA-400-INCREMENTO-INVALIDO",
-        "Valor de incremento inválido."
+        "Valor de incremento inválido.",
       );
     }
 
@@ -359,7 +356,7 @@ router.post(
         },
         {
           message: "Métrica incrementada com sucesso.",
-        }
+        },
       );
     } catch (error) {
       console.error("[metricRoute.incrementar] ERRO", {
@@ -374,10 +371,10 @@ router.post(
         res,
         getErrorStatus(error),
         getMetricErrorCode(error, "METRICA-500-INCREMENTAR"),
-        getMetricErrorMessage(error, "Erro ao incrementar métrica.")
+        getMetricErrorMessage(error, "Erro ao incrementar métrica."),
       );
     }
-  })
+  }),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -396,7 +393,7 @@ router.put(
         res,
         400,
         "METRICA-400-VALOR-INVALIDO",
-        "Valor da métrica inválido."
+        "Valor da métrica inválido.",
       );
     }
 
@@ -412,7 +409,7 @@ router.put(
         },
         {
           message: "Métrica definida com sucesso.",
-        }
+        },
       );
     } catch (error) {
       console.error("[metricRoute.definir] ERRO", {
@@ -427,10 +424,10 @@ router.put(
         res,
         getErrorStatus(error),
         getMetricErrorCode(error, "METRICA-500-DEFINIR"),
-        getMetricErrorMessage(error, "Erro ao definir métrica.")
+        getMetricErrorMessage(error, "Erro ao definir métrica."),
       );
     }
-  })
+  }),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -449,7 +446,7 @@ router.post(
         res,
         400,
         "METRICA-400-TIMING-INVALIDO",
-        "Valor de timing inválido."
+        "Valor de timing inválido.",
       );
     }
 
@@ -475,7 +472,7 @@ router.post(
         },
         {
           message: "Timing registrado com sucesso.",
-        }
+        },
       );
     } catch (error) {
       console.error("[metricRoute.timing] ERRO", {
@@ -490,10 +487,10 @@ router.post(
         res,
         getErrorStatus(error),
         getMetricErrorCode(error, "METRICA-500-TIMING"),
-        getMetricErrorMessage(error, "Erro ao registrar timing da métrica.")
+        getMetricErrorMessage(error, "Erro ao registrar timing da métrica."),
       );
     }
-  })
+  }),
 );
 
 module.exports = router;

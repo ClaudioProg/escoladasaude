@@ -1,5 +1,5 @@
-// ✅ frontend/src/hooks/usePlatformVersionCheck.js — v2.0
-// Atualizado em: 28/05/2026
+// ✅ frontend/src/hooks/usePlatformVersionCheck.js — v2.1
+// Atualizado em: 16/06/2026
 //
 // Detecta nova versão da Plataforma Escola da Saúde consultando /version.json sem cache.
 // Resolve especialmente navegadores móveis que seguram build antigo, como Samsung Browser.
@@ -14,14 +14,18 @@ function normalizarTexto(valor) {
 }
 
 function getBuildSignature(payload) {
-  if (!payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
 
   const app = normalizarTexto(payload.app);
   const version = normalizarTexto(payload.version);
   const buildId = normalizarTexto(payload.buildId);
   const buildAt = normalizarTexto(payload.buildAt);
 
-  if (!app && !version && !buildId && !buildAt) return null;
+  if (!app && !version && !buildId && !buildAt) {
+    return null;
+  }
 
   return [
     app || "app-desconhecido",
@@ -43,7 +47,7 @@ async function buscarVersaoAtual() {
 
   if (!response.ok) {
     throw new Error(
-      `Falha ao consultar versão da plataforma: HTTP ${response.status}`
+      `Falha ao consultar versão da plataforma: HTTP ${response.status}`,
     );
   }
 
@@ -51,7 +55,9 @@ async function buscarVersaoAtual() {
 }
 
 async function atualizarServiceWorkers() {
-  if (!("serviceWorker" in navigator)) return;
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
 
   const registrations = await navigator.serviceWorker.getRegistrations();
 
@@ -68,12 +74,14 @@ async function atualizarServiceWorkers() {
           message: error?.message,
         });
       }
-    })
+    }),
   );
 }
 
 async function limparCachesControlados() {
-  if (!("caches" in window)) return;
+  if (!("caches" in window)) {
+    return;
+  }
 
   const cacheNames = await caches.keys();
 
@@ -89,7 +97,7 @@ async function limparCachesControlados() {
           normalized.includes("precache")
         );
       })
-      .map((name) => caches.delete(name))
+      .map((name) => caches.delete(name)),
   );
 }
 
@@ -100,7 +108,9 @@ export function usePlatformVersionCheck() {
   const verificandoRef = useRef(false);
 
   const verificarVersao = useCallback(async () => {
-    if (verificandoRef.current) return;
+    if (verificandoRef.current) {
+      return;
+    }
 
     verificandoRef.current = true;
 
@@ -108,7 +118,9 @@ export function usePlatformVersionCheck() {
       const payload = await buscarVersaoAtual();
       const assinaturaNova = getBuildSignature(payload);
 
-      if (!assinaturaNova) return;
+      if (!assinaturaNova) {
+        return;
+      }
 
       const assinaturaSalva = localStorage.getItem(STORAGE_KEY);
 
@@ -125,9 +137,12 @@ export function usePlatformVersionCheck() {
         setNovaVersaoDisponivel(true);
       }
     } catch (error) {
-      console.warn("[versao-plataforma] não foi possível verificar atualização", {
-        message: error?.message,
-      });
+      console.warn(
+        "[versao-plataforma] não foi possível verificar atualização",
+        {
+          message: error?.message,
+        },
+      );
     } finally {
       verificandoRef.current = false;
     }

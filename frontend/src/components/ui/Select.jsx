@@ -94,16 +94,17 @@ function normalizarOptions(options) {
 }
 
 function hasOptionGroups(options) {
-  return options.some((option) => option?.group && Array.isArray(option.options));
+  return options.some(
+    (option) => option?.group && Array.isArray(option.options),
+  );
 }
 
 function getDescribedBy({ helpId, errorId, helpText, error }) {
-  return [
-    error ? errorId : null,
-    helpText ? helpId : null,
-  ]
-    .filter(Boolean)
-    .join(" ") || undefined;
+  return (
+    [error ? errorId : null, helpText ? helpId : null]
+      .filter(Boolean)
+      .join(" ") || undefined
+  );
 }
 
 export default function Select({
@@ -141,7 +142,10 @@ export default function Select({
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.md;
   const radiusClass = RADIUS_CLASSES[rounded] || RADIUS_CLASSES.xl;
 
-  const normalizedOptions = useMemo(() => normalizarOptions(options), [options]);
+  const normalizedOptions = useMemo(
+    () => normalizarOptions(options),
+    [options],
+  );
 
   const hasOptions = normalizedOptions.length > 0;
   const grouped = hasOptionGroups(normalizedOptions);
@@ -169,10 +173,7 @@ export default function Select({
   };
 
   return (
-    <div
-      className={classNames("w-full", className)}
-      data-testid={testId}
-    >
+    <div className={classNames("w-full", className)} data-testid={testId}>
       {label && !floatingLabel && (
         <label
           htmlFor={selectId}
@@ -180,7 +181,10 @@ export default function Select({
         >
           {label}
           {required && (
-            <span className="ml-1 text-rose-600 dark:text-rose-300" aria-label="obrigatório">
+            <span
+              className="ml-1 text-rose-600 dark:text-rose-300"
+              aria-label="obrigatório"
+            >
               *
             </span>
           )}
@@ -203,12 +207,15 @@ export default function Select({
               htmlFor={selectId}
               className={classNames(
                 "absolute left-3 top-0 z-10 -translate-y-1/2 rounded-full bg-white px-1.5 text-[11px] font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300",
-                leadingIcon && "ml-7"
+                leadingIcon && "ml-7",
               )}
             >
               {label}
               {required && (
-                <span className="ml-1 text-rose-600 dark:text-rose-300" aria-label="obrigatório">
+                <span
+                  className="ml-1 text-rose-600 dark:text-rose-300"
+                  aria-label="obrigatório"
+                >
                   *
                 </span>
               )}
@@ -239,7 +246,7 @@ export default function Select({
               leadingIcon && "pl-10",
               error
                 ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/15 dark:border-rose-800"
-                : "border-slate-200 dark:border-slate-800"
+                : "border-slate-200 dark:border-slate-800",
             )}
           >
             {showPlaceholder && (
@@ -258,7 +265,7 @@ export default function Select({
                   >
                     {option.label}
                   </option>
-                )
+                ),
               )}
 
             {grouped &&
@@ -270,7 +277,10 @@ export default function Select({
                   >
                     {optionOrGroup.options.map((option, optionIndex) => (
                       <option
-                        key={option.key || `group-${groupIndex}-option-${optionIndex}`}
+                        key={
+                          option.key ||
+                          `group-${groupIndex}-option-${optionIndex}`
+                        }
                         value={option.value}
                         disabled={option.disabled}
                       >
@@ -286,7 +296,7 @@ export default function Select({
                   >
                     {optionOrGroup.label}
                   </option>
-                )
+                ),
               )}
 
             {!hasOptions && !isLoading && (
@@ -317,7 +327,7 @@ export default function Select({
               "hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
               "dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900",
               radiusClass,
-              sizeClass.clear
+              sizeClass.clear,
             )}
             title="Limpar seleção"
             aria-label="Limpar seleção"
@@ -368,7 +378,7 @@ Select.propTypes = {
       }),
       PropTypes.string,
       PropTypes.number,
-    ])
+    ]),
   ),
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onChange: PropTypes.func.isRequired,

@@ -55,7 +55,7 @@ const {
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[cursoOnlineRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[cursoOnlineRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
@@ -70,7 +70,7 @@ for (const [nome, handler] of Object.entries({
 })) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[cursoOnlineRoute] Controller inválido. Função ausente: ${nome}.`
+      `[cursoOnlineRoute] Controller inválido. Função ausente: ${nome}.`,
     );
   }
 }
@@ -166,7 +166,7 @@ router.patch(
   "/admin/:id/status",
   validarIdParam,
   validarStatusBody,
-  wrap(alterarStatusAdmin)
+  wrap(alterarStatusAdmin),
 );
 router.delete("/admin/:id", validarIdParam, wrap(excluirAdmin));
 

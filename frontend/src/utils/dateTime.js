@@ -1,4 +1,5 @@
-// 📁 frontend/src/utils/dateTime.js — v2.0
+// ✅ frontend/src/utils/dateTime.js — v2.1
+// Atualizado em: 16/06/2026
 //
 // Utilitário oficial de data/hora do frontend.
 //
@@ -28,9 +29,15 @@ function isValidYmdParts(year, month, day) {
   const mm = Number(month);
   const dd = Number(day);
 
-  if (!Number.isInteger(yy) || yy < 1900 || yy > 2200) return false;
-  if (!Number.isInteger(mm) || mm < 1 || mm > 12) return false;
-  if (!Number.isInteger(dd) || dd < 1 || dd > 31) return false;
+  if (!Number.isInteger(yy) || yy < 1900 || yy > 2200) {
+    return false;
+  }
+  if (!Number.isInteger(mm) || mm < 1 || mm > 12) {
+    return false;
+  }
+  if (!Number.isInteger(dd) || dd < 1 || dd > 31) {
+    return false;
+  }
 
   const date = new Date(Date.UTC(yy, mm - 1, dd));
 
@@ -42,8 +49,12 @@ function isValidYmdParts(year, month, day) {
 }
 
 export function isDateOnly(value) {
-  if (typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
 
   const [year, month, day] = value.split("-");
 
@@ -55,8 +66,12 @@ export function isYearMonth(value) {
 }
 
 export function isHhmm(value) {
-  if (typeof value !== "string") return false;
-  if (!/^\d{2}:\d{2}$/.test(value)) return false;
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (!/^\d{2}:\d{2}$/.test(value)) {
+    return false;
+  }
 
   const [hour, minute] = value.split(":").map(Number);
 
@@ -71,8 +86,12 @@ export function isHhmm(value) {
 }
 
 export function isHhmmss(value) {
-  if (typeof value !== "string") return false;
-  if (!/^\d{2}:\d{2}:\d{2}$/.test(value)) return false;
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (!/^\d{2}:\d{2}:\d{2}$/.test(value)) {
+    return false;
+  }
 
   const [hour, minute, second] = value.split(":").map(Number);
 
@@ -97,7 +116,9 @@ export function isUtcMidnight(value) {
 }
 
 export function isWallDateTime(value) {
-  if (typeof value !== "string") return false;
+  if (typeof value !== "string") {
+    return false;
+  }
 
   const text = value.trim();
 
@@ -128,12 +149,20 @@ export function extractYmd(value) {
 }
 
 export function normalizeDateOnly(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (typeof value === "string") {
-    if (isDateOnly(value)) return value;
-    if (isUtcMidnight(value)) return extractYmd(value);
-    if (isWallDateTime(value)) return extractYmd(value);
+    if (isDateOnly(value)) {
+      return value;
+    }
+    if (isUtcMidnight(value)) {
+      return extractYmd(value);
+    }
+    if (isWallDateTime(value)) {
+      return extractYmd(value);
+    }
 
     return "";
   }
@@ -150,7 +179,9 @@ export function normalizeDateOnly(value) {
 }
 
 export function dateOnlyToLocalDate(value) {
-  if (!isDateOnly(value)) return null;
+  if (!isDateOnly(value)) {
+    return null;
+  }
 
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(year, month - 1, day, 0, 0, 0, 0);
@@ -159,7 +190,9 @@ export function dateOnlyToLocalDate(value) {
 }
 
 export function dateOnlyToUtcDate(value) {
-  if (!isDateOnly(value)) return null;
+  if (!isDateOnly(value)) {
+    return null;
+  }
 
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
@@ -168,7 +201,9 @@ export function dateOnlyToUtcDate(value) {
 }
 
 export function toDate(input) {
-  if (!input) return null;
+  if (!input) {
+    return null;
+  }
 
   if (input instanceof Date) {
     return Number.isNaN(input.getTime()) ? null : input;
@@ -194,7 +229,9 @@ export function toDate(input) {
 ───────────────────────────────────────── */
 
 function formatDateOnlyBr(value) {
-  if (!isDateOnly(value)) return "";
+  if (!isDateOnly(value)) {
+    return "";
+  }
 
   const [year, month, day] = value.split("-");
 
@@ -202,7 +239,9 @@ function formatDateOnlyBr(value) {
 }
 
 export function formatWallDateTimeBr(value) {
-  if (!isWallDateTime(value)) return "";
+  if (!isWallDateTime(value)) {
+    return "";
+  }
 
   const [ymd, time] = value.trim().split(/\s+/);
   const [year, month, day] = ymd.split("-");
@@ -212,7 +251,9 @@ export function formatWallDateTimeBr(value) {
 }
 
 function formatWallDateOnlyBr(value) {
-  if (!isWallDateTime(value)) return "";
+  if (!isWallDateTime(value)) {
+    return "";
+  }
 
   const [ymd] = value.trim().split(/\s+/);
 
@@ -240,14 +281,22 @@ function formatWithIntl(date, options) {
 
 export function formatDateBr(value, zone = ZONA_PADRAO) {
   if (typeof value === "string") {
-    if (isDateOnly(value)) return formatDateOnlyBr(value);
-    if (isUtcMidnight(value)) return formatDateOnlyBr(extractYmd(value));
-    if (isWallDateTime(value)) return formatWallDateOnlyBr(value);
+    if (isDateOnly(value)) {
+      return formatDateOnlyBr(value);
+    }
+    if (isUtcMidnight(value)) {
+      return formatDateOnlyBr(extractYmd(value));
+    }
+    if (isWallDateTime(value)) {
+      return formatWallDateOnlyBr(value);
+    }
   }
 
   const date = toDate(value);
 
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   return formatWithIntl(date, {
     timeZone: zone,
@@ -270,7 +319,9 @@ export function formatDateTimeBr(value, zone = ZONA_PADRAO) {
 
   const date = toDate(value);
 
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   return formatWithIntl(date, {
     timeZone: zone,
@@ -288,19 +339,31 @@ export function formatDateTimeBr(value, zone = ZONA_PADRAO) {
 ───────────────────────────────────────── */
 
 export function brDateToIsoDate(value) {
-  if (!value || typeof value !== "string") return "";
+  if (!value || typeof value !== "string") {
+    return "";
+  }
 
   const parts = value.split("/");
 
-  if (parts.length !== 3) return "";
+  if (parts.length !== 3) {
+    return "";
+  }
 
   const [day, month, year] = parts.map((part) => String(part || "").trim());
 
-  if (!/^\d{2}$/.test(day)) return "";
-  if (!/^\d{2}$/.test(month)) return "";
-  if (!/^\d{4}$/.test(year)) return "";
+  if (!/^\d{2}$/.test(day)) {
+    return "";
+  }
+  if (!/^\d{2}$/.test(month)) {
+    return "";
+  }
+  if (!/^\d{4}$/.test(year)) {
+    return "";
+  }
 
-  if (!isValidYmdParts(year, month, day)) return "";
+  if (!isValidYmdParts(year, month, day)) {
+    return "";
+  }
 
   return `${year}-${month}-${day}`;
 }
@@ -308,10 +371,14 @@ export function brDateToIsoDate(value) {
 export function brDateTimeToIsoUtc(dataBr, horaBr = "00:00") {
   const isoDate = brDateToIsoDate(dataBr);
 
-  if (!isoDate) return null;
+  if (!isoDate) {
+    return null;
+  }
 
   const [year, month, day] = isoDate.split("-").map(Number);
-  const [hourRaw = "00", minuteRaw = "00"] = String(horaBr || "00:00").split(":");
+  const [hourRaw = "00", minuteRaw = "00"] = String(horaBr || "00:00").split(
+    ":",
+  );
 
   const hour = Number.parseInt(hourRaw, 10);
   const minute = Number.parseInt(minuteRaw, 10);
@@ -337,11 +404,15 @@ export function brDateTimeToIsoUtc(dataBr, horaBr = "00:00") {
 ───────────────────────────────────────── */
 
 export function datetimeLocalToWall(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const text = String(value).trim().replace("T", " ");
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const normalized = text.length === 16 ? `${text}:00` : text;
 
@@ -349,7 +420,9 @@ export function datetimeLocalToWall(value) {
 }
 
 export function wallToDatetimeLocal(value) {
-  if (!isWallDateTime(value)) return "";
+  if (!isWallDateTime(value)) {
+    return "";
+  }
 
   const [ymd, time] = value.trim().split(/\s+/);
   const [hour, minute] = time.split(":");
@@ -358,13 +431,19 @@ export function wallToDatetimeLocal(value) {
 }
 
 export function isoToDatetimeLocalInZone(iso, zone = ZONA_PADRAO) {
-  if (!iso || typeof iso !== "string") return "";
-  if (!isIsoWithTimezone(iso)) return "";
+  if (!iso || typeof iso !== "string") {
+    return "";
+  }
+  if (!isIsoWithTimezone(iso)) {
+    return "";
+  }
 
   try {
     const date = new Date(iso);
 
-    if (Number.isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
     const parts = new Intl.DateTimeFormat("sv-SE", {
       timeZone: zone,
@@ -385,7 +464,9 @@ export function isoToDatetimeLocalInZone(iso, zone = ZONA_PADRAO) {
     const hour = get("hour");
     const minute = get("minute");
 
-    if (!year || !month || !day || !hour || !minute) return "";
+    if (!year || !month || !day || !hour || !minute) {
+      return "";
+    }
 
     return `${year}-${month}-${day}T${hour}:${minute}`;
   } catch {
@@ -401,13 +482,19 @@ export function gerarIntervaloDeDatas(dataInicio, dataFim) {
   const inicio = normalizeDateOnly(dataInicio);
   const fim = normalizeDateOnly(dataFim);
 
-  if (!isDateOnly(inicio) || !isDateOnly(fim)) return [];
-  if (inicio > fim) return [];
+  if (!isDateOnly(inicio) || !isDateOnly(fim)) {
+    return [];
+  }
+  if (inicio > fim) {
+    return [];
+  }
 
   const start = dateOnlyToUtcDate(inicio);
   const end = dateOnlyToUtcDate(fim);
 
-  if (!start || !end) return [];
+  if (!start || !end) {
+    return [];
+  }
 
   const datas = [];
 
@@ -427,15 +514,21 @@ export function gerarIntervaloDeDatas(dataInicio, dataFim) {
 }
 
 export function addDaysYMD(ymd, days = 0) {
-  if (!isDateOnly(ymd)) return ymd || "";
+  if (!isDateOnly(ymd)) {
+    return ymd || "";
+  }
 
   const increment = Number(days);
 
-  if (!Number.isFinite(increment)) return ymd;
+  if (!Number.isFinite(increment)) {
+    return ymd;
+  }
 
   const date = dateOnlyToUtcDate(ymd);
 
-  if (!date) return ymd;
+  if (!date) {
+    return ymd;
+  }
 
   date.setUTCDate(date.getUTCDate() + Math.trunc(increment));
 
@@ -447,19 +540,27 @@ export function addDaysYMD(ymd, days = 0) {
 }
 
 export function diffDaysYMD(startYmd, endYmd) {
-  if (!isDateOnly(startYmd) || !isDateOnly(endYmd)) return NaN;
+  if (!isDateOnly(startYmd) || !isDateOnly(endYmd)) {
+    return NaN;
+  }
 
   const start = dateOnlyToUtcDate(startYmd);
   const end = dateOnlyToUtcDate(endYmd);
 
-  if (!start || !end) return NaN;
+  if (!start || !end) {
+    return NaN;
+  }
 
   return Math.round((end.getTime() - start.getTime()) / MS_DIA);
 }
 
 export function compareYMD(a, b) {
-  if (!isDateOnly(a) || !isDateOnly(b)) return NaN;
-  if (a === b) return 0;
+  if (!isDateOnly(a) || !isDateOnly(b)) {
+    return NaN;
+  }
+  if (a === b) {
+    return 0;
+  }
 
   return a < b ? -1 : 1;
 }
@@ -509,8 +610,12 @@ export function parseHoraBr(value = "00:00") {
 export function idadeDe(nascimentoYmd, hojeYmd = nowYmdInZone()) {
   const nascimento = extractYmd(String(nascimentoYmd ?? ""));
 
-  if (!isDateOnly(nascimento)) return null;
-  if (!isDateOnly(hojeYmd)) return null;
+  if (!isDateOnly(nascimento)) {
+    return null;
+  }
+  if (!isDateOnly(hojeYmd)) {
+    return null;
+  }
 
   const [birthYear, birthMonth, birthDay] = nascimento.split("-").map(Number);
   const [todayYear, todayMonth, todayDay] = hojeYmd.split("-").map(Number);
@@ -531,11 +636,15 @@ export function idadeDe(nascimentoYmd, hojeYmd = nowYmdInZone()) {
 ───────────────────────────────────────── */
 
 export function formatarCPF(cpf) {
-  if (!cpf) return "";
+  if (!cpf) {
+    return "";
+  }
 
   const num = String(cpf).replace(/\D/g, "");
 
-  if (num.length !== 11) return String(cpf);
+  if (num.length !== 11) {
+    return String(cpf);
+  }
 
   return num.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 }

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/components/eventos/CardEvento.jsx — v2.0
 // Atualizado em: 14/05/2026
 // Plataforma Escola da Saúde
@@ -67,11 +66,13 @@ function hojeIsoLocal() {
 }
 
 function ymdSeguro(value) {
-  if (typeof value === "string") return ymd(value);
+  if (typeof value === "string") {
+    return ymd(value);
+  }
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(
-      value.getDate()
+      value.getDate(),
     )}`;
   }
 
@@ -81,7 +82,9 @@ function ymdSeguro(value) {
 function formatDateBr(value) {
   const date = ymdSeguro(value);
 
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   const [, month, day] = date.split("-");
   return `${day}/${month}/${date.slice(0, 4)}`;
@@ -100,7 +103,9 @@ function getDatasTurma(turma) {
   const dataInicio = ymdSeguro(turma?.data_inicio);
   const dataFim = ymdSeguro(turma?.data_fim || turma?.data_inicio);
 
-  if (!dataInicio) return [];
+  if (!dataInicio) {
+    return [];
+  }
 
   if (dataFim && dataFim !== dataInicio) {
     return [dataInicio, dataFim].sort();
@@ -110,7 +115,9 @@ function getDatasTurma(turma) {
 }
 
 function getPeriodoEvento(evento, turmas = []) {
-  const inicioEvento = ymdSeguro(evento?.data_inicio_geral || evento?.data_inicio);
+  const inicioEvento = ymdSeguro(
+    evento?.data_inicio_geral || evento?.data_inicio,
+  );
   const fimEvento = ymdSeguro(evento?.data_fim_geral || evento?.data_fim);
 
   if (inicioEvento && fimEvento) {
@@ -153,11 +160,17 @@ function getStatusEvento(evento, turmas = [], hoje = "") {
 
   const datas = [];
 
-  const inicioEvento = ymdSeguro(evento?.data_inicio_geral || evento?.data_inicio);
+  const inicioEvento = ymdSeguro(
+    evento?.data_inicio_geral || evento?.data_inicio,
+  );
   const fimEvento = ymdSeguro(evento?.data_fim_geral || evento?.data_fim);
 
-  if (inicioEvento) datas.push(inicioEvento);
-  if (fimEvento) datas.push(fimEvento);
+  if (inicioEvento) {
+    datas.push(inicioEvento);
+  }
+  if (fimEvento) {
+    datas.push(fimEvento);
+  }
 
   if (!datas.length) {
     for (const turma of Array.isArray(turmas) ? turmas : []) {
@@ -167,14 +180,20 @@ function getStatusEvento(evento, turmas = [], hoje = "") {
 
   const ordenadas = datas.filter(Boolean).sort();
 
-  if (!ordenadas.length) return EVENTO_STATUS.SEM_DATAS;
+  if (!ordenadas.length) {
+    return EVENTO_STATUS.SEM_DATAS;
+  }
 
   const hojeYmd = ymdSeguro(hoje) || hojeIsoLocal();
   const inicio = ordenadas[0];
   const fim = ordenadas.at(-1);
 
-  if (hojeYmd < inicio) return EVENTO_STATUS.PROGRAMADO;
-  if (hojeYmd > fim) return EVENTO_STATUS.ENCERRADO;
+  if (hojeYmd < inicio) {
+    return EVENTO_STATUS.PROGRAMADO;
+  }
+  if (hojeYmd > fim) {
+    return EVENTO_STATUS.ENCERRADO;
+  }
 
   return EVENTO_STATUS.ANDAMENTO;
 }
@@ -198,7 +217,9 @@ const CAMPOS_NOTA_EVENTO = [
 ];
 
 function notaParaNumero(valor) {
-  if (valor === null || valor === undefined || valor === "") return null;
+  if (valor === null || valor === undefined || valor === "") {
+    return null;
+  }
 
   const number = Number(valor);
 
@@ -210,7 +231,9 @@ function notaParaNumero(valor) {
 }
 
 function calcularMediaEventoViaLista(avaliacoes) {
-  if (!Array.isArray(avaliacoes) || avaliacoes.length === 0) return "—";
+  if (!Array.isArray(avaliacoes) || avaliacoes.length === 0) {
+    return "—";
+  }
 
   const medias = avaliacoes
     .map((avaliacao) => {
@@ -230,7 +253,9 @@ function calcularMediaEventoViaLista(avaliacoes) {
     })
     .filter((value) => value !== null);
 
-  if (!medias.length) return "—";
+  if (!medias.length) {
+    return "—";
+  }
 
   const media = medias.reduce((acc, value) => acc + value, 0) / medias.length;
 
@@ -248,23 +273,31 @@ function asArray(value) {
 function eventoTemProgramacao(evento) {
   return Boolean(
     evento?.programacao_kind === "blob" ||
-      evento?.tem_programacao ||
-      evento?.programacao_pdf_size ||
-      evento?.programacao_pdf_updated_at
+    evento?.tem_programacao ||
+    evento?.programacao_pdf_size ||
+    evento?.programacao_pdf_updated_at,
   );
 }
 
 function normalizeTurmaParaCard(turma) {
   return {
     ...turma,
-    organizadores: Array.isArray(turma?.organizadores) ? turma.organizadores : [],
+    organizadores: Array.isArray(turma?.organizadores)
+      ? turma.organizadores
+      : [],
   };
 }
 
 function statusLabel(status) {
-  if (status === EVENTO_STATUS.PROGRAMADO) return "Programado";
-  if (status === EVENTO_STATUS.ANDAMENTO) return "Em andamento";
-  if (status === EVENTO_STATUS.ENCERRADO) return "Encerrado";
+  if (status === EVENTO_STATUS.PROGRAMADO) {
+    return "Programado";
+  }
+  if (status === EVENTO_STATUS.ANDAMENTO) {
+    return "Em andamento";
+  }
+  if (status === EVENTO_STATUS.ENCERRADO) {
+    return "Encerrado";
+  }
 
   return "Datas a definir";
 }
@@ -272,8 +305,7 @@ function statusLabel(status) {
 function statusClasses(status) {
   if (status === EVENTO_STATUS.PROGRAMADO) {
     return {
-      chip:
-        "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200",
+      chip: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200",
       bar: "from-emerald-500 via-teal-500 to-cyan-500",
       aura: "bg-emerald-500/10",
     };
@@ -281,8 +313,7 @@ function statusClasses(status) {
 
   if (status === EVENTO_STATUS.ANDAMENTO) {
     return {
-      chip:
-        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200",
+      chip: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200",
       bar: "from-amber-500 via-orange-500 to-rose-500",
       aura: "bg-amber-500/10",
     };
@@ -290,16 +321,14 @@ function statusClasses(status) {
 
   if (status === EVENTO_STATUS.ENCERRADO) {
     return {
-      chip:
-        "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200",
+      chip: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200",
       bar: "from-rose-600 via-red-600 to-zinc-700",
       aura: "bg-rose-500/10",
     };
   }
 
   return {
-    chip:
-      "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300",
+    chip: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300",
     bar: "from-indigo-500 via-fuchsia-500 to-pink-500",
     aura: "bg-indigo-500/10",
   };
@@ -433,10 +462,8 @@ function StatCard({ icon: Icon, label, value, title, tone = "slate" }) {
       "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100",
-    teal:
-      "border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-100",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-100",
+    teal: "border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-100",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
     violet:
@@ -524,7 +551,9 @@ export default function CardEvento({
       totalInscritos += inscritos.length;
 
       const presencas = asArray(presencasPorTurma?.[turma.id]);
-      totalPresentes += presencas.filter((item) => item?.presente === true).length;
+      totalPresentes += presencas.filter(
+        (item) => item?.presente === true,
+      ).length;
 
       const blocoAval = avaliacaoPorTurma?.[turma.id] || {};
       const avaliacoes = Array.isArray(blocoAval?.avaliacao)
@@ -582,12 +611,20 @@ export default function CardEvento({
   }, [avaliacaoPorTurma, inscritosPorTurma, presencasPorTurma, turmas]);
 
   useEffect(() => {
-    if (!expandido || !Array.isArray(turmas)) return;
+    if (!expandido || !Array.isArray(turmas)) {
+      return;
+    }
 
     for (const turma of turmas) {
-      if (!inscritosPorTurma?.[turma.id]) carregarInscritos?.(turma.id);
-      if (!avaliacaoPorTurma?.[turma.id]) carregarAvaliacao?.(turma.id);
-      if (!presencasPorTurma?.[turma.id]) carregarPresencas?.(turma.id);
+      if (!inscritosPorTurma?.[turma.id]) {
+        carregarInscritos?.(turma.id);
+      }
+      if (!avaliacaoPorTurma?.[turma.id]) {
+        carregarAvaliacao?.(turma.id);
+      }
+      if (!presencasPorTurma?.[turma.id]) {
+        carregarPresencas?.(turma.id);
+      }
     }
   }, [
     avaliacaoPorTurma,
@@ -602,12 +639,12 @@ export default function CardEvento({
 
   const periodoTexto = useMemo(
     () => getPeriodoEvento(evento, turmas),
-    [evento, turmas]
+    [evento, turmas],
   );
 
   const status = useMemo(
     () => getStatusEvento(evento, turmas, hoje),
-    [evento, hoje, turmas]
+    [evento, hoje, turmas],
   );
 
   const statusStyle = statusClasses(status);
@@ -617,7 +654,10 @@ export default function CardEvento({
   const periodoId = `evento-${eventoId}-periodo`;
 
   const folderUrl = useMemo(() => getEventoFolderUrl(evento), [evento]);
-  const programacaoUrl = useMemo(() => getEventoProgramacaoUrl(evento), [evento]);
+  const programacaoUrl = useMemo(
+    () => getEventoProgramacaoUrl(evento),
+    [evento],
+  );
 
   const [imgOk, setImgOk] = useState(true);
 
@@ -630,7 +670,8 @@ export default function CardEvento({
   const local = String(evento?.local || "").trim();
 
   const jaInscrito = Boolean(evento?.ja_inscrito);
-  const temProgramacao = eventoTemProgramacao(evento) && Boolean(programacaoUrl);
+  const temProgramacao =
+    eventoTemProgramacao(evento) && Boolean(programacaoUrl);
 
   const handleToggle = useCallback(() => {
     toggleExpandir?.(eventoId);
@@ -840,7 +881,8 @@ export default function CardEvento({
                 Turmas disponíveis
               </h4>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Escolha a turma, consulte vagas, horários e situação da inscrição.
+                Escolha a turma, consulte vagas, horários e situação da
+                inscrição.
               </p>
             </div>
 

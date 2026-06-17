@@ -40,12 +40,9 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
-  Clock,
   Download,
   Ear,
   Eye,
-  Infinity,
-  RefreshCw,
   Sparkles,
   Trash2,
   Users,
@@ -56,11 +53,7 @@ import Botao from "../ui/Botao";
 import ModalConfirmacao from "../ui/ModalConfirmacao";
 import CarregandoSkeleton from "../ui/CarregandoSkeleton";
 import NadaEncontrado from "../ui/NadaEncontrado";
-import {
-  notifyError,
-  notifySuccess,
-  notifyWarning,
-} from "../ui/AppToast";
+import { notifyError, notifySuccess, notifyWarning } from "../ui/AppToast";
 
 import ControlePresencaInscritos from "./ControlePresencaInscritos";
 import StatusPresencaBadge from "./StatusPresencaBadge";
@@ -92,8 +85,12 @@ function toPositiveInt(value) {
 function ymd(value) {
   const safe = String(value || "").trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) return safe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) return safe.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) {
+    return safe.slice(0, 10);
+  }
 
   return "";
 }
@@ -101,8 +98,12 @@ function ymd(value) {
 function hhmm(value, fallback = "00:00") {
   const safe = String(value || "").trim();
 
-  if (/^\d{2}:\d{2}$/.test(safe)) return safe;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) return safe.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) {
+    return safe.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -111,7 +112,9 @@ function toLocalDateTime(dateOnly, timeHHmm = "00:00") {
   const data = ymd(dateOnly);
   const hora = hhmm(timeHHmm, "00:00");
 
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   const [year, month, day] = data.split("-").map(Number);
   const [hour, minute] = hora.split(":").map(Number);
@@ -122,7 +125,9 @@ function toLocalDateTime(dateOnly, timeHHmm = "00:00") {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [year, month, day] = data.split("-");
   return `${day}/${month}/${year}`;
@@ -157,24 +162,34 @@ function getEventoId(evento) {
 function getStatusTurma(turma, agora = new Date()) {
   const inicio = toLocalDateTime(
     turma?.data_inicio,
-    hhmm(turma?.horario_inicio, "00:00")
+    hhmm(turma?.horario_inicio, "00:00"),
   );
 
   const fim = toLocalDateTime(
     turma?.data_fim || turma?.data_inicio,
-    hhmm(turma?.horario_fim, "23:59")
+    hhmm(turma?.horario_fim, "23:59"),
   );
 
-  if (!inicio || !fim) return STATUS.PROGRAMADO;
-  if (agora < inicio) return STATUS.PROGRAMADO;
-  if (agora > fim) return STATUS.ENCERRADO;
+  if (!inicio || !fim) {
+    return STATUS.PROGRAMADO;
+  }
+  if (agora < inicio) {
+    return STATUS.PROGRAMADO;
+  }
+  if (agora > fim) {
+    return STATUS.ENCERRADO;
+  }
 
   return STATUS.ANDAMENTO;
 }
 
 function statusLabel(status) {
-  if (status === STATUS.ANDAMENTO) return "Em andamento";
-  if (status === STATUS.ENCERRADO) return "Encerrado";
+  if (status === STATUS.ANDAMENTO) {
+    return "Em andamento";
+  }
+  if (status === STATUS.ENCERRADO) {
+    return "Encerrado";
+  }
   return "Programado";
 }
 
@@ -197,20 +212,20 @@ function statusPillClass(status) {
   if (status === STATUS.ANDAMENTO) {
     return classNames(
       base,
-      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200",
     );
   }
 
   if (status === STATUS.ENCERRADO) {
     return classNames(
       base,
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-200"
+      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-200",
     );
   }
 
   return classNames(
     base,
-    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200"
+    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200",
   );
 }
 
@@ -266,33 +281,37 @@ function normalizeDetalhePresenca(response, turma) {
       data: ymd(item?.data || item),
       horario_inicio: hhmm(
         item?.horario_inicio || item?.inicio || turma?.horario_inicio,
-        ""
+        "",
       ),
       horario_fim: hhmm(
         item?.horario_fim || item?.fim || turma?.horario_fim,
-        ""
+        "",
       ),
     }))
     .filter((item) => item.data)
     .sort((a, b) => a.data.localeCompare(b.data));
 
-const usuarios = Array.isArray(data?.usuarios)
-  ? data.usuarios.map((usuario) => ({
-      ...usuario,
-      deficiencia_nome: obterDeficienciaUsuario(usuario),
-    }))
-  : [];
+  const usuarios = Array.isArray(data?.usuarios)
+    ? data.usuarios.map((usuario) => ({
+        ...usuario,
+        deficiencia_nome: obterDeficienciaUsuario(usuario),
+      }))
+    : [];
 
-const presencas = [];
+  const presencas = [];
 
   for (const usuario of usuarios) {
     const usuario_id = toPositiveInt(usuario?.usuario_id || usuario?.id);
 
-    if (!usuario_id) continue;
+    if (!usuario_id) {
+      continue;
+    }
 
     for (const presenca of usuario?.presencas || []) {
       const data_presenca = ymd(presenca?.data_presenca || presenca?.data);
-      if (!data_presenca) continue;
+      if (!data_presenca) {
+        continue;
+      }
 
       presencas.push({
         usuario_id,
@@ -317,7 +336,9 @@ function getPresencaMap(presencas = []) {
     const usuario_id = toPositiveInt(item?.usuario_id);
     const data = ymd(item?.data_presenca || item?.data);
 
-    if (!usuario_id || !data) continue;
+    if (!usuario_id || !data) {
+      continue;
+    }
 
     map.set(`${usuario_id}#${data}`, item?.presente === true);
   }
@@ -346,7 +367,9 @@ function obterDeficienciaUsuario(usuario = {}) {
   for (const candidato of candidatos) {
     const texto = String(candidato || "").trim();
 
-    if (texto) return texto;
+    if (texto) {
+      return texto;
+    }
   }
 
   return "";
@@ -443,7 +466,9 @@ function obterConfigDeficiencia(deficiencia) {
 function IconeDeficienciaUsuario({ usuario }) {
   const config = obterConfigDeficiencia(obterDeficienciaUsuario(usuario));
 
-  if (!config) return null;
+  if (!config) {
+    return null;
+  }
 
   const Icon = config.Icon;
 
@@ -451,7 +476,7 @@ function IconeDeficienciaUsuario({ usuario }) {
     <span
       className={classNames(
         "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
-        config.className
+        config.className,
       )}
       title={config.label}
       aria-label={config.label}
@@ -473,8 +498,7 @@ function StatPill({ icon: Icon, label, value, tone = "slate" }) {
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/25 dark:text-amber-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-900/25 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-900/25 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-900/25 dark:text-violet-200",
   };
@@ -483,7 +507,7 @@ function StatPill({ icon: Icon, label, value, tone = "slate" }) {
     <span
       className={classNames(
         "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon size={14} aria-hidden="true" /> : null}
@@ -511,12 +535,7 @@ function EmptyBox({ title, text }) {
   );
 }
 
-function VisaoPorData({
-  turma,
-  inscritos = [],
-  datas = [],
-  presencas = [],
-}) {
+function VisaoPorData({ turma, inscritos = [], datas = [], presencas = [] }) {
   const [dataAtiva, setDataAtiva] = useState(() => datas?.[0]?.data || "");
 
   const dataSelecionada = useMemo(() => {
@@ -536,7 +555,9 @@ function VisaoPorData({
     for (const inscrito of inscritos) {
       const usuario_id = toPositiveInt(inscrito?.usuario_id || inscrito?.id);
 
-      if (!usuario_id || !dataSelecionada) continue;
+      if (!usuario_id || !dataSelecionada) {
+        continue;
+      }
 
       if (presencaMap.get(`${usuario_id}#${dataSelecionada}`) === true) {
         presentes += 1;
@@ -605,7 +626,7 @@ function VisaoPorData({
                 "rounded-full border px-3 py-1.5 text-xs font-black transition",
                 active
                   ? "border-violet-700 bg-violet-700 text-white"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
               )}
             >
               {formatarDataBR(item.data)}
@@ -630,7 +651,7 @@ function VisaoPorData({
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {inscritos.map((inscrito) => {
               const usuario_id = toPositiveInt(
-                inscrito?.usuario_id || inscrito?.id
+                inscrito?.usuario_id || inscrito?.id,
               );
 
               const presente =
@@ -641,20 +662,20 @@ function VisaoPorData({
               return (
                 <tr key={usuario_id || inscrito?.email || inscrito?.nome}>
                   <td className="px-3 py-3 text-slate-950 dark:text-white">
-  <div className="flex items-center gap-2 font-semibold">
-    <span className="break-words">
-      {inscrito?.nome || "Participante"}
-    </span>
+                    <div className="flex items-center gap-2 font-semibold">
+                      <span className="break-words">
+                        {inscrito?.nome || "Participante"}
+                      </span>
 
-    <IconeDeficienciaUsuario usuario={inscrito} />
-  </div>
+                      <IconeDeficienciaUsuario usuario={inscrito} />
+                    </div>
 
-  {inscrito?.email ? (
-    <div className="text-xs text-slate-500 dark:text-slate-400">
-      {inscrito.email}
-    </div>
-  ) : null}
-</td>
+                    {inscrito?.email ? (
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        {inscrito.email}
+                      </div>
+                    ) : null}
+                  </td>
 
                   <td className="px-3 py-3">
                     <StatusPresencaBadge
@@ -683,7 +704,6 @@ export default function ListaTurmasPresenca({
   gerarRelatorioPDF,
   inscritosPorTurma = {},
   avaliacaoPorTurma = {},
-  navigate,
   modoadministradorPresencas = false,
   onTurmaRemovida,
   mostrarBotaoRemover = false,
@@ -725,8 +745,11 @@ export default function ListaTurmasPresenca({
     setCarregandoTurmas((prev) => {
       const next = new Set(prev);
 
-      if (loading) next.add(String(turma_id));
-      else next.delete(String(turma_id));
+      if (loading) {
+        next.add(String(turma_id));
+      } else {
+        next.delete(String(turma_id));
+      }
 
       return next;
     });
@@ -756,7 +779,7 @@ export default function ListaTurmasPresenca({
         }));
       } catch (error) {
         notifyError(
-          getErrorMessage(error, "Erro ao carregar presenças da turma.")
+          getErrorMessage(error, "Erro ao carregar presenças da turma."),
         );
 
         setPresencasPorTurma((prev) => ({
@@ -771,30 +794,40 @@ export default function ListaTurmasPresenca({
         marcarCarregando(turma_id, false);
       }
     },
-    [marcarCarregando]
+    [marcarCarregando],
   );
 
   useEffect(() => {
-    if (!modoadministradorPresencas) return;
+    if (!modoadministradorPresencas) {
+      return;
+    }
     if (!carregarListasAutomaticamente && !abrirTudo && !modoContextualEvento) {
       return;
     }
 
-    if (!turmasValidasFlat.length) return;
+    if (!turmasValidasFlat.length) {
+      return;
+    }
 
     let cancelado = false;
 
     async function carregarTudoAberto() {
       for (const turma of turmasValidasFlat) {
-        if (cancelado) return;
+        if (cancelado) {
+          return;
+        }
 
         const turma_id = getTurmaId(turma);
 
-        if (!turma_id) continue;
+        if (!turma_id) {
+          continue;
+        }
 
         const chave = String(turma_id);
 
-        if (autoCarregadasRef.current.has(chave)) continue;
+        if (autoCarregadasRef.current.has(chave)) {
+          continue;
+        }
 
         autoCarregadasRef.current.add(chave);
 
@@ -824,11 +857,13 @@ export default function ListaTurmasPresenca({
 
   const removerTurmaAgora = useCallback(
     async ({ turma_id }) => {
-      if (!turma_id) return false;
+      if (!turma_id) {
+        return false;
+      }
 
       if (typeof api?.turma?.remover !== "function") {
         notifyError(
-          "Remoção de turma não está disponível no contrato atual do frontend."
+          "Remoção de turma não está disponível no contrato atual do frontend.",
         );
         return false;
       }
@@ -853,7 +888,7 @@ export default function ListaTurmasPresenca({
 
         if (status === 409) {
           notifyError(
-            "Não é possível excluir esta turma porque já existem registros vinculados."
+            "Não é possível excluir esta turma porque já existem registros vinculados.",
           );
         } else if (status === 404) {
           notifyWarning("Turma não encontrada. Atualize a página.");
@@ -866,7 +901,7 @@ export default function ListaTurmasPresenca({
         setRemovendoId(null);
       }
     },
-    [onTurmaRemovida]
+    [onTurmaRemovida],
   );
 
   const toggleTurma = useCallback(
@@ -910,7 +945,7 @@ export default function ListaTurmasPresenca({
       carregarPresencas,
       modoContextualEvento,
       turmaExpandidaId,
-    ]
+    ],
   );
 
   if (!eventosOrdenados.length) {
@@ -933,9 +968,8 @@ export default function ListaTurmasPresenca({
           {eventosOrdenados.map((evento) => {
             const eventoId = getEventoId(evento) || evento?.titulo;
 
-            const turmasValidas = (Array.isArray(evento?.turmas)
-              ? evento.turmas
-              : []
+            const turmasValidas = (
+              Array.isArray(evento?.turmas) ? evento.turmas : []
             )
               .filter((turma) => {
                 const turma_id = getTurmaId(turma);
@@ -987,7 +1021,7 @@ export default function ListaTurmasPresenca({
                           turmaExpandidaId === turma_id;
 
                         const isLoadingTurma = carregandoTurmas.has(
-                          String(turma_id)
+                          String(turma_id),
                         );
 
                         const inscritos = inscritosPorTurma?.[turma_id] || [];
@@ -1013,7 +1047,7 @@ export default function ListaTurmasPresenca({
                             <div
                               className={classNames(
                                 "absolute left-0 right-0 top-0 h-1.5",
-                                statusBarClass(status)
+                                statusBarClass(status),
                               )}
                               aria-hidden="true"
                             />
@@ -1036,7 +1070,10 @@ export default function ListaTurmasPresenca({
 
                                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                                     <span className="inline-flex items-center gap-1">
-                                      <CalendarDays size={14} aria-hidden="true" />
+                                      <CalendarDays
+                                        size={14}
+                                        aria-hidden="true"
+                                      />
                                       {formatarPeriodoTurma(turma)}
                                     </span>
                                   </p>
@@ -1108,7 +1145,7 @@ export default function ListaTurmasPresenca({
                                         onClick={() =>
                                           gerarRelatorioPDF(
                                             turma_id,
-                                            turma?.nome || `turma_${turma_id}`
+                                            turma?.nome || `turma_${turma_id}`,
                                           )
                                         }
                                         className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-900 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
@@ -1153,61 +1190,73 @@ export default function ListaTurmasPresenca({
                               </div>
 
                               <AnimatePresence initial={false}>
-                                {modoadministradorPresencas && estaExpandida && (
-                                  <motion.div
-                                    id={`turma-${turma_id}-detalhes`}
-                                    initial={
-                                      abrirTudo || modoContextualEvento
-                                        ? false
-                                        : { opacity: 0, height: 0 }
-                                    }
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={
-                                      abrirTudo || modoContextualEvento
-                                        ? undefined
-                                        : { opacity: 0, height: 0 }
-                                    }
-                                    className="mt-4 overflow-hidden"
-                                  >
-                                    {isLoadingTurma ? (
-                                      <CarregandoSkeleton
-                                        texto="Carregando presenças da turma..."
-                                        linhas={4}
-                                      />
-                                    ) : (
-                                      <div className="rounded-2xl border border-slate-200 bg-white/75 p-4 dark:border-slate-800 dark:bg-slate-900/45">
-                                        {agrupamento === "data" ? (
-                                          <VisaoPorData
-                                            turma={turma}
-                                            inscritos={inscritos}
-                                            datas={datas}
-                                            presencas={presencas}
-                                          />
-                                        ) : inscritos.length === 0 ? (
-                                          <EmptyBox
-                                            title="Nenhum inscrito encontrado"
-                                            text="Esta turma ainda não possui inscritos carregados."
-                                          />
-                                        ) : (
-                                          <ControlePresencaInscritos
-  inscritos={inscritos}
-  turma={{
-    ...turma,
-    turma_id,
-  }}
-  presencas={presencas}
-  datas={datas}
-  carregarPresencas={() => carregarPresencas(turma)}
-  modoAdministrador={modoadministradorPresencas}
-  prazoConfirmacaoOrganizadorHoras={48}
-  prazoConfirmacaoAdministradorDias={90}
-  modoTabelaCompacta={modoContextualEvento || abrirTudo}
-/>
-                                        )}
-                                      </div>
-                                    )}
-                                  </motion.div>
-                                )}
+                                {modoadministradorPresencas &&
+                                  estaExpandida && (
+                                    <motion.div
+                                      id={`turma-${turma_id}-detalhes`}
+                                      initial={
+                                        abrirTudo || modoContextualEvento
+                                          ? false
+                                          : { opacity: 0, height: 0 }
+                                      }
+                                      animate={{ opacity: 1, height: "auto" }}
+                                      exit={
+                                        abrirTudo || modoContextualEvento
+                                          ? undefined
+                                          : { opacity: 0, height: 0 }
+                                      }
+                                      className="mt-4 overflow-hidden"
+                                    >
+                                      {isLoadingTurma ? (
+                                        <CarregandoSkeleton
+                                          texto="Carregando presenças da turma..."
+                                          linhas={4}
+                                        />
+                                      ) : (
+                                        <div className="rounded-2xl border border-slate-200 bg-white/75 p-4 dark:border-slate-800 dark:bg-slate-900/45">
+                                          {agrupamento === "data" ? (
+                                            <VisaoPorData
+                                              turma={turma}
+                                              inscritos={inscritos}
+                                              datas={datas}
+                                              presencas={presencas}
+                                            />
+                                          ) : inscritos.length === 0 ? (
+                                            <EmptyBox
+                                              title="Nenhum inscrito encontrado"
+                                              text="Esta turma ainda não possui inscritos carregados."
+                                            />
+                                          ) : (
+                                            <ControlePresencaInscritos
+                                              inscritos={inscritos}
+                                              turma={{
+                                                ...turma,
+                                                turma_id,
+                                              }}
+                                              presencas={presencas}
+                                              datas={datas}
+                                              carregarPresencas={() =>
+                                                carregarPresencas(turma)
+                                              }
+                                              modoAdministrador={
+                                                modoadministradorPresencas
+                                              }
+                                              prazoConfirmacaoOrganizadorHoras={
+                                                48
+                                              }
+                                              prazoConfirmacaoAdministradorDias={
+                                                90
+                                              }
+                                              modoTabelaCompacta={
+                                                modoContextualEvento ||
+                                                abrirTudo
+                                              }
+                                            />
+                                          )}
+                                        </div>
+                                      )}
+                                    </motion.div>
+                                  )}
                               </AnimatePresence>
                             </div>
                           </motion.article>
@@ -1226,7 +1275,9 @@ export default function ListaTurmasPresenca({
         isOpen={!!confirmRemover}
         onClose={() => setConfirmRemover(null)}
         onConfirmar={async () => {
-          if (!confirmRemover) return false;
+          if (!confirmRemover) {
+            return false;
+          }
 
           const ok = await removerTurmaAgora(confirmRemover);
 
@@ -1318,9 +1369,9 @@ ListaTurmasPresenca.propTypes = {
           horario_fim: PropTypes.string,
           encontros: PropTypes.array,
           datas: PropTypes.array,
-        })
+        }),
       ),
-    })
+    }),
   ),
   hoje: PropTypes.instanceOf(Date),
   carregarInscritos: PropTypes.func.isRequired,

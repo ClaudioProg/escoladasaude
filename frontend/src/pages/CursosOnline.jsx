@@ -41,7 +41,6 @@ import {
   Globe2,
   GraduationCap,
   Layers3,
-  Link2,
   MonitorPlay,
   RefreshCcw,
   Search,
@@ -80,9 +79,15 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
@@ -108,12 +113,16 @@ function cleanStr(value) {
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -188,10 +197,10 @@ export default function CursosOnline() {
   const [erro, setErro] = useState("");
 
   const [filtroPlataforma, setFiltroPlataforma] = useState(
-    persisted.filtroPlataforma || ""
+    persisted.filtroPlataforma || "",
   );
   const [filtroCategoria, setFiltroCategoria] = useState(
-    persisted.filtroCategoria || ""
+    persisted.filtroCategoria || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -214,7 +223,7 @@ export default function CursosOnline() {
           filtroPlataforma,
           filtroCategoria,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página.
@@ -244,7 +253,7 @@ export default function CursosOnline() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar os cursos online."
+        "Não foi possível carregar os cursos online.",
       );
 
       setErro(message);
@@ -263,11 +272,13 @@ export default function CursosOnline() {
 
     for (const curso of cursos) {
       const categoria = cleanStr(curso.categoria);
-      if (categoria) set.add(categoria);
+      if (categoria) {
+        set.add(categoria);
+      }
     }
 
     return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
     );
   }, [cursos]);
 
@@ -303,10 +314,12 @@ export default function CursosOnline() {
             curso.status_label,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -321,10 +334,18 @@ export default function CursosOnline() {
     let certificadosExternos = 0;
 
     for (const curso of cursos) {
-      if (curso.plataforma) plataformas.add(curso.plataforma);
-      if (curso.categoria) categoriasSet.add(curso.categoria);
-      if (curso.gratuito) gratuitos += 1;
-      if (curso.certificado_externo) certificadosExternos += 1;
+      if (curso.plataforma) {
+        plataformas.add(curso.plataforma);
+      }
+      if (curso.categoria) {
+        categoriasSet.add(curso.categoria);
+      }
+      if (curso.gratuito) {
+        gratuitos += 1;
+      }
+      if (curso.certificado_externo) {
+        certificadosExternos += 1;
+      }
     }
 
     return {
@@ -337,7 +358,7 @@ export default function CursosOnline() {
   }, [cursos]);
 
   const temFiltrosAtivos = Boolean(
-    filtroPlataforma || filtroCategoria || buscaDebounced
+    filtroPlataforma || filtroCategoria || buscaDebounced,
   );
 
   function limparFiltros() {
@@ -349,8 +370,12 @@ export default function CursosOnline() {
   }
 
   function removerChip(tipo) {
-    if (tipo === "plataforma") setFiltroPlataforma("");
-    if (tipo === "categoria") setFiltroCategoria("");
+    if (tipo === "plataforma") {
+      setFiltroPlataforma("");
+    }
+    if (tipo === "categoria") {
+      setFiltroCategoria("");
+    }
 
     if (tipo === "busca") {
       setBusca("");
@@ -365,45 +390,65 @@ export default function CursosOnline() {
       <p ref={liveRef} className="sr-only" aria-live="polite" />
 
       <HeaderHero
-  icone={MonitorPlay}
-  etiqueta="Cursos Online"
-  titulo="Cursos e trilhas para sua formação"
-  subtitulo="Acesse conteúdos selecionados pela Escola da Saúde em plataformas oficiais, universidades, órgãos públicos e parceiros autorizados."
-/>
+        icone={MonitorPlay}
+        etiqueta="Cursos Online"
+        titulo="Cursos e trilhas para sua formação"
+        subtitulo="Acesse conteúdos selecionados pela Escola da Saúde em plataformas oficiais, universidades, órgãos públicos e parceiros autorizados."
+      />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-  <section className="space-y-4">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 className="text-xl font-black text-slate-900 dark:text-white">
-          Biblioteca de cursos online
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Encontre cursos, aulas e trilhas oficiais recomendadas pela Escola da Saúde.
-        </p>
-      </div>
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                Biblioteca de cursos online
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Encontre cursos, aulas e trilhas oficiais recomendadas pela
+                Escola da Saúde.
+              </p>
+            </div>
 
-      <button
-        type="button"
-        onClick={carregarDados}
-        disabled={carregando}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60"
-      >
-        <RefreshCcw className={cx("h-4 w-4", carregando && "animate-spin")} />
-        {carregando ? "Atualizando..." : "Atualizar dados"}
-      </button>
-    </div>
+            <button
+              type="button"
+              onClick={carregarDados}
+              disabled={carregando}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
+              />
+              {carregando ? "Atualizando..." : "Atualizar dados"}
+            </button>
+          </div>
 
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <MiniStat label="Cursos" value={kpis.total} icon={BookOpen} />
-      <MiniStat label="Plataformas" value={kpis.plataformas} icon={Globe2} />
-      <MiniStat label="Categorias" value={kpis.categorias} icon={Layers3} />
-      <MiniStat label="Gratuitos" value={kpis.gratuitos} icon={CheckCircle2} />
-    </div>
-  </section>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MiniStat label="Cursos" value={kpis.total} icon={BookOpen} />
+            <MiniStat
+              label="Plataformas"
+              value={kpis.plataformas}
+              icon={Globe2}
+            />
+            <MiniStat
+              label="Categorias"
+              value={kpis.categorias}
+              icon={Layers3}
+            />
+            <MiniStat
+              label="Gratuitos"
+              value={kpis.gratuitos}
+              icon={CheckCircle2}
+            />
+          </div>
+        </section>
 
-  {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+        {erro ? (
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         <section className="rounded-[2rem] border border-white/70 bg-white/90 p-4 shadow-xl shadow-slate-200/60 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80 dark:shadow-black/20 sm:p-5">
@@ -549,8 +594,7 @@ function MiniStat({ label, value, icon: Icon }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
   };
 
   return (
@@ -673,7 +717,7 @@ function CursoOnlineCard({ curso, reduceMotion }) {
           <span
             className={cx(
               "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-black",
-              plataforma.ring
+              plataforma.ring,
             )}
           >
             <PlataformaIcon className="h-3.5 w-3.5" />

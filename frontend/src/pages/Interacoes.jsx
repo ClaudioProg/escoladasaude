@@ -32,7 +32,6 @@ import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
-  BarChart3,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -46,7 +45,6 @@ import {
   RefreshCcw,
   Search,
   Send,
-  ShieldCheck,
   Sparkles,
   Trophy,
   Vote,
@@ -69,12 +67,6 @@ const TIPO = {
   nuvem_palavras: "nuvem_palavras",
 };
 
-const TIPO_LABEL = {
-  votacao: "Votação",
-  quiz: "Quiz",
-  nuvem_palavras: "Nuvem de palavras",
-};
-
 const CONTEXTO_LABEL = {
   geral: "Geral",
   evento: "Evento",
@@ -92,15 +84,25 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
 function unwrapData(response) {
-  if (response?.data?.data !== undefined) return response.data.data;
-  if (response?.data !== undefined) return response.data;
+  if (response?.data?.data !== undefined) {
+    return response.data.data;
+  }
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -126,11 +128,15 @@ function cleanStr(value) {
 }
 
 function brDate(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const [ano, mes, dia] = String(value).slice(0, 10).split("-");
-    if (!ano || !mes || !dia) return "—";
+    if (!ano || !mes || !dia) {
+      return "—";
+    }
     return `${dia}/${mes}/${ano}`;
   } catch {
     return "—";
@@ -138,24 +144,10 @@ function brDate(value) {
 }
 
 function brTime(value) {
-  if (!value) return "—";
-  return String(value).slice(0, 5);
-}
-
-function brDateTime(value) {
-  if (!value) return "—";
-
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(date);
-  } catch {
+  if (!value) {
     return "—";
   }
+  return String(value).slice(0, 5);
 }
 
 function tipoInfo(tipo) {
@@ -202,20 +194,22 @@ function readPersistedFilters() {
 }
 
 function obterPerguntaAtiva(interacao) {
-  const perguntas = Array.isArray(interacao?.perguntas) ? interacao.perguntas : [];
+  const perguntas = Array.isArray(interacao?.perguntas)
+    ? interacao.perguntas
+    : [];
 
   if (interacao?.tipo === TIPO.quiz) {
     const atualId = Number(interacao?.pergunta_atual_id);
 
     if (atualId) {
       const atual = perguntas.find((item) => Number(item.id) === atualId);
-      if (atual) return atual;
+      if (atual) {
+        return atual;
+      }
     }
 
     return (
-      perguntas.find((item) => item.status === "aberta") ||
-      perguntas[0] ||
-      null
+      perguntas.find((item) => item.status === "aberta") || perguntas[0] || null
     );
   }
 
@@ -223,22 +217,21 @@ function obterPerguntaAtiva(interacao) {
 }
 
 function calcularRestanteSegundos(pergunta, agoraMs = Date.now()) {
-  if (!pergunta?.fechada_em) return null;
+  if (!pergunta?.fechada_em) {
+    return null;
+  }
 
   const fimMs = new Date(pergunta.fechada_em).getTime();
 
-  if (Number.isNaN(fimMs)) return null;
+  if (Number.isNaN(fimMs)) {
+    return null;
+  }
 
   return Math.max(0, Math.ceil((fimMs - agoraMs) / 1000));
 }
 
 function getErrorCode(error) {
-  return (
-    error?.response?.data?.code ||
-    error?.data?.code ||
-    error?.code ||
-    ""
-  );
+  return error?.response?.data?.code || error?.data?.code || error?.code || "";
 }
 
 function getGeolocation() {
@@ -246,8 +239,8 @@ function getGeolocation() {
     if (!navigator.geolocation) {
       reject(
         new Error(
-          "Este navegador não permite obter localização. Não foi possível validar sua presença na área autorizada."
-        )
+          "Este navegador não permite obter localização. Não foi possível validar sua presença na área autorizada.",
+        ),
       );
       return;
     }
@@ -263,15 +256,15 @@ function getGeolocation() {
       () => {
         reject(
           new Error(
-            "Não foi possível obter sua localização. Autorize a localização do navegador e tente novamente."
-          )
+            "Não foi possível obter sua localização. Autorize a localização do navegador e tente novamente.",
+          ),
         );
       },
       {
         enableHighAccuracy: true,
         timeout: 12000,
         maximumAge: 30000,
-      }
+      },
     );
   });
 }
@@ -315,7 +308,7 @@ export default function Interacoes() {
         JSON.stringify({
           filtroTipo,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a tela.
@@ -345,7 +338,7 @@ export default function Interacoes() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as interações."
+        "Não foi possível carregar as interações.",
       );
 
       setErro(message);
@@ -363,7 +356,9 @@ export default function Interacoes() {
     const query = norm(buscaDebounced);
 
     return interacoes.filter((interacao) => {
-      if (filtroTipo && interacao.tipo !== filtroTipo) return false;
+      if (filtroTipo && interacao.tipo !== filtroTipo) {
+        return false;
+      }
 
       if (query) {
         const haystack = norm(
@@ -378,10 +373,12 @@ export default function Interacoes() {
             interacao.turma_nome,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -398,10 +395,18 @@ export default function Interacoes() {
     };
 
     for (const interacao of interacoes) {
-      if (interacao.tipo === TIPO.votacao) base.votacao += 1;
-      if (interacao.tipo === TIPO.quiz) base.quiz += 1;
-      if (interacao.tipo === TIPO.nuvem_palavras) base.nuvem += 1;
-      if (interacao.respondida) base.respondidas += 1;
+      if (interacao.tipo === TIPO.votacao) {
+        base.votacao += 1;
+      }
+      if (interacao.tipo === TIPO.quiz) {
+        base.quiz += 1;
+      }
+      if (interacao.tipo === TIPO.nuvem_palavras) {
+        base.nuvem += 1;
+      }
+      if (interacao.respondida) {
+        base.respondidas += 1;
+      }
     }
 
     return base;
@@ -430,8 +435,8 @@ export default function Interacoes() {
           current.map((item) =>
             String(item.id) === String(interacao.id)
               ? { ...item, respondida: true }
-              : item
-          )
+              : item,
+          ),
         );
         return;
       }
@@ -441,7 +446,7 @@ export default function Interacoes() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a interação."
+        "Não foi possível carregar a interação.",
       );
 
       setErro(message);
@@ -451,7 +456,7 @@ export default function Interacoes() {
     }
   }
 
-    function handleRespondida(interacaoId, respostaTipo) {
+  function handleRespondida(interacaoId, respostaTipo) {
     setInteracoes((current) =>
       current.map((item) =>
         String(item.id) === String(interacaoId)
@@ -460,8 +465,8 @@ export default function Interacoes() {
               respondida: item.tipo === TIPO.quiz ? item.respondida : true,
               total_respostas: Number(item.total_respostas || 0) + 1,
             }
-          : item
-      )
+          : item,
+      ),
     );
 
     if (respostaTipo === TIPO.quiz) {
@@ -484,54 +489,60 @@ export default function Interacoes() {
       />
 
       <HeaderHero
-  icone={Sparkles}
-  etiqueta="Interações"
-  titulo="Participe das interações ao vivo"
-  subtitulo="Vote, responda quizzes e participe de nuvens de palavras em ações institucionais da Escola da Saúde."
-/>
+        icone={Sparkles}
+        etiqueta="Interações"
+        titulo="Participe das interações ao vivo"
+        subtitulo="Vote, responda quizzes e participe de nuvens de palavras em ações institucionais da Escola da Saúde."
+      />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-  <section className="space-y-4">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 className="text-xl font-black text-slate-900 dark:text-white">
-          Interações disponíveis
-        </h2>
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                Interações disponíveis
+              </h2>
 
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Participe de votações, quizzes ao vivo e nuvens de palavras publicadas pela Escola da Saúde.
-        </p>
-      </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Participe de votações, quizzes ao vivo e nuvens de palavras
+                publicadas pela Escola da Saúde.
+              </p>
+            </div>
 
-      <button
-        type="button"
-        onClick={carregarDados}
-        disabled={carregando || carregandoInteracao}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60"
-      >
-        <RefreshCcw
-          className={cx(
-            "h-4 w-4",
-            (carregando || carregandoInteracao) && "animate-spin"
-          )}
-        />
+            <button
+              type="button"
+              onClick={carregarDados}
+              disabled={carregando || carregandoInteracao}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:pointer-events-none disabled:opacity-60"
+            >
+              <RefreshCcw
+                className={cx(
+                  "h-4 w-4",
+                  (carregando || carregandoInteracao) && "animate-spin",
+                )}
+              />
 
-        {carregando || carregandoInteracao
-          ? "Atualizando..."
-          : "Atualizar"}
-      </button>
-    </div>
+              {carregando || carregandoInteracao
+                ? "Atualizando..."
+                : "Atualizar"}
+            </button>
+          </div>
 
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <MiniStat label="Total" value={kpis.total} icon={FileQuestion} />
-      <MiniStat label="Votações" value={kpis.votacao} icon={Vote} />
-      <MiniStat label="Quiz" value={kpis.quiz} icon={Trophy} />
-      <MiniStat label="Nuvens" value={kpis.nuvem} icon={Cloud} />
-    </div>
-  </section>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MiniStat label="Total" value={kpis.total} icon={FileQuestion} />
+            <MiniStat label="Votações" value={kpis.votacao} icon={Vote} />
+            <MiniStat label="Quiz" value={kpis.quiz} icon={Trophy} />
+            <MiniStat label="Nuvens" value={kpis.nuvem} icon={Cloud} />
+          </div>
+        </section>
 
-  {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+        {erro ? (
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -680,8 +691,7 @@ function MiniStat({ label, value, icon: Icon }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -718,7 +728,7 @@ function InteracaoCard({ interacao, reduceMotion, onAbrir }) {
       <div
         className={cx(
           "relative grid h-36 place-items-center overflow-hidden bg-gradient-to-br text-white",
-          info.card
+          info.card,
         )}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.20),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(255,255,255,.14),transparent_30%)]" />
@@ -737,7 +747,7 @@ function InteracaoCard({ interacao, reduceMotion, onAbrir }) {
           <span
             className={cx(
               "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-black",
-              info.badge
+              info.badge,
             )}
           >
             <Icon className="h-3.5 w-3.5" />
@@ -797,7 +807,7 @@ function InteracaoCard({ interacao, reduceMotion, onAbrir }) {
               "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition focus:outline-none focus:ring-2",
               respondida
                 ? "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                : "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500"
+                : "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500",
             )}
           >
             {respondida ? (
@@ -873,45 +883,45 @@ function ResponderInteracaoModal({
   const [valor, setValor] = useState("");
   const [anonima, setAnonima] = useState(false);
   const [salvando, setSalvando] = useState(false);
-const [respostaEnviada, setRespostaEnviada] = useState(false);
-const [erro, setErro] = useState("");
-const [a11y, setA11y] = useState("");
-const [agoraMs, setAgoraMs] = useState(Date.now());
+  const [respostaEnviada, setRespostaEnviada] = useState(false);
+  const [erro, setErro] = useState("");
+  const [a11y, setA11y] = useState("");
+  const [agoraMs, setAgoraMs] = useState(Date.now());
 
-const startedAtRef = useRef(null);
-const firstRef = useRef(null);
+  const startedAtRef = useRef(null);
+  const firstRef = useRef(null);
 
-const interacao = interacaoAtual || interacaoOriginal;
-const pergunta = useMemo(() => obterPerguntaAtiva(interacao), [interacao]);
-const info = tipoInfo(interacao?.tipo);
+  const interacao = interacaoAtual || interacaoOriginal;
+  const pergunta = useMemo(() => obterPerguntaAtiva(interacao), [interacao]);
+  const info = tipoInfo(interacao?.tipo);
 
-const tempoRestanteSegundos = useMemo(
-  () => calcularRestanteSegundos(pergunta, agoraMs),
-  [pergunta, agoraMs]
-);
+  const tempoRestanteSegundos = useMemo(
+    () => calcularRestanteSegundos(pergunta, agoraMs),
+    [pergunta, agoraMs],
+  );
 
-const perguntaAtualRespondida = Boolean(
-  interacao?.tipo === TIPO.quiz &&
-    (
-      respostaEnviada ||
+  const perguntaAtualRespondida = Boolean(
+    interacao?.tipo === TIPO.quiz &&
+    (respostaEnviada ||
       interacao?.pergunta_atual_respondida ||
       pergunta?.respondida ||
-      pergunta?.resposta_usuario
-    )
-);
+      pergunta?.resposta_usuario),
+  );
 
-const tempoEncerrado = Boolean(
-  interacao?.tipo === TIPO.quiz &&
+  const tempoEncerrado = Boolean(
+    interacao?.tipo === TIPO.quiz &&
     pergunta?.status === "aberta" &&
     pergunta?.fechada_em &&
     tempoRestanteSegundos === 0 &&
-    !perguntaAtualRespondida
-);
+    !perguntaAtualRespondida,
+  );
 
-const quizBloqueado = Boolean(
-  interacao?.tipo === TIPO.quiz &&
-    (perguntaAtualRespondida || tempoEncerrado || interacao?.status === "encerrada")
-);
+  const quizBloqueado = Boolean(
+    interacao?.tipo === TIPO.quiz &&
+    (perguntaAtualRespondida ||
+      tempoEncerrado ||
+      interacao?.status === "encerrada"),
+  );
 
   useEffect(() => {
     if (!interacaoOriginal) {
@@ -925,21 +935,19 @@ const quizBloqueado = Boolean(
     setErro("");
     setA11y("");
     setSalvando(false);
-const perguntaInicial = obterPerguntaAtiva(interacaoOriginal);
+    const perguntaInicial = obterPerguntaAtiva(interacaoOriginal);
 
-setRespostaEnviada(
-  Boolean(
-    interacaoOriginal?.tipo === TIPO.quiz &&
-      (
-        interacaoOriginal?.pergunta_atual_respondida ||
-        perguntaInicial?.respondida ||
-        perguntaInicial?.resposta_usuario
-      )
-  )
-);
+    setRespostaEnviada(
+      Boolean(
+        interacaoOriginal?.tipo === TIPO.quiz &&
+        (interacaoOriginal?.pergunta_atual_respondida ||
+          perguntaInicial?.respondida ||
+          perguntaInicial?.resposta_usuario),
+      ),
+    );
 
-setAgoraMs(Date.now());
-startedAtRef.current = Date.now();
+    setAgoraMs(Date.now());
+    startedAtRef.current = Date.now();
 
     const timer = window.setTimeout(() => {
       firstRef.current?.focus?.();
@@ -962,28 +970,36 @@ startedAtRef.current = Date.now();
   }, [interacaoOriginal, onClose, salvando]);
 
   useEffect(() => {
-  if (!interacao?.id || interacao.tipo !== TIPO.quiz || !pergunta?.fechada_em) {
-    return undefined;
-  }
+    if (
+      !interacao?.id ||
+      interacao.tipo !== TIPO.quiz ||
+      !pergunta?.fechada_em
+    ) {
+      return undefined;
+    }
 
-  setAgoraMs(Date.now());
-
-  const timer = window.setInterval(() => {
     setAgoraMs(Date.now());
-  }, 500);
 
-  return () => window.clearInterval(timer);
-}, [interacao?.id, interacao?.tipo, pergunta?.id, pergunta?.fechada_em]);
+    const timer = window.setInterval(() => {
+      setAgoraMs(Date.now());
+    }, 500);
+
+    return () => window.clearInterval(timer);
+  }, [interacao?.id, interacao?.tipo, pergunta?.id, pergunta?.fechada_em]);
 
   useEffect(() => {
-    if (!interacao?.id || interacao.tipo !== TIPO.quiz) return undefined;
+    if (!interacao?.id || interacao.tipo !== TIPO.quiz) {
+      return undefined;
+    }
 
     const timer = window.setInterval(async () => {
       try {
         const response = await api.interacao.obter(interacao.id);
         const completa = unwrapData(response);
 
-        if (!completa?.id) return;
+        if (!completa?.id) {
+          return;
+        }
 
         const perguntaAnteriorId = Number(pergunta?.id || 0);
         const proximaPergunta = obterPerguntaAtiva(completa);
@@ -991,38 +1007,38 @@ startedAtRef.current = Date.now();
 
         setInteracaoAtual(completa);
 
-const novaPerguntaRespondida = Boolean(
-  completa?.pergunta_atual_respondida ||
-    proximaPergunta?.respondida ||
-    proximaPergunta?.resposta_usuario
-);
+        const novaPerguntaRespondida = Boolean(
+          completa?.pergunta_atual_respondida ||
+          proximaPergunta?.respondida ||
+          proximaPergunta?.resposta_usuario,
+        );
 
-if (
-  proximaPerguntaId &&
-  perguntaAnteriorId &&
-  proximaPerguntaId !== perguntaAnteriorId
-) {
-  setValor("");
-  setErro("");
-  setRespostaEnviada(novaPerguntaRespondida);
-  setA11y(
-    novaPerguntaRespondida
-      ? "Esta pergunta já foi respondida."
-      : "Nova pergunta disponível."
-  );
-  setAgoraMs(Date.now());
-  startedAtRef.current = Date.now();
-  return;
-}
+        if (
+          proximaPerguntaId &&
+          perguntaAnteriorId &&
+          proximaPerguntaId !== perguntaAnteriorId
+        ) {
+          setValor("");
+          setErro("");
+          setRespostaEnviada(novaPerguntaRespondida);
+          setA11y(
+            novaPerguntaRespondida
+              ? "Esta pergunta já foi respondida."
+              : "Nova pergunta disponível.",
+          );
+          setAgoraMs(Date.now());
+          startedAtRef.current = Date.now();
+          return;
+        }
 
-if (novaPerguntaRespondida) {
-  setRespostaEnviada(true);
-}
+        if (novaPerguntaRespondida) {
+          setRespostaEnviada(true);
+        }
 
-if (completa.status === "encerrada") {
-  setRespostaEnviada(true);
-  setA11y("Quiz finalizado.");
-}
+        if (completa.status === "encerrada") {
+          setRespostaEnviada(true);
+          setA11y("Quiz finalizado.");
+        }
       } catch {
         // Polling silencioso: não deve quebrar a experiência do usuário.
       }
@@ -1031,7 +1047,9 @@ if (completa.status === "encerrada") {
     return () => window.clearInterval(timer);
   }, [interacao?.id, interacao?.tipo, pergunta?.id]);
 
-  if (!interacao) return null;
+  if (!interacao) {
+    return null;
+  }
 
   const Icon = info.icon;
 
@@ -1040,26 +1058,30 @@ if (completa.status === "encerrada") {
       return "Esta interação ainda não possui pergunta disponível.";
     }
 
-if (interacao.tipo === TIPO.quiz && perguntaAtualRespondida) {
-  return "Resposta já enviada. Aguarde a próxima pergunta.";
-}
+    if (interacao.tipo === TIPO.quiz && perguntaAtualRespondida) {
+      return "Resposta já enviada. Aguarde a próxima pergunta.";
+    }
 
-if (interacao.tipo === TIPO.quiz && tempoEncerrado) {
-  return "Tempo encerrado para responder esta pergunta.";
-}
+    if (interacao.tipo === TIPO.quiz && tempoEncerrado) {
+      return "Tempo encerrado para responder esta pergunta.";
+    }
 
-if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
-  return "Esta pergunta ainda não está aberta para resposta.";
-}
+    if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
+      return "Esta pergunta ainda não está aberta para resposta.";
+    }
 
     if (interacao.tipo === TIPO.votacao || interacao.tipo === TIPO.quiz) {
-      if (!valor) return "Selecione uma opção para enviar.";
+      if (!valor) {
+        return "Selecione uma opção para enviar.";
+      }
     }
 
     if (interacao.tipo === TIPO.nuvem_palavras) {
       const texto = cleanStr(valor);
 
-      if (!texto) return "Digite uma palavra para enviar.";
+      if (!texto) {
+        return "Digite uma palavra para enviar.";
+      }
 
       const limite = Number(interacao.limite_palavra_caracteres || 40);
 
@@ -1088,7 +1110,7 @@ if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
     if (interacao.tipo === TIPO.quiz) {
       payload.tempo_resposta_ms = Math.max(
         0,
-        Date.now() - Number(startedAtRef.current || Date.now())
+        Date.now() - Number(startedAtRef.current || Date.now()),
       );
     }
 
@@ -1108,7 +1130,9 @@ if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
   async function enviar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1127,7 +1151,7 @@ if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
     try {
       const payload = await montarPayload();
 
-            await api.interacao.responder(interacao.id, payload);
+      await api.interacao.responder(interacao.id, payload);
 
       if (interacao.tipo === TIPO.quiz) {
         setValor("");
@@ -1139,344 +1163,351 @@ if (interacao.tipo === TIPO.quiz && pergunta.status !== "aberta") {
 
       setA11y("Resposta enviada com sucesso.");
       onRespondida?.(interacao.id, interacao.tipo);
-} catch (error) {
-  const code = getErrorCode(error);
-  const message = getErrorMessage(
-    error,
-    "Não foi possível enviar sua resposta."
-  );
+    } catch (error) {
+      const code = getErrorCode(error);
+      const message = getErrorMessage(
+        error,
+        "Não foi possível enviar sua resposta.",
+      );
 
-  if (
-    interacao.tipo === TIPO.quiz &&
-    code === "QUIZ_PERGUNTA_JA_RESPONDIDA"
-  ) {
-    setValor("");
-    setRespostaEnviada(true);
-    setErro("");
-    setA11y("Resposta já registrada. Aguarde a próxima pergunta.");
-    onRespondida?.(interacao.id, interacao.tipo);
-    return;
-  }
+      if (
+        interacao.tipo === TIPO.quiz &&
+        code === "QUIZ_PERGUNTA_JA_RESPONDIDA"
+      ) {
+        setValor("");
+        setRespostaEnviada(true);
+        setErro("");
+        setA11y("Resposta já registrada. Aguarde a próxima pergunta.");
+        onRespondida?.(interacao.id, interacao.tipo);
+        return;
+      }
 
-  if (
-    interacao.tipo === TIPO.quiz &&
-    code === "QUIZ_TEMPO_ENCERRADO"
-  ) {
-    setErro("Tempo encerrado para responder esta pergunta.");
-    setA11y("Tempo encerrado para responder esta pergunta.");
-    return;
-  }
+      if (interacao.tipo === TIPO.quiz && code === "QUIZ_TEMPO_ENCERRADO") {
+        setErro("Tempo encerrado para responder esta pergunta.");
+        setA11y("Tempo encerrado para responder esta pergunta.");
+        return;
+      }
 
-  setErro(message);
-  setA11y(message);
-} finally {
+      setErro(message);
+      setA11y(message);
+    } finally {
       setSalvando(false);
     }
   }
 
-return createPortal(
-  <div
-    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
-    role="presentation"
-    onMouseDown={(event) => {
-      if (salvando) return;
-      if (event.target === event.currentTarget) onClose?.();
-    }}
-  >
+  return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-interacao-title"
-      aria-describedby="modal-interacao-desc"
-className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl outline-none dark:bg-slate-950 sm:rounded-[2rem]"
-style={{
-  maxHeight: "calc(100dvh - 3rem)",
-}}    >
-      <header
-        className={cx(
-          "relative shrink-0 overflow-hidden border-b border-white/10 bg-gradient-to-br p-4 text-white sm:p-6",
-          info.card
-        )}
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-interacao-title"
+        aria-describedby="modal-interacao-desc"
+        className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl outline-none dark:bg-slate-950 sm:rounded-[2rem]"
+        style={{
+          maxHeight: "calc(100dvh - 3rem)",
+        }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.20),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,.16),transparent_35%)]" />
+        <header
+          className={cx(
+            "relative shrink-0 overflow-hidden border-b border-white/10 bg-gradient-to-br p-4 text-white sm:p-6",
+            info.card,
+          )}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.20),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,.16),transparent_35%)]" />
 
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <Icon className="h-3.5 w-3.5 text-white" />
-              {interacao.tipo_label || info.label}
-            </div>
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
+                <Icon className="h-3.5 w-3.5 text-white" />
+                {interacao.tipo_label || info.label}
+              </div>
 
-            <h2
-              id="modal-interacao-title"
-              className="text-lg font-black leading-tight tracking-tight sm:text-2xl"
-            >
-              {interacao.titulo}
-            </h2>
+              <h2
+                id="modal-interacao-title"
+                className="text-lg font-black leading-tight tracking-tight sm:text-2xl"
+              >
+                {interacao.titulo}
+              </h2>
 
-            <p
-              id="modal-interacao-desc"
-              className="mt-2 max-w-3xl text-sm leading-relaxed text-white/85"
-            >
-              {interacao.descricao || "Responda à interação abaixo."}
-            </p>
-
-            {interacao.exige_geolocalizacao ? (
-              <p className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white/90">
-                <Crosshair className="h-3.5 w-3.5" />
-                Esta interação exige validação de localização.
+              <p
+                id="modal-interacao-desc"
+                className="mt-2 max-w-3xl text-sm leading-relaxed text-white/85"
+              >
+                {interacao.descricao || "Responda à interação abaixo."}
               </p>
-            ) : null}
-          </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={salvando}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white/85 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Fechar modal"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
-
-      <div aria-live="polite" className="sr-only">
-        {a11y}
-      </div>
-
-      <form
-        id="form-responder-interacao"
-        onSubmit={enviar}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6"
-      >
-        {erro ? (
-  <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
-) : null}
-
-{interacao.tipo === TIPO.quiz && perguntaAtualRespondida ? (
-  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-    <div className="flex items-start gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-100">
-        <CheckCircle2 className="h-6 w-6" />
-      </div>
-
-      <div>
-        <h3 className="text-lg font-black">
-          {interacao.status === "encerrada"
-            ? "Quiz finalizado"
-            : "Resposta enviada com sucesso"}
-        </h3>
-
-        <p className="mt-1 text-sm font-semibold leading-relaxed">
-          {interacao.status === "encerrada"
-            ? "O quiz foi encerrado. Você já pode fechar esta janela."
-            : "Aguarde a próxima pergunta ser liberada pelo administrador."}
-        </p>
-      </div>
-    </div>
-  </section>
-) : null}
-
-{interacao.tipo === TIPO.quiz && tempoEncerrado ? (
-  <AlertBox
-    tone="rose"
-    icon={Clock}
-    title="Tempo encerrado"
-    message="O prazo para responder esta pergunta terminou. Aguarde a próxima pergunta."
-  />
-) : null}
-
-
-{!perguntaAtualRespondida && !tempoEncerrado ? (
-<section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5">          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              {pergunta?.status
-                ? `Status: ${pergunta.status}`
-                : "Pergunta disponível"}
-            </span>
-
-            {interacao.tipo === TIPO.quiz ? (
-  <span
-    className={cx(
-      "inline-flex rounded-full px-2.5 py-1 text-xs font-black",
-      tempoEncerrado
-        ? "bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200"
-        : "bg-violet-50 text-violet-800 dark:bg-violet-950/30 dark:text-violet-200"
-    )}
-  >
-    {tempoRestanteSegundos !== null
-      ? `Tempo restante: ${tempoRestanteSegundos}s`
-      : `Tempo: ${pergunta?.tempo_segundos || interacao.tempo_por_pergunta_segundos || "—"}s`}
-  </span>
-) : null}
-          </div>
-
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">
-            {pergunta?.enunciado || "Pergunta indisponível"}
-          </h3>
-
-          {interacao.tipo === TIPO.votacao || interacao.tipo === TIPO.quiz ? (
-            <div className="mt-5 space-y-2">
-              {(pergunta?.opcoes || []).map((opcao, index) => (
-                <label
-                  key={opcao.id}
-                  className={cx(
-                    "flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm font-semibold transition",
-                    String(valor) === String(opcao.id)
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:border-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-100"
-                      : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-800"
-                  )}
-                >
-                  <input
-                    ref={index === 0 ? firstRef : null}
-                    type="radio"
-                    name={`interacao-${interacao.id}-pergunta-${pergunta?.id}`}
-                    value={opcao.id}
-                    checked={String(valor) === String(opcao.id)}
-                    onChange={() => setValor(String(opcao.id))}
-                    disabled={
-  salvando ||
-  quizBloqueado ||
-  interacao.status === "encerrada"
-}
-                    className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-
-                  <span>{opcao.texto}</span>
-                </label>
-              ))}
+              {interacao.exige_geolocalizacao ? (
+                <p className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white/90">
+                  <Crosshair className="h-3.5 w-3.5" />
+                  Esta interação exige validação de localização.
+                </p>
+              ) : null}
             </div>
-          ) : null}
 
-          {interacao.tipo === TIPO.nuvem_palavras ? (
-            <div className="mt-5">
-              <label className="block">
-                <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Sua palavra
-                </span>
-
-                <input
-                  ref={firstRef}
-                  value={valor}
-                  onChange={(event) => setValor(event.target.value)}
-                  maxLength={Number(interacao.limite_palavra_caracteres || 40)}
-                  disabled={salvando}
-                  placeholder="Ex.: motivado"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-800 dark:bg-slate-950"
-                />
-              </label>
-
-              <p className="mt-2 text-right text-xs text-slate-500 dark:text-slate-400">
-                {valor.length}/{Number(interacao.limite_palavra_caracteres || 40)}
-              </p>
-            </div>
-          ) : null}
-        </section>
-        ) : null}
-
-        {interacao.permite_anonima ? (
-          <label className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-            <input
-              type="checkbox"
-              checked={anonima}
-              onChange={(event) => setAnonima(event.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-              disabled={salvando}
-            />
-
-            <span>
-              Responder de forma anônima
-              <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">
-                Quando permitido, sua resposta não será exibida com seu nome
-                na visualização administrativa.
-              </span>
-            </span>
-          </label>
-        ) : null}
-
-        {Array.isArray(interacao.janelas) && interacao.janelas.length > 0 ? (
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h4 className="text-sm font-black text-slate-900 dark:text-white">
-              Janelas de participação
-            </h4>
-
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {interacao.janelas.map((janela) => (
-                <div
-                  key={`${janela.data}-${janela.horario_inicio}-${janela.horario_fim}`}
-                  className="rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-950/60 dark:text-slate-200"
-                >
-                  <strong>{brDate(janela.data)}</strong>{" "}
-                  {brTime(janela.horario_inicio)} às{" "}
-                  {brTime(janela.horario_fim)}
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-      </form>
-
-      <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-            {interacao.exige_geolocalizacao
-              ? "Ao enviar, a plataforma solicitará sua localização para validar a área autorizada."
-              : "Confira sua resposta antes de enviar."}
-          </p>
-
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={onClose}
               disabled={salvando}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white/85 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Fechar modal"
             >
-              Cancelar
-            </button>
-
-            <button
-  type="submit"
-  form="form-responder-interacao"
- disabled={
-  salvando ||
-  quizBloqueado ||
-  interacao.status === "encerrada"
-}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {salvando ? (
-  <>
-    <Loader2 className="h-4 w-4 animate-spin" />
-    Enviando...
-  </>
-) : interacao.status === "encerrada" ? (
-  <>
-    <CheckCircle2 className="h-4 w-4" />
-    Quiz finalizado
-  </>
-) : interacao.tipo === TIPO.quiz && perguntaAtualRespondida ? (
-  <>
-    <CheckCircle2 className="h-4 w-4" />
-    Resposta enviada
-  </>
-) : interacao.tipo === TIPO.quiz && tempoEncerrado ? (
-  <>
-    <Clock className="h-4 w-4" />
-    Tempo encerrado
-  </>
-) : (
-  <>
-    <Send className="h-4 w-4" />
-    Enviar resposta
-  </>
-)}
+              <X className="h-5 w-5" />
             </button>
           </div>
+        </header>
+
+        <div aria-live="polite" className="sr-only">
+          {a11y}
         </div>
-      </footer>
-    </div>
-  </div>,
-  document.body
-);
+
+        <form
+          id="form-responder-interacao"
+          onSubmit={enviar}
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6"
+        >
+          {erro ? (
+            <AlertBox
+              tone="rose"
+              icon={AlertCircle}
+              title="Atenção"
+              message={erro}
+            />
+          ) : null}
+
+          {interacao.tipo === TIPO.quiz && perguntaAtualRespondida ? (
+            <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-100">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-black">
+                    {interacao.status === "encerrada"
+                      ? "Quiz finalizado"
+                      : "Resposta enviada com sucesso"}
+                  </h3>
+
+                  <p className="mt-1 text-sm font-semibold leading-relaxed">
+                    {interacao.status === "encerrada"
+                      ? "O quiz foi encerrado. Você já pode fechar esta janela."
+                      : "Aguarde a próxima pergunta ser liberada pelo administrador."}
+                  </p>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {interacao.tipo === TIPO.quiz && tempoEncerrado ? (
+            <AlertBox
+              tone="rose"
+              icon={Clock}
+              title="Tempo encerrado"
+              message="O prazo para responder esta pergunta terminou. Aguarde a próxima pergunta."
+            />
+          ) : null}
+
+          {!perguntaAtualRespondida && !tempoEncerrado ? (
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+              {" "}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  {pergunta?.status
+                    ? `Status: ${pergunta.status}`
+                    : "Pergunta disponível"}
+                </span>
+
+                {interacao.tipo === TIPO.quiz ? (
+                  <span
+                    className={cx(
+                      "inline-flex rounded-full px-2.5 py-1 text-xs font-black",
+                      tempoEncerrado
+                        ? "bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200"
+                        : "bg-violet-50 text-violet-800 dark:bg-violet-950/30 dark:text-violet-200",
+                    )}
+                  >
+                    {tempoRestanteSegundos !== null
+                      ? `Tempo restante: ${tempoRestanteSegundos}s`
+                      : `Tempo: ${pergunta?.tempo_segundos || interacao.tempo_por_pergunta_segundos || "—"}s`}
+                  </span>
+                ) : null}
+              </div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                {pergunta?.enunciado || "Pergunta indisponível"}
+              </h3>
+              {interacao.tipo === TIPO.votacao ||
+              interacao.tipo === TIPO.quiz ? (
+                <div className="mt-5 space-y-2">
+                  {(pergunta?.opcoes || []).map((opcao, index) => (
+                    <label
+                      key={opcao.id}
+                      className={cx(
+                        "flex cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm font-semibold transition",
+                        String(valor) === String(opcao.id)
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:border-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-100"
+                          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-800",
+                      )}
+                    >
+                      <input
+                        ref={index === 0 ? firstRef : null}
+                        type="radio"
+                        name={`interacao-${interacao.id}-pergunta-${pergunta?.id}`}
+                        value={opcao.id}
+                        checked={String(valor) === String(opcao.id)}
+                        onChange={() => setValor(String(opcao.id))}
+                        disabled={
+                          salvando ||
+                          quizBloqueado ||
+                          interacao.status === "encerrada"
+                        }
+                        className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+
+                      <span>{opcao.texto}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+              {interacao.tipo === TIPO.nuvem_palavras ? (
+                <div className="mt-5">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Sua palavra
+                    </span>
+
+                    <input
+                      ref={firstRef}
+                      value={valor}
+                      onChange={(event) => setValor(event.target.value)}
+                      maxLength={Number(
+                        interacao.limite_palavra_caracteres || 40,
+                      )}
+                      disabled={salvando}
+                      placeholder="Ex.: motivado"
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-800 dark:bg-slate-950"
+                    />
+                  </label>
+
+                  <p className="mt-2 text-right text-xs text-slate-500 dark:text-slate-400">
+                    {valor.length}/
+                    {Number(interacao.limite_palavra_caracteres || 40)}
+                  </p>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {interacao.permite_anonima ? (
+            <label className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={anonima}
+                onChange={(event) => setAnonima(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                disabled={salvando}
+              />
+
+              <span>
+                Responder de forma anônima
+                <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">
+                  Quando permitido, sua resposta não será exibida com seu nome
+                  na visualização administrativa.
+                </span>
+              </span>
+            </label>
+          ) : null}
+
+          {Array.isArray(interacao.janelas) && interacao.janelas.length > 0 ? (
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                Janelas de participação
+              </h4>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {interacao.janelas.map((janela) => (
+                  <div
+                    key={`${janela.data}-${janela.horario_inicio}-${janela.horario_fim}`}
+                    className="rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-950/60 dark:text-slate-200"
+                  >
+                    <strong>{brDate(janela.data)}</strong>{" "}
+                    {brTime(janela.horario_inicio)} às{" "}
+                    {brTime(janela.horario_fim)}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </form>
+
+        <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              {interacao.exige_geolocalizacao
+                ? "Ao enviar, a plataforma solicitará sua localização para validar a área autorizada."
+                : "Confira sua resposta antes de enviar."}
+            </p>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={salvando}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                form="form-responder-interacao"
+                disabled={
+                  salvando || quizBloqueado || interacao.status === "encerrada"
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {salvando ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : interacao.status === "encerrada" ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Quiz finalizado
+                  </>
+                ) : interacao.tipo === TIPO.quiz && perguntaAtualRespondida ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Resposta enviada
+                  </>
+                ) : interacao.tipo === TIPO.quiz && tempoEncerrado ? (
+                  <>
+                    <Clock className="h-4 w-4" />
+                    Tempo encerrado
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Enviar resposta
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>,
+    document.body,
+  );
 }

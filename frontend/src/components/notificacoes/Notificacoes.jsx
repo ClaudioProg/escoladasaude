@@ -1,5 +1,5 @@
 // ✅ frontend/src/components/notificacoes/Notificacoes.jsx — v2.0
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -52,7 +52,6 @@ import {
   FileText,
   Info,
   RefreshCw,
-  Sparkles,
   Star,
   XCircle,
 } from "lucide-react";
@@ -98,7 +97,9 @@ function toNumber(value, fallback = 0) {
 }
 
 function lower(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizarTipo(tipo) {
@@ -127,12 +128,24 @@ function tipoLabel(tipo) {
 function tipoIcone(tipo) {
   const value = normalizarTipo(tipo);
 
-  if (value === "evento") return CalendarDays;
-  if (value === "certificado" || value === "reserva_aprovada") return CheckCircle2;
-  if (value === "avaliacao") return Star;
-  if (value === "reserva_rejeitada") return XCircle;
-  if (value === "submissao") return FileText;
-  if (value === "aviso" || value === "sistema") return Info;
+  if (value === "evento") {
+    return CalendarDays;
+  }
+  if (value === "certificado" || value === "reserva_aprovada") {
+    return CheckCircle2;
+  }
+  if (value === "avaliacao") {
+    return Star;
+  }
+  if (value === "reserva_rejeitada") {
+    return XCircle;
+  }
+  if (value === "submissao") {
+    return FileText;
+  }
+  if (value === "aviso" || value === "sistema") {
+    return Info;
+  }
 
   return Bell;
 }
@@ -202,7 +215,9 @@ function tipoTone(tipo) {
 function formatDateTimeBRNoShift(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const onlyDate = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
@@ -211,7 +226,7 @@ function formatDateTimeBRNoShift(value) {
   }
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -226,7 +241,7 @@ function sortKeyNoShift(value) {
   const text = String(value || "").trim();
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -340,7 +355,7 @@ function HeaderCompacto({
                 "inline-flex min-h-[38px] items-center gap-2 rounded-2xl px-3 py-2 text-xs font-extrabold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60",
                 naoLida === 0 || marcandoTodas
                   ? "bg-white/10 text-white/70"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700",
               )}
               title={naoLida ? "Marcar todas como lidas" : "Nenhuma não lida"}
             >
@@ -384,7 +399,7 @@ function MiniStatHeader({ label, value }) {
 
 function LoadingList() {
   return (
-    <ul className="space-y-3" aria-busy="true" aria-live="polite" role="list">
+    <ul className="space-y-3" aria-busy="true" aria-live="polite">
       {Array.from({ length: 4 }).map((_, index) => (
         <li
           key={index}
@@ -415,7 +430,10 @@ function EmptyState({ onAtualizar }) {
       <div className="h-1 bg-gradient-to-r from-slate-500 via-zinc-500 to-stone-500" />
 
       <div className="p-6">
-        <Bell className="mx-auto mb-2 h-10 w-10 opacity-80" aria-hidden="true" />
+        <Bell
+          className="mx-auto mb-2 h-10 w-10 opacity-80"
+          aria-hidden="true"
+        />
 
         <p className="font-extrabold">Nenhuma notificação por aqui.</p>
 
@@ -446,10 +464,9 @@ function NotificacaoItem({ item, onMarcarLida, marcando }) {
 
   return (
     <li
-      role="listitem"
       className={cx(
         "overflow-hidden rounded-[26px] border border-black/5 bg-white shadow-sm transition-colors dark:border-white/10 dark:bg-zinc-900",
-        naoLida ? "ring-1 ring-amber-200/70 dark:ring-amber-700/40" : ""
+        naoLida ? "ring-1 ring-amber-200/70 dark:ring-amber-700/40" : "",
       )}
     >
       <div className={cx("h-1 bg-gradient-to-r", tone.bar)} />
@@ -460,7 +477,7 @@ function NotificacaoItem({ item, onMarcarLida, marcando }) {
           tone.left,
           naoLida
             ? "bg-amber-50/70 dark:bg-amber-900/10"
-            : "bg-white dark:bg-zinc-900"
+            : "bg-white dark:bg-zinc-900",
         )}
       >
         <div className="flex items-start gap-3">
@@ -477,7 +494,7 @@ function NotificacaoItem({ item, onMarcarLida, marcando }) {
               <span
                 className={cx(
                   "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-extrabold",
-                  tone.badge
+                  tone.badge,
                 )}
               >
                 {tipoLabel(tipo)}
@@ -496,7 +513,7 @@ function NotificacaoItem({ item, onMarcarLida, marcando }) {
               </p>
             ) : null}
 
-            {(dataStr || hasLink) ? (
+            {dataStr || hasLink ? (
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {dataStr ? (
                   <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-300">
@@ -526,7 +543,7 @@ function NotificacaoItem({ item, onMarcarLida, marcando }) {
               "ml-1 inline-flex shrink-0 items-center gap-1 rounded-2xl px-2.5 py-1.5 text-xs font-extrabold transition focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60",
               naoLida
                 ? "bg-amber-100 text-amber-900 hover:bg-amber-200 focus-visible:ring-amber-400 dark:bg-amber-900/30 dark:text-amber-100 dark:hover:bg-amber-900/40"
-                : "bg-slate-100 text-slate-500 focus-visible:ring-slate-400 dark:bg-zinc-800 dark:text-zinc-300"
+                : "bg-slate-100 text-slate-500 focus-visible:ring-slate-400 dark:bg-zinc-800 dark:text-zinc-300",
             )}
             disabled={!naoLida || marcando}
             title={naoLida ? "Marcar como lida" : "Já lida"}
@@ -595,25 +612,31 @@ export default function Notificacoes() {
           },
           {
             signal: controller.signal,
-          }
+          },
         ),
         apiNotificacaoResumo({
-  signal: controller.signal,
-}),
+          signal: controller.signal,
+        }),
       ]);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const listaPayload = normalizeListaResponse(listaResponse);
       const resumoPayload = normalizeResumoResponse(resumoResponse);
 
       setNotificacoes(listaPayload.lista);
       setResumo(resumoPayload);
-      anunciar(`Lista atualizada. ${listaPayload.lista.length} notificação(ões).`);
-       } catch (error) {
-  if (isAbortRequest(error)) return;
+      anunciar(
+        `Lista atualizada. ${listaPayload.lista.length} notificação(ões).`,
+      );
+    } catch (error) {
+      if (isAbortRequest(error)) {
+        return;
+      }
 
-  console.error("[Notificacoes] erro ao carregar", {
+      console.error("[Notificacoes] erro ao carregar", {
         message: error?.message,
         status: error?.status,
         code: error?.code,
@@ -623,12 +646,14 @@ export default function Notificacoes() {
         raw: error,
       });
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       toast.error(
         error?.message ||
           error?.data?.message ||
-          "Não foi possível carregar notificações."
+          "Não foi possível carregar notificações.",
       );
 
       setNotificacoes([]);
@@ -648,7 +673,9 @@ export default function Notificacoes() {
     return [...notificacoes].sort((a, b) => {
       const unreadDelta = (isNaoLida(b) ? 1 : 0) - (isNaoLida(a) ? 1 : 0);
 
-      if (unreadDelta !== 0) return unreadDelta;
+      if (unreadDelta !== 0) {
+        return unreadDelta;
+      }
 
       return sortKeyNoShift(b?.criado_em) - sortKeyNoShift(a?.criado_em);
     });
@@ -657,7 +684,9 @@ export default function Notificacoes() {
   const marcarComoLida = useCallback(
     async (item, navegar = false) => {
       if (!item?.id || item?.lida === true) {
-        if (navegar && item?.link) navigate(item.link);
+        if (navegar && item?.link) {
+          navigate(item.link);
+        }
         return;
       }
 
@@ -673,8 +702,8 @@ export default function Notificacoes() {
                   ...notificacao,
                   lida: true,
                 }
-              : notificacao
-          )
+              : notificacao,
+          ),
         );
 
         setResumo((prev) => ({
@@ -702,11 +731,13 @@ export default function Notificacoes() {
         setMarcandoId(null);
       }
     },
-    [anunciar, navigate]
+    [anunciar, navigate],
   );
 
   const marcarTodas = useCallback(async () => {
-    if (!toNumber(resumo.nao_lida, 0)) return;
+    if (!toNumber(resumo.nao_lida, 0)) {
+      return;
+    }
 
     try {
       setMarcandoTodas(true);
@@ -717,7 +748,7 @@ export default function Notificacoes() {
         prev.map((item) => ({
           ...item,
           lida: true,
-        }))
+        })),
       );
 
       setResumo((prev) => ({
@@ -769,7 +800,7 @@ export default function Notificacoes() {
       ) : notificacoes.length === 0 ? (
         <EmptyState onAtualizar={carregarNotificacao} />
       ) : (
-        <ul className="space-y-3" role="list" aria-live="polite">
+        <ul className="space-y-3" aria-live="polite">
           {listaOrdenada.map((item) => (
             <NotificacaoItem
               key={item.id}

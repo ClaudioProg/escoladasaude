@@ -82,7 +82,9 @@ function escapeHtml(value) {
 }
 
 function limparTexto(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function somenteDataYmd(value) {
@@ -200,7 +202,9 @@ function normalizarLimite(value) {
 }
 
 function obterNomeCurso(row) {
-  return limparTexto(row.evento_titulo || row.turma_nome || "Curso da Escola da Saúde");
+  return limparTexto(
+    row.evento_titulo || row.turma_nome || "Curso da Escola da Saúde",
+  );
 }
 
 function montarMensagem(row) {
@@ -225,11 +229,7 @@ function montarTextoEmail(row) {
   const mensagem = montarMensagem(row);
   const turmaNome = limparTexto(row.turma_nome);
 
-  const linhas = [
-    nomeUsuario ? `Olá, ${nomeUsuario}.` : "Olá.",
-    "",
-    mensagem,
-  ];
+  const linhas = [nomeUsuario ? `Olá, ${nomeUsuario}.` : "Olá.", "", mensagem];
 
   if (turmaNome) {
     linhas.push("", `Turma: ${turmaNome}.`);
@@ -238,7 +238,7 @@ function montarTextoEmail(row) {
   linhas.push(
     "",
     "Este é um lembrete automático da Plataforma Escola da Saúde.",
-    "Em caso de dúvidas, acesse a plataforma ou entre em contato com a Escola da Saúde."
+    "Em caso de dúvidas, acesse a plataforma ou entre em contato com a Escola da Saúde.",
   );
 
   return linhas.join("\n");
@@ -340,7 +340,10 @@ function montarResumoRegistro(row) {
    Consulta oficial dos destinatários
 ────────────────────────────────────────────────────────────── */
 
-async function listarInscritosComCursoIniciandoEm(dataReferencia, options = {}) {
+async function listarInscritosComCursoIniciandoEm(
+  dataReferencia,
+  options = {},
+) {
   const limite = normalizarLimite(options.limite);
 
   const sql = `
@@ -475,7 +478,7 @@ async function marcarNotificacaoCriada(programacaoId, notificacaoId) {
         END
       WHERE id = $1
     `,
-    [programacaoId, notificacaoId, STATUS_ENVIADO]
+    [programacaoId, notificacaoId, STATUS_ENVIADO],
   );
 }
 
@@ -494,7 +497,7 @@ async function marcarEmailEnviado(programacaoId) {
         atualizado_em = CURRENT_TIMESTAMP
       WHERE id = $1
     `,
-    [programacaoId, STATUS_ENVIADO, STATUS_ERRO_PARCIAL]
+    [programacaoId, STATUS_ENVIADO, STATUS_ERRO_PARCIAL],
   );
 }
 
@@ -511,8 +514,11 @@ async function marcarErro(programacaoId, error, parcial = false) {
     [
       programacaoId,
       parcial ? STATUS_ERRO_PARCIAL : STATUS_ERRO,
-      String(error?.message || error || "Erro não identificado.").slice(0, 2000),
-    ]
+      String(error?.message || error || "Erro não identificado.").slice(
+        0,
+        2000,
+      ),
+    ],
   );
 }
 
@@ -720,7 +726,7 @@ async function executarLembretesInicioEvento(options = {}) {
       ignorados: 0,
       erros: 0,
       erros_parciais: 0,
-    }
+    },
   );
 
   return {

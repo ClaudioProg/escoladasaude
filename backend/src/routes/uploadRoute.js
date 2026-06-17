@@ -52,13 +52,13 @@ const router = express.Router();
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[uploadRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[uploadRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[uploadRoute] authorize inválido. O export oficial de ../middlewares/authorize deve expor { authorize } como função."
+    "[uploadRoute] authorize inválido. O export oficial de ../middlewares/authorize deve expor { authorize } como função.",
   );
 }
 
@@ -67,7 +67,9 @@ for (const [nome, handler] of Object.entries({
   subirModeloBanner,
 })) {
   if (typeof handler !== "function") {
-    throw new Error(`[uploadRoute] Controller inválido. Função ausente: ${nome}.`);
+    throw new Error(
+      `[uploadRoute] Controller inválido. Função ausente: ${nome}.`,
+    );
   }
 }
 
@@ -102,13 +104,17 @@ const uploadMemoria = multer({
   },
   fileFilter: (_req, file, cb) => {
     const originalname = String(file?.originalname || "").trim();
-    const mimetype = String(file?.mimetype || "").trim().toLowerCase();
+    const mimetype = String(file?.mimetype || "")
+      .trim()
+      .toLowerCase();
 
     const extensaoValida = /\.(ppt|pptx)$/i.test(originalname);
     const mimeValido = PPT_MIMES_OFICIAIS.has(mimetype);
 
     if (!extensaoValida) {
-      const error = new Error("Formato inválido. Envie um arquivo .ppt ou .pptx.");
+      const error = new Error(
+        "Formato inválido. Envie um arquivo .ppt ou .pptx.",
+      );
       error.status = 400;
       error.code = "EXTENSAO_INVALIDA";
       return cb(error);
@@ -169,7 +175,8 @@ const downloadLimiter = rateLimit({
     return res.status(429).json({
       ok: false,
       data: null,
-      message: "Muitas requisições. Aguarde alguns instantes e tente novamente.",
+      message:
+        "Muitas requisições. Aguarde alguns instantes e tente novamente.",
       code: "RATE_LIMIT_MODELO_BANNER_DOWNLOAD",
       adminHint: "Rate limit aplicado ao download do modelo de banner.",
       details: null,
@@ -192,7 +199,8 @@ const uploadLimiter = rateLimit({
       data: null,
       message: "Muitas tentativas de upload. Aguarde e tente novamente.",
       code: "RATE_LIMIT_MODELO_BANNER_UPLOAD",
-      adminHint: "Rate limit aplicado ao upload administrativo do modelo de banner.",
+      adminHint:
+        "Rate limit aplicado ao upload administrativo do modelo de banner.",
       details: {
         usuario_id: req.user?.id || null,
       },
@@ -212,11 +220,7 @@ const uploadLimiter = rateLimit({
  * - busca em trabalhos_modelos
  * - retorna PPT/PPTX com ETag, Last-Modified, SHA-256 e headers seguros.
  */
-router.get(
-  "/modelos/banner.pptx",
-  downloadLimiter,
-  wrap(baixarModeloBanner)
-);
+router.get("/modelos/banner.pptx", downloadLimiter, wrap(baixarModeloBanner));
 
 /**
  * Upload administrativo do modelo global de banner.
@@ -231,7 +235,7 @@ router.post(
   noStore,
   uploadLimiter,
   uploadModeloBanner,
-  wrap(subirModeloBanner)
+  wrap(subirModeloBanner),
 );
 
 /* =========================================================================

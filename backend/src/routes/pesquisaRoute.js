@@ -66,7 +66,7 @@ const {
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[pesquisaRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[pesquisaRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
@@ -85,7 +85,7 @@ for (const [nome, handler] of Object.entries({
 })) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[pesquisaRoute] Controller inválido. Função ausente: ${nome}.`
+      `[pesquisaRoute] Controller inválido. Função ausente: ${nome}.`,
     );
   }
 }
@@ -150,7 +150,8 @@ function validarStatusBody(req, res, next) {
       data: null,
       message: "Status inválido para pesquisa.",
       code: "STATUS_INVALIDO",
-      adminHint: "Status oficiais: rascunho, publicada, encerrada ou arquivada.",
+      adminHint:
+        "Status oficiais: rascunho, publicada, encerrada ou arquivada.",
       details: {
         status: req.body?.status,
       },
@@ -215,7 +216,7 @@ router.patch(
   "/admin/:id/status",
   validarIdParam,
   validarStatusBody,
-  wrap(alterarStatusAdmin)
+  wrap(alterarStatusAdmin),
 );
 
 /**

@@ -1,5 +1,5 @@
 // ✅ frontend/src/components/usuarios/ModalAssinatura.jsx — v2.0
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -48,10 +48,7 @@ import {
 
 import { createPortal } from "react-dom";
 
-import {
-  apiAssinaturaObter,
-  apiAssinaturaSalvar,
-} from "../../services/api";
+import { apiAssinaturaObter, apiAssinaturaSalvar } from "../../services/api";
 
 /* ─────────────────────────────────────────────────────────────
    Constantes
@@ -83,7 +80,9 @@ function getErrorMessage(error, fallback) {
 function normalizarAssinatura(value) {
   const assinatura = String(value || "").trim();
 
-  if (!assinatura) return null;
+  if (!assinatura) {
+    return null;
+  }
 
   if (assinatura.startsWith("data:image/")) {
     return assinatura;
@@ -103,15 +102,19 @@ function extrairAssinatura(response) {
     payload?.assinatura ||
       payload?.data?.assinatura ||
       payload?.imagem_base64 ||
-      payload?.data?.imagem_base64
+      payload?.data?.imagem_base64,
   );
 }
 
 function assinaturaValida(dataUrl) {
   const value = String(dataUrl || "").trim();
 
-  if (!value) return false;
-  if (value.length > MAX_FRONTEND_DATAURL_LENGTH) return false;
+  if (!value) {
+    return false;
+  }
+  if (value.length > MAX_FRONTEND_DATAURL_LENGTH) {
+    return false;
+  }
 
   return DATA_IMAGE_URL_RE.test(value);
 }
@@ -140,7 +143,7 @@ const BotaoModal = React.forwardRef(function BotaoModal(
     type = "button",
     ...props
   },
-  ref
+  ref,
 ) {
   const base =
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-extrabold transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60";
@@ -157,9 +160,9 @@ const BotaoModal = React.forwardRef(function BotaoModal(
   };
 
   return (
-<button
-  ref={ref}
-  type={type}
+    <button
+      ref={ref}
+      type={type}
       disabled={disabled || loading}
       className={cx(base, variants[variant] || variants.primary, className)}
       {...props}
@@ -174,11 +177,7 @@ const BotaoModal = React.forwardRef(function BotaoModal(
    Componente
 ────────────────────────────────────────────────────────────── */
 
-export default function ModalAssinatura({
-  isOpen,
-  onClose,
-  onSaved,
-}) {
+export default function ModalAssinatura({ isOpen, onClose, onSaved }) {
   const uid = useId();
 
   const titleId = `modal-assinatura-title-${uid}`;
@@ -227,7 +226,9 @@ export default function ModalAssinatura({
 
     const ctx = canvas.getContext("2d");
 
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
@@ -240,7 +241,9 @@ export default function ModalAssinatura({
   const snapshotStrokes = useCallback(() => {
     const instance = sigCanvas.current;
 
-    if (!instance) return;
+    if (!instance) {
+      return;
+    }
 
     try {
       strokesRef.current = instance.toData();
@@ -252,7 +255,9 @@ export default function ModalAssinatura({
   const restoreStrokes = useCallback(() => {
     const instance = sigCanvas.current;
 
-    if (!instance) return;
+    if (!instance) {
+      return;
+    }
 
     try {
       if (Array.isArray(strokesRef.current) && strokesRef.current.length) {
@@ -268,13 +273,17 @@ export default function ModalAssinatura({
     const canvas = instance?.getCanvas?.();
     const parent = canvas?.parentElement;
 
-    if (!canvas || !parent) return;
+    if (!canvas || !parent) {
+      return;
+    }
 
     snapshotStrokes();
 
     const cssWidth = parent.clientWidth || 0;
 
-    if (!cssWidth) return;
+    if (!cssWidth) {
+      return;
+    }
 
     const cssHeight = computeCanvasHeight(cssWidth);
 
@@ -288,15 +297,12 @@ export default function ModalAssinatura({
     }
 
     restoreStrokes();
-  }, [
-    computeCanvasHeight,
-    restoreStrokes,
-    setCanvasDpiSize,
-    snapshotStrokes,
-  ]);
+  }, [computeCanvasHeight, restoreStrokes, setCanvasDpiSize, snapshotStrokes]);
 
   const fechar = useCallback(() => {
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     onClose?.();
   }, [onClose, salvando]);
@@ -314,9 +320,7 @@ export default function ModalAssinatura({
 
       setAssinaturaSalva(assinatura || null);
       setMsgA11y(
-        assinatura
-          ? "Assinatura carregada."
-          : "Nenhuma assinatura cadastrada."
+        assinatura ? "Assinatura carregada." : "Nenhuma assinatura cadastrada.",
       );
     } catch (error) {
       console.error("[ModalAssinatura] erro ao carregar assinatura", {
@@ -326,7 +330,7 @@ export default function ModalAssinatura({
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a assinatura."
+        "Não foi possível carregar a assinatura.",
       );
 
       setErro(message);
@@ -337,19 +341,25 @@ export default function ModalAssinatura({
       setCarregando(false);
 
       window.setTimeout(() => {
-        if (isOpen) resizeSignatureCanvas();
+        if (isOpen) {
+          resizeSignatureCanvas();
+        }
       }, 80);
     }
   }, [isOpen, resizeSignatureCanvas]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     carregarAssinatura();
   }, [carregarAssinatura, isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      return undefined;
+    }
 
     const previousActive = document.activeElement;
 
@@ -368,7 +378,9 @@ export default function ModalAssinatura({
   }, [editando, isOpen, temAssinatura]);
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape") {
@@ -377,7 +389,9 @@ export default function ModalAssinatura({
         return;
       }
 
-      if (event.key !== "Tab") return;
+      if (event.key !== "Tab") {
+        return;
+      }
 
       const focusable = dialogRef.current?.querySelectorAll(
         [
@@ -387,14 +401,16 @@ export default function ModalAssinatura({
           "select:not([disabled])",
           "textarea:not([disabled])",
           "[tabindex]:not([tabindex='-1'])",
-        ].join(",")
+        ].join(","),
       );
 
       const elements = Array.from(focusable || []).filter(
-        (element) => !element.hasAttribute("aria-hidden")
+        (element) => !element.hasAttribute("aria-hidden"),
       );
 
-      if (!elements.length) return;
+      if (!elements.length) {
+        return;
+      }
 
       const first = elements[0];
       const last = elements[elements.length - 1];
@@ -414,12 +430,16 @@ export default function ModalAssinatura({
   }, [fechar, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !editando) return undefined;
+    if (!isOpen || !editando) {
+      return undefined;
+    }
 
     let scheduled = false;
 
     const schedule = () => {
-      if (scheduled) return;
+      if (scheduled) {
+        return;
+      }
 
       scheduled = true;
 
@@ -456,7 +476,9 @@ export default function ModalAssinatura({
 
       const instance = sigCanvas.current;
 
-      if (!instance) return;
+      if (!instance) {
+        return;
+      }
 
       if (assinaturaSalva) {
         try {
@@ -483,7 +505,9 @@ export default function ModalAssinatura({
   function limparAssinatura() {
     const instance = sigCanvas.current;
 
-    if (!instance) return;
+    if (!instance) {
+      return;
+    }
 
     instance.clear();
     strokesRef.current = null;
@@ -493,12 +517,16 @@ export default function ModalAssinatura({
   function desfazer() {
     const instance = sigCanvas.current;
 
-    if (!instance) return;
+    if (!instance) {
+      return;
+    }
 
     try {
       const data = instance.toData();
 
-      if (!data?.length) return;
+      if (!data?.length) {
+        return;
+      }
 
       data.pop();
       instance.fromData(data);
@@ -525,15 +553,15 @@ export default function ModalAssinatura({
     try {
       const canvas = instance.getCanvas();
 
-if (!canvas) {
-  throw new Error("Área de assinatura indisponível.");
-}
+      if (!canvas) {
+        throw new Error("Área de assinatura indisponível.");
+      }
 
-const dataUrl = canvas.toDataURL("image/png");
+      const dataUrl = canvas.toDataURL("image/png");
 
       if (!assinaturaValida(dataUrl)) {
         throw new Error(
-          "Assinatura inválida ou muito grande. Limpe e tente novamente."
+          "Assinatura inválida ou muito grande. Limpe e tente novamente.",
         );
       }
 
@@ -560,10 +588,7 @@ const dataUrl = canvas.toDataURL("image/png");
         status: error?.status,
       });
 
-      const message = getErrorMessage(
-        error,
-        "Erro ao salvar assinatura."
-      );
+      const message = getErrorMessage(error, "Erro ao salvar assinatura.");
 
       setErro(message);
       setMsgA11y(message);
@@ -575,13 +600,15 @@ const dataUrl = canvas.toDataURL("image/png");
     }
   }
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
- return createPortal(
-  <div
-    className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6"
-    role="presentation"
-  >
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6"
+      role="presentation"
+    >
       <div
         className="absolute inset-0 bg-black/55 backdrop-blur-sm"
         aria-hidden="true"
@@ -623,11 +650,17 @@ const dataUrl = canvas.toDataURL("image/png");
               Assinatura digital
             </div>
 
-            <h2 id={titleId} className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            <h2
+              id={titleId}
+              className="text-xl font-extrabold tracking-tight sm:text-2xl"
+            >
               Minha assinatura
             </h2>
 
-            <p id={descId} className="mt-1 text-sm leading-relaxed text-white/90">
+            <p
+              id={descId}
+              className="mt-1 text-sm leading-relaxed text-white/90"
+            >
               {descricaoModal}
             </p>
           </div>
@@ -637,7 +670,10 @@ const dataUrl = canvas.toDataURL("image/png");
           {msgA11y}
         </div>
 
-        <div ref={containerRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 sm:px-6">
+        <div
+          ref={containerRef}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 sm:px-6"
+        >
           {carregando ? (
             <div className="grid min-h-[220px] place-items-center text-sm font-semibold">
               <div className="inline-flex items-center gap-2">
@@ -690,7 +726,9 @@ const dataUrl = canvas.toDataURL("image/png");
                     <BotaoModal
                       ref={editRef}
                       onClick={iniciarEdicao}
-                      leftIcon={<PenLine className="h-4 w-4" aria-hidden="true" />}
+                      leftIcon={
+                        <PenLine className="h-4 w-4" aria-hidden="true" />
+                      }
                     >
                       Alterar assinatura
                     </BotaoModal>
@@ -753,7 +791,9 @@ const dataUrl = canvas.toDataURL("image/png");
                         variant="neutral"
                         onClick={limparAssinatura}
                         disabled={salvando}
-                        leftIcon={<Eraser className="h-4 w-4" aria-hidden="true" />}
+                        leftIcon={
+                          <Eraser className="h-4 w-4" aria-hidden="true" />
+                        }
                       >
                         Limpar
                       </BotaoModal>
@@ -774,7 +814,9 @@ const dataUrl = canvas.toDataURL("image/png");
                         onClick={salvarAssinatura}
                         loading={salvando}
                         disabled={salvando}
-                        leftIcon={<Save className="h-4 w-4" aria-hidden="true" />}
+                        leftIcon={
+                          <Save className="h-4 w-4" aria-hidden="true" />
+                        }
                       >
                         {salvando ? "Salvando..." : "Salvar assinatura"}
                       </BotaoModal>
@@ -787,6 +829,6 @@ const dataUrl = canvas.toDataURL("image/png");
         </div>
       </section>
     </div>,
-      document.body
+    document.body,
   );
 }

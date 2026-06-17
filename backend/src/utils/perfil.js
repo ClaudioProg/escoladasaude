@@ -120,7 +120,7 @@ function camposFaltantesPerfil(usuario) {
   }
 
   return CAMPO_OBRIGATORIO_PERFIL.filter(
-    (campo) => !isCampoPerfilValido(usuario, campo)
+    (campo) => !isCampoPerfilValido(usuario, campo),
   );
 }
 

@@ -1,5 +1,5 @@
-// ✅ frontend/src/components/avaliacoes/GraficoAvaliacoes.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/components/avaliacoes/GraficoAvaliacoes.jsx — v2.1
+// Atualizado em: 16/06/2026
 // Plataforma Escola da Saúde
 //
 // Gráfico específico de avaliações.
@@ -36,7 +36,7 @@ function toSafeNumber(value) {
   return Number.isFinite(number) && number > 0 ? number : 0;
 }
 
-export function normalizeAvaliacao(dados) {
+function normalizeAvaliacao(dados) {
   if (!dados || typeof dados !== "object" || Array.isArray(dados)) {
     return {
       Ótimo: 0,
@@ -84,7 +84,7 @@ export default function GraficoAvaliacoes({
 
   const total = useMemo(
     () => chartData.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [chartData]
+    [chartData],
   );
 
   return (

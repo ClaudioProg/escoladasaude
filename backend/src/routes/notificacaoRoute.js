@@ -51,13 +51,15 @@ const router = express.Router();
 ────────────────────────────────────────────────────────────── */
 
 if (typeof requireAuth !== "function") {
-  throw new Error("[notificacaoRoute] authMiddleware deve exportar uma função.");
+  throw new Error(
+    "[notificacaoRoute] authMiddleware deve exportar uma função.",
+  );
 }
 
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[notificacaoRoute] Handler obrigatório ausente: notificacaoController.${name}`
+      `[notificacaoRoute] Handler obrigatório ausente: notificacaoController.${name}`,
     );
   }
 }
@@ -68,17 +70,15 @@ assertHandler("contarNaoLidas", notificacaoController.contarNaoLidas);
 assertHandler("marcarComoLida", notificacaoController.marcarComoLida);
 assertHandler(
   "marcarTodasComoLidas",
-  notificacaoController.marcarTodasComoLidas
+  notificacaoController.marcarTodasComoLidas,
 );
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -111,7 +111,7 @@ function ensurePositiveIntParam(paramName) {
         res,
         400,
         "NOTIFICACAO-400-ID-INVALIDO",
-        "ID de notificação inválido."
+        "ID de notificação inválido.",
       );
     }
 
@@ -137,16 +137,14 @@ router.use(noStore);
 router.get(
   "/",
   routeTag("notificacaoRoute:v2.0:GET /"),
-  asyncHandler(notificacaoController.listarNotificacao)
+  asyncHandler(notificacaoController.listarNotificacao),
 );
 
 /**
  * HEAD /api/notificacao
  */
-router.head(
-  "/",
-  routeTag("notificacaoRoute:v2.0:HEAD /"),
-  (_req, res) => res.sendStatus(204)
+router.head("/", routeTag("notificacaoRoute:v2.0:HEAD /"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -159,7 +157,7 @@ router.head(
 router.get(
   "/resumo",
   routeTag("notificacaoRoute:v2.0:GET /resumo"),
-  asyncHandler(notificacaoController.resumoNotificacoes)
+  asyncHandler(notificacaoController.resumoNotificacoes),
 );
 
 /**
@@ -168,7 +166,7 @@ router.get(
 router.head(
   "/resumo",
   routeTag("notificacaoRoute:v2.0:HEAD /resumo"),
-  (_req, res) => res.sendStatus(204)
+  (_req, res) => res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -181,7 +179,7 @@ router.head(
 router.get(
   "/nao-lida/total",
   routeTag("notificacaoRoute:v2.0:GET /nao-lida/total"),
-  asyncHandler(notificacaoController.contarNaoLidas)
+  asyncHandler(notificacaoController.contarNaoLidas),
 );
 
 /**
@@ -190,7 +188,7 @@ router.get(
 router.head(
   "/nao-lida/total",
   routeTag("notificacaoRoute:v2.0:HEAD /nao-lida/total"),
-  (_req, res) => res.sendStatus(204)
+  (_req, res) => res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -204,7 +202,7 @@ router.patch(
   "/:id/lida",
   ensurePositiveIntParam("id"),
   routeTag("notificacaoRoute:v2.0:PATCH /:id/lida"),
-  asyncHandler(notificacaoController.marcarComoLida)
+  asyncHandler(notificacaoController.marcarComoLida),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -217,7 +215,7 @@ router.patch(
 router.patch(
   "/lida/todas",
   routeTag("notificacaoRoute:v2.0:PATCH /lida/todas"),
-  asyncHandler(notificacaoController.marcarTodasComoLidas)
+  asyncHandler(notificacaoController.marcarTodasComoLidas),
 );
 
 module.exports = router;

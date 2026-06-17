@@ -65,30 +65,24 @@ const STATUS_AGENDA = {
 const STATUS_CONFIG = {
   programado: {
     label: "Programado",
-    chip:
-      "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/35 dark:text-emerald-100 dark:ring-emerald-800/60",
-    card:
-      "bg-emerald-50 text-emerald-950 ring-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-100 dark:ring-emerald-800/60",
+    chip: "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/35 dark:text-emerald-100 dark:ring-emerald-800/60",
+    card: "bg-emerald-50 text-emerald-950 ring-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-100 dark:ring-emerald-800/60",
     dot: "bg-emerald-500",
     border: "border-emerald-200 dark:border-emerald-900/50",
     gradient: "from-emerald-500 via-teal-500 to-cyan-500",
   },
   andamento: {
     label: "Em andamento",
-    chip:
-      "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/35 dark:text-amber-100 dark:ring-amber-800/60",
-    card:
-      "bg-amber-50 text-amber-950 ring-amber-200 dark:bg-amber-950/25 dark:text-amber-100 dark:ring-amber-800/60",
+    chip: "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/35 dark:text-amber-100 dark:ring-amber-800/60",
+    card: "bg-amber-50 text-amber-950 ring-amber-200 dark:bg-amber-950/25 dark:text-amber-100 dark:ring-amber-800/60",
     dot: "bg-amber-500",
     border: "border-amber-200 dark:border-amber-900/50",
     gradient: "from-amber-400 via-orange-400 to-yellow-500",
   },
   encerrado: {
     label: "Encerrado",
-    chip:
-      "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/35 dark:text-rose-100 dark:ring-rose-800/60",
-    card:
-      "bg-rose-50 text-rose-950 ring-rose-200 dark:bg-rose-950/25 dark:text-rose-100 dark:ring-rose-800/60",
+    chip: "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/35 dark:text-rose-100 dark:ring-rose-800/60",
+    card: "bg-rose-50 text-rose-950 ring-rose-200 dark:bg-rose-950/25 dark:text-rose-100 dark:ring-rose-800/60",
     dot: "bg-rose-500",
     border: "border-rose-200 dark:border-rose-900/50",
     gradient: "from-rose-500 via-red-500 to-orange-500",
@@ -148,7 +142,9 @@ function hh(value, fallback = "") {
 }
 
 function toLocalDate(input) {
-  if (!input) return null;
+  if (!input) {
+    return null;
+  }
 
   if (input instanceof Date) {
     return Number.isNaN(input.getTime()) ? null : input;
@@ -156,13 +152,14 @@ function toLocalDate(input) {
 
   const value = stripTZ(input);
   const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
   );
 
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
 
-  const [, year, month, day, hour = "00", minute = "00", second = "00"] =
-    match;
+  const [, year, month, day, hour = "00", minute = "00", second = "00"] = match;
 
   const date = new Date(
     Number(year),
@@ -170,14 +167,16 @@ function toLocalDate(input) {
     Number(day),
     Number(hour),
     Number(minute),
-    Number(second)
+    Number(second),
   );
 
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function ymd(value) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   if (typeof value === "string") {
     const head = stripTZ(value).slice(0, 10);
@@ -189,7 +188,9 @@ function ymd(value) {
 
   const date = toLocalDate(value);
 
-  if (!date) return null;
+  if (!date) {
+    return null;
+  }
 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -200,10 +201,14 @@ function ymd(value) {
 
 function formatarDataBR(value) {
   const data = ymd(value);
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const date = toLocalDate(`${data}T12:00:00`);
-  if (!date) return "—";
+  if (!date) {
+    return "—";
+  }
 
   return format(date, "dd/MM/yyyy");
 }
@@ -213,19 +218,23 @@ function formatarMesAno(value) {
 
   return format(date, "MMMM 'de' yyyy", { locale: ptBR }).replace(
     /^\w/,
-    (char) => char.toUpperCase()
+    (char) => char.toUpperCase(),
   );
 }
 
 function rangeDiasYMD(dataInicio, dataFim) {
   const dias = [];
 
-  if (!dataInicio) return dias;
+  if (!dataInicio) {
+    return dias;
+  }
 
   const inicio = toLocalDate(`${dataInicio}T12:00:00`);
   const fim = toLocalDate(`${dataFim || dataInicio}T12:00:00`);
 
-  if (!inicio || !fim || inicio > fim) return dias;
+  if (!inicio || !fim || inicio > fim) {
+    return dias;
+  }
 
   for (
     const cursor = new Date(inicio);
@@ -233,7 +242,9 @@ function rangeDiasYMD(dataInicio, dataFim) {
     cursor.setDate(cursor.getDate() + 1)
   ) {
     const dia = ymd(cursor);
-    if (dia) dias.push(dia);
+    if (dia) {
+      dias.push(dia);
+    }
   }
 
   return dias;
@@ -243,9 +254,15 @@ function formatarHorario(inicio, fim) {
   const hi = hh(inicio, "");
   const hf = hh(fim, "");
 
-  if (hi && hf) return `${hi} às ${hf}`;
-  if (hi) return `A partir de ${hi}`;
-  if (hf) return `Até ${hf}`;
+  if (hi && hf) {
+    return `${hi} às ${hf}`;
+  }
+  if (hi) {
+    return `A partir de ${hi}`;
+  }
+  if (hf) {
+    return `Até ${hf}`;
+  }
 
   return "Horário não informado";
 }
@@ -275,7 +292,9 @@ function setStorage(key, value) {
  * ───────────────────────────────────────────── */
 
 function deriveStatus(item) {
-  const statusBackend = String(item?.status || "").trim().toLowerCase();
+  const statusBackend = String(item?.status || "")
+    .trim()
+    .toLowerCase();
 
   if (
     statusBackend === STATUS_AGENDA.PROGRAMADO ||
@@ -299,11 +318,15 @@ function deriveStatus(item) {
   const agora = new Date();
 
   if (inicio && fim) {
-    if (isBefore(agora, inicio)) return STATUS_AGENDA.PROGRAMADO;
+    if (isBefore(agora, inicio)) {
+      return STATUS_AGENDA.PROGRAMADO;
+    }
     if (isWithinInterval(agora, { start: inicio, end: fim })) {
       return STATUS_AGENDA.ANDAMENTO;
     }
-    if (isAfter(agora, fim)) return STATUS_AGENDA.ENCERRADO;
+    if (isAfter(agora, fim)) {
+      return STATUS_AGENDA.ENCERRADO;
+    }
   }
 
   return STATUS_AGENDA.PROGRAMADO;
@@ -312,18 +335,32 @@ function deriveStatus(item) {
 function extrairListaTurmas(response) {
   const payload = unwrap(response);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.turmas)) return payload.turmas;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.rows)) return payload.rows;
-  if (Array.isArray(payload?.lista)) return payload.lista;
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (Array.isArray(payload?.turmas)) {
+    return payload.turmas;
+  }
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+  if (Array.isArray(payload?.rows)) {
+    return payload.rows;
+  }
+  if (Array.isArray(payload?.lista)) {
+    return payload.lista;
+  }
 
   return [];
 }
 
 function normalizarOrganizadores(item) {
-  if (Array.isArray(item?.organizadores)) return item.organizadores;
+  if (Array.isArray(item?.organizadores)) {
+    return item.organizadores;
+  }
 
   if (Array.isArray(item?.organizadores_nome)) {
     return item.organizadores_nome.map((nome, index) => ({
@@ -361,11 +398,13 @@ function normalizarAgendaResponse(response) {
       const dataInicio = ymd(turma?.data_inicio);
       const dataFim = ymd(turma?.data_fim || turma?.data_inicio);
 
-      if (!dataInicio) return null;
+      if (!dataInicio) {
+        return null;
+      }
 
       const eventoTitulo = safeText(
         turma?.evento_titulo || turma?.evento || turma?.titulo_evento,
-        "Evento"
+        "Evento",
       );
 
       const turmaNome = safeText(turma?.nome || turma?.turma_nome, "");
@@ -639,8 +678,12 @@ function PainelOperacionalAgenda({
             )}
           </div>
 
-          <p id="dica-busca" className="mt-2 text-xs text-slate-600 dark:text-zinc-300">
-            A agenda é montada pelas turmas, pois as datas oficiais ficam na tabela de turmas.
+          <p
+            id="dica-busca"
+            className="mt-2 text-xs text-slate-600 dark:text-zinc-300"
+          >
+            A agenda é montada pelas turmas, pois as datas oficiais ficam na
+            tabela de turmas.
           </p>
         </div>
       </div>
@@ -736,7 +779,10 @@ function CalendarioPremium({
         {carregando ? (
           <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-zinc-800">
             {Array.from({ length: 42 }).map((_, index) => (
-              <div key={index} className="min-h-[112px] bg-white p-2 dark:bg-zinc-900">
+              <div
+                key={index}
+                className="min-h-[112px] bg-white p-2 dark:bg-zinc-900"
+              >
                 <CarregandoSkeleton height={18} />
                 <div className="mt-3 space-y-2">
                   <CarregandoSkeleton height={16} />
@@ -761,8 +807,9 @@ function CalendarioPremium({
                   key={key}
                   className={cx(
                     "min-h-[122px] bg-white p-2 transition dark:bg-zinc-900",
-                    !inMonth && "bg-slate-50 text-slate-400 dark:bg-zinc-950/60 dark:text-zinc-600",
-                    today && "ring-2 ring-inset ring-indigo-500"
+                    !inMonth &&
+                      "bg-slate-50 text-slate-400 dark:bg-zinc-950/60 dark:text-zinc-600",
+                    today && "ring-2 ring-inset ring-indigo-500",
                   )}
                 >
                   <div className="mb-2 flex items-center justify-between gap-1">
@@ -773,7 +820,7 @@ function CalendarioPremium({
                         "inline-flex h-7 w-7 items-center justify-center rounded-xl text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700",
                         today
                           ? "bg-indigo-700 text-white"
-                          : "text-slate-700 hover:bg-slate-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                          : "text-slate-700 hover:bg-slate-100 dark:text-zinc-200 dark:hover:bg-zinc-800",
                       )}
                       aria-label={`Selecionar ${formatarDataBR(key)}`}
                     >
@@ -790,7 +837,8 @@ function CalendarioPremium({
                   <div className="space-y-1">
                     {visiveis.map((item) => {
                       const status = deriveStatus(item);
-                      const config = STATUS_CONFIG[status] || STATUS_CONFIG.programado;
+                      const config =
+                        STATUS_CONFIG[status] || STATUS_CONFIG.programado;
 
                       return (
                         <button
@@ -800,7 +848,7 @@ function CalendarioPremium({
                           className={cx(
                             "block w-full truncate rounded-xl px-2 py-1 text-left text-[10px] font-bold ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700",
                             config.chip,
-                            reduceMotion ? "" : "hover:-translate-y-0.5"
+                            reduceMotion ? "" : "hover:-translate-y-0.5",
                           )}
                           title={item.titulo}
                         >
@@ -834,7 +882,9 @@ function EventoDetalheModalLocal({ evento, onClose }) {
   const closeRef = useRef(null);
 
   useEffect(() => {
-    if (!evento) return undefined;
+    if (!evento) {
+      return undefined;
+    }
 
     closeRef.current?.focus();
 
@@ -855,7 +905,9 @@ function EventoDetalheModalLocal({ evento, onClose }) {
     };
   }, [evento, onClose]);
 
-  if (!evento) return null;
+  if (!evento) {
+    return null;
+  }
 
   const status = deriveStatus(evento);
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.programado;
@@ -878,7 +930,6 @@ function EventoDetalheModalLocal({ evento, onClose }) {
         aria-modal="true"
         aria-labelledby="agenda-admin-modal-titulo"
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-zinc-900 dark:ring-white/10"
-        onMouseDown={(event) => event.stopPropagation()}
       >
         <div className={`h-1.5 shrink-0 bg-gradient-to-r ${config.gradient}`} />
 
@@ -1007,7 +1058,7 @@ function EventoDetalheModalLocal({ evento, onClose }) {
         </footer>
       </section>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -1037,7 +1088,7 @@ export default function AgendaAdministrador() {
   const [busca, setBusca] = useState(() => getStorage(STORAGE_BUSCA_KEY, ""));
 
   const [buscaDebounced, setBuscaDebounced] = useState(() =>
-    normalizeSearch(busca)
+    normalizeSearch(busca),
   );
 
   const [filtroStatus, setFiltroStatus] = useState(() => {
@@ -1091,37 +1142,41 @@ export default function AgendaAdministrador() {
     try {
       if (typeof apiTurmaListarAdministrador !== "function") {
         throw new Error(
-          "Facade apiTurmaListarAdministrador não encontrada em frontend/src/services/api.js."
+          "Facade apiTurmaListarAdministrador não encontrada em frontend/src/services/api.js.",
         );
       }
 
       const response = await apiTurmaListarAdministrador();
       const agendaNormalizada = normalizarAgendaResponse(response);
 
-      if (!mountedRef.current || requestId !== requestSeqRef.current) return;
+      if (!mountedRef.current || requestId !== requestSeqRef.current) {
+        return;
+      }
 
       setEventos(agendaNormalizada);
 
       setLive(
         agendaNormalizada.length
           ? `Agenda carregada com ${agendaNormalizada.length} turma(s) com data.`
-          : "Nenhuma turma com data encontrada na agenda geral."
+          : "Nenhuma turma com data encontrada na agenda geral.",
       );
     } catch (error) {
       console.error("[AgendaAdministrador] erro ao carregar agenda:", error);
 
-      if (!mountedRef.current || requestId !== requestSeqRef.current) return;
+      if (!mountedRef.current || requestId !== requestSeqRef.current) {
+        return;
+      }
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a agenda geral de eventos."
+        "Não foi possível carregar a agenda geral de eventos.",
       );
 
       setEventos([]);
       setErro(message);
 
       notifyError(
-        "Não foi possível carregar a agenda. Tente novamente ou acione o suporte se o problema continuar."
+        "Não foi possível carregar a agenda. Tente novamente ou acione o suporte se o problema continuar.",
       );
 
       setLive("Falha ao carregar agenda geral de eventos.");
@@ -1145,7 +1200,9 @@ export default function AgendaAdministrador() {
       const dias = obterDiasDoEvento(evento);
 
       for (const dia of dias) {
-        if (!map[dia]) map[dia] = [];
+        if (!map[dia]) {
+          map[dia] = [];
+        }
         map[dia].push(evento);
       }
     }
@@ -1153,13 +1210,15 @@ export default function AgendaAdministrador() {
     for (const dia of Object.keys(map)) {
       map[dia].sort((a, b) => {
         const aStart = toLocalDate(
-          `${ymd(a.data_inicio || dia)}T${hh(a.horario_inicio, "00:00")}`
+          `${ymd(a.data_inicio || dia)}T${hh(a.horario_inicio, "00:00")}`,
         );
         const bStart = toLocalDate(
-          `${ymd(b.data_inicio || dia)}T${hh(b.horario_inicio, "00:00")}`
+          `${ymd(b.data_inicio || dia)}T${hh(b.horario_inicio, "00:00")}`,
         );
 
-        if (!aStart || !bStart) return 0;
+        if (!aStart || !bStart) {
+          return 0;
+        }
 
         return compareAsc(aStart, bStart);
       });
@@ -1179,7 +1238,7 @@ export default function AgendaAdministrador() {
           ...(Array.isArray(evento?.organizadores)
             ? evento.organizadores.map((organizador) => organizador?.nome)
             : []),
-        ].join(" ")
+        ].join(" "),
       );
 
       if (buscaDebounced && !texto.includes(buscaDebounced)) {
@@ -1223,16 +1282,22 @@ export default function AgendaAdministrador() {
     for (const [dia, lista] of Object.entries(eventosPorData)) {
       const dataDia = toLocalDate(`${dia}T12:00:00`);
 
-      if (!dataDia || dataDia < inicio || dataDia > fim) continue;
+      if (!dataDia || dataDia < inicio || dataDia > fim) {
+        continue;
+      }
 
       for (const evento of lista) {
         const status = deriveStatus(evento);
 
         totais.total += 1;
 
-        if (status === STATUS_AGENDA.PROGRAMADO) totais.programado += 1;
-        else if (status === STATUS_AGENDA.ANDAMENTO) totais.andamento += 1;
-        else totais.encerrado += 1;
+        if (status === STATUS_AGENDA.PROGRAMADO) {
+          totais.programado += 1;
+        } else if (status === STATUS_AGENDA.ANDAMENTO) {
+          totais.andamento += 1;
+        } else {
+          totais.encerrado += 1;
+        }
       }
     }
 
@@ -1279,7 +1344,9 @@ export default function AgendaAdministrador() {
     for (const [dia, lista] of Object.entries(eventosPorData)) {
       const dataDia = toLocalDate(`${dia}T12:00:00`);
 
-      if (!dataDia || dataDia < inicio || dataDia > fim) continue;
+      if (!dataDia || dataDia < inicio || dataDia > fim) {
+        continue;
+      }
 
       for (const evento of lista) {
         const status = deriveStatus(evento);
@@ -1297,7 +1364,7 @@ export default function AgendaAdministrador() {
             safe(formatarDataBR(evento.data_fim)),
             safe(hh(evento.horario_fim, "")),
             safe(evento.local || ""),
-          ].join(separator)
+          ].join(separator),
         );
       }
     }
@@ -1346,7 +1413,7 @@ export default function AgendaAdministrador() {
           <div
             className={cx(
               "h-full w-1/3 bg-indigo-700",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -1437,7 +1504,8 @@ export default function AgendaAdministrador() {
             <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {eventosDoDia.map((evento) => {
                 const status = deriveStatus(evento);
-                const config = STATUS_CONFIG[status] || STATUS_CONFIG.programado;
+                const config =
+                  STATUS_CONFIG[status] || STATUS_CONFIG.programado;
 
                 return (
                   <li
@@ -1448,7 +1516,9 @@ export default function AgendaAdministrador() {
                     }
                     className={`overflow-hidden rounded-3xl ring-1 ${config.card}`}
                   >
-                    <div className={`h-1.5 bg-gradient-to-r ${config.gradient}`} />
+                    <div
+                      className={`h-1.5 bg-gradient-to-r ${config.gradient}`}
+                    />
 
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -1471,19 +1541,30 @@ export default function AgendaAdministrador() {
 
                       <div className="mt-3 flex flex-col gap-2 text-sm">
                         <div className="inline-flex items-center gap-2">
-                          <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Clock
+                            className="h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             {formatarDataBR(evento.data_inicio)}
-                            {evento.data_fim && evento.data_fim !== evento.data_inicio
+                            {evento.data_fim &&
+                            evento.data_fim !== evento.data_inicio
                               ? ` até ${formatarDataBR(evento.data_fim)}`
                               : ""}{" "}
-                            • {formatarHorario(evento.horario_inicio, evento.horario_fim)}
+                            •{" "}
+                            {formatarHorario(
+                              evento.horario_inicio,
+                              evento.horario_fim,
+                            )}
                           </span>
                         </div>
 
                         {evento.local ? (
                           <div className="inline-flex items-center gap-2">
-                            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <MapPin
+                              className="h-4 w-4 shrink-0"
+                              aria-hidden="true"
+                            />
                             <span className="break-words">{evento.local}</span>
                           </div>
                         ) : null}

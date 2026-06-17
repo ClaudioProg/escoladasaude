@@ -38,7 +38,9 @@ const PERFIS_OFICIAIS = Object.freeze([
 const PERFIL_OFICIAL = new Set(PERFIS_OFICIAIS);
 
 function normalizarTextoPerfil(valor) {
-  return String(valor ?? "").trim().toLowerCase();
+  return String(valor ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function erroPerfilInvalido(perfisInvalidos) {
@@ -48,8 +50,8 @@ function erroPerfilInvalido(perfisInvalidos) {
 
   const erro = new Error(
     `Perfil inválido: ${invalidos.join(", ")}. Use apenas: ${PERFIS_OFICIAIS.join(
-      ", "
-    )}.`
+      ", ",
+    )}.`,
   );
 
   erro.code = "PERFIL_INVALIDO";

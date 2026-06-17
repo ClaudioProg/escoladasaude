@@ -417,7 +417,7 @@ function ChipFiltro({ active, onClick, label, count }) {
  * Página principal
  * ───────────────────────────────────────────── */
 
-export default function organizadorPresenca() {
+export default function PresencaOrganizador() {
   const usuario = useMemo(() => getUsuarioLogado(), []);
   const nome = usuario?.nome || "";
 

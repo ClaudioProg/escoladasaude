@@ -81,10 +81,18 @@ function widthForLine(index, seed, larguraVariada) {
 }
 
 function resolveTag(as) {
-  if (as === "section") return "section";
-  if (as === "article") return "article";
-  if (as === "ul") return "ul";
-  if (as === "li") return "li";
+  if (as === "section") {
+    return "section";
+  }
+  if (as === "article") {
+    return "article";
+  }
+  if (as === "ul") {
+    return "ul";
+  }
+  if (as === "li") {
+    return "li";
+  }
   return "div";
 }
 
@@ -134,7 +142,7 @@ export default function CarregandoSkeleton({
             "relative overflow-hidden",
             radiusClass,
             colorClass,
-            animate && "motion-safe:animate-pulse motion-reduce:animate-none"
+            animate && "motion-safe:animate-pulse motion-reduce:animate-none",
           )}
           aria-hidden="true"
         />
@@ -149,7 +157,16 @@ CarregandoSkeleton.propTypes = {
   cor: PropTypes.oneOf(["slate", "gray", "verde", "lousa", "white"]),
   larguraVariada: PropTypes.bool,
   className: PropTypes.string,
-  rounded: PropTypes.oneOf(["none", "sm", "md", "lg", "xl", "2xl", "3xl", "full"]),
+  rounded: PropTypes.oneOf([
+    "none",
+    "sm",
+    "md",
+    "lg",
+    "xl",
+    "2xl",
+    "3xl",
+    "full",
+  ]),
   ariaLabel: PropTypes.string,
   srText: PropTypes.string,
   as: PropTypes.oneOf(["div", "section", "article", "ul", "li"]),

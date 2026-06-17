@@ -1,5 +1,5 @@
 // ✅ frontend/src/pages/DashboardUsuario.jsx — v2.0
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -81,7 +81,9 @@ function cx(...classes) {
 function clamp(value, min, max) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return min;
+  if (!Number.isFinite(number)) {
+    return min;
+  }
 
   return Math.max(min, Math.min(max, number));
 }
@@ -112,7 +114,9 @@ function todayYmd() {
 function formatDateYmd(value) {
   const ymd = String(value || "").slice(0, 10);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return "—";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return "—";
+  }
 
   const [year, month, day] = ymd.split("-");
 
@@ -122,7 +126,9 @@ function formatDateYmd(value) {
 function formatDateTime(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const onlyDate = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
@@ -131,7 +137,7 @@ function formatDateTime(value) {
   }
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -154,7 +160,9 @@ function sanitizeHtml(html = "") {
 function getPublicationStatus(item) {
   const hoje = todayYmd();
 
-  if (!item?.ativo) return "inativa";
+  if (!item?.ativo) {
+    return "inativa";
+  }
   if (item?.data_inicio_exibicao && hoje < item.data_inicio_exibicao) {
     return "agendada";
   }
@@ -166,11 +174,13 @@ function getPublicationStatus(item) {
 }
 
 function getPublicationPeriod(item) {
-  if (!item?.data_inicio_exibicao && !item?.data_fim_exibicao) return "";
+  if (!item?.data_inicio_exibicao && !item?.data_fim_exibicao) {
+    return "";
+  }
 
   if (item?.data_inicio_exibicao && item?.data_fim_exibicao) {
     return `${formatDateYmd(item.data_inicio_exibicao)} até ${formatDateYmd(
-      item.data_fim_exibicao
+      item.data_fim_exibicao,
     )}`;
   }
 
@@ -184,13 +194,27 @@ function getPublicationPeriod(item) {
 function normalizeNotificationType(tipo) {
   const value = String(tipo || "").trim();
 
-  if (value === "evento") return "evento";
-  if (value === "certificado") return "certificado";
-  if (value === "avaliacao") return "avaliacao";
-  if (value === "reserva_aprovada") return "reserva_aprovada";
-  if (value === "reserva_rejeitada") return "reserva_rejeitada";
-  if (value === "submissao") return "submissao";
-  if (value === "aviso") return "aviso";
+  if (value === "evento") {
+    return "evento";
+  }
+  if (value === "certificado") {
+    return "certificado";
+  }
+  if (value === "avaliacao") {
+    return "avaliacao";
+  }
+  if (value === "reserva_aprovada") {
+    return "reserva_aprovada";
+  }
+  if (value === "reserva_rejeitada") {
+    return "reserva_rejeitada";
+  }
+  if (value === "submissao") {
+    return "submissao";
+  }
+  if (value === "aviso") {
+    return "aviso";
+  }
 
   return "outro";
 }
@@ -287,7 +311,7 @@ function MetaBadge({ icon: Icon, children, className = "" }) {
     <span
       className={cx(
         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-extrabold tracking-wide",
-        className
+        className,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -296,7 +320,13 @@ function MetaBadge({ icon: Icon, children, className = "" }) {
   );
 }
 
-function GhostAction({ icon: Icon, children, onClick, loading = false, disabled = false }) {
+function GhostAction({
+  icon: Icon,
+  children,
+  onClick,
+  loading = false,
+  disabled = false,
+}) {
   return (
     <button
       type="button"
@@ -315,7 +345,14 @@ function GhostAction({ icon: Icon, children, onClick, loading = false, disabled 
   );
 }
 
-function MiniStat({ icon: Icon, label, value, hint, tone = "emerald", onClick }) {
+function MiniStat({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = "emerald",
+  onClick,
+}) {
   const toneMap = {
     emerald: {
       soft: "bg-emerald-600/10 text-emerald-700 dark:text-emerald-200 dark:bg-emerald-400/10",
@@ -351,7 +388,7 @@ function MiniStat({ icon: Icon, label, value, hint, tone = "emerald", onClick })
         "group overflow-hidden rounded-[26px] border border-slate-200/80 bg-white text-left shadow-sm transition-all dark:border-white/10 dark:bg-zinc-900/55",
         clickable
           ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
-          : "cursor-default"
+          : "cursor-default",
       )}
       aria-label={`${label}: ${value ?? "—"}`}
     >
@@ -456,7 +493,10 @@ function NotaUsuarioCard({ nota, loading }) {
             aria-valuenow={nota10 ?? 0}
           >
             <div
-              className={cx("h-full rounded-full transition-all duration-700", barClass)}
+              className={cx(
+                "h-full rounded-full transition-all duration-700",
+                barClass,
+              )}
               style={{ width: loading ? "35%" : `${percent}%` }}
             />
           </div>
@@ -515,7 +555,7 @@ function NotificationCard({ item, onMarcarLida, disabled }) {
       transition={{ duration: 0.28 }}
       className={cx(
         "overflow-hidden rounded-[26px] border border-amber-200/80 bg-amber-50/80 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-amber-900/40 dark:bg-amber-950/15",
-        disabled ? "pointer-events-none opacity-70" : ""
+        disabled ? "pointer-events-none opacity-70" : "",
       )}
     >
       <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400" />
@@ -545,18 +585,24 @@ function NotificationCard({ item, onMarcarLida, disabled }) {
               </p>
             ) : null}
 
-            {(item?.criado_em || item?.data) ? (
+            {item?.criado_em || item?.data ? (
               <p className="mt-3 text-[12px] text-slate-500 dark:text-zinc-400">
                 {formatDateTime(item.criado_em || item.data)}
               </p>
             ) : null}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <GhostAction icon={Check} onClick={() => onMarcarLida(item, false)}>
+              <GhostAction
+                icon={Check}
+                onClick={() => onMarcarLida(item, false)}
+              >
                 Marcar como lida
               </GhostAction>
 
-              <GhostAction icon={ExternalLink} onClick={() => onMarcarLida(item, true)}>
+              <GhostAction
+                icon={ExternalLink}
+                onClick={() => onMarcarLida(item, true)}
+              >
                 Ver mais
               </GhostAction>
             </div>
@@ -601,7 +647,10 @@ function PesquisaAbertaCard({ item, onResponder }) {
             ) : null}
 
             <div className="mt-4">
-              <GhostAction icon={ExternalLink} onClick={() => onResponder(item)}>
+              <GhostAction
+                icon={ExternalLink}
+                onClick={() => onResponder(item)}
+              >
                 Responder pesquisa
               </GhostAction>
             </div>
@@ -719,23 +768,23 @@ function PublicationCard({ item }) {
         <div className="mt-5 h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10" />
 
         <div
-  className={cx(
-    "prose prose-sm mt-5 max-w-none dark:prose-invert",
-    "prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1",
-    "prose-headings:font-extrabold",
-    "prose-a:break-all prose-a:font-bold prose-a:text-sky-700 prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-sky-900",
-    "dark:prose-a:text-sky-300 dark:hover:prose-a:text-sky-200",
-    "[&_p[style*='text-align:center']]:text-center",
-    "[&_p[style*='text-align:_center']]:text-center",
-    "[&_p[style*='text-align:right']]:text-right",
-    "[&_p[style*='text-align:_right']]:text-right",
-    "[&_div[style*='text-align:center']]:text-center",
-    "[&_div[style*='text-align:right']]:text-right",
-    "[&_span[style*='color']]:font-semibold",
-    "[&_a]:cursor-pointer"
-  )}
-  dangerouslySetInnerHTML={{ __html: html }}
-/>
+          className={cx(
+            "prose prose-sm mt-5 max-w-none dark:prose-invert",
+            "prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1",
+            "prose-headings:font-extrabold",
+            "prose-a:break-all prose-a:font-bold prose-a:text-sky-700 prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-sky-900",
+            "dark:prose-a:text-sky-300 dark:hover:prose-a:text-sky-200",
+            "[&_p[style*='text-align:center']]:text-center",
+            "[&_p[style*='text-align:_center']]:text-center",
+            "[&_p[style*='text-align:right']]:text-right",
+            "[&_p[style*='text-align:_right']]:text-right",
+            "[&_div[style*='text-align:center']]:text-center",
+            "[&_div[style*='text-align:right']]:text-right",
+            "[&_span[style*='color']]:font-semibold",
+            "[&_a]:cursor-pointer",
+          )}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </div>
     </motion.article>
   );
@@ -810,12 +859,12 @@ export default function DashboardUsuario() {
     por_tipo: {},
   });
 
-const [marcandoNotifId, setMarcandoNotifId] = useState(null);
-const [marcandoTodasNotifs, setMarcandoTodasNotifs] = useState(false);
+  const [marcandoNotifId, setMarcandoNotifId] = useState(null);
+  const [marcandoTodasNotifs, setMarcandoTodasNotifs] = useState(false);
 
-const [pesquisasAbertas, setPesquisasAbertas] = useState([]);
-const [loadingPesquisas, setLoadingPesquisas] = useState(true);
-const [erroPesquisas, setErroPesquisas] = useState("");
+  const [pesquisasAbertas, setPesquisasAbertas] = useState([]);
+  const [loadingPesquisas, setLoadingPesquisas] = useState(true);
+  const [erroPesquisas, setErroPesquisas] = useState("");
 
   useEffect(() => {
     document.title = "Dashboard do Usuário — Escola da Saúde";
@@ -837,7 +886,7 @@ const [erroPesquisas, setErroPesquisas] = useState("");
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar seu resumo."
+        "Não foi possível carregar seu resumo.",
       );
 
       setResumo(null);
@@ -861,7 +910,9 @@ const [erroPesquisas, setErroPesquisas] = useState("");
           ? payload
           : [];
 
-      setPublicacoes(itens.filter((item) => getPublicationStatus(item) === "ativa"));
+      setPublicacoes(
+        itens.filter((item) => getPublicationStatus(item) === "ativa"),
+      );
     } catch (error) {
       console.error("[DashboardUsuario] erro ao carregar publicações", {
         message: error?.message,
@@ -869,7 +920,7 @@ const [erroPesquisas, setErroPesquisas] = useState("");
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as publicações institucionais."
+        "Não foi possível carregar as publicações institucionais.",
       );
 
       setPublicacoes([]);
@@ -880,7 +931,7 @@ const [erroPesquisas, setErroPesquisas] = useState("");
     }
   }, []);
 
-    const carregarNotificacoesNaoLidas = useCallback(async () => {
+  const carregarNotificacoesNaoLidas = useCallback(async () => {
     try {
       setLoadingNotificacoes(true);
       setErroNotificacoes("");
@@ -913,7 +964,7 @@ const [erroPesquisas, setErroPesquisas] = useState("");
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as notificações."
+        "Não foi possível carregar as notificações.",
       );
 
       setNotificacoesNaoLidas([]);
@@ -924,44 +975,44 @@ const [erroPesquisas, setErroPesquisas] = useState("");
     }
   }, []);
 
-const carregarPesquisasAbertas = useCallback(async () => {
-  try {
-    setLoadingPesquisas(true);
-    setErroPesquisas("");
+  const carregarPesquisasAbertas = useCallback(async () => {
+    try {
+      setLoadingPesquisas(true);
+      setErroPesquisas("");
 
-    const response = await apiPesquisaListarPublicadas();
-    const payload = unwrap(response) || {};
+      const response = await apiPesquisaListarPublicadas();
+      const payload = unwrap(response) || {};
 
-    const itens = Array.isArray(payload?.itens)
-      ? payload.itens
-      : Array.isArray(payload)
-        ? payload
-        : [];
+      const itens = Array.isArray(payload?.itens)
+        ? payload.itens
+        : Array.isArray(payload)
+          ? payload
+          : [];
 
-    setPesquisasAbertas(itens);
-  } catch (error) {
-    console.error("[DashboardUsuario] erro ao carregar pesquisas abertas", {
-      message: error?.message,
-    });
+      setPesquisasAbertas(itens);
+    } catch (error) {
+      console.error("[DashboardUsuario] erro ao carregar pesquisas abertas", {
+        message: error?.message,
+      });
 
-    setPesquisasAbertas([]);
-    setErroPesquisas("Não foi possível carregar as pesquisas abertas.");
-  } finally {
-    setLoadingPesquisas(false);
-  }
-}, []);
+      setPesquisasAbertas([]);
+      setErroPesquisas("Não foi possível carregar as pesquisas abertas.");
+    } finally {
+      setLoadingPesquisas(false);
+    }
+  }, []);
 
-useEffect(() => {
-  carregarResumo();
-  carregarPublicacoes();
-  carregarNotificacoesNaoLidas();
-  carregarPesquisasAbertas();
-}, [
-  carregarResumo,
-  carregarPublicacoes,
-  carregarNotificacoesNaoLidas,
-  carregarPesquisasAbertas,
-]);
+  useEffect(() => {
+    carregarResumo();
+    carregarPublicacoes();
+    carregarNotificacoesNaoLidas();
+    carregarPesquisasAbertas();
+  }, [
+    carregarResumo,
+    carregarPublicacoes,
+    carregarNotificacoesNaoLidas,
+    carregarPesquisasAbertas,
+  ]);
 
   const stats = useMemo(() => {
     return {
@@ -979,15 +1030,19 @@ useEffect(() => {
 
   const go = useCallback(
     (path) => {
-      if (!path) return;
+      if (!path) {
+        return;
+      }
       navigate(path);
     },
-    [navigate]
+    [navigate],
   );
 
   const marcarNotificacaoLida = useCallback(
     async (item, abrirCentral = false) => {
-      if (!item?.id) return;
+      if (!item?.id) {
+        return;
+      }
 
       try {
         setMarcandoNotifId(item.id);
@@ -995,7 +1050,7 @@ useEffect(() => {
         await apiNotificacaoMarcarLida(item.id);
 
         setNotificacoesNaoLidas((prev) =>
-          prev.filter((notificacao) => notificacao.id !== item.id)
+          prev.filter((notificacao) => notificacao.id !== item.id),
         );
 
         setResumoNotificacoes((prev) => ({
@@ -1021,11 +1076,13 @@ useEffect(() => {
         setMarcandoNotifId(null);
       }
     },
-    [navigate]
+    [navigate],
   );
 
   const marcarTodasNotificacoes = useCallback(async () => {
-    if (!resumoNotificacoes?.nao_lida) return;
+    if (!resumoNotificacoes?.nao_lida) {
+      return;
+    }
 
     try {
       setMarcandoTodasNotifs(true);
@@ -1055,33 +1112,33 @@ useEffect(() => {
   }, [resumoNotificacoes?.nao_lida]);
 
   const responderPesquisa = useCallback(
-  (item) => {
-    if (!item?.id) {
-      toast.error("Pesquisa inválida ou indisponível.");
-      return;
-    }
+    (item) => {
+      if (!item?.id) {
+        toast.error("Pesquisa inválida ou indisponível.");
+        return;
+      }
 
-    if (item?.tipo === "externa" && item?.link_externo) {
-      window.open(item.link_externo, "_blank", "noopener,noreferrer");
-      return;
-    }
+      if (item?.tipo === "externa" && item?.link_externo) {
+        window.open(item.link_externo, "_blank", "noopener,noreferrer");
+        return;
+      }
 
-    navigate(`/pesquisa/${item.id}/responder`);
-  },
-  [navigate]
-);
+      navigate(`/pesquisa/${item.id}/responder`);
+    },
+    [navigate],
+  );
 
   return (
     <>
       <main className="mx-auto max-w-7xl p-4 md:p-6">
         <HeaderHero
-  titulo="Dashboard do Usuário"
-  subtitulo="Seu resumo de inscrições, presenças, certificados, notificações e publicações institucionais."
-  badge="Escola da Saúde • Oficial • Ambiente Seguro"
-  icon={Sparkles}
-  gradient="from-emerald-700 via-teal-600 to-sky-700"
-  isDark={isDark}
-/>
+          titulo="Dashboard do Usuário"
+          subtitulo="Seu resumo de inscrições, presenças, certificados, notificações e publicações institucionais."
+          badge="Escola da Saúde • Oficial • Ambiente Seguro"
+          icon={Sparkles}
+          gradient="from-emerald-700 via-teal-600 to-sky-700"
+          isDark={isDark}
+        />
 
         <div className="mt-6">
           <InfoRibbon />
@@ -1093,7 +1150,6 @@ useEffect(() => {
           icon={LayoutPanelTop}
           gradient="from-emerald-600 via-teal-500 to-sky-600"
         >
-
           {erroResumo ? (
             <div
               className="rounded-[26px] border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/20"
@@ -1183,7 +1239,10 @@ useEffect(() => {
                 {loadingNotificacoes ? "Atualizando…" : "Recarregar"}
               </GhostAction>
 
-              <GhostAction icon={ExternalLink} onClick={() => go("/notificacao")}>
+              <GhostAction
+                icon={ExternalLink}
+                onClick={() => go("/notificacao")}
+              >
                 Ver todas
               </GhostAction>
 
@@ -1254,7 +1313,7 @@ useEffect(() => {
           ) : null}
         </SectionShell>
 
-                <SectionShell
+        <SectionShell
           title="Pesquisas abertas"
           subtitle="Pesquisas institucionais disponíveis para participação."
           icon={ClipboardList}
@@ -1296,7 +1355,10 @@ useEffect(() => {
                   </p>
 
                   <div className="mt-3">
-                    <GhostAction icon={RefreshCw} onClick={carregarPesquisasAbertas}>
+                    <GhostAction
+                      icon={RefreshCw}
+                      onClick={carregarPesquisasAbertas}
+                    >
                       Tentar novamente
                     </GhostAction>
                   </div>
@@ -1389,7 +1451,9 @@ useEffect(() => {
             </div>
           ) : null}
 
-          {!loadingPublicacoes && !erroPublicacoes && publicacoes.length === 0 ? (
+          {!loadingPublicacoes &&
+          !erroPublicacoes &&
+          publicacoes.length === 0 ? (
             <EmptyState
               icon={BellRing}
               title="Nenhuma publicação disponível"

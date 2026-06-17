@@ -79,12 +79,16 @@ function isBrowser() {
 }
 
 function requestFrame(callback) {
-  if (!isBrowser()) return 0;
+  if (!isBrowser()) {
+    return 0;
+  }
   return window.requestAnimationFrame(callback);
 }
 
 function cancelFrame(id) {
-  if (!isBrowser() || !id) return;
+  if (!isBrowser() || !id) {
+    return;
+  }
   window.cancelAnimationFrame(id);
 }
 
@@ -93,7 +97,9 @@ function supportsInert() {
 }
 
 function ensureModalRoot() {
-  if (!isBrowser()) return null;
+  if (!isBrowser()) {
+    return null;
+  }
 
   let root = document.getElementById(MODAL_ROOT_ID);
 
@@ -107,7 +113,9 @@ function ensureModalRoot() {
 }
 
 function getScrollbarWidth() {
-  if (!isBrowser()) return 0;
+  if (!isBrowser()) {
+    return 0;
+  }
 
   return Math.max(0, window.innerWidth - document.documentElement.clientWidth);
 }
@@ -131,7 +139,9 @@ function decrementBodyDatasetCounter(key) {
 }
 
 function lockBodyScroll() {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   const body = document.body;
   const count = Number(body.dataset[SCROLL_LOCK_KEY] || "0");
@@ -155,7 +165,9 @@ function lockBodyScroll() {
 }
 
 function unlockBodyScroll() {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   const body = document.body;
   const count = Number(body.dataset[SCROLL_LOCK_KEY] || "0");
@@ -173,15 +185,19 @@ function unlockBodyScroll() {
 }
 
 function getAppRootsToHide() {
-  if (!isBrowser()) return [];
+  if (!isBrowser()) {
+    return [];
+  }
 
   return Array.from(document.body.children || []).filter(
-    (element) => element.id !== MODAL_ROOT_ID
+    (element) => element.id !== MODAL_ROOT_ID,
   );
 }
 
 function hideAppRoots() {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   const canUseInert = supportsInert();
 
@@ -202,7 +218,9 @@ function hideAppRoots() {
 }
 
 function restoreAppRoots() {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   const canUseInert = supportsInert();
 
@@ -224,11 +242,19 @@ function restoreAppRoots() {
 }
 
 function isElementFocusable(element) {
-  if (!element || !isBrowser()) return false;
+  if (!element || !isBrowser()) {
+    return false;
+  }
 
-  if (element.hasAttribute("disabled")) return false;
-  if (element.getAttribute("aria-hidden") === "true") return false;
-  if (element.tabIndex === -1) return false;
+  if (element.hasAttribute("disabled")) {
+    return false;
+  }
+  if (element.getAttribute("aria-hidden") === "true") {
+    return false;
+  }
+  if (element.tabIndex === -1) {
+    return false;
+  }
 
   const style = window.getComputedStyle?.(element);
 
@@ -246,28 +272,52 @@ function isElementFocusable(element) {
 }
 
 function getFocusableElements(container) {
-  if (!container) return [];
+  if (!container) {
+    return [];
+  }
 
   return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
-    isElementFocusable
+    isElementFocusable,
   );
 }
 
 function mapMaxWidthToSize(maxWidth) {
   const value = String(maxWidth || "");
 
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
-  if (value.includes("max-w-sm")) return "sm";
-  if (value.includes("max-w-md")) return "md";
-  if (value.includes("max-w-lg")) return "lg";
-  if (value.includes("max-w-xl")) return "xl";
-  if (value.includes("max-w-2xl")) return "xl";
-  if (value.includes("max-w-3xl")) return "xl";
-  if (value.includes("max-w-4xl")) return "xl";
-  if (value.includes("max-w-5xl")) return "full";
-  if (value.includes("max-w-6xl")) return "full";
-  if (value.includes("max-w-7xl")) return "full";
+  if (value.includes("max-w-sm")) {
+    return "sm";
+  }
+  if (value.includes("max-w-md")) {
+    return "md";
+  }
+  if (value.includes("max-w-lg")) {
+    return "lg";
+  }
+  if (value.includes("max-w-xl")) {
+    return "xl";
+  }
+  if (value.includes("max-w-2xl")) {
+    return "xl";
+  }
+  if (value.includes("max-w-3xl")) {
+    return "xl";
+  }
+  if (value.includes("max-w-4xl")) {
+    return "xl";
+  }
+  if (value.includes("max-w-5xl")) {
+    return "full";
+  }
+  if (value.includes("max-w-6xl")) {
+    return "full";
+  }
+  if (value.includes("max-w-7xl")) {
+    return "full";
+  }
 
   return null;
 }
@@ -289,7 +339,7 @@ function ModalBody({ children, className = "" }) {
     <div
       className={classNames(
         "relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain",
-        className
+        className,
       )}
     >
       {children}
@@ -302,7 +352,7 @@ function ModalFooter({ children, className = "" }) {
     <div
       className={classNames(
         "relative z-10 shrink-0 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 sm:px-6",
-        className
+        className,
       )}
     >
       {children}
@@ -353,7 +403,7 @@ const Modal = forwardRef(function Modal(
 
     maxWidth,
   },
-  forwardedRef
+  forwardedRef,
 ) {
   const reduceMotion = useReducedMotion();
 
@@ -434,7 +484,9 @@ const Modal = forwardRef(function Modal(
   const focusInitialElement = useCallback(() => {
     const panel = panelRef.current;
 
-    if (!panel) return;
+    if (!panel) {
+      return;
+    }
 
     let target =
       initialFocusRef?.current ||
@@ -457,13 +509,17 @@ const Modal = forwardRef(function Modal(
   }, [onClose, preventCloseWhenBusy]);
 
   useEffect(() => {
-    if (!openFinal) return;
+    if (!openFinal) {
+      return;
+    }
 
     modalRootRef.current = ensureModalRoot();
   }, [openFinal]);
 
   useEffect(() => {
-    if (!openFinal || !isBrowser()) return undefined;
+    if (!openFinal || !isBrowser()) {
+      return undefined;
+    }
 
     openedOnceRef.current = true;
     previousFocusRef.current = document.activeElement;
@@ -493,12 +549,16 @@ const Modal = forwardRef(function Modal(
   }, [onAfterClose, openFinal, restoreFocus]);
 
   useEffect(() => {
-    if (!openFinal || !isBrowser()) return undefined;
+    if (!openFinal || !isBrowser()) {
+      return undefined;
+    }
 
     function handleKeyDown(event) {
       const panel = panelRef.current;
 
-      if (!panel) return;
+      if (!panel) {
+        return;
+      }
 
       const activeElement = document.activeElement;
       const focusInside = activeElement && panel.contains(activeElement);
@@ -576,17 +636,23 @@ const Modal = forwardRef(function Modal(
 
   const handleBackdropPointerDown = useCallback(
     (event) => {
-      if (!closeOnBackdrop || !allowOutsideClick) return;
-      if (event.target !== containerRef.current) return;
+      if (!closeOnBackdrop || !allowOutsideClick) {
+        return;
+      }
+      if (event.target !== containerRef.current) {
+        return;
+      }
 
       pointerDownOnBackdropRef.current = true;
     },
-    [allowOutsideClick, closeOnBackdrop]
+    [allowOutsideClick, closeOnBackdrop],
   );
 
   const handleBackdropPointerUp = useCallback(
     (event) => {
-      if (!closeOnBackdrop || !allowOutsideClick) return;
+      if (!closeOnBackdrop || !allowOutsideClick) {
+        return;
+      }
 
       if (!pointerDownOnBackdropRef.current) {
         return;
@@ -598,7 +664,7 @@ const Modal = forwardRef(function Modal(
         requestClose();
       }
     },
-    [allowOutsideClick, closeOnBackdrop, requestClose]
+    [allowOutsideClick, closeOnBackdrop, requestClose],
   );
 
   const handleBackdropPointerCancel = useCallback(() => {
@@ -637,20 +703,19 @@ const Modal = forwardRef(function Modal(
         scroll === "content"
           ? "sm:h-[min(92vh,860px)] sm:max-h-[min(92vh,860px)]"
           : "sm:h-auto sm:max-h-[min(92vh,860px)]",
-        panelSizeClass
+        panelSizeClass,
       )
     : classNames(
         panelSizeClass,
         scroll === "content"
           ? "h-[min(92vh,860px)] max-h-[min(92vh,860px)]"
-          : "max-h-[min(92vh,860px)]"
+          : "max-h-[min(92vh,860px)]",
       );
 
   const panelOverflow = "overflow-hidden";
   const panelPadding = padding ? "p-5 sm:p-6" : "";
 
-  const childrenWrapperClass =
-    "relative z-10 min-h-0 flex-1 overflow-y-auto";
+  const childrenWrapperClass = "relative z-10 min-h-0 flex-1 overflow-y-auto";
 
   const modal = (
     <AnimatePresence>
@@ -665,24 +730,13 @@ const Modal = forwardRef(function Modal(
           overlayPadding,
           "overscroll-none touch-manipulation",
           "pointer-events-auto",
-          overlayClassName
+          overlayClassName,
         )}
         style={{ zIndex }}
         onPointerDown={handleBackdropPointerDown}
         onPointerUp={handleBackdropPointerUp}
         onPointerCancel={handleBackdropPointerCancel}
       >
-        <span
-          tabIndex={0}
-          aria-hidden="true"
-          onFocus={() => {
-            const panel = panelRef.current;
-            const focusableElements = getFocusableElements(panel);
-
-            (focusableElements[focusableElements.length - 1] || panel)?.focus?.();
-          }}
-        />
-
         <motion.div
           ref={panelRef}
           {...panelMotion}
@@ -703,7 +757,7 @@ const Modal = forwardRef(function Modal(
             mobileFullScreen && "pb-[env(safe-area-inset-bottom)]",
             panelPadding,
             "pointer-events-auto",
-            className
+            className,
           )}
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -728,7 +782,7 @@ const Modal = forwardRef(function Modal(
                 "hover:bg-white hover:text-rose-600",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500",
                 "disabled:cursor-not-allowed disabled:opacity-50",
-                "dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-rose-300"
+                "dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-rose-300",
               )}
               aria-label={closeLabel}
             >
@@ -742,17 +796,6 @@ const Modal = forwardRef(function Modal(
             <div className={childrenWrapperClass}>{children}</div>
           )}
         </motion.div>
-
-        <span
-          tabIndex={0}
-          aria-hidden="true"
-          onFocus={() => {
-            const panel = panelRef.current;
-            const focusableElements = getFocusableElements(panel);
-
-            (focusableElements[0] || panel)?.focus?.();
-          }}
-        />
       </motion.div>
     </AnimatePresence>
   );

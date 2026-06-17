@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/components/eventos/CardTurma.jsx — v2.0
 // Atualizado em: 14/05/2026
 // Plataforma Escola da Saúde
@@ -52,7 +51,6 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
-  Users,
 } from "lucide-react";
 
 import BadgeStatus from "../ui/BadgeStatus";
@@ -87,7 +85,9 @@ function isDateOnly(value) {
 }
 
 function normalizeDateOnly(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (typeof value === "object" && value?.data) {
     return normalizeDateOnly(value.data);
@@ -95,14 +95,16 @@ function normalizeDateOnly(value) {
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(
-      value.getDate()
+      value.getDate(),
     )}`;
   }
 
   if (typeof value === "string") {
     const raw = value.trim();
 
-    if (isDateOnly(raw)) return raw;
+    if (isDateOnly(raw)) {
+      return raw;
+    }
 
     const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
     return match ? match[1] : "";
@@ -112,13 +114,21 @@ function normalizeDateOnly(value) {
 }
 
 function normalizeHHmm(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const raw = value.trim();
 
-  if (!raw) return fallback;
-  if (/^\d{2}:\d{2}$/.test(raw)) return raw;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) return raw.slice(0, 5);
+  if (!raw) {
+    return fallback;
+  }
+  if (/^\d{2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) {
+    return raw.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -126,7 +136,9 @@ function normalizeHHmm(value, fallback = "") {
 function formatDateBr(value) {
   const date = normalizeDateOnly(value);
 
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   const [year, month, day] = date.split("-");
   return `${day}/${month}/${year}`;
@@ -143,7 +155,9 @@ function getHojeYmd(hoje) {
 function clamp(value, min = 0, max = 100) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return min;
+  if (!Number.isFinite(number)) {
+    return min;
+  }
 
   return Math.max(min, Math.min(max, number));
 }
@@ -151,7 +165,9 @@ function clamp(value, min = 0, max = 100) {
 function toPositiveInt(value, fallback = 0) {
   const number = Number(value);
 
-  if (!Number.isInteger(number) || number < 0) return fallback;
+  if (!Number.isInteger(number) || number < 0) {
+    return fallback;
+  }
 
   return number;
 }
@@ -160,12 +176,16 @@ function minutesBetween(startHHmm, endHHmm) {
   const start = normalizeHHmm(startHHmm, "");
   const end = normalizeHHmm(endHHmm, "");
 
-  if (!start || !end) return 0;
+  if (!start || !end) {
+    return 0;
+  }
 
   const [h1, m1] = start.split(":").map(Number);
   const [h2, m2] = end.split(":").map(Number);
 
-  if (![h1, m1, h2, m2].every(Number.isFinite)) return 0;
+  if (![h1, m1, h2, m2].every(Number.isFinite)) {
+    return 0;
+  }
 
   return Math.max(0, h2 * 60 + m2 - (h1 * 60 + m1));
 }
@@ -179,11 +199,11 @@ function getDatasTurma(turma) {
         data: normalizeDateOnly(item?.data || item),
         horario_inicio: normalizeHHmm(
           item?.horario_inicio || turma?.horario_inicio || "",
-          ""
+          "",
         ),
         horario_fim: normalizeHHmm(
           item?.horario_fim || turma?.horario_fim || "",
-          ""
+          "",
         ),
       }))
       .filter((item) => item.data)
@@ -195,7 +215,9 @@ function getDatasTurma(turma) {
   const horarioInicio = normalizeHHmm(turma?.horario_inicio || "", "");
   const horarioFim = normalizeHHmm(turma?.horario_fim || "", "");
 
-  if (!dataInicio) return [];
+  if (!dataInicio) {
+    return [];
+  }
 
   if (dataFim && dataFim !== dataInicio) {
     return [
@@ -234,7 +256,9 @@ function getRangeTurma(turma) {
     "";
 
   const primeiroComHorario = datas.find((item) => item.horario_inicio);
-  const ultimoComHorario = [...datas].reverse().find((item) => item.horario_fim);
+  const ultimoComHorario = [...datas]
+    .reverse()
+    .find((item) => item.horario_fim);
 
   const horarioInicio =
     normalizeHHmm(turma?.horario_inicio || "", "") ||
@@ -258,20 +282,32 @@ function getRangeTurma(turma) {
 function getStatusKeyByTurma(turma, hoje) {
   const { dataInicio, dataFim } = getRangeTurma(turma);
 
-  if (!dataInicio || !dataFim) return TURMA_STATUS.SEM_DATAS;
+  if (!dataInicio || !dataFim) {
+    return TURMA_STATUS.SEM_DATAS;
+  }
 
   const hojeYmd = getHojeYmd(hoje);
 
-  if (hojeYmd < dataInicio) return TURMA_STATUS.PROGRAMADO;
-  if (hojeYmd > dataFim) return TURMA_STATUS.ENCERRADO;
+  if (hojeYmd < dataInicio) {
+    return TURMA_STATUS.PROGRAMADO;
+  }
+  if (hojeYmd > dataFim) {
+    return TURMA_STATUS.ENCERRADO;
+  }
 
   return TURMA_STATUS.ANDAMENTO;
 }
 
 function getStatusLabel(statusKey) {
-  if (statusKey === TURMA_STATUS.PROGRAMADO) return "Programada";
-  if (statusKey === TURMA_STATUS.ANDAMENTO) return "Em andamento";
-  if (statusKey === TURMA_STATUS.ENCERRADO) return "Encerrada";
+  if (statusKey === TURMA_STATUS.PROGRAMADO) {
+    return "Programada";
+  }
+  if (statusKey === TURMA_STATUS.ANDAMENTO) {
+    return "Em andamento";
+  }
+  if (statusKey === TURMA_STATUS.ENCERRADO) {
+    return "Encerrada";
+  }
 
   return "Datas a definir";
 }
@@ -307,7 +343,9 @@ function periodoTexto(turma) {
       : `${formatDateBr(dataInicio)} a ${formatDateBr(dataFim)}`;
   }
 
-  if (dataInicio) return formatDateBr(dataInicio);
+  if (dataInicio) {
+    return formatDateBr(dataInicio);
+  }
 
   return "Datas a definir";
 }
@@ -315,9 +353,15 @@ function periodoTexto(turma) {
 function horarioTexto(turma) {
   const { horarioInicio, horarioFim } = getRangeTurma(turma);
 
-  if (horarioInicio && horarioFim) return `${horarioInicio} às ${horarioFim}`;
-  if (horarioInicio) return `A partir de ${horarioInicio}`;
-  if (horarioFim) return `Até ${horarioFim}`;
+  if (horarioInicio && horarioFim) {
+    return `${horarioInicio} às ${horarioFim}`;
+  }
+  if (horarioInicio) {
+    return `A partir de ${horarioInicio}`;
+  }
+  if (horarioFim) {
+    return `Até ${horarioFim}`;
+  }
 
   return "Horário a definir";
 }
@@ -348,7 +392,9 @@ function getorganizadores(turma) {
   for (const item of raw) {
     const id = Number(item?.id ?? item);
 
-    if (!Number.isFinite(id) || map.has(id)) continue;
+    if (!Number.isFinite(id) || map.has(id)) {
+      continue;
+    }
 
     map.set(id, {
       id,
@@ -365,7 +411,9 @@ function getorganizadores(turma) {
 function isTurmaEncerrada(turma, hoje) {
   const { dataFim } = getRangeTurma(turma);
 
-  if (!dataFim) return false;
+  if (!dataFim) {
+    return false;
+  }
 
   return getHojeYmd(hoje) > dataFim;
 }
@@ -389,24 +437,19 @@ const AURA_BG = {
 };
 
 const PERCENT_BADGE = {
-  full:
-    "bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-900/20 dark:text-rose-200 dark:border-rose-900/40",
-  high:
-    "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-900/40",
-  ok:
-    "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-200 dark:border-emerald-900/40",
+  full: "bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-900/20 dark:text-rose-200 dark:border-rose-900/40",
+  high: "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-900/40",
+  ok: "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-200 dark:border-emerald-900/40",
   empty:
     "bg-zinc-50 text-zinc-700 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:border-zinc-800",
 };
 
 function InfoTile({ icon: Icon, label, value, tone = "zinc" }) {
   const tones = {
-    zinc:
-      "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
+    zinc: "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
+    sky: "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100",
     violet:
@@ -474,7 +517,9 @@ function TechButton({
   const cls = [
     base,
     styles[variant] || styles.ghost,
-    disabled || loading ? "pointer-events-none cursor-not-allowed opacity-60" : "",
+    disabled || loading
+      ? "pointer-events-none cursor-not-allowed opacity-60"
+      : "",
   ].join(" ");
 
   return (
@@ -557,7 +602,9 @@ function OccupancyBlock({ total, ocupadas, disponiveis, percentual }) {
 }
 
 function InstructorPills({ organizadores, assinanteId }) {
-  if (!organizadores.length) return null;
+  if (!organizadores.length) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap gap-2" aria-label="organizadores da turma">
@@ -620,7 +667,9 @@ export default function CardTurma({
   const hasTurmaId = Number.isInteger(turmaIdNum) && turmaIdNum > 0;
 
   useEffect(() => {
-    if (!hasTurmaId) return;
+    if (!hasTurmaId) {
+      return;
+    }
 
     if (typeof carregarInscritos === "function" && !Array.isArray(inscritos)) {
       carregarInscritos(turmaIdNum);
@@ -640,7 +689,7 @@ export default function CardTurma({
 
   const { total, ocupadas, percentual, disponiveis } = useMemo(
     () => getOcupacao(turma, inscritos),
-    [inscritos, turma]
+    [inscritos, turma],
   );
 
   const {
@@ -651,7 +700,7 @@ export default function CardTurma({
 
   const statusKey = useMemo(
     () => getStatusKeyByTurma(turma, hoje),
-    [hoje, turma]
+    [hoje, turma],
   );
 
   const organizadores = useMemo(() => getorganizadores(turma), [turma]);
@@ -670,7 +719,8 @@ export default function CardTurma({
   const lotada = total > 0 && ocupadas >= total;
   const bloquear = Boolean(bloquearInscricao || turmaEncerrada || lotada);
 
-  const barClass = BAR_GRADIENT[statusKey] || BAR_GRADIENT[TURMA_STATUS.SEM_DATAS];
+  const barClass =
+    BAR_GRADIENT[statusKey] || BAR_GRADIENT[TURMA_STATUS.SEM_DATAS];
   const auraClass = AURA_BG[statusKey] || AURA_BG[TURMA_STATUS.SEM_DATAS];
 
   const periodo = periodoTexto(turma);
@@ -749,7 +799,12 @@ export default function CardTurma({
               value={periodo}
               tone="violet"
             />
-            <InfoTile icon={Clock3} label="Horário" value={horario} tone="sky" />
+            <InfoTile
+              icon={Clock3}
+              label="Horário"
+              value={horario}
+              tone="sky"
+            />
             <InfoTile
               icon={GraduationCap}
               label="Datas"
@@ -774,7 +829,9 @@ export default function CardTurma({
               title={previewDatas}
             >
               Datas: {previewDatas}
-              {datasOrdenadas.length > 4 ? ` +${datasOrdenadas.length - 4}` : ""}
+              {datasOrdenadas.length > 4
+                ? ` +${datasOrdenadas.length - 4}`
+                : ""}
             </div>
           )}
 
@@ -786,7 +843,10 @@ export default function CardTurma({
           )}
 
           <div className="mt-4">
-            <InstructorPills organizadores={organizadores} assinanteId={assinanteId} />
+            <InstructorPills
+              organizadores={organizadores}
+              assinanteId={assinanteId}
+            />
           </div>
 
           <div id={progressId} className="mt-4">
@@ -915,7 +975,7 @@ CardTurma.propTypes = {
         data: PropTypes.string,
         horario_inicio: PropTypes.string,
         horario_fim: PropTypes.string,
-      })
+      }),
     ),
 
     data_inicio: PropTypes.string,
@@ -925,18 +985,22 @@ CardTurma.propTypes = {
     horario_fim: PropTypes.string,
 
     vagas_total: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    vagas_preenchidas: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    vagas_preenchidas: PropTypes.oneOfType([
+      PropTypes.number,
+      PropTypes.string,
+    ]),
 
     organizadores: PropTypes.arrayOf(
       PropTypes.oneOfType([
         PropTypes.number,
         PropTypes.string,
         PropTypes.shape({
-          id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+          id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+            .isRequired,
           nome: PropTypes.string,
           email: PropTypes.string,
         }),
-      ])
+      ]),
     ),
 
     organizador_assinante_id: PropTypes.oneOfType([
@@ -947,7 +1011,8 @@ CardTurma.propTypes = {
     carga_horaria: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   }).isRequired,
 
-  eventoId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  eventoId: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   hoje: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
 
   carregarInscritos: PropTypes.func,

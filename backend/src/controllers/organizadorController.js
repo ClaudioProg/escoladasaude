@@ -78,7 +78,14 @@ function responderSucesso(res, statusCode, data, message, code, extra = {}) {
   });
 }
 
-function responderErro(res, statusCode, message, code, adminHint, details = null) {
+function responderErro(
+  res,
+  statusCode,
+  message,
+  code,
+  adminHint,
+  details = null,
+) {
   return res.status(statusCode).json({
     ok: false,
     data: null,
@@ -112,7 +119,7 @@ function logInfo(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[organizadorController][${rid}][ERR] ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -130,11 +137,15 @@ function getUsuarioId(req) {
 }
 
 function getPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizarFiltro(req) {
-  const raw = String(req?.query?.filtro || "todos").trim().toLowerCase();
+  const raw = String(req?.query?.filtro || "todos")
+    .trim()
+    .toLowerCase();
 
   if (raw === "ativos") return "ativos";
   if (raw === "encerrados") return "encerrados";
@@ -303,7 +314,7 @@ async function listarorganizador(req, res) {
       LEFT JOIN notas_agg na ON na.usuario_id = o.id
       LEFT JOIN assinaturas_agg aa ON aa.usuario_id = o.id
       ORDER BY o.nome ASC
-      `
+      `,
     );
 
     logInfo(rid, "listarorganizador OK", {
@@ -315,7 +326,7 @@ async function listarorganizador(req, res) {
       200,
       result.rows,
       "Organizadores carregados com sucesso.",
-      "ORGANIZADOR_LISTADO"
+      "ORGANIZADOR_LISTADO",
     );
   } catch (error) {
     logError(rid, "Erro ao listar organizadores", error);
@@ -326,7 +337,7 @@ async function listarorganizador(req, res) {
       "Erro ao carregar organizadores.",
       "ORGANIZADOR_ERRO_LISTAR",
       "Falha inesperada em organizadorController.listarorganizador.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -346,7 +357,7 @@ async function getEventosAvaliacaoPororganizador(req, res) {
       400,
       "ID do organizador inválido.",
       "ORGANIZADOR_ID_INVALIDO",
-      "req.params.id deve ser inteiro positivo."
+      "req.params.id deve ser inteiro positivo.",
     );
   }
 
@@ -391,7 +402,7 @@ async function getEventosAvaliacaoPororganizador(req, res) {
       LEFT JOIN notas_agg na ON na.evento_id = te.evento_id
       ORDER BY te.data_inicio DESC NULLS LAST, te.evento_id DESC
       `,
-      [organizadorId]
+      [organizadorId],
     );
 
     logInfo(rid, "getEventosAvaliacaoPororganizador OK", {
@@ -404,7 +415,7 @@ async function getEventosAvaliacaoPororganizador(req, res) {
       200,
       result.rows,
       "Eventos e avaliações do organizador carregados com sucesso.",
-      "ORGANIZADOR_EVENTOS_AVALIACAO_LISTADOS"
+      "ORGANIZADOR_EVENTOS_AVALIACAO_LISTADOS",
     );
   } catch (error) {
     logError(rid, "Erro ao carregar eventos/avaliações do organizador", error);
@@ -415,7 +426,7 @@ async function getEventosAvaliacaoPororganizador(req, res) {
       "Erro ao carregar eventos e avaliações do organizador.",
       "ORGANIZADOR_EVENTOS_AVALIACAO_ERRO",
       "Falha inesperada em organizadorController.getEventosAvaliacaoPororganizador.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -435,7 +446,7 @@ async function getTurmasComEventoPororganizador(req, res) {
       400,
       "ID do organizador inválido.",
       "ORGANIZADOR_ID_INVALIDO",
-      "req.params.id deve ser inteiro positivo."
+      "req.params.id deve ser inteiro positivo.",
     );
   }
 
@@ -465,7 +476,7 @@ async function getTurmasComEventoPororganizador(req, res) {
         t.data_inicio ASC NULLS LAST,
         t.id ASC
       `,
-      [organizadorId]
+      [organizadorId],
     );
 
     const turmas = result.rows.map(montarTurma);
@@ -480,7 +491,7 @@ async function getTurmasComEventoPororganizador(req, res) {
       200,
       turmas,
       "Turmas do organizador carregadas com sucesso.",
-      "ORGANIZADOR_TURMAS_LISTADAS"
+      "ORGANIZADOR_TURMAS_LISTADAS",
     );
   } catch (error) {
     logError(rid, "Erro ao carregar turmas do organizador", error);
@@ -491,7 +502,7 @@ async function getTurmasComEventoPororganizador(req, res) {
       "Erro ao carregar turmas do organizador.",
       "ORGANIZADOR_TURMAS_ERRO",
       "Falha inesperada em organizadorController.getTurmasComEventoPororganizador.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }
@@ -513,7 +524,7 @@ async function getMinhasTurmasorganizador(req, res) {
       401,
       "Usuário não autenticado.",
       "ORGANIZADOR_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -527,7 +538,7 @@ async function getMinhasTurmasorganizador(req, res) {
       {
         filtro_recebido: req?.query?.filtro ?? null,
         filtros_validos: ["ativos", "encerrados", "todos"],
-      }
+      },
     );
   }
 
@@ -572,7 +583,7 @@ async function getMinhasTurmasorganizador(req, res) {
         data_inicio DESC NULLS LAST,
         id DESC
       `,
-      [usuarioId, PAPEL_ORGANIZADOR]
+      [usuarioId, PAPEL_ORGANIZADOR],
     );
 
     const turmas = result.rows.map(montarTurma);
@@ -598,7 +609,7 @@ async function getMinhasTurmasorganizador(req, res) {
           filtro,
           total: turmas.length,
         },
-      }
+      },
     );
   } catch (error) {
     logError(rid, "Erro ao carregar minhas turmas do organizador", error);
@@ -609,7 +620,7 @@ async function getMinhasTurmasorganizador(req, res) {
       "Erro ao carregar suas turmas.",
       "ORGANIZADOR_MINHAS_TURMAS_ERRO",
       "Falha inesperada em organizadorController.getMinhasTurmasorganizador.",
-      IS_DEV ? error.message : null
+      IS_DEV ? error.message : null,
     );
   }
 }

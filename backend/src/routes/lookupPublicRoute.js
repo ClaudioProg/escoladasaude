@@ -51,7 +51,7 @@ const router = express.Router();
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[lookupPublicRoute] Handler obrigatório ausente: lookupPublicController.${name}`
+      `[lookupPublicRoute] Handler obrigatório ausente: lookupPublicController.${name}`,
     );
   }
 }
@@ -61,7 +61,7 @@ assertHandler("listarUnidade", lookupPublicController.listarUnidade);
 assertHandler("listarGenero", lookupPublicController.listarGenero);
 assertHandler(
   "listarOrientacaoSexual",
-  lookupPublicController.listarOrientacaoSexual
+  lookupPublicController.listarOrientacaoSexual,
 );
 assertHandler("listarCorRaca", lookupPublicController.listarCorRaca);
 assertHandler("listarEscolaridade", lookupPublicController.listarEscolaridade);
@@ -71,10 +71,8 @@ assertHandler("listarDeficiencia", lookupPublicController.listarDeficiencia);
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -86,7 +84,7 @@ function routeTag(tag) {
 function publicLookupCache(_req, res, next) {
   res.setHeader(
     "Cache-Control",
-    "public, max-age=600, stale-while-revalidate=600"
+    "public, max-age=600, stale-while-revalidate=600",
   );
   return next();
 }
@@ -126,14 +124,10 @@ router.use(publicLookupCache);
 router.get(
   "/cargo",
   routeTag("lookupPublicRoute:v2.0:GET /cargo"),
-  asyncHandler(lookupPublicController.listarCargo)
+  asyncHandler(lookupPublicController.listarCargo),
 );
 
-router.head(
-  "/cargo",
-  routeTag("lookupPublicRoute:v2.0:HEAD /cargo"),
-  headOk
-);
+router.head("/cargo", routeTag("lookupPublicRoute:v2.0:HEAD /cargo"), headOk);
 
 /* ─────────────────────────────────────────────────────────────
    Unidade
@@ -142,13 +136,13 @@ router.head(
 router.get(
   "/unidade",
   routeTag("lookupPublicRoute:v2.0:GET /unidade"),
-  asyncHandler(lookupPublicController.listarUnidade)
+  asyncHandler(lookupPublicController.listarUnidade),
 );
 
 router.head(
   "/unidade",
   routeTag("lookupPublicRoute:v2.0:HEAD /unidade"),
-  headOk
+  headOk,
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -158,14 +152,10 @@ router.head(
 router.get(
   "/genero",
   routeTag("lookupPublicRoute:v2.0:GET /genero"),
-  asyncHandler(lookupPublicController.listarGenero)
+  asyncHandler(lookupPublicController.listarGenero),
 );
 
-router.head(
-  "/genero",
-  routeTag("lookupPublicRoute:v2.0:HEAD /genero"),
-  headOk
-);
+router.head("/genero", routeTag("lookupPublicRoute:v2.0:HEAD /genero"), headOk);
 
 /* ─────────────────────────────────────────────────────────────
    Orientação sexual
@@ -174,13 +164,13 @@ router.head(
 router.get(
   "/orientacao-sexual",
   routeTag("lookupPublicRoute:v2.0:GET /orientacao-sexual"),
-  asyncHandler(lookupPublicController.listarOrientacaoSexual)
+  asyncHandler(lookupPublicController.listarOrientacaoSexual),
 );
 
 router.head(
   "/orientacao-sexual",
   routeTag("lookupPublicRoute:v2.0:HEAD /orientacao-sexual"),
-  headOk
+  headOk,
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -190,13 +180,13 @@ router.head(
 router.get(
   "/cor-raca",
   routeTag("lookupPublicRoute:v2.0:GET /cor-raca"),
-  asyncHandler(lookupPublicController.listarCorRaca)
+  asyncHandler(lookupPublicController.listarCorRaca),
 );
 
 router.head(
   "/cor-raca",
   routeTag("lookupPublicRoute:v2.0:HEAD /cor-raca"),
-  headOk
+  headOk,
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -206,13 +196,13 @@ router.head(
 router.get(
   "/escolaridade",
   routeTag("lookupPublicRoute:v2.0:GET /escolaridade"),
-  asyncHandler(lookupPublicController.listarEscolaridade)
+  asyncHandler(lookupPublicController.listarEscolaridade),
 );
 
 router.head(
   "/escolaridade",
   routeTag("lookupPublicRoute:v2.0:HEAD /escolaridade"),
-  headOk
+  headOk,
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -222,13 +212,13 @@ router.head(
 router.get(
   "/deficiencia",
   routeTag("lookupPublicRoute:v2.0:GET /deficiencia"),
-  asyncHandler(lookupPublicController.listarDeficiencia)
+  asyncHandler(lookupPublicController.listarDeficiencia),
 );
 
 router.head(
   "/deficiencia",
   routeTag("lookupPublicRoute:v2.0:HEAD /deficiencia"),
-  headOk
+  headOk,
 );
 
 module.exports = router;

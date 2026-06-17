@@ -22,11 +22,7 @@ import PropTypes from "prop-types";
 import { QRCodeSVG } from "qrcode.react";
 import { Copy, Download, QrCode } from "lucide-react";
 
-import {
-  notifyError,
-  notifySuccess,
-  notifyWarn,
-} from "../ui/AppToast";
+import { notifyError, notifySuccess } from "../ui/AppToast";
 
 const SITE_ESCOLA_SAUDE_URL = "https://escoladasaude.vercel.app/";
 
@@ -69,7 +65,8 @@ function buildBaseName(siteUrl, fileName) {
 
   try {
     const parsed = new URL(siteUrl);
-    const path = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "";
+    const path =
+      parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "";
     return sanitizeFileName(`${parsed.host}${path}`);
   } catch {
     return "qr-code-escola-saude";
@@ -94,7 +91,9 @@ function downloadBlob(filename, blob) {
 }
 
 function hexToRgb(hex) {
-  const clean = String(hex || "").replace("#", "").trim();
+  const clean = String(hex || "")
+    .replace("#", "")
+    .trim();
 
   if (![3, 6].includes(clean.length)) {
     return null;
@@ -115,11 +114,10 @@ function hexToRgb(hex) {
   }
 
   return {
-    // eslint-disable-next-line no-bitwise
     r: (int >> 16) & 255,
-    // eslint-disable-next-line no-bitwise
+
     g: (int >> 8) & 255,
-    // eslint-disable-next-line no-bitwise
+
     b: int & 255,
   };
 }
@@ -155,13 +153,7 @@ function getSvgElement(container) {
   return container?.querySelector("svg") || null;
 }
 
-async function svgToPngBlob({
-  svg,
-  size,
-  quietZone,
-  pngScale,
-  bgColor,
-}) {
+async function svgToPngBlob({ svg, size, quietZone, pngScale, bgColor }) {
   const xml = new XMLSerializer().serializeToString(svg);
 
   const svgBlob = new Blob([xml], {
@@ -183,7 +175,8 @@ async function svgToPngBlob({
     const devicePixelRatio =
       typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
-    const scale = Math.max(1, Math.floor(Number(pngScale) || 2)) * devicePixelRatio;
+    const scale =
+      Math.max(1, Math.floor(Number(pngScale) || 2)) * devicePixelRatio;
     const outputSize = Math.round(size * scale);
     const padding = Math.max(0, Math.floor(Number(quietZone || 0) * scale));
 
@@ -244,7 +237,7 @@ export default function QrSiteEscola({
 
   const baseName = useMemo(
     () => buildBaseName(finalUrl, fileName),
-    [fileName, finalUrl]
+    [fileName, finalUrl],
   );
 
   const validLevel = QR_LEVELS.includes(level) ? level : "H";
@@ -259,7 +252,9 @@ export default function QrSiteEscola({
 
   const safeSize = useMemo(() => {
     const parsed = Number(size);
-    return Number.isFinite(parsed) ? Math.min(1024, Math.max(128, parsed)) : 512;
+    return Number.isFinite(parsed)
+      ? Math.min(1024, Math.max(128, parsed))
+      : 512;
   }, [size]);
 
   const imageSettings = useMemo(() => {
@@ -297,7 +292,7 @@ export default function QrSiteEscola({
         `${baseName}.svg`,
         new Blob([xml], {
           type: "image/svg+xml;charset=utf-8",
-        })
+        }),
       );
 
       onDownload?.("svg");
@@ -305,7 +300,7 @@ export default function QrSiteEscola({
       announce("SVG baixado com sucesso.");
     } catch {
       notifyError(
-        "Não foi possível gerar o arquivo SVG. Tente novamente e, se o problema persistir, acione o suporte."
+        "Não foi possível gerar o arquivo SVG. Tente novamente e, se o problema persistir, acione o suporte.",
       );
       announce("Falha ao gerar o SVG.");
     }
@@ -342,7 +337,7 @@ export default function QrSiteEscola({
       announce("PNG baixado com sucesso.");
     } catch {
       notifyError(
-        "Não foi possível gerar o PNG. Verifique o QR Code e tente novamente."
+        "Não foi possível gerar o PNG. Verifique o QR Code e tente novamente.",
       );
       announce("Falha ao gerar o PNG.");
     } finally {
@@ -364,7 +359,7 @@ export default function QrSiteEscola({
       announce("Link copiado para a área de transferência.");
     } catch {
       notifyError(
-        "Não foi possível copiar o link automaticamente. Copie o endereço manualmente e tente novamente."
+        "Não foi possível copiar o link automaticamente. Copie o endereço manualmente e tente novamente.",
       );
       announce("Falha ao copiar o link.");
     }
@@ -376,7 +371,7 @@ export default function QrSiteEscola({
     <section
       className={classNames(
         "inline-flex max-w-full flex-col items-center gap-3",
-        className
+        className,
       )}
       aria-labelledby={`${descriptionId}-title`}
     >
@@ -411,7 +406,7 @@ export default function QrSiteEscola({
         ref={wrapperRef}
         className={classNames(
           "relative inline-block rounded-3xl shadow-[0_18px_55px_-40px_rgba(0,0,0,0.55)] ring-1 ring-black/5 dark:ring-white/10",
-          exporting && "opacity-80"
+          exporting && "opacity-80",
         )}
         style={{
           padding: quietZone,
@@ -447,7 +442,11 @@ export default function QrSiteEscola({
             onClick={downloadSvg}
             disabled={actionDisabled}
             className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-emerald-700 px-3 py-2 text-xs font-black text-white ring-1 ring-emerald-900/30 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-            title={!contrastOk ? "Ajuste as cores para melhorar a leitura do QR Code." : "Baixar QR Code em SVG"}
+            title={
+              !contrastOk
+                ? "Ajuste as cores para melhorar a leitura do QR Code."
+                : "Baixar QR Code em SVG"
+            }
           >
             <Download className="h-4 w-4" aria-hidden="true" />
             Baixar SVG
@@ -458,7 +457,11 @@ export default function QrSiteEscola({
             onClick={downloadPng}
             disabled={actionDisabled}
             className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-emerald-700 px-3 py-2 text-xs font-black text-white ring-1 ring-emerald-900/30 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-            title={!contrastOk ? "Ajuste as cores para melhorar a leitura do QR Code." : `Baixar QR Code em PNG ${pngScale}x`}
+            title={
+              !contrastOk
+                ? "Ajuste as cores para melhorar a leitura do QR Code."
+                : `Baixar QR Code em PNG ${pngScale}x`
+            }
             aria-busy={exporting || undefined}
           >
             <Download
@@ -485,8 +488,8 @@ export default function QrSiteEscola({
           className="max-w-[42ch] text-center text-xs font-semibold text-amber-700 dark:text-amber-300"
           role="alert"
         >
-          O contraste entre as cores do QR Code está baixo e pode prejudicar a leitura.
-          Ajuste as cores antes de exportar.
+          O contraste entre as cores do QR Code está baixo e pode prejudicar a
+          leitura. Ajuste as cores antes de exportar.
         </p>
       )}
     </section>

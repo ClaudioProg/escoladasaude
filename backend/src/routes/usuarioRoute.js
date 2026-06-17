@@ -57,7 +57,7 @@ if (typeof requireAuth !== "function") {
 function assertHandler(controllerName, name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[usuarioRoute] Handler obrigatório ausente: ${controllerName}.${name}`
+      `[usuarioRoute] Handler obrigatório ausente: ${controllerName}.${name}`,
     );
   }
 }
@@ -74,35 +74,33 @@ function assertHandler(controllerName, name, handler) {
   "listarAvaliador",
   "obterResumo",
 ].forEach((name) =>
-  assertHandler("usuarioController", name, usuarioController[name])
+  assertHandler("usuarioController", name, usuarioController[name]),
 );
 
 assertHandler(
   "usuarioAssinaturaController",
   "obterAssinatura",
-  usuarioAssinaturaController.obterAssinatura
+  usuarioAssinaturaController.obterAssinatura,
 );
 
 assertHandler(
   "usuarioEstatisticaController",
   "obterEstatistica",
-  usuarioEstatisticaController.obterEstatistica
+  usuarioEstatisticaController.obterEstatistica,
 );
 
 assertHandler(
   "usuarioEstatisticaController",
   "obterEstatisticaDetalhada",
-  usuarioEstatisticaController.obterEstatisticaDetalhada
+  usuarioEstatisticaController.obterEstatisticaDetalhada,
 );
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -180,7 +178,10 @@ function validarId(req, res, next) {
 
 function requireAdmin(req, res, next) {
   if (!isAdministrador(req)) {
-    console.warn("[usuarioRoute.requireAdmin] acesso negado", buildRouteLog(req));
+    console.warn(
+      "[usuarioRoute.requireAdmin] acesso negado",
+      buildRouteLog(req),
+    );
 
     return res.status(403).json({
       ok: false,
@@ -214,7 +215,7 @@ function requireMesmoUsuarioOuAdmin(req, res, next) {
     buildRouteLog(req, {
       usuarioAutenticadoId,
       usuarioAlvoId,
-    })
+    }),
   );
 
   return res.status(403).json({
@@ -234,7 +235,7 @@ function sendCachedData(handler) {
     res.setHeader("ETag", etag);
     res.setHeader(
       "Cache-Control",
-      "private, max-age=120, stale-while-revalidate=600"
+      "private, max-age=120, stale-while-revalidate=600",
     );
 
     if (req.headers["if-none-match"] === etag) {
@@ -259,7 +260,7 @@ function sendCachedHead(handler) {
     res.setHeader("ETag", etag);
     res.setHeader(
       "Cache-Control",
-      "private, max-age=120, stale-while-revalidate=600"
+      "private, max-age=120, stale-while-revalidate=600",
     );
 
     return res.status(200).end();
@@ -290,7 +291,8 @@ const adminLimiter = rateLimit({
   message: {
     ok: false,
     code: "USUARIO-429-ADMIN-LIMITE",
-    message: "Muitas requisições administrativas. Aguarde antes de tentar novamente.",
+    message:
+      "Muitas requisições administrativas. Aguarde antes de tentar novamente.",
   },
 });
 
@@ -302,7 +304,8 @@ const estatisticaLimiter = rateLimit({
   message: {
     ok: false,
     code: "USUARIO-429-ESTATISTICA-LIMITE",
-    message: "Muitas consultas de estatística. Aguarde antes de tentar novamente.",
+    message:
+      "Muitas consultas de estatística. Aguarde antes de tentar novamente.",
   },
 });
 
@@ -322,7 +325,7 @@ router.use(requireAuth, usuarioLimiter, noStore);
 router.get(
   "/buscar",
   routeTag("usuarioRoute:v2.0:GET /buscar"),
-  asyncHandler(usuarioController.buscar)
+  asyncHandler(usuarioController.buscar),
 );
 
 /**
@@ -331,7 +334,7 @@ router.get(
 router.get(
   "/assinatura",
   routeTag("usuarioRoute:v2.0:GET /assinatura"),
-  asyncHandler(usuarioAssinaturaController.obterAssinatura)
+  asyncHandler(usuarioAssinaturaController.obterAssinatura),
 );
 
 /**
@@ -346,7 +349,7 @@ router.get(
   routeTag("usuarioRoute:v2.0:GET /:id"),
   validarId,
   requireMesmoUsuarioOuAdmin,
-  asyncHandler(usuarioController.obterPorId)
+  asyncHandler(usuarioController.obterPorId),
 );
 
 /**
@@ -361,7 +364,7 @@ router.patch(
   routeTag("usuarioRoute:v2.0:PATCH /:id/basico"),
   validarId,
   requireMesmoUsuarioOuAdmin,
-  asyncHandler(usuarioController.atualizarBasico)
+  asyncHandler(usuarioController.atualizarBasico),
 );
 
 /**
@@ -376,7 +379,7 @@ router.patch(
   routeTag("usuarioRoute:v2.0:PATCH /:id/perfil-institucional"),
   validarId,
   requireMesmoUsuarioOuAdmin,
-  asyncHandler(usuarioController.atualizarPerfilInstitucional)
+  asyncHandler(usuarioController.atualizarPerfilInstitucional),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -391,7 +394,7 @@ router.get(
   routeTag("usuarioRoute:v2.0:GET /"),
   requireAdmin,
   adminLimiter,
-  asyncHandler(usuarioController.listar)
+  asyncHandler(usuarioController.listar),
 );
 
 /**
@@ -403,7 +406,7 @@ router.patch(
   requireAdmin,
   adminLimiter,
   validarId,
-  asyncHandler(usuarioController.atualizarDadosAdministrativos)
+  asyncHandler(usuarioController.atualizarDadosAdministrativos),
 );
 
 /**
@@ -415,7 +418,7 @@ router.patch(
   requireAdmin,
   adminLimiter,
   validarId,
-  asyncHandler(usuarioController.atualizarPerfil)
+  asyncHandler(usuarioController.atualizarPerfil),
 );
 
 /**
@@ -426,7 +429,7 @@ router.get(
   routeTag("usuarioRoute:v2.0:GET /organizador"),
   requireAdmin,
   adminLimiter,
-  asyncHandler(usuarioController.listarorganizador)
+  asyncHandler(usuarioController.listarorganizador),
 );
 
 /**
@@ -437,7 +440,7 @@ router.get(
   routeTag("usuarioRoute:v2.0:GET /avaliador"),
   requireAdmin,
   adminLimiter,
-  asyncHandler(usuarioController.listarAvaliador)
+  asyncHandler(usuarioController.listarAvaliador),
 );
 
 /**
@@ -449,7 +452,7 @@ router.get(
   requireAdmin,
   adminLimiter,
   validarId,
-  asyncHandler(usuarioController.obterResumo)
+  asyncHandler(usuarioController.obterResumo),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -464,7 +467,7 @@ router.get(
   routeTag("usuarioRoute:v2.0:GET /estatistica"),
   requireAdmin,
   estatisticaLimiter,
-  sendCachedData(usuarioEstatisticaController.obterEstatistica)
+  sendCachedData(usuarioEstatisticaController.obterEstatistica),
 );
 
 /**
@@ -475,7 +478,7 @@ router.head(
   routeTag("usuarioRoute:v2.0:HEAD /estatistica"),
   requireAdmin,
   estatisticaLimiter,
-  sendCachedHead(usuarioEstatisticaController.obterEstatistica)
+  sendCachedHead(usuarioEstatisticaController.obterEstatistica),
 );
 
 /**
@@ -486,7 +489,7 @@ router.get(
   routeTag("usuarioRoute:v2.0:GET /estatistica/detalhe"),
   requireAdmin,
   estatisticaLimiter,
-  sendCachedData(usuarioEstatisticaController.obterEstatisticaDetalhada)
+  sendCachedData(usuarioEstatisticaController.obterEstatisticaDetalhada),
 );
 
 module.exports = router;

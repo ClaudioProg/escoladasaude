@@ -85,7 +85,9 @@ async function dbMany(sql, params = []) {
 =========================================================================== */
 
 function limparTexto(value, max = 1000) {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  const text = String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (!text) return "";
 
@@ -157,7 +159,7 @@ function hojeYmdEmTimezone(timeZone = TIMEZONE_OFICIAL) {
   const map = Object.fromEntries(
     parts
       .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, part.value])
+      .map((part) => [part.type, part.value]),
   );
 
   return `${map.year}-${map.month}-${map.day}`;
@@ -239,7 +241,9 @@ function montarLinkInternoReserva(reservaId) {
 }
 
 function montarUrlPlataforma(path = "") {
-  const base = limparTexto(process.env.VITE_FRONTEND_URL || process.env.FRONTEND_URL || "");
+  const base = limparTexto(
+    process.env.VITE_FRONTEND_URL || process.env.FRONTEND_URL || "",
+  );
 
   if (!base) return "";
 
@@ -316,10 +320,7 @@ function montarTextoEmailSolicitacao(row) {
     linhas.push("", `Acesse a plataforma para confirmar: ${url}`);
   }
 
-  linhas.push(
-    "",
-    "Este é um aviso automático da Plataforma Escola da Saúde."
-  );
+  linhas.push("", "Este é um aviso automático da Plataforma Escola da Saúde.");
 
   return linhas.join("\n");
 }
@@ -646,7 +647,7 @@ async function marcarNotificacaoCriada(programacaoId, notificacaoId) {
              atualizado_em = CURRENT_TIMESTAMP
        WHERE id = $1
     `,
-    [programacaoId, notificacaoId, STATUS_PROGRAMADO.ENVIADO]
+    [programacaoId, notificacaoId, STATUS_PROGRAMADO.ENVIADO],
   );
 }
 
@@ -664,11 +665,7 @@ async function marcarEmailEnviado(programacaoId) {
              atualizado_em = CURRENT_TIMESTAMP
        WHERE id = $1
     `,
-    [
-      programacaoId,
-      STATUS_PROGRAMADO.ENVIADO,
-      STATUS_PROGRAMADO.ERRO_PARCIAL,
-    ]
+    [programacaoId, STATUS_PROGRAMADO.ENVIADO, STATUS_PROGRAMADO.ERRO_PARCIAL],
   );
 }
 
@@ -684,8 +681,11 @@ async function marcarErroProgramacao(programacaoId, error, parcial = false) {
     [
       programacaoId,
       parcial ? STATUS_PROGRAMADO.ERRO_PARCIAL : STATUS_PROGRAMADO.ERRO,
-      String(error?.message || error || "Erro não identificado.").slice(0, 2000),
-    ]
+      String(error?.message || error || "Erro não identificado.").slice(
+        0,
+        2000,
+      ),
+    ],
   );
 }
 
@@ -737,7 +737,7 @@ async function criarNotificacaoSolicitacao(row) {
         periodo: row.periodo,
         acao: "confirmar_uso_sala",
       }),
-    ]
+    ],
   );
 
   return created?.id || null;
@@ -786,7 +786,7 @@ async function criarNotificacaoConfirmada(row) {
         periodo: row.periodo,
         acao: "uso_sala_confirmado",
       }),
-    ]
+    ],
   );
 }
 
@@ -833,7 +833,7 @@ async function criarNotificacaoCancelamento(row) {
         periodo: row.periodo,
         acao: "reserva_cancelada_sem_confirmacao",
       }),
-    ]
+    ],
   );
 }
 
@@ -950,7 +950,7 @@ async function processarSolicitacaoConfirmacao(row, options = {}) {
                updated_at = NOW()
          WHERE id = $1
       `,
-      [row.id]
+      [row.id],
     );
 
     return {
@@ -967,13 +967,16 @@ async function processarSolicitacaoConfirmacao(row, options = {}) {
 
     await marcarErroProgramacao(programacao.id, error, parcial);
 
-    console.error("[confirmacaoUsoSalaService.processarSolicitacaoConfirmacao] ERRO", {
-      message: error?.message,
-      code: error?.code,
-      reserva_id: row.id,
-      usuario_id: row.solicitante_id,
-      programacao_id: programacao.id,
-    });
+    console.error(
+      "[confirmacaoUsoSalaService.processarSolicitacaoConfirmacao] ERRO",
+      {
+        message: error?.message,
+        code: error?.code,
+        reserva_id: row.id,
+        usuario_id: row.solicitante_id,
+        programacao_id: programacao.id,
+      },
+    );
 
     return {
       ...base,
@@ -992,7 +995,8 @@ async function processarSolicitacaoConfirmacao(row, options = {}) {
 async function executarSolicitacoesConfirmacaoUsoSala(options = {}) {
   const dryRun = !!options.dryRun;
 
-  const { janela, rows } = await listarReservasParaSolicitarConfirmacao(options);
+  const { janela, rows } =
+    await listarReservasParaSolicitarConfirmacao(options);
 
   const resultados = [];
 
@@ -1011,7 +1015,8 @@ async function executarSolicitacoesConfirmacaoUsoSala(options = {}) {
       if (item.acao === "enviado") acc.enviados += 1;
       if (item.acao === "ignorado") acc.ignorados += 1;
       if (item.acao === "erro") acc.erros += 1;
-      if (item.status === STATUS_PROGRAMADO.ERRO_PARCIAL) acc.erros_parciais += 1;
+      if (item.status === STATUS_PROGRAMADO.ERRO_PARCIAL)
+        acc.erros_parciais += 1;
 
       return acc;
     },
@@ -1022,7 +1027,7 @@ async function executarSolicitacoesConfirmacaoUsoSala(options = {}) {
       ignorados: 0,
       erros: 0,
       erros_parciais: 0,
-    }
+    },
   );
 
   return {
@@ -1058,7 +1063,11 @@ async function diagnosticarSolicitacoesConfirmacaoUsoSala(options = {}) {
    Confirmação pelo usuário
 =========================================================================== */
 
-async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {}) {
+async function confirmarUsoReservaSala({
+  reservaId,
+  usuarioId,
+  hoje = null,
+} = {}) {
   const reservaIdStr = asPositiveBigIntString(reservaId);
   const userId = asPositiveInt(usuarioId);
   const hojeYmd = hoje ? somenteDataYmd(hoje) : hojeYmdEmTimezone();
@@ -1103,7 +1112,7 @@ async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {
         WHERE rs.id = $1
         FOR UPDATE
       `,
-      [reservaIdStr]
+      [reservaIdStr],
     );
 
     const atual = atualResult.rows?.[0];
@@ -1123,7 +1132,9 @@ async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {
     }
 
     if (String(atual.status) !== STATUS_RESERVA.APROVADO) {
-      const error = new Error("Apenas reservas aprovadas podem ter uso confirmado.");
+      const error = new Error(
+        "Apenas reservas aprovadas podem ter uso confirmado.",
+      );
       error.code = "RESERVA_NAO_APROVADA";
       error.httpStatus = 400;
       throw error;
@@ -1147,7 +1158,7 @@ async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {
 
     if (!estaNaJanelaConfirmacao(atual.data, hojeYmd)) {
       const error = new Error(
-        "A confirmação de uso deve ser realizada entre 7 dias e 48 horas antes da data reservada."
+        "A confirmação de uso deve ser realizada entre 7 dias e 48 horas antes da data reservada.",
       );
       error.code = jaPassouPrazoConfirmacao(atual.data, hojeYmd)
         ? "PRAZO_CONFIRMACAO_ENCERRADO"
@@ -1175,7 +1186,7 @@ async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {
            confirmado_em,
            confirmado_por
       `,
-      [reservaIdStr, userId]
+      [reservaIdStr, userId],
     );
 
     const reserva = atualizadoResult.rows?.[0];
@@ -1212,7 +1223,8 @@ async function confirmarUsoReservaSala({ reservaId, usuarioId, hoje = null } = {
 =========================================================================== */
 
 function montarTextoEmailAlertaAdmin49h(row) {
-  const usuario = limparTexto(row.solicitante_nome) || "Usuário não identificado";
+  const usuario =
+    limparTexto(row.solicitante_nome) || "Usuário não identificado";
   const emailUsuario = limparTexto(row.solicitante_email, 255);
   const sala = labelSala(row.sala);
   const dataBr = formatarDataBr(row.data);
@@ -1237,7 +1249,8 @@ function montarTextoEmailAlertaAdmin49h(row) {
 }
 
 function montarHtmlEmailAlertaAdmin49h(row) {
-  const usuario = limparTexto(row.solicitante_nome) || "Usuário não identificado";
+  const usuario =
+    limparTexto(row.solicitante_nome) || "Usuário não identificado";
   const emailUsuario = limparTexto(row.solicitante_email, 255);
   const sala = labelSala(row.sala);
   const dataBr = formatarDataBr(row.data);
@@ -1404,7 +1417,7 @@ async function processarAlertaAdmin49h(row, options = {}) {
         WHERE rs.id = $1
         FOR UPDATE
       `,
-      [row.id]
+      [row.id],
     );
 
     const atual = atualResult.rows?.[0];
@@ -1459,7 +1472,7 @@ async function processarAlertaAdmin49h(row, options = {}) {
            cancelado_em,
            alerta_confirmacao_49h_enviado_em
       `,
-      [atual.id]
+      [atual.id],
     );
 
     const reserva = atualizadoResult.rows?.[0];
@@ -1531,7 +1544,7 @@ async function executarAlertasAdminConfirmacao49hSala(options = {}) {
       enviados: 0,
       ignorados: 0,
       erros: 0,
-    }
+    },
   );
 
   return {
@@ -1586,7 +1599,7 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
     await client.query("BEGIN");
 
     const atualResult = await client.query(
-  `
+      `
     SELECT
       rs.id,
       rs.sala,
@@ -1609,8 +1622,8 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
     WHERE rs.id = $1
     FOR UPDATE
   `,
-  [row.id]
-);
+      [row.id],
+    );
 
     const atual = atualResult.rows?.[0];
 
@@ -1625,13 +1638,13 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
     }
 
     if (
-  String(atual.status) !== STATUS_RESERVA.APROVADO ||
-  atual.confirmado_em ||
-  atual.cancelado_em ||
-  atual.termo_aceito !== true ||
-  !atual.termo_assinado_em ||
-  !atual.assinatura_id
-) {
+      String(atual.status) !== STATUS_RESERVA.APROVADO ||
+      atual.confirmado_em ||
+      atual.cancelado_em ||
+      atual.termo_aceito !== true ||
+      !atual.termo_assinado_em ||
+      !atual.assinatura_id
+    ) {
       await client.query("ROLLBACK");
 
       return {
@@ -1665,7 +1678,7 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
            cancelado_por,
            motivo_cancelamento
       `,
-      [row.id, STATUS_RESERVA.CANCELADO, MOTIVO_CANCELAMENTO_PADRAO]
+      [row.id, STATUS_RESERVA.CANCELADO, MOTIVO_CANCELAMENTO_PADRAO],
     );
 
     const reserva = atualizadoResult.rows?.[0];
@@ -1683,11 +1696,14 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
     try {
       await enviarEmailCancelamento(payloadNotificacao);
     } catch (emailError) {
-      console.warn("[confirmacaoUsoSalaService] Falha ao enviar e-mail de cancelamento.", {
-        reserva_id: row.id,
-        message: emailError?.message,
-        code: emailError?.code,
-      });
+      console.warn(
+        "[confirmacaoUsoSalaService] Falha ao enviar e-mail de cancelamento.",
+        {
+          reserva_id: row.id,
+          message: emailError?.message,
+          code: emailError?.code,
+        },
+      );
     }
 
     return {
@@ -1700,12 +1716,15 @@ async function processarCancelamentoSemConfirmacao(row, options = {}) {
       await client.query("ROLLBACK");
     } catch {}
 
-    console.error("[confirmacaoUsoSalaService.processarCancelamentoSemConfirmacao] ERRO", {
-      message: error?.message,
-      code: error?.code,
-      reserva_id: row.id,
-      usuario_id: row.solicitante_id,
-    });
+    console.error(
+      "[confirmacaoUsoSalaService.processarCancelamentoSemConfirmacao] ERRO",
+      {
+        message: error?.message,
+        code: error?.code,
+        reserva_id: row.id,
+        usuario_id: row.solicitante_id,
+      },
+    );
 
     return {
       ...base,
@@ -1728,7 +1747,9 @@ async function executarCancelamentosSemConfirmacaoUsoSala(options = {}) {
 
   for (const row of rows) {
     // eslint-disable-next-line no-await-in-loop
-    const resultado = await processarCancelamentoSemConfirmacao(row, { dryRun });
+    const resultado = await processarCancelamentoSemConfirmacao(row, {
+      dryRun,
+    });
     resultados.push(resultado);
   }
 
@@ -1749,7 +1770,7 @@ async function executarCancelamentosSemConfirmacaoUsoSala(options = {}) {
       cancelados: 0,
       ignorados: 0,
       erros: 0,
-    }
+    },
   );
 
   return {

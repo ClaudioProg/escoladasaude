@@ -149,7 +149,7 @@ function getEmailConfig() {
 
   const fromName = sanitizeHeaderText(
     process.env.EMAIL_FROM_NAME || "Escola da Saúde",
-    120
+    120,
   );
 
   const fromAddr = String(process.env.EMAIL_FROM_ADDR || "").trim();
@@ -173,10 +173,10 @@ function isConfigured() {
 
   return Boolean(
     config.host &&
-      config.port &&
-      config.smtpUser &&
-      config.smtpPass &&
-      config.fromAddr
+    config.port &&
+    config.smtpUser &&
+    config.smtpPass &&
+    config.fromAddr,
   );
 }
 
@@ -251,7 +251,10 @@ function getTransporter() {
     pool: process.env.NODE_ENV === "production",
     maxConnections: normalizeInt(process.env.EMAIL_POOL_MAX_CONNECTIONS, 5),
     maxMessages: normalizeInt(process.env.EMAIL_POOL_MAX_MESSAGES, 50),
-    connectionTimeout: normalizeInt(process.env.EMAIL_CONNECTION_TIMEOUT, 20000),
+    connectionTimeout: normalizeInt(
+      process.env.EMAIL_CONNECTION_TIMEOUT,
+      20000,
+    ),
     greetingTimeout: normalizeInt(process.env.EMAIL_GREETING_TIMEOUT, 10000),
     socketTimeout: normalizeInt(process.env.EMAIL_SOCKET_TIMEOUT, 30000),
     tls:
@@ -306,7 +309,7 @@ function normalizeMailPayload(payload = {}) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw createEmailError(
       "Payload de e-mail inválido. Use sendEmail({ to, subject, html/text }).",
-      "EMAIL_INVALID_PAYLOAD"
+      "EMAIL_INVALID_PAYLOAD",
     );
   }
 
@@ -345,14 +348,14 @@ function normalizeMailPayload(payload = {}) {
   if (!subject) {
     throw createEmailError(
       "Assunto do e-mail é obrigatório.",
-      "EMAIL_SUBJECT_REQUIRED"
+      "EMAIL_SUBJECT_REQUIRED",
     );
   }
 
   if (!html && !text) {
     throw createEmailError(
       "Conteúdo do e-mail está vazio.",
-      "EMAIL_BODY_EMPTY"
+      "EMAIL_BODY_EMPTY",
     );
   }
 
@@ -419,7 +422,7 @@ async function sendEmail(payload = {}) {
   if (!isConfigured()) {
     throw createEmailError(
       "Serviço de e-mail não configurado.",
-      "EMAIL_NOT_CONFIGURED"
+      "EMAIL_NOT_CONFIGURED",
     );
   }
 
@@ -456,7 +459,7 @@ async function sendEmail(payload = {}) {
       if (!ok) {
         throw createEmailError(
           "SMTP indisponível. A verificação do transporter falhou.",
-          "EMAIL_VERIFY_FAILED"
+          "EMAIL_VERIFY_FAILED",
         );
       }
     }

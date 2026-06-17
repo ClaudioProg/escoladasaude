@@ -51,7 +51,7 @@ const query =
 
 if (typeof query !== "function") {
   throw new Error(
-    "[debugPosCursoController] DB inválido. O export oficial de ../db deve expor query."
+    "[debugPosCursoController] DB inválido. O export oficial de ../db deve expor query.",
   );
 }
 
@@ -74,13 +74,7 @@ function gerarRequestId(prefix = "debug-pos-curso") {
 
 function sucesso(
   res,
-  {
-    status = 200,
-    data = null,
-    message = "OK",
-    code = "OK",
-    meta = null,
-  } = {}
+  { status = 200, data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(status).json({
     ok: true,
@@ -100,7 +94,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -134,7 +128,9 @@ function toPositiveInt(value) {
 }
 
 function perfilNormalizado(user) {
-  return String(user?.perfil || "").trim().toLowerCase();
+  return String(user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 function calcularMotivosBloqueio(row) {
@@ -421,7 +417,7 @@ async function debugPosCursoPorUsuario(req, res) {
          AND cu.turma_id = b.turma_id
         ORDER BY b.data_fim DESC NULLS LAST, b.turma_id DESC
       `,
-      [usuarioId, TZ_OFICIAL]
+      [usuarioId, TZ_OFICIAL],
     );
 
     const itens = (result.rows || []).map((row) => {
@@ -458,17 +454,18 @@ async function debugPosCursoPorUsuario(req, res) {
     const resumo = {
       total_turmas: itens.length,
       pronto_para_avaliacao: itens.filter((item) => item.pode_avaliar).length,
-      pronto_para_certificado: itens.filter((item) => item.pode_gerar_certificado)
-        .length,
+      pronto_para_certificado: itens.filter(
+        (item) => item.pode_gerar_certificado,
+      ).length,
       certificados_gerados: itens.filter((item) => item.certificado_gerado)
         .length,
       bloqueados_por_frequencia: itens.filter(
-        (item) => item.turma_encerrada && !item.atingiu_75
+        (item) => item.turma_encerrada && !item.atingiu_75,
       ).length,
       aguardando_encerramento: itens.filter((item) => !item.turma_encerrada)
         .length,
       avaliacoes_pendentes: itens.filter(
-        (item) => item.turma_encerrada && item.atingiu_75 && !item.avaliou
+        (item) => item.turma_encerrada && item.atingiu_75 && !item.avaliou,
       ).length,
     };
 

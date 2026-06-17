@@ -46,13 +46,9 @@ const router = express.Router();
 router.get(
   "/diagnostico/lembrete-evento",
   requireAuth,
-  diagnosticarLembreteEvento
+  diagnosticarLembreteEvento,
 );
 
-router.post(
-  "/executar/lembrete-evento",
-  requireAuth,
-  executarLembreteEvento
-);
+router.post("/executar/lembrete-evento", requireAuth, executarLembreteEvento);
 
 module.exports = router;

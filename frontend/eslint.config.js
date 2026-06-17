@@ -137,8 +137,30 @@ export default [
       "jsx-a11y/anchor-is-valid": "warn",
       "jsx-a11y/no-autofocus": "off",
 
+      "jsx-a11y/label-has-associated-control": [
+        "warn",
+        {
+          assert: "either",
+          depth: 5,
+        },
+      ],
+
       "no-trailing-spaces": "warn",
       "eol-last": ["warn", "always"],
+    },
+  },
+
+  {
+    files: ["public/**/*.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "script",
+      globals: {
+        ...globals.browser,
+      },
+    },
+    rules: {
+      "no-console": "off",
     },
   },
 

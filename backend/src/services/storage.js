@@ -117,7 +117,9 @@ function buildTempPath(fullPath) {
 }
 
 function assertSafeStorageKey(storageKey) {
-  const key = String(storageKey || "").replace(/\\/g, "/").trim();
+  const key = String(storageKey || "")
+    .replace(/\\/g, "/")
+    .trim();
 
   if (!key) {
     throw new Error("storageKey ausente.");
@@ -179,7 +181,11 @@ function sanitizeDownloadFilename(filename) {
  * @param {string} [tipo='template_banner']
  * @returns {Promise<{ storageKey: string, sha256: string, size: number, tipo: string, filename: string }>}
  */
-async function saveChamadaModelo(chamadaId, file, tipo = TIPO_MODELO.TEMPLATE_BANNER) {
+async function saveChamadaModelo(
+  chamadaId,
+  file,
+  tipo = TIPO_MODELO.TEMPLATE_BANNER,
+) {
   const id = normalizeChamadaId(chamadaId);
 
   if (!file || !Buffer.isBuffer(file.buffer)) {
@@ -193,7 +199,9 @@ async function saveChamadaModelo(chamadaId, file, tipo = TIPO_MODELO.TEMPLATE_BA
   }
 
   if (size > MAX_SIZE_BYTES) {
-    throw new Error(`Arquivo excede o tamanho máximo permitido de ${MAX_SIZE_MB} MB.`);
+    throw new Error(
+      `Arquivo excede o tamanho máximo permitido de ${MAX_SIZE_MB} MB.`,
+    );
   }
 
   const tipoNormalizado = normalizeTipo(tipo);

@@ -82,7 +82,9 @@ function exigirAdministrador(req) {
   }
 
   if (!usuarioEhAdministrador(req)) {
-    const error = new Error("Você não tem permissão para acessar pendências administrativas.");
+    const error = new Error(
+      "Você não tem permissão para acessar pendências administrativas.",
+    );
     error.code = "SEM_PERMISSAO_PENDENCIAS";
     error.status = 403;
     throw error;
@@ -175,7 +177,11 @@ function montarWhere(filtros = {}) {
   if (prioridade) add("prioridade = ?", prioridade);
   if (status) add("status = ?", status);
 
-  if (filtros.usuario_id !== undefined && filtros.usuario_id !== null && filtros.usuario_id !== "") {
+  if (
+    filtros.usuario_id !== undefined &&
+    filtros.usuario_id !== null &&
+    filtros.usuario_id !== ""
+  ) {
     const usuarioId = Number(filtros.usuario_id);
 
     if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
@@ -295,7 +301,7 @@ async function listarPendencias(req, filtros = {}) {
       LIMIT ${limiteParam}
       OFFSET ${offsetParam}
     `,
-    paramsLista
+    paramsLista,
   );
 
   const totalResult = await pool.query(
@@ -304,7 +310,7 @@ async function listarPendencias(req, filtros = {}) {
       FROM v_pendencias_administrativas
       ${whereSql}
     `,
-    values
+    values,
   );
 
   const total = totalResult.rows[0]?.total || 0;
@@ -372,7 +378,7 @@ async function obterPendencia(req, pendencia_id) {
       WHERE pendencia_id = $1
       LIMIT 1
     `,
-    [pendenciaId]
+    [pendenciaId],
   );
 
   if (!rows[0]) {
@@ -417,7 +423,7 @@ async function resumoPendencias(req, filtros = {}) {
       FROM v_pendencias_administrativas
       ${whereSql}
     `,
-    values
+    values,
   );
 
   const porModulo = await pool.query(
@@ -432,7 +438,7 @@ async function resumoPendencias(req, filtros = {}) {
       GROUP BY modulo
       ORDER BY total DESC, modulo ASC
     `,
-    values
+    values,
   );
 
   const porTipo = await pool.query(
@@ -449,7 +455,7 @@ async function resumoPendencias(req, filtros = {}) {
       ORDER BY total DESC, modulo ASC, tipo ASC
       LIMIT 30
     `,
-    values
+    values,
   );
 
   const porPrioridade = await pool.query(
@@ -469,7 +475,7 @@ async function resumoPendencias(req, filtros = {}) {
           ELSE 5
         END
     `,
-    values
+    values,
   );
 
   await registrarConsultaAuditoria(req, {

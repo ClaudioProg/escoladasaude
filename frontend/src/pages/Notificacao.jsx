@@ -1,5 +1,5 @@
 // ✅ frontend/src/pages/Notificacao.jsx — v2.0
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -128,10 +128,6 @@ function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function unwrap(response) {
-  return response?.data ?? response;
-}
-
 function getErrorMessage(error, fallback) {
   const data = error?.response?.data || error?.data || {};
 
@@ -164,13 +160,17 @@ function toPositiveInt(value, fallback = 1) {
 }
 
 function lower(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function formatarDataLocalLegivel(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "";
+  if (!text) {
+    return "";
+  }
 
   const onlyDate = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
@@ -179,7 +179,7 @@ function formatarDataLocalLegivel(value) {
   }
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -194,7 +194,7 @@ function dataOrdenacao(value) {
   const text = String(value || "").trim();
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -333,7 +333,9 @@ function normalizeResumoResponse(response) {
 function matchesBusca(item, busca) {
   const q = lower(busca);
 
-  if (!q) return true;
+  if (!q) {
+    return true;
+  }
 
   return (
     lower(item?.titulo).includes(q) ||
@@ -361,8 +363,8 @@ function InfoRibbon() {
           </p>
 
           <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
-            Acompanhe avisos, certificados, avaliações, reservas, submissões e atualizações
-            vinculadas ao seu usuário na plataforma.
+            Acompanhe avisos, certificados, avaliações, reservas, submissões e
+            atualizações vinculadas ao seu usuário na plataforma.
           </p>
         </div>
       </div>
@@ -370,7 +372,13 @@ function InfoRibbon() {
   );
 }
 
-function GhostAction({ icon: Icon, children, onClick, loading = false, disabled = false }) {
+function GhostAction({
+  icon: Icon,
+  children,
+  onClick,
+  loading = false,
+  disabled = false,
+}) {
   return (
     <button
       type="button"
@@ -394,7 +402,7 @@ function MetaBadge({ children, className = "" }) {
     <span
       className={cx(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-extrabold",
-        className
+        className,
       )}
     >
       {children}
@@ -493,7 +501,7 @@ function NotificacaoCard({ item, onMarcarLida, marcando, reduceMotion }) {
         "overflow-hidden rounded-[26px] border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg",
         naoLida
           ? "border-amber-200 bg-amber-50/90 dark:border-amber-900/40 dark:bg-amber-950/20"
-          : "border-slate-200 bg-white dark:border-white/10 dark:bg-zinc-900/55"
+          : "border-slate-200 bg-white dark:border-white/10 dark:bg-zinc-900/55",
       )}
       role="listitem"
     >
@@ -511,7 +519,9 @@ function NotificacaoCard({ item, onMarcarLida, marcando, reduceMotion }) {
                 {item?.titulo || "Notificação"}
               </h2>
 
-              <MetaBadge className={tone.badge}>{tipoLabel(item?.tipo)}</MetaBadge>
+              <MetaBadge className={tone.badge}>
+                {tipoLabel(item?.tipo)}
+              </MetaBadge>
 
               {naoLida ? (
                 <MetaBadge className="border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/30 dark:text-amber-200">
@@ -546,7 +556,7 @@ function NotificacaoCard({ item, onMarcarLida, marcando, reduceMotion }) {
                   "inline-flex min-h-[38px] items-center justify-center gap-2 rounded-2xl px-3 py-2 text-xs font-extrabold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 disabled:cursor-not-allowed disabled:opacity-60",
                   naoLida
                     ? "border border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-200 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-100 dark:hover:bg-amber-900/40"
-                    : "border border-slate-200 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
+                    : "border border-slate-200 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300",
                 )}
                 aria-label={
                   naoLida
@@ -667,14 +677,16 @@ export default function Notificacao() {
           },
           {
             signal: controller.signal,
-          }
+          },
         ),
         apiNotificacaoResumo({
           signal: controller.signal,
         }),
       ]);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const listaPayload = normalizeListaResponse(listaResponse);
       const resumoPayload = normalizeResumoResponse(resumoResponse);
@@ -684,22 +696,26 @@ export default function Notificacao() {
       setResumo(resumoPayload);
       setLive("Notificações carregadas.");
     } catch (error) {
-  if (isAbortRequest(error)) return;
+      if (isAbortRequest(error)) {
+        return;
+      }
 
-  const message = getErrorMessage(
+      const message = getErrorMessage(
         error,
-        "Não foi possível carregar suas notificações."
+        "Não foi possível carregar suas notificações.",
       );
 
       console.error("[Notificacao] erro ao carregar notificações", {
-  message: error?.message,
-  status: error?.status,
-  code: error?.code,
-  data: error?.data,
-  raw: error,
-});
+        message: error?.message,
+        status: error?.status,
+        code: error?.code,
+        data: error?.data,
+        raw: error,
+      });
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setNotificacoes([]);
       setErro(message);
@@ -739,14 +755,14 @@ export default function Notificacao() {
       if (ordenacao === "titulo_az") {
         return String(a?.titulo || "").localeCompare(
           String(b?.titulo || ""),
-          "pt-BR"
+          "pt-BR",
         );
       }
 
       if (ordenacao === "titulo_za") {
         return String(b?.titulo || "").localeCompare(
           String(a?.titulo || ""),
-          "pt-BR"
+          "pt-BR",
         );
       }
 
@@ -762,7 +778,9 @@ export default function Notificacao() {
 
   const marcarLida = useCallback(
     async (item) => {
-      if (!item?.id || item?.lida === true) return;
+      if (!item?.id || item?.lida === true) {
+        return;
+      }
 
       try {
         setMarcandoId(item.id);
@@ -776,8 +794,8 @@ export default function Notificacao() {
                   ...notificacao,
                   lida: true,
                 }
-              : notificacao
-          )
+              : notificacao,
+          ),
         );
 
         setResumo((prev) => ({
@@ -803,11 +821,13 @@ export default function Notificacao() {
         setMarcandoId(null);
       }
     },
-    [navigate]
+    [navigate],
   );
 
   const marcarTodas = useCallback(async () => {
-    if (!toNumber(resumo.nao_lida, 0)) return;
+    if (!toNumber(resumo.nao_lida, 0)) {
+      return;
+    }
 
     try {
       setMarcandoTodas(true);
@@ -818,7 +838,7 @@ export default function Notificacao() {
         prev.map((item) => ({
           ...item,
           lida: true,
-        }))
+        })),
       );
 
       setResumo((prev) => ({
@@ -845,16 +865,21 @@ export default function Notificacao() {
   return (
     <>
       <main className="mx-auto max-w-6xl p-4 md:p-6" id="conteudo">
-        <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+        <p
+          ref={liveRef}
+          className="sr-only"
+          aria-live="polite"
+          aria-atomic="true"
+        />
 
         <HeaderHero
-  titulo="Minhas Notificações"
-  subtitulo="Acompanhe avisos, certificados, avaliações, reservas, submissões e atualizações da Escola da Saúde."
-  badge="Central de notificações • Escola da Saúde"
-  icone={Bell}
-  gradient="from-violet-900 via-fuchsia-800 to-pink-700"
-  isDark={isDark}
-/>
+          titulo="Minhas Notificações"
+          subtitulo="Acompanhe avisos, certificados, avaliações, reservas, submissões e atualizações da Escola da Saúde."
+          badge="Central de notificações • Escola da Saúde"
+          icone={Bell}
+          gradient="from-violet-900 via-fuchsia-800 to-pink-700"
+          isDark={isDark}
+        />
 
         {loading ? (
           <div
@@ -867,7 +892,7 @@ export default function Notificacao() {
             <div
               className={cx(
                 "h-full w-1/3 bg-violet-700",
-                reduceMotion ? "" : "animate-pulse"
+                reduceMotion ? "" : "animate-pulse",
               )}
             />
           </div>
@@ -1030,7 +1055,9 @@ export default function Notificacao() {
               id="limite-notificacao"
               label="Por página"
               value={limite}
-              onChange={(event) => setLimite(toPositiveInt(event.target.value, 10))}
+              onChange={(event) =>
+                setLimite(toPositiveInt(event.target.value, 10))
+              }
             >
               {PAGE_SIZE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -1048,7 +1075,7 @@ export default function Notificacao() {
                 "inline-flex min-h-[38px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-extrabold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60",
                 apenasNaoLida
                   ? "border-amber-700 bg-amber-700 text-white hover:bg-amber-800"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-zinc-900/35 dark:text-zinc-200 dark:hover:bg-white/5"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-zinc-900/35 dark:text-zinc-200 dark:hover:bg-white/5",
               )}
               aria-pressed={apenasNaoLida}
             >
@@ -1106,8 +1133,9 @@ export default function Notificacao() {
 
           <div className="mt-5 flex flex-col items-center justify-between gap-3 rounded-[24px] border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-900/55 sm:flex-row">
             <p className="text-xs text-slate-600 dark:text-zinc-400">
-              Página <strong>{pagina}</strong> de <strong>{totalPaginas}</strong> •{" "}
-              <strong>{totalBackend}</strong> registro(s) no filtro do servidor
+              Página <strong>{pagina}</strong> de{" "}
+              <strong>{totalPaginas}</strong> • <strong>{totalBackend}</strong>{" "}
+              registro(s) no filtro do servidor
             </p>
 
             <div className="flex items-center gap-2">

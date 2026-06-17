@@ -37,13 +37,19 @@ const authMiddleware = require("../auth/authMiddleware");
 const { authorize } = require("../middlewares/authorize");
 const inscricaoController = require("../controllers/inscricaoController");
 const db = require("../db");
-const { podeAcessarEvento } = require("../services/eventoAcessoRegistroService");
+const {
+  podeAcessarEvento,
+} = require("../services/eventoAcessoRegistroService");
 
 const router = express.Router();
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-const PERFIS_USUARIO = Object.freeze(["administrador", "organizador", "usuario"]);
+const PERFIS_USUARIO = Object.freeze([
+  "administrador",
+  "organizador",
+  "usuario",
+]);
 const PERFIS_GESTAO = Object.freeze(["administrador", "organizador"]);
 
 /* ─────────────────────────────────────────────────────────────
@@ -53,14 +59,14 @@ const PERFIS_GESTAO = Object.freeze(["administrador", "organizador"]);
 if (typeof authMiddleware !== "function") {
   console.error("[inscricaoRoute] authMiddleware inválido:", authMiddleware);
   throw new Error(
-    "authMiddleware deve ser exportado como função em backend/src/auth/authMiddleware.js."
+    "authMiddleware deve ser exportado como função em backend/src/auth/authMiddleware.js.",
   );
 }
 
 if (typeof authorize !== "function") {
   console.error("[inscricaoRoute] authorize inválido:", authorize);
   throw new Error(
-    "authorize deve ser exportado como função nomeada em backend/src/middlewares/authorize.js."
+    "authorize deve ser exportado como função nomeada em backend/src/middlewares/authorize.js.",
   );
 }
 
@@ -70,9 +76,12 @@ if (!db || typeof db.query !== "function") {
 }
 
 if (typeof podeAcessarEvento !== "function") {
-  console.error("[inscricaoRoute] podeAcessarEvento inválido:", podeAcessarEvento);
+  console.error(
+    "[inscricaoRoute] podeAcessarEvento inválido:",
+    podeAcessarEvento,
+  );
   throw new Error(
-    "podeAcessarEvento deve ser exportado como função em backend/src/services/eventoAcessoRegistroService.js."
+    "podeAcessarEvento deve ser exportado como função em backend/src/services/eventoAcessoRegistroService.js.",
   );
 }
 
@@ -85,7 +94,7 @@ function requireControllerFunction(name) {
     });
 
     throw new Error(
-      `inscricaoController.${name} deve ser exportado como função.`
+      `inscricaoController.${name} deve ser exportado como função.`,
     );
   }
 
@@ -96,10 +105,10 @@ const controller = Object.freeze({
   inscreverEmTurma: requireControllerFunction("inscreverEmTurma"),
   cancelarInscricaoPorId: requireControllerFunction("cancelarInscricaoPorId"),
   cancelarMinhaInscricaoPorTurma: requireControllerFunction(
-    "cancelarMinhaInscricaoPorTurma"
+    "cancelarMinhaInscricaoPorTurma",
   ),
   cancelarInscricaoDoUsuarioNaTurma: requireControllerFunction(
-    "cancelarInscricaoDoUsuarioNaTurma"
+    "cancelarInscricaoDoUsuarioNaTurma",
   ),
   listarMinhasInscricoes: requireControllerFunction("listarMinhasInscricoes"),
   listarInscritosPorTurma: requireControllerFunction("listarInscritosPorTurma"),
@@ -110,10 +119,8 @@ const controller = Object.freeze({
  * Helpers
  * ───────────────────────────────────────────────────────────── */
 
-const wrap =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const wrap = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function fail(res, status, message, details = undefined) {
   const payload = {
@@ -171,7 +178,9 @@ function getAuthenticatedUserId(req) {
 }
 
 function getAuthenticatedPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 async function checarAcessoPorRegistroNaTurma(req, res, next) {
@@ -196,7 +205,7 @@ async function checarAcessoPorRegistroNaTurma(req, res, next) {
       WHERE id = $1
       LIMIT 1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const turma = turmaResult.rows?.[0];
@@ -228,7 +237,7 @@ async function checarAcessoPorRegistroNaTurma(req, res, next) {
         "Você não possui permissão para se inscrever nesta turma.",
         {
           motivo: acesso?.motivo || "SEM_PERMISSAO",
-        }
+        },
       );
     }
 
@@ -240,7 +249,7 @@ async function checarAcessoPorRegistroNaTurma(req, res, next) {
   } catch (error) {
     console.error(
       "[inscricaoRoute] erro ao checar acesso por registro:",
-      error?.stack || error
+      error?.stack || error,
     );
 
     return fail(res, 500, "Erro ao validar acesso à turma.");
@@ -289,7 +298,7 @@ router.post(
   authorize(...PERFIS_USUARIO),
   routeTag("inscricaoRoute:POST /"),
   checarAcessoPorRegistroNaTurma,
-  wrap(controller.inscreverEmTurma)
+  wrap(controller.inscreverEmTurma),
 );
 
 /**
@@ -301,7 +310,7 @@ router.get(
   "/minha",
   authorize(...PERFIS_USUARIO),
   routeTag("inscricaoRoute:GET /minha"),
-  wrap(controller.listarMinhasInscricoes)
+  wrap(controller.listarMinhasInscricoes),
 );
 
 /**
@@ -317,7 +326,7 @@ router.delete(
   authorize(...PERFIS_USUARIO),
   ensureNumericParam("turma_id"),
   routeTag("inscricaoRoute:DELETE /minha/turma/:turma_id"),
-  wrap(controller.cancelarMinhaInscricaoPorTurma)
+  wrap(controller.cancelarMinhaInscricaoPorTurma),
 );
 
 /**
@@ -330,7 +339,7 @@ router.delete(
   authorize(...PERFIS_USUARIO),
   ensureNumericParam("inscricao_id"),
   routeTag("inscricaoRoute:DELETE /:inscricao_id"),
-  wrap(controller.cancelarInscricaoPorId)
+  wrap(controller.cancelarInscricaoPorId),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -347,7 +356,7 @@ router.get(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("turma_id"),
   routeTag("inscricaoRoute:GET /turma/:turma_id"),
-  wrap(controller.listarInscritosPorTurma)
+  wrap(controller.listarInscritosPorTurma),
 );
 
 /**
@@ -361,7 +370,7 @@ router.delete(
   ensureNumericParam("turma_id"),
   ensureNumericParam("usuario_id"),
   routeTag("inscricaoRoute:DELETE /turma/:turma_id/usuario/:usuario_id"),
-  wrap(controller.cancelarInscricaoDoUsuarioNaTurma)
+  wrap(controller.cancelarInscricaoDoUsuarioNaTurma),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -379,7 +388,7 @@ router.get(
   ensureNumericParam("turma_id"),
   routeTag("inscricaoRoute:GET /conflito/:turma_id"),
   checarAcessoPorRegistroNaTurma,
-  wrap(controller.conflitoPorTurma)
+  wrap(controller.conflitoPorTurma),
 );
 
 module.exports = router;

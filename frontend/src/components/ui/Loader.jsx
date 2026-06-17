@@ -18,16 +18,23 @@
 import PropTypes from "prop-types";
 
 const ACCENT_CLASSES = {
-  emerald: "border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300",
-  violet: "border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300",
-  amber: "border-amber-600 text-amber-700 dark:border-amber-400 dark:text-amber-300",
+  emerald:
+    "border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300",
+  violet:
+    "border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300",
+  amber:
+    "border-amber-600 text-amber-700 dark:border-amber-400 dark:text-amber-300",
   rose: "border-rose-600 text-rose-700 dark:border-rose-400 dark:text-rose-300",
   teal: "border-teal-600 text-teal-700 dark:border-teal-400 dark:text-teal-300",
-  indigo: "border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300",
-  petroleo: "border-cyan-800 text-cyan-900 dark:border-cyan-400 dark:text-cyan-200",
-  orange: "border-orange-600 text-orange-700 dark:border-orange-400 dark:text-orange-300",
+  indigo:
+    "border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300",
+  petroleo:
+    "border-cyan-800 text-cyan-900 dark:border-cyan-400 dark:text-cyan-200",
+  orange:
+    "border-orange-600 text-orange-700 dark:border-orange-400 dark:text-orange-300",
   sky: "border-sky-600 text-sky-700 dark:border-sky-400 dark:text-sky-300",
-  lousa: "border-emerald-900 text-emerald-950 dark:border-emerald-300 dark:text-emerald-200",
+  lousa:
+    "border-emerald-900 text-emerald-950 dark:border-emerald-300 dark:text-emerald-200",
 };
 
 const SKELETON_ACCENT_CLASSES = {
@@ -97,12 +104,13 @@ function clampProgress(value) {
 
 function ProgressRing({ progress, size, accent }) {
   const safeProgress = clampProgress(progress) ?? 0;
-  const sizePx = {
-    sm: 18,
-    md: 34,
-    lg: 50,
-    xl: 66,
-  }[size] || 34;
+  const sizePx =
+    {
+      sm: 18,
+      md: 34,
+      lg: 50,
+      xl: 66,
+    }[size] || 34;
 
   const radius = 18;
   const circumference = 2 * Math.PI * radius;
@@ -117,7 +125,7 @@ function ProgressRing({ progress, size, accent }) {
       aria-label={`Progresso: ${safeProgress}%`}
       className={classNames(
         "shrink-0",
-        ACCENT_CLASSES[accent] || ACCENT_CLASSES.emerald
+        ACCENT_CLASSES[accent] || ACCENT_CLASSES.emerald,
       )}
     >
       <circle
@@ -161,7 +169,8 @@ export default function Loader({
 }) {
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.md;
   const accentClass = ACCENT_CLASSES[accent] || ACCENT_CLASSES.emerald;
-  const skeletonAccent = SKELETON_ACCENT_CLASSES[accent] || SKELETON_ACCENT_CLASSES.emerald;
+  const skeletonAccent =
+    SKELETON_ACCENT_CLASSES[accent] || SKELETON_ACCENT_CLASSES.emerald;
 
   const progressValue = clampProgress(progress);
   const isDeterminate = progressValue !== null;
@@ -183,7 +192,7 @@ export default function Loader({
       className={classNames(
         "inline-block rounded-full motion-safe:animate-pulse motion-reduce:animate-none",
         sizeClass.skeleton,
-        skeletonAccent
+        skeletonAccent,
       )}
       aria-hidden="true"
     />
@@ -194,7 +203,7 @@ export default function Loader({
         sizeClass.spinner,
         strokeClass,
         accentClass,
-        minimal && "border-t-current opacity-80 motion-safe:animate-pulse"
+        minimal && "border-t-current opacity-80 motion-safe:animate-pulse",
       )}
       aria-hidden="true"
     />
@@ -206,11 +215,7 @@ export default function Loader({
       aria-label={ariaLabel}
       aria-live="polite"
       aria-busy="true"
-      className={classNames(
-        "flex items-center",
-        directionClass,
-        sizeClass.gap
-      )}
+      className={classNames("flex items-center", directionClass, sizeClass.gap)}
     >
       {spinner}
       <span className="sr-only">{ariaLabel}</span>
@@ -219,7 +224,7 @@ export default function Loader({
         <span
           className={classNames(
             "font-semibold text-slate-700 dark:text-slate-200",
-            sizeClass.text
+            sizeClass.text,
           )}
         >
           {text}
@@ -238,11 +243,7 @@ export default function Loader({
     );
   }
 
-  return (
-    <div className={classNames(layoutClass, className)}>
-      {content}
-    </div>
-  );
+  return <div className={classNames(layoutClass, className)}>{content}</div>;
 }
 
 ProgressRing.propTypes = {

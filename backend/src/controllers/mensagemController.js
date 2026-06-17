@@ -131,7 +131,13 @@ function erroController(prefixo, error, req, contexto = {}) {
   });
 }
 
-function montarErro(error, fallbackMessage, fallbackCode, adminHint, details = {}) {
+function montarErro(
+  error,
+  fallbackMessage,
+  fallbackCode,
+  adminHint,
+  details = {},
+) {
   return {
     message: error.message || fallbackMessage,
     code: error.code || fallbackCode,
@@ -161,17 +167,20 @@ async function abrirConversa(req, res) {
         error,
         "Não foi possível enviar sua mensagem.",
         "MENSAGEM_CRIAR_ERRO",
-        "Falha ao criar conversa institucional. Verifique payload, usuário autenticado, constraints e logs do servidor."
+        "Falha ao criar conversa institucional. Verifique payload, usuário autenticado, constraints e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
 
 async function listarMinhasConversas(req, res) {
   try {
-    const resultado = await mensagemService.listarMinhasConversas(req, req.query || {});
+    const resultado = await mensagemService.listarMinhasConversas(
+      req,
+      req.query || {},
+    );
     return respostaSucesso(res, resultado);
   } catch (error) {
     erroController("listarMinhasConversas", error, req);
@@ -182,10 +191,10 @@ async function listarMinhasConversas(req, res) {
         error,
         "Não foi possível carregar suas mensagens.",
         "MENSAGEM_MINHAS_CONVERSAS_ERRO",
-        "Falha ao listar conversas do usuário autenticado. Verifique req.user.id, filtros e logs do servidor."
+        "Falha ao listar conversas do usuário autenticado. Verifique req.user.id, filtros e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -208,10 +217,10 @@ async function obterConversa(req, res) {
         "Falha ao consultar conversa institucional. Verifique se a conversa existe e se o usuário tem permissão.",
         {
           conversaId: req.params?.id,
-        }
+        },
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -221,7 +230,7 @@ async function responderConversa(req, res) {
     const resultado = await mensagemService.responderConversa(
       req,
       req.params?.id,
-      req.body || {}
+      req.body || {},
     );
 
     return respostaSucesso(res, resultado, 201);
@@ -239,10 +248,10 @@ async function responderConversa(req, res) {
         "Falha ao responder conversa institucional. Verifique conversa, status, permissão e payload.",
         {
           conversaId: req.params?.id,
-        }
+        },
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -253,7 +262,10 @@ async function responderConversa(req, res) {
 
 async function listarConversasAdmin(req, res) {
   try {
-    const resultado = await mensagemService.listarConversasAdmin(req, req.query || {});
+    const resultado = await mensagemService.listarConversasAdmin(
+      req,
+      req.query || {},
+    );
     return respostaSucesso(res, resultado);
   } catch (error) {
     erroController("listarConversasAdmin", error, req);
@@ -264,10 +276,10 @@ async function listarConversasAdmin(req, res) {
         error,
         "Não foi possível carregar a caixa de mensagens administrativa.",
         "MENSAGEM_ADMIN_LISTAR_ERRO",
-        "Falha ao listar conversas administrativas. Verifique permissões, filtros, extensão unaccent se usada e logs do servidor."
+        "Falha ao listar conversas administrativas. Verifique permissões, filtros, extensão unaccent se usada e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -277,7 +289,7 @@ async function atualizarConversaAdmin(req, res) {
     const resultado = await mensagemService.atualizarConversaAdmin(
       req,
       req.params?.id,
-      req.body || {}
+      req.body || {},
     );
 
     return respostaSucesso(res, resultado);
@@ -295,10 +307,10 @@ async function atualizarConversaAdmin(req, res) {
         "Falha ao atualizar conversa institucional. Verifique status oficial, prioridade, atribuição e constraint de encerramento.",
         {
           conversaId: req.params?.id,
-        }
+        },
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -316,10 +328,10 @@ async function resumoMensagensAdmin(req, res) {
         error,
         "Não foi possível carregar o resumo da caixa de mensagens.",
         "MENSAGEM_ADMIN_RESUMO_ERRO",
-        "Falha ao calcular resumo administrativo da caixa de mensagens. Verifique permissões e logs do servidor."
+        "Falha ao calcular resumo administrativo da caixa de mensagens. Verifique permissões e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }

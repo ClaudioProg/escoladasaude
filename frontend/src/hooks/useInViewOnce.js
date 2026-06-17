@@ -90,7 +90,7 @@ export function useInViewOnce({
         root,
         rootMargin,
         threshold: normalizeThreshold(threshold),
-      }
+      },
     );
 
     observerRef.current = observer;

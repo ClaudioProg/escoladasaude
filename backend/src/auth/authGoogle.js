@@ -63,12 +63,13 @@ function log(rid, level, message, extra) {
   if (level === "error") {
     return console.error(
       `${prefix} ✖ ${message}`,
-      extra?.stack || extra?.message || extra
+      extra?.stack || extra?.message || extra,
     );
   }
 
   if (!IS_PROD) {
-    if (level === "warn") return console.warn(`${prefix} ⚠ ${message}`, extra || "");
+    if (level === "warn")
+      return console.warn(`${prefix} ⚠ ${message}`, extra || "");
     return console.log(`${prefix} • ${message}`, extra || "");
   }
 
@@ -80,7 +81,9 @@ function log(rid, level, message, extra) {
 ────────────────────────────────────────────────────────────── */
 
 function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function uniq(array) {
@@ -96,8 +99,12 @@ function normalizePerfil(perfilRaw) {
 
   const normalizado = uniq(
     base
-      .map((item) => String(item || "").trim().toLowerCase())
-      .filter(Boolean)
+      .map((item) =>
+        String(item || "")
+          .trim()
+          .toLowerCase(),
+      )
+      .filter(Boolean),
   );
 
   return normalizado.filter((perfil) => PERFIS_OFICIAIS.has(perfil));
@@ -117,7 +124,10 @@ function buildUsuarioResponse(usuario) {
 }
 
 function setNoStoreHeaders(res) {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
   res.set("Pragma", "no-cache");
   res.set("Expires", "0");
   res.set("Surrogate-Control", "no-store");
@@ -136,7 +146,7 @@ async function findUsuarioByEmail(email) {
     WHERE LOWER(email) = LOWER($1)
     LIMIT 1
     `,
-    [email]
+    [email],
   );
 
   return result.rows?.[0] || null;
@@ -222,33 +232,33 @@ router.post("/google", async (req, res) => {
     const usuarioResponse = buildUsuarioResponse(usuario);
 
     if (!usuarioResponse.perfil) {
-  log(rid, "warn", "Usuário sem perfil oficial válido", {
-    usuarioId: usuario.id,
-    perfil: usuario.perfil,
-  });
+      log(rid, "warn", "Usuário sem perfil oficial válido", {
+        usuarioId: usuario.id,
+        perfil: usuario.perfil,
+      });
 
-  return res.status(403).json({
-    ok: false,
-    code: "AUTH-GOOGLE-403-PERFIL-INVALIDO",
-    message: "Usuário sem perfil de acesso válido.",
-  });
-}
+      return res.status(403).json({
+        ok: false,
+        code: "AUTH-GOOGLE-403-PERFIL-INVALIDO",
+        message: "Usuário sem perfil de acesso válido.",
+      });
+    }
 
     const token = generateToken(
-  {
-    id: usuario.id,
-    perfil: [usuarioResponse.perfil],
-  },
-  "1d"
-);
+      {
+        id: usuario.id,
+        perfil: [usuarioResponse.perfil],
+      },
+      "1d",
+    );
 
     setNoStoreHeaders(res);
 
     log(rid, "info", "Login Google concluído", {
-  usuarioId: usuario.id,
-  email: usuario.email,
-  perfil: usuarioResponse.perfil,
-});
+      usuarioId: usuario.id,
+      email: usuario.email,
+      perfil: usuarioResponse.perfil,
+    });
 
     return res.status(200).json({
       ok: true,

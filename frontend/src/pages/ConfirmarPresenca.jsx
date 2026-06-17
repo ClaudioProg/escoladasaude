@@ -79,23 +79,29 @@ function getRawToken() {
 function getValidToken() {
   const raw = getRawToken();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw;
   const parts = token.split(".");
 
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
 
   try {
-    const payloadStr = safeAtob(
-      parts[1].replace(/-/g, "+").replace(/_/g, "/")
-    );
+    const payloadStr = safeAtob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
 
     const payload = JSON.parse(payloadStr || "{}");
     const now = Date.now() / 1000;
 
-    if (payload?.nbf && now < payload.nbf) return null;
-    if (payload?.exp && now >= payload.exp) return null;
+    if (payload?.nbf && now < payload.nbf) {
+      return null;
+    }
+    if (payload?.exp && now >= payload.exp) {
+      return null;
+    }
 
     return token;
   } catch {
@@ -187,7 +193,8 @@ function getMensagemErro(error) {
 
   return {
     status,
-    titulo: backendMessage || "Não foi possível confirmar a presença no momento.",
+    titulo:
+      backendMessage || "Não foi possível confirmar a presença no momento.",
     detalhe: "Tente novamente. Se persistir, procure a equipe de suporte.",
     subtitulo: "Falha temporária.",
     requiresLogin: false,
@@ -333,13 +340,13 @@ export default function ConfirmarPresenca() {
   const navigate = useNavigate();
   const location = useLocation();
 
-const turma_id = useMemo(() => {
-  return searchParams.get("turma_id") || turmaIdFromPath || "";
-}, [searchParams, turmaIdFromPath]);
+  const turma_id = useMemo(() => {
+    return searchParams.get("turma_id") || turmaIdFromPath || "";
+  }, [searchParams, turmaIdFromPath]);
 
-const data_presenca = useMemo(() => {
-  return String(searchParams.get("data_presenca") || "").trim();
-}, [searchParams]);
+  const data_presenca = useMemo(() => {
+    return String(searchParams.get("data_presenca") || "").trim();
+  }, [searchParams]);
 
   const [status, setStatus] = useState("loading");
   const [msg, setMsg] = useState("Confirmando presença...");
@@ -359,7 +366,7 @@ const data_presenca = useMemo(() => {
     new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "medium",
       timeStyle: "short",
-    }).format(new Date())
+    }).format(new Date()),
   );
 
   useEffect(() => {
@@ -407,14 +414,14 @@ const data_presenca = useMemo(() => {
   }, [buildNext, navigate]);
 
   const goToLoginWithAnotherAccount = useCallback(() => {
-  clearAuthSession({ emitEvent: true });
+    clearAuthSession({ emitEvent: true });
 
-  const next = buildNext();
+    const next = buildNext();
 
-  navigate(`/login?next=${encodeURIComponent(next)}`, {
-    replace: true,
-  });
-}, [buildNext, navigate]);
+    navigate(`/login?next=${encodeURIComponent(next)}`, {
+      replace: true,
+    });
+  }, [buildNext, navigate]);
 
   const focusTitleSoon = useCallback(() => {
     requestAnimationFrame(() => titleRef.current?.focus?.());
@@ -436,23 +443,23 @@ const data_presenca = useMemo(() => {
       }
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data_presenca)) {
-  setStatus("err");
-  setMsg("Data de presença ausente ou inválida.");
-  setDetail("Use o QR Code correto da aula de hoje.");
-  setRequiresLogin(false);
-  setWrongAccount(false);
-  setSubtitle("Não foi possível identificar a data da aula.");
-  setLive("Parâmetro data_presenca inválido.");
-  focusTitleSoon();
-  return;
-}
+        setStatus("err");
+        setMsg("Data de presença ausente ou inválida.");
+        setDetail("Use o QR Code correto da aula de hoje.");
+        setRequiresLogin(false);
+        setWrongAccount(false);
+        setSubtitle("Não foi possível identificar a data da aula.");
+        setLive("Parâmetro data_presenca inválido.");
+        focusTitleSoon();
+        return;
+      }
 
       const tokenOk = getValidToken();
 
-if (!tokenOk) {
-  goToLogin();
-  return;
-}
+      if (!tokenOk) {
+        goToLogin();
+        return;
+      }
 
       try {
         abortRef.current?.abort?.("new-attempt");
@@ -477,29 +484,37 @@ if (!tokenOk) {
       }
 
       try {
-    await apiPresencaConfirmarQr(
-  {
-    turma_id: turmaIdSeguro,
-    data_presenca,
-  },
-  {
-    signal: controller.signal,
-    on401: "silent",
-  }
-);
+        await apiPresencaConfirmarQr(
+          {
+            turma_id: turmaIdSeguro,
+            data_presenca,
+          },
+          {
+            signal: controller.signal,
+            on401: "silent",
+          },
+        );
 
-        if (!mountedRef.current || myFlight !== inFlightRef.current) return;
+        if (!mountedRef.current || myFlight !== inFlightRef.current) {
+          return;
+        }
 
         setStatus("ok");
         setMsg("Presença confirmada com sucesso!");
-        setDetail("Você já pode fechar esta tela ou conferir em Minhas presenças.");
+        setDetail(
+          "Você já pode fechar esta tela ou conferir em Minhas presenças.",
+        );
         setRequiresLogin(false);
         setSubtitle("Registro concluído.");
         setLive("Presença confirmada.");
         focusTitleSoon();
       } catch (error) {
-        if (isAbortLike(error)) return;
-        if (!mountedRef.current || myFlight !== inFlightRef.current) return;
+        if (isAbortLike(error)) {
+          return;
+        }
+        if (!mountedRef.current || myFlight !== inFlightRef.current) {
+          return;
+        }
 
         const info = getMensagemErro(error);
 
@@ -509,22 +524,16 @@ if (!tokenOk) {
         }
 
         setStatus("err");
-setMsg(info.titulo);
-setDetail(info.detalhe);
-setRequiresLogin(info.requiresLogin);
-setWrongAccount(info.status === 403);
-setSubtitle(info.subtitulo);
-setLive("Falha na confirmação de presença.");
-focusTitleSoon();
+        setMsg(info.titulo);
+        setDetail(info.detalhe);
+        setRequiresLogin(info.requiresLogin);
+        setWrongAccount(info.status === 403);
+        setSubtitle(info.subtitulo);
+        setLive("Falha na confirmação de presença.");
+        focusTitleSoon();
       }
     },
-    [
-  data_presenca,
-  focusTitleSoon,
-  goToLogin,
-  setLive,
-  turma_id
-]
+    [data_presenca, focusTitleSoon, goToLogin, setLive, turma_id],
   );
 
   useEffect(() => {
@@ -557,7 +566,7 @@ focusTitleSoon();
   const titleColor = classNames(
     status === "ok" && "text-emerald-700 dark:text-emerald-300",
     status === "err" && "text-rose-700 dark:text-rose-300",
-    status === "loading" && "text-slate-950 dark:text-zinc-100"
+    status === "loading" && "text-slate-950 dark:text-zinc-100",
   );
 
   return (
@@ -600,7 +609,7 @@ focusTitleSoon();
                   tabIndex={-1}
                   className={classNames(
                     "text-lg font-black outline-none",
-                    titleColor
+                    titleColor,
                   )}
                 >
                   {msg}
@@ -628,7 +637,10 @@ focusTitleSoon();
                   disabled
                   className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white disabled:opacity-70"
                 >
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                   Processando...
                 </button>
               ) : status === "ok" ? (
@@ -655,11 +667,15 @@ focusTitleSoon();
                 <>
                   <button
                     type="button"
-                    onClick={wrongAccount ? goToLoginWithAnotherAccount : goToLogin}
+                    onClick={
+                      wrongAccount ? goToLoginWithAnotherAccount : goToLogin
+                    }
                     className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     <LogIn className="h-4 w-4" aria-hidden="true" />
-                    {wrongAccount ? "Entrar com outra conta" : "Entrar e confirmar"}
+                    {wrongAccount
+                      ? "Entrar com outra conta"
+                      : "Entrar e confirmar"}
                   </button>
 
                   <button

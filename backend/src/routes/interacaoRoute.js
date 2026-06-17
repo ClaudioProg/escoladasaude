@@ -83,7 +83,7 @@ const {
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[interacaoRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[interacaoRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
@@ -108,7 +108,7 @@ for (const [nome, handler] of Object.entries({
 })) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[interacaoRoute] Controller inválido. Função ausente: ${nome}.`
+      `[interacaoRoute] Controller inválido. Função ausente: ${nome}.`,
     );
   }
 }
@@ -267,7 +267,7 @@ router.patch(
   "/admin/:id/status",
   validarIdParam,
   validarStatusBody,
-  wrap(alterarStatusAdmin)
+  wrap(alterarStatusAdmin),
 );
 
 /**
@@ -291,7 +291,7 @@ router.delete("/admin/:id", validarIdParam, wrap(excluirAdmin));
 router.post(
   "/admin/:id/execucao/iniciar",
   validarIdParam,
-  wrap(iniciarExecucaoAdmin)
+  wrap(iniciarExecucaoAdmin),
 );
 
 /**
@@ -309,7 +309,7 @@ router.post(
 router.post(
   "/admin/:id/pergunta/avancar",
   validarIdParam,
-  wrap(avancarPerguntaAdmin)
+  wrap(avancarPerguntaAdmin),
 );
 
 /**
@@ -322,7 +322,7 @@ router.post(
   "/admin/:id/pergunta/abrir",
   validarIdParam,
   validarPerguntaBody,
-  wrap(abrirPerguntaAdmin)
+  wrap(abrirPerguntaAdmin),
 );
 
 /**
@@ -335,7 +335,7 @@ router.post(
   "/admin/:id/pergunta/fechar",
   validarIdParam,
   validarPerguntaBody,
-  wrap(fecharPerguntaAdmin)
+  wrap(fecharPerguntaAdmin),
 );
 
 /**
@@ -348,7 +348,7 @@ router.post(
   "/admin/:id/pergunta/gabarito",
   validarIdParam,
   validarPerguntaBody,
-  wrap(exibirGabaritoAdmin)
+  wrap(exibirGabaritoAdmin),
 );
 
 /**

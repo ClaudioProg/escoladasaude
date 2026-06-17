@@ -1,5 +1,7 @@
 /* ============================================================
-   Escola da Saúde — Tailwind Entry
+   Escola da Saúde — Tailwind Entry — v2.1
+   Atualizado em: 16/06/2026
+   
    Função:
    - Carregar Tailwind.
    - Carregar a base visual global oficial.
@@ -12,7 +14,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ------------------------------------------------------------ */
+/* ------------------------------------------------------------
    Leitor QR — html5-qrcode
 ------------------------------------------------------------ */
 

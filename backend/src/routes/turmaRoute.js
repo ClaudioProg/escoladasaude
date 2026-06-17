@@ -65,13 +65,13 @@ const router = express.Router();
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[turmaRoute] Contrato inválido: ../auth/authMiddleware deve exportar uma função."
+    "[turmaRoute] Contrato inválido: ../auth/authMiddleware deve exportar uma função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[turmaRoute] Contrato inválido: ../middlewares/authorize deve expor { authorize } como função."
+    "[turmaRoute] Contrato inválido: ../middlewares/authorize deve expor { authorize } como função.",
   );
 }
 
@@ -97,14 +97,14 @@ const REQUIRED_TURMA_HANDLERS = [
 for (const fnName of REQUIRED_TURMA_HANDLERS) {
   if (typeof turmaController[fnName] !== "function") {
     throw new Error(
-      `[turmaRoute] Contrato inválido: turmaController.${fnName} deve existir como função.`
+      `[turmaRoute] Contrato inválido: turmaController.${fnName} deve existir como função.`,
     );
   }
 }
 
 if (typeof inscricaoController.listarInscritosPorTurma !== "function") {
   throw new Error(
-    "[turmaRoute] Contrato inválido: inscricaoController.listarInscritosPorTurma deve existir como função."
+    "[turmaRoute] Contrato inválido: inscricaoController.listarInscritosPorTurma deve existir como função.",
   );
 }
 
@@ -114,10 +114,8 @@ const requireAdmin = authorize("administrador");
    Helpers
 ─────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag, options = {}) {
   const { cacheControl = "no-store" } = options;
@@ -198,7 +196,7 @@ router.get(
   noStore,
   routeTag("turmaRoute:v2.1 GET /administrador"),
   adminListLimiter,
-  asyncHandler(turmaController.listarAdmin)
+  asyncHandler(turmaController.listarAdmin),
 );
 
 router.get(
@@ -206,7 +204,7 @@ router.get(
   requireAdmin,
   noStore,
   routeTag("turmaRoute:v2.1 GET /com-usuario"),
-  asyncHandler(turmaController.listarComUsuario)
+  asyncHandler(turmaController.listarComUsuario),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -221,7 +219,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /evento/:id", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.listarPorEvento)
+  asyncHandler(turmaController.listarPorEvento),
 );
 
 router.get(
@@ -231,7 +229,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /evento/:id/simples", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.listarPorEventoSimples)
+  asyncHandler(turmaController.listarPorEventoSimples),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -243,7 +241,7 @@ router.post(
   requireAdmin,
   noStore,
   routeTag("turmaRoute:v2.1 POST /"),
-  asyncHandler(turmaController.criar)
+  asyncHandler(turmaController.criar),
 );
 
 router.put(
@@ -252,7 +250,7 @@ router.put(
   ensureNumericParam("id", "turma_id"),
   noStore,
   routeTag("turmaRoute:v2.1 PUT /:id"),
-  asyncHandler(turmaController.atualizar)
+  asyncHandler(turmaController.atualizar),
 );
 
 router.delete(
@@ -261,7 +259,7 @@ router.delete(
   ensureNumericParam("id", "turma_id"),
   noStore,
   routeTag("turmaRoute:v2.1 DELETE /:id"),
-  asyncHandler(turmaController.excluir)
+  asyncHandler(turmaController.excluir),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -275,7 +273,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /:id/organizador", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.listarOrganizadores)
+  asyncHandler(turmaController.listarOrganizadores),
 );
 
 router.post(
@@ -284,7 +282,7 @@ router.post(
   ensureNumericParam("id", "turma_id"),
   noStore,
   routeTag("turmaRoute:v2.1 POST /:id/organizador"),
-  asyncHandler(turmaController.adicionarOrganizador)
+  asyncHandler(turmaController.adicionarOrganizador),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -298,7 +296,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /:id/data", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.listarDatasDaTurma)
+  asyncHandler(turmaController.listarDatasDaTurma),
 );
 
 router.get(
@@ -308,7 +306,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /:id/ocorrencia", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.listarOcorrenciasTurma)
+  asyncHandler(turmaController.listarOcorrenciasTurma),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -322,7 +320,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /:id/detalhe", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.obterDetalhe)
+  asyncHandler(turmaController.obterDetalhe),
 );
 
 router.get(
@@ -332,7 +330,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /:id/inscrito", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(inscricaoController.listarInscritosPorTurma)
+  asyncHandler(inscricaoController.listarInscritosPorTurma),
 );
 
 /* ───────────────────────────────────────────────────────────────
@@ -347,7 +345,7 @@ router.get(
   routeTag("turmaRoute:v2.1 GET /:id", {
     cacheControl: "private, no-cache, must-revalidate",
   }),
-  asyncHandler(turmaController.obter)
+  asyncHandler(turmaController.obter),
 );
 
 module.exports = router;

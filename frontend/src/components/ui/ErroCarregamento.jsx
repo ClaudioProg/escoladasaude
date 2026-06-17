@@ -17,7 +17,14 @@
 // - visual premium consistente com a plataforma.
 
 import PropTypes from "prop-types";
-import { useEffect, useId, useMemo, useRef, useState, useCallback } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -66,15 +73,13 @@ const VARIANT_CONFIG = {
   },
   info: {
     title: "Informação indisponível no momento.",
-    suggestion:
-      "Aguarde alguns instantes ou tente atualizar esta seção.",
+    suggestion: "Aguarde alguns instantes ou tente atualizar esta seção.",
     icon: Info,
     container:
       "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-sky-100",
     iconBox:
       "border-sky-200 bg-sky-100 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200",
-    button:
-      "bg-sky-700 text-white hover:bg-sky-800 focus-visible:ring-sky-500",
+    button: "bg-sky-700 text-white hover:bg-sky-800 focus-visible:ring-sky-500",
     details:
       "border-sky-200 bg-white text-slate-800 dark:border-sky-900/50 dark:bg-slate-950 dark:text-slate-200",
     focus: "focus-visible:ring-sky-500",
@@ -136,7 +141,15 @@ export default function ErroCarregamento({
       ]
         .filter(Boolean)
         .join(" ") || undefined,
-    [detailsId, hasDetails, hintId, openDetails, showSupportHint, sugestaoFinal, supportId]
+    [
+      detailsId,
+      hasDetails,
+      hintId,
+      openDetails,
+      showSupportHint,
+      sugestaoFinal,
+      supportId,
+    ],
   );
 
   const toggleDetails = useCallback(() => {
@@ -167,14 +180,14 @@ export default function ErroCarregamento({
         "focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950",
         config.focus,
         config.container,
-        className
+        className,
       )}
     >
       <div className="mx-auto flex max-w-xl flex-col items-center">
         <span
           className={classNames(
             "grid h-16 w-16 place-items-center rounded-[1.5rem] border shadow-sm sm:h-20 sm:w-20",
-            config.iconBox
+            config.iconBox,
           )}
           aria-hidden="true"
         >
@@ -216,13 +229,13 @@ export default function ErroCarregamento({
                 "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black shadow-sm transition",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950",
                 "disabled:cursor-not-allowed disabled:opacity-60",
-                config.button
+                config.button,
               )}
             >
               <RefreshCcw
                 className={classNames(
                   "h-4 w-4",
-                  retryLoading && !reduceMotion && "animate-spin"
+                  retryLoading && !reduceMotion && "animate-spin",
                 )}
                 aria-hidden="true"
               />
@@ -242,7 +255,7 @@ export default function ErroCarregamento({
               aria-controls={detailsId}
               className={classNames(
                 "inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-2 text-xs font-black transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 dark:bg-white/10 dark:hover:bg-white/15",
-                config.focus
+                config.focus,
               )}
             >
               {openDetails ? (
@@ -250,7 +263,9 @@ export default function ErroCarregamento({
               ) : (
                 <ChevronDown className="h-4 w-4" aria-hidden="true" />
               )}
-              {openDetails ? "Ocultar detalhes técnicos" : "Mostrar detalhes técnicos"}
+              {openDetails
+                ? "Ocultar detalhes técnicos"
+                : "Mostrar detalhes técnicos"}
             </button>
 
             {openDetails && (
@@ -258,7 +273,7 @@ export default function ErroCarregamento({
                 id={detailsId}
                 className={classNames(
                   "mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-2xl border p-3 text-xs leading-relaxed",
-                  config.details
+                  config.details,
                 )}
               >
                 {details}

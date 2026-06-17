@@ -62,8 +62,8 @@ export function createAsyncQueue(concurrency = 4) {
       if (typeof fn !== "function") {
         reject(
           new TypeError(
-            "createAsyncQueue: o item enfileirado deve ser uma função."
-          )
+            "createAsyncQueue: o item enfileirado deve ser uma função.",
+          ),
         );
         return;
       }
@@ -88,9 +88,7 @@ export function createAsyncQueue(concurrency = 4) {
     const removed = queue.splice(0, queue.length);
 
     for (const job of removed) {
-      job.reject(
-        new Error("Fila assíncrona limpa antes da execução do item.")
-      );
+      job.reject(new Error("Fila assíncrona limpa antes da execução do item."));
     }
 
     return removed.length;

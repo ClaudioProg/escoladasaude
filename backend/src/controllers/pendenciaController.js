@@ -91,7 +91,13 @@ function erroController(prefixo, error, req, contexto = {}) {
   });
 }
 
-function montarErro(error, fallbackMessage, fallbackCode, adminHint, details = {}) {
+function montarErro(
+  error,
+  fallbackMessage,
+  fallbackCode,
+  adminHint,
+  details = {},
+) {
   return {
     message: error.message || fallbackMessage,
     code: error.code || fallbackCode,
@@ -110,7 +116,10 @@ function montarErro(error, fallbackMessage, fallbackCode, adminHint, details = {
 
 async function listar(req, res) {
   try {
-    const resultado = await pendenciaService.listarPendencias(req, req.query || {});
+    const resultado = await pendenciaService.listarPendencias(
+      req,
+      req.query || {},
+    );
     return respostaSucesso(res, resultado);
   } catch (error) {
     erroController("listar", error, req);
@@ -121,10 +130,10 @@ async function listar(req, res) {
         error,
         "Não foi possível carregar as pendências administrativas.",
         "PENDENCIAS_LISTAR_ERRO",
-        "Falha ao consultar v_pendencias_administrativas. Verifique permissões, filtros, view e logs do servidor."
+        "Falha ao consultar v_pendencias_administrativas. Verifique permissões, filtros, view e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
@@ -133,7 +142,7 @@ async function obterPorId(req, res) {
   try {
     const resultado = await pendenciaService.obterPendencia(
       req,
-      req.params?.pendencia_id
+      req.params?.pendencia_id,
     );
 
     return respostaSucesso(res, resultado);
@@ -151,17 +160,20 @@ async function obterPorId(req, res) {
         "Falha ao consultar pendência por pendencia_id. Verifique se a pendência ainda existe na view derivada.",
         {
           pendenciaId: req.params?.pendencia_id,
-        }
+        },
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }
 
 async function resumo(req, res) {
   try {
-    const resultado = await pendenciaService.resumoPendencias(req, req.query || {});
+    const resultado = await pendenciaService.resumoPendencias(
+      req,
+      req.query || {},
+    );
     return respostaSucesso(res, resultado);
   } catch (error) {
     erroController("resumo", error, req);
@@ -172,10 +184,10 @@ async function resumo(req, res) {
         error,
         "Não foi possível carregar o resumo de pendências.",
         "PENDENCIAS_RESUMO_ERRO",
-        "Falha ao calcular resumo da view v_pendencias_administrativas. Verifique permissões, filtros e logs do servidor."
+        "Falha ao calcular resumo da view v_pendencias_administrativas. Verifique permissões, filtros e logs do servidor.",
       ),
       statusHttp(error),
-      req
+      req,
     );
   }
 }

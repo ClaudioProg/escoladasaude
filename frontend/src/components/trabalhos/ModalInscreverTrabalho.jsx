@@ -29,7 +29,14 @@
 // - acessível;
 // - sem toast direto.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
@@ -40,7 +47,6 @@ import {
   FilePlus2,
   FileText,
   Image as ImageIcon,
-  Layers3,
   Loader2,
   Plus,
   Save,
@@ -63,7 +69,12 @@ function cx(...classes) {
 }
 
 function unwrap(response, fallback = null) {
-  if (response && typeof response === "object" && "ok" in response && "data" in response) {
+  if (
+    response &&
+    typeof response === "object" &&
+    "ok" in response &&
+    "data" in response
+  ) {
     return response.data ?? fallback;
   }
 
@@ -93,25 +104,35 @@ function trim(value) {
 }
 
 function digits(value, max = 20) {
-  return String(value || "").replace(/\D/g, "").slice(0, max);
+  return String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, max);
 }
 
 function toMonthValue(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const text = String(value).trim();
 
-  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(text)) return text;
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(text)) {
+    return text;
+  }
 
   const match = /^(\d{4})-(0[1-9]|1[0-2])/.exec(text);
-  if (match) return `${match[1]}-${match[2]}`;
+  if (match) {
+    return `${match[1]}-${match[2]}`;
+  }
 
   return "";
 }
 
 function formatYYYYMM(value) {
   const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(String(value || ""));
-  if (!match) return value || "—";
+  if (!match) {
+    return value || "—";
+  }
 
   const meses = [
     "jan",
@@ -134,7 +155,9 @@ function formatYYYYMM(value) {
 function formatPrazo(value) {
   const text = String(value || "").trim();
 
-  if (!text) return "—";
+  if (!text) {
+    return "—";
+  }
 
   const wall = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(text);
   if (wall) {
@@ -157,7 +180,9 @@ function clampLimit(value, fallback) {
 function formatBytes(bytes) {
   const n = Number(bytes);
 
-  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (!Number.isFinite(n) || n <= 0) {
+    return "—";
+  }
 
   const units = ["B", "KB", "MB", "GB"];
   let value = n;
@@ -172,13 +197,24 @@ function formatBytes(bytes) {
 }
 
 function fileIsAllowed(file) {
-  if (!file) return { ok: true };
+  if (!file) {
+    return { ok: true };
+  }
 
   const name = String(file.name || "").toLowerCase();
   const type = String(file.type || "").toLowerCase();
   const size = Number(file.size || 0);
 
-  const allowedExt = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".ppt", ".pptx"];
+  const allowedExt = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".pdf",
+    ".ppt",
+    ".pptx",
+  ];
   const allowedMime = [
     "image/png",
     "image/jpeg",
@@ -190,7 +226,8 @@ function fileIsAllowed(file) {
   ];
 
   const hasAllowedExt = allowedExt.some((ext) => name.endsWith(ext));
-  const hasAllowedMime = allowedMime.includes(type) || type.startsWith("image/");
+  const hasAllowedMime =
+    allowedMime.includes(type) || type.startsWith("image/");
 
   if (!hasAllowedExt && !hasAllowedMime) {
     return {
@@ -213,7 +250,9 @@ function validateForm({ form, limites, status, dentroPrazo, maxCoautores }) {
   const errors = [];
 
   if (!dentroPrazo) {
-    errors.push("Prazo encerrado: não é possível salvar ou enviar este trabalho.");
+    errors.push(
+      "Prazo encerrado: não é possível salvar ou enviar este trabalho.",
+    );
   }
 
   if (!trim(form.titulo)) {
@@ -250,13 +289,19 @@ function validateForm({ form, limites, status, dentroPrazo, maxCoautores }) {
     ["objetivos", "Objetivos", clampLimit(limites.objetivos, 1000)],
     ["metodo", "Método/descrição da prática", clampLimit(limites.metodo, 1500)],
     ["resultados", "Resultados/impactos", clampLimit(limites.resultados, 1500)],
-    ["consideracao", "Considerações finais", clampLimit(limites.consideracao, 1000)],
+    [
+      "consideracao",
+      "Considerações finais",
+      clampLimit(limites.consideracao, 1000),
+    ],
     ["bibliografia", "Bibliografia", 8000],
   ];
 
   for (const [key, label, max] of fields) {
     if (String(form[key] || "").length > max) {
-      errors.push(`O campo "${label}" ultrapassa o limite de ${max} caracteres.`);
+      errors.push(
+        `O campo "${label}" ultrapassa o limite de ${max} caracteres.`,
+      );
     }
   }
 
@@ -284,15 +329,14 @@ function Badge({ children, tone = "slate" }) {
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
   };
 
   return (
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {children}
@@ -336,7 +380,7 @@ function Button({
         "focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
         sizes[size],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -364,7 +408,7 @@ function Field({ label, required, hint, error, children, counter }) {
           <span
             className={cx(
               "text-xs",
-              counter.over ? "font-bold text-rose-600" : "text-slate-400"
+              counter.over ? "font-bold text-rose-600" : "text-slate-400",
             )}
           >
             {counter.current}/{counter.max}
@@ -374,8 +418,14 @@ function Field({ label, required, hint, error, children, counter }) {
 
       {children}
 
-      {hint ? <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{hint}</p> : null}
-      {error ? <p className="text-xs font-semibold text-rose-600">{error}</p> : null}
+      {hint ? (
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-xs font-semibold text-rose-600">{error}</p>
+      ) : null}
     </div>
   );
 }
@@ -389,7 +439,9 @@ function Section({ title, icon: Icon, children, description }) {
         </div>
 
         <div>
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">{title}</h3>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">
+            {title}
+          </h3>
           {description ? (
             <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
               {description}
@@ -466,7 +518,10 @@ export default function ModalInscreverTrabalho({
   const textareaBase =
     "w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none transition focus:ring-2 focus:ring-violet-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:disabled:bg-slate-900";
 
-  const prazoFmt = useMemo(() => formatPrazo(chamada?.prazo_final_br), [chamada]);
+  const prazoFmt = useMemo(
+    () => formatPrazo(chamada?.prazo_final_br),
+    [chamada],
+  );
   const dentroPrazo = Boolean(chamada?.dentro_prazo);
   const bloqueado = saving || uploading;
 
@@ -480,20 +535,26 @@ export default function ModalInscreverTrabalho({
       consideracao: clampLimit(limites.consideracao, 1000),
       bibliografia: 8000,
     }),
-    [limites]
+    [limites],
   );
 
   const periodoLabel = useMemo(() => {
-    if (!chamada?.periodo_experiencia_inicio && !chamada?.periodo_experiencia_fim) {
+    if (
+      !chamada?.periodo_experiencia_inicio &&
+      !chamada?.periodo_experiencia_fim
+    ) {
       return "—";
     }
 
     return `${formatYYYYMM(chamada?.periodo_experiencia_inicio)} — ${formatYYYYMM(
-      chamada?.periodo_experiencia_fim
+      chamada?.periodo_experiencia_fim,
     )}`;
   }, [chamada]);
 
-  const fileValidation = useMemo(() => fileIsAllowed(form.arquivo), [form.arquivo]);
+  const fileValidation = useMemo(
+    () => fileIsAllowed(form.arquivo),
+    [form.arquivo],
+  );
 
   const setValue = useCallback((key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -526,7 +587,9 @@ export default function ModalInscreverTrabalho({
   function removeCoautor(index) {
     setForm((current) => ({
       ...current,
-      coautores: current.coautores.filter((_, itemIndex) => itemIndex !== index),
+      coautores: current.coautores.filter(
+        (_, itemIndex) => itemIndex !== index,
+      ),
     }));
   }
 
@@ -562,13 +625,17 @@ export default function ModalInscreverTrabalho({
   async function baixarModelo() {
     const id = chamada?.id || propChamadaId;
 
-    if (!id) return;
+    if (!id) {
+      return;
+    }
 
     setBaixandoModelo(true);
     setErro("");
 
     try {
-      const { blob, filename } = await apiGetFile(`/chamada/${id}/modelo-banner`);
+      const { blob, filename } = await apiGetFile(
+        `/chamada/${id}/modelo-banner`,
+      );
       downloadBlob(filename || `modelo-banner-chamada-${id}.pptx`, blob);
     } catch (error) {
       setErro(getMessage(error, "Não foi possível baixar o modelo de Pôster."));
@@ -585,20 +652,35 @@ export default function ModalInscreverTrabalho({
 
     try {
       if (propSubmissaoId) {
-        const trabalho = unwrap(await api.get(`/trabalho/${propSubmissaoId}`), null);
+        const trabalho = unwrap(
+          await api.get(`/trabalho/${propSubmissaoId}`),
+          null,
+        );
 
         if (!trabalho) {
           throw new Error("Trabalho não encontrado.");
         }
 
-        const chamadaResponse = unwrap(await api.get(`/chamada/${trabalho.chamada_id}`), null);
+        const chamadaResponse = unwrap(
+          await api.get(`/chamada/${trabalho.chamada_id}`),
+          null,
+        );
         const chamadaData = chamadaResponse?.chamada || chamadaResponse || null;
 
         setSubmissaoId(trabalho.id);
         setChamada(chamadaData);
-        setLinhas(Array.isArray(chamadaResponse?.linhas) ? chamadaResponse.linhas : []);
-        setLimites(chamadaResponse?.limites || chamadaData?.limites || trabalho.limites || {});
-        setMaxCoautores(Number(chamadaData?.max_coautores || trabalho.max_coautores || 10));
+        setLinhas(
+          Array.isArray(chamadaResponse?.linhas) ? chamadaResponse.linhas : [],
+        );
+        setLimites(
+          chamadaResponse?.limites ||
+            chamadaData?.limites ||
+            trabalho.limites ||
+            {},
+        );
+        setMaxCoautores(
+          Number(chamadaData?.max_coautores || trabalho.max_coautores || 10),
+        );
 
         setForm({
           titulo: trabalho.titulo || "",
@@ -627,7 +709,10 @@ export default function ModalInscreverTrabalho({
 
         await checarModelo(trabalho.chamada_id);
       } else {
-        const response = unwrap(await api.get(`/chamada/${propChamadaId}`), null);
+        const response = unwrap(
+          await api.get(`/chamada/${propChamadaId}`),
+          null,
+        );
         const chamadaData = response?.chamada || response || null;
 
         setChamada(chamadaData);
@@ -643,7 +728,9 @@ export default function ModalInscreverTrabalho({
 
       setA11y("Dados carregados.");
     } catch (error) {
-      setErro(getMessage(error, "Não foi possível carregar os dados do trabalho."));
+      setErro(
+        getMessage(error, "Não foi possível carregar os dados do trabalho."),
+      );
       setA11y("Falha ao carregar dados.");
     } finally {
       setLoading(false);
@@ -656,7 +743,9 @@ export default function ModalInscreverTrabalho({
   }, [propChamadaId, propSubmissaoId]);
 
   useEffect(() => {
-    if (loading) return undefined;
+    if (loading) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape" && !bloqueado) {
@@ -680,7 +769,9 @@ export default function ModalInscreverTrabalho({
       status,
       titulo: trim(form.titulo),
       inicio_experiencia: toMonthValue(form.inicio_experiencia),
-      linha_tematica_id: form.linha_tematica_id ? Number(form.linha_tematica_id) : null,
+      linha_tematica_id: form.linha_tematica_id
+        ? Number(form.linha_tematica_id)
+        : null,
       introducao: trim(form.introducao),
       objetivos: trim(form.objetivos),
       metodo: trim(form.metodo),
@@ -720,7 +811,9 @@ export default function ModalInscreverTrabalho({
   }
 
   async function uploadArquivo(id) {
-    if (!form.arquivo || !id) return null;
+    if (!form.arquivo || !id) {
+      return null;
+    }
 
     if (!fileValidation.ok) {
       throw new Error(fileValidation.message);
@@ -734,7 +827,9 @@ export default function ModalInscreverTrabalho({
       const response = await apiUpload(`/trabalho/${id}/banner`, form.arquivo, {
         fieldName: "arquivo",
         onUploadProgress: (event) => {
-          if (!event?.total) return;
+          if (!event?.total) {
+            return;
+          }
           setUploadProgress(Math.round((event.loaded / event.total) * 100));
         },
       });
@@ -779,7 +874,9 @@ export default function ModalInscreverTrabalho({
     }
 
     setSaving(true);
-    setA11y(status === "rascunho" ? "Salvando rascunho." : "Enviando trabalho.");
+    setA11y(
+      status === "rascunho" ? "Salvando rascunho." : "Enviando trabalho.",
+    );
 
     try {
       const id = await criarOuAtualizar(status);
@@ -791,13 +888,13 @@ export default function ModalInscreverTrabalho({
       setMensagem(
         status === "rascunho"
           ? "Rascunho salvo com sucesso."
-          : "Trabalho enviado com sucesso."
+          : "Trabalho enviado com sucesso.",
       );
 
       setA11y(
         status === "rascunho"
           ? "Rascunho salvo com sucesso."
-          : "Trabalho enviado com sucesso."
+          : "Trabalho enviado com sucesso.",
       );
 
       await onSucesso?.();
@@ -813,8 +910,8 @@ export default function ModalInscreverTrabalho({
           error,
           status === "rascunho"
             ? "Não foi possível salvar o rascunho."
-            : "Não foi possível enviar o trabalho."
-        )
+            : "Não foi possível enviar o trabalho.",
+        ),
       );
       setA11y("Falha ao salvar.");
     } finally {
@@ -894,8 +991,12 @@ export default function ModalInscreverTrabalho({
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
         role="presentation"
         onMouseDown={(event) => {
-          if (bloqueado) return;
-          if (event.target === event.currentTarget) onClose?.();
+          if (bloqueado) {
+            return;
+          }
+          if (event.target === event.currentTarget) {
+            onClose?.();
+          }
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -911,7 +1012,8 @@ export default function ModalInscreverTrabalho({
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={descId}
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"          initial={{ opacity: 0, y: 32, scale: 0.98 }}
+          className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
+          initial={{ opacity: 0, y: 32, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 32, scale: 0.98 }}
           transition={{ duration: 0.18 }}
@@ -940,7 +1042,10 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                   </span>
                 </h2>
 
-                <p id={descId} className="mt-2 max-w-4xl text-sm leading-relaxed text-white/72">
+                <p
+                  id={descId}
+                  className="mt-2 max-w-4xl text-sm leading-relaxed text-white/72"
+                >
                   {chamada.titulo}
                 </p>
 
@@ -990,7 +1095,8 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
 
             {!dentroPrazo ? (
               <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                O prazo da chamada está encerrado. Este formulário fica disponível apenas para consulta.
+                O prazo da chamada está encerrado. Este formulário fica
+                disponível apenas para consulta.
               </div>
             ) : null}
 
@@ -1013,7 +1119,9 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                     <input
                       ref={titleInputRef}
                       value={form.titulo}
-                      onChange={(event) => setValue("titulo", event.target.value)}
+                      onChange={(event) =>
+                        setValue("titulo", event.target.value)
+                      }
                       maxLength={max.titulo}
                       disabled={!dentroPrazo}
                       className={cx(inputBase, "h-12 text-base font-semibold")}
@@ -1102,7 +1210,9 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                       icon={Plus}
                       tone="success"
                       size="sm"
-                      disabled={!dentroPrazo || form.coautores.length >= maxCoautores}
+                      disabled={
+                        !dentroPrazo || form.coautores.length >= maxCoautores
+                      }
                       onClick={addCoautor}
                     >
                       Adicionar coautor
@@ -1153,7 +1263,11 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                               value={coautor.email}
                               disabled={!dentroPrazo}
                               onChange={(event) =>
-                                updateCoautor(index, "email", event.target.value)
+                                updateCoautor(
+                                  index,
+                                  "email",
+                                  event.target.value,
+                                )
                               }
                               className={inputBase}
                             />
@@ -1163,7 +1277,11 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                               value={coautor.unidade}
                               disabled={!dentroPrazo}
                               onChange={(event) =>
-                                updateCoautor(index, "unidade", event.target.value)
+                                updateCoautor(
+                                  index,
+                                  "unidade",
+                                  event.target.value,
+                                )
                               }
                               className={inputBase}
                             />
@@ -1173,7 +1291,11 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                               value={coautor.papel}
                               disabled={!dentroPrazo}
                               onChange={(event) =>
-                                updateCoautor(index, "papel", event.target.value)
+                                updateCoautor(
+                                  index,
+                                  "papel",
+                                  event.target.value,
+                                )
                               }
                               className={inputBase}
                             />
@@ -1194,7 +1316,11 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                               value={coautor.vinculo}
                               disabled={!dentroPrazo}
                               onChange={(event) =>
-                                updateCoautor(index, "vinculo", event.target.value)
+                                updateCoautor(
+                                  index,
+                                  "vinculo",
+                                  event.target.value,
+                                )
                               }
                               className={inputBase}
                             />
@@ -1220,8 +1346,8 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                           Upload oficial
                         </p>
                         <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                          Formatos aceitos: PNG, JPG, GIF, WEBP, PDF, PPT ou PPTX.
-                          Limite: 30MB.
+                          Formatos aceitos: PNG, JPG, GIF, WEBP, PDF, PPT ou
+                          PPTX. Limite: 30MB.
                         </p>
                       </div>
                     </div>
@@ -1238,7 +1364,9 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                     {form.arquivo ? (
                       <div className="mt-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200">
                         <p className="font-bold">{form.arquivo.name}</p>
-                        <p className="text-xs">{formatBytes(form.arquivo.size)}</p>
+                        <p className="text-xs">
+                          {formatBytes(form.arquivo.size)}
+                        </p>
                         <button
                           type="button"
                           onClick={clearFile}
@@ -1252,7 +1380,9 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                       <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
                         <p className="font-bold">Arquivo já enviado</p>
                         <p className="text-xs">
-                          {arquivoExistente.nome_original || arquivoExistente.filename || "Arquivo disponível"}
+                          {arquivoExistente.nome_original ||
+                            arquivoExistente.filename ||
+                            "Arquivo disponível"}
                         </p>
                       </div>
                     ) : null}
@@ -1301,10 +1431,28 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                   description="Use rascunho para salvar parcialmente. Use enviar quando o trabalho estiver completo."
                 >
                   <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                    <ResumoLinha label="Título" ok={Boolean(trim(form.titulo))} />
-                    <ResumoLinha label="Início da experiência" ok={Boolean(toMonthValue(form.inicio_experiencia))} />
-                    <ResumoLinha label="Linha temática" ok={Boolean(form.linha_tematica_id)} />
-                    <ResumoLinha label="Campos principais" ok={["introducao", "objetivos", "metodo", "resultados", "consideracao"].every((key) => Boolean(trim(form[key])))} />
+                    <ResumoLinha
+                      label="Título"
+                      ok={Boolean(trim(form.titulo))}
+                    />
+                    <ResumoLinha
+                      label="Início da experiência"
+                      ok={Boolean(toMonthValue(form.inicio_experiencia))}
+                    />
+                    <ResumoLinha
+                      label="Linha temática"
+                      ok={Boolean(form.linha_tematica_id)}
+                    />
+                    <ResumoLinha
+                      label="Campos principais"
+                      ok={[
+                        "introducao",
+                        "objetivos",
+                        "metodo",
+                        "resultados",
+                        "consideracao",
+                      ].every((key) => Boolean(trim(form[key])))}
+                    />
                   </div>
                 </Section>
               </aside>
@@ -1350,7 +1498,9 @@ function ResumoLinha({ label, ok }) {
       ) : (
         <ChevronDown className="h-4 w-4 text-slate-400" />
       )}
-      <span className={ok ? "font-semibold text-slate-700 dark:text-slate-200" : ""}>
+      <span
+        className={ok ? "font-semibold text-slate-700 dark:text-slate-200" : ""}
+      >
         {label}
       </span>
     </div>

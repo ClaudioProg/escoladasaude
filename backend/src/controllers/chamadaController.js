@@ -88,10 +88,13 @@ const uploadModelo = multer({
       return cb(null, true);
     }
 
-    return cb(criarErro("Apenas arquivos .ppt ou .pptx são permitidos.", 400, {
-      code: "MODELO_TIPO_INVALIDO",
-      adminHint: "O arquivo enviado não possui extensão/MIME compatível com PPT/PPTX.",
-    }));
+    return cb(
+      criarErro("Apenas arquivos .ppt ou .pptx são permitidos.", 400, {
+        code: "MODELO_TIPO_INVALIDO",
+        adminHint:
+          "O arquivo enviado não possui extensão/MIME compatível com PPT/PPTX.",
+      }),
+    );
   },
 });
 
@@ -115,7 +118,7 @@ function logWarn(req, message, extra = null) {
 function logError(req, message, error) {
   console.error(
     `[${requestId(req)}] ✖ ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -235,7 +238,8 @@ function getUsuarioId(req) {
 
   assert(id, "Autenticação necessária.", 401, {
     code: "AUTH_OBRIGATORIA",
-    adminHint: "req.user.id não foi encontrado após o middleware de autenticação.",
+    adminHint:
+      "req.user.id não foi encontrado após o middleware de autenticação.",
   });
 
   return id;
@@ -249,10 +253,15 @@ function textoObrigatorio(value, max, fieldName) {
     details: { field: fieldName },
   });
 
-  assert(text.length <= max, `${fieldName} deve ter até ${max} caracteres.`, 400, {
-    code: "CAMPO_TAMANHO_INVALIDO",
-    details: { field: fieldName, max },
-  });
+  assert(
+    text.length <= max,
+    `${fieldName} deve ter até ${max} caracteres.`,
+    400,
+    {
+      code: "CAMPO_TAMANHO_INVALIDO",
+      details: { field: fieldName, max },
+    },
+  );
 
   return text;
 }
@@ -262,10 +271,15 @@ function textoOpcional(value, max, fieldName) {
 
   const text = String(value).trim();
 
-  assert(text.length <= max, `${fieldName} deve ter até ${max} caracteres.`, 400, {
-    code: "CAMPO_TAMANHO_INVALIDO",
-    details: { field: fieldName, max },
-  });
+  assert(
+    text.length <= max,
+    `${fieldName} deve ter até ${max} caracteres.`,
+    400,
+    {
+      code: "CAMPO_TAMANHO_INVALIDO",
+      details: { field: fieldName, max },
+    },
+  );
 
   return text;
 }
@@ -292,10 +306,15 @@ function intOpcional(value, fallback, fieldName, min = 0, max = 1000) {
 
   const n = Number(value);
 
-  assert(Number.isInteger(n) && n >= min && n <= max, `${fieldName} inválido.`, 400, {
-    code: "NUMERO_INVALIDO",
-    details: { field: fieldName, min, max },
-  });
+  assert(
+    Number.isInteger(n) && n >= min && n <= max,
+    `${fieldName} inválido.`,
+    400,
+    {
+      code: "NUMERO_INVALIDO",
+      details: { field: fieldName, min, max },
+    },
+  );
 
   return n;
 }
@@ -341,9 +360,14 @@ function normalizarPrazoFinal(value) {
 function normalizarLimites(limites) {
   if (limites == null) return null;
 
-  assert(typeof limites === "object" && !Array.isArray(limites), "Limites inválidos.", 400, {
-    code: "LIMITES_INVALIDOS",
-  });
+  assert(
+    typeof limites === "object" && !Array.isArray(limites),
+    "Limites inválidos.",
+    400,
+    {
+      code: "LIMITES_INVALIDOS",
+    },
+  );
 
   const campos = [
     "titulo",
@@ -372,7 +396,7 @@ function normalizarLimites(limites) {
           min: LIMITE_TEXTO_MIN,
           max: LIMITE_TEXTO_MAX,
         },
-      }
+      },
     );
 
     normalizado[campo] = valor;
@@ -388,15 +412,24 @@ function normalizarLinhas(linhas) {
   });
 
   return linhas.map((linha, index) => {
-    assert(linha && typeof linha === "object", "Linha temática inválida.", 400, {
-      code: "LINHA_INVALIDA",
-      details: { index },
-    });
+    assert(
+      linha && typeof linha === "object",
+      "Linha temática inválida.",
+      400,
+      {
+        code: "LINHA_INVALIDA",
+        details: { index },
+      },
+    );
 
     return {
       codigo: textoOpcional(linha.codigo, 50, `linhas[${index}].codigo`),
       nome: textoObrigatorio(linha.nome, 200, `linhas[${index}].nome`),
-      descricao: textoOpcional(linha.descricao, 2000, `linhas[${index}].descricao`),
+      descricao: textoOpcional(
+        linha.descricao,
+        2000,
+        `linhas[${index}].descricao`,
+      ),
     };
   });
 }
@@ -410,22 +443,33 @@ function normalizarCriterios(criterios, tipo = "escrito") {
   const escalaPadraoMax = tipo === "oral" ? 3 : 5;
 
   return criterios.map((criterio, index) => {
-    assert(criterio && typeof criterio === "object", "Critério inválido.", 400, {
-      code: "CRITERIO_INVALIDO",
-      details: { index, tipo },
-    });
+    assert(
+      criterio && typeof criterio === "object",
+      "Critério inválido.",
+      400,
+      {
+        code: "CRITERIO_INVALIDO",
+        details: { index, tipo },
+      },
+    );
 
     const ordem =
       criterio.ordem == null || criterio.ordem === ""
         ? index + 1
-        : intOpcional(criterio.ordem, index + 1, `criterios[${index}].ordem`, 1, 999);
+        : intOpcional(
+            criterio.ordem,
+            index + 1,
+            `criterios[${index}].ordem`,
+            1,
+            999,
+          );
 
     const escalaMin = intOpcional(
       criterio.escala_min,
       1,
       `criterios[${index}].escala_min`,
       0,
-      100
+      100,
     );
 
     const escalaMax = intOpcional(
@@ -433,24 +477,38 @@ function normalizarCriterios(criterios, tipo = "escrito") {
       escalaPadraoMax,
       `criterios[${index}].escala_max`,
       1,
-      100
+      100,
     );
 
-    assert(escalaMax >= escalaMin, "Escala máxima deve ser maior ou igual à mínima.", 400, {
-      code: "ESCALA_INVALIDA",
-      details: { index, tipo },
-    });
+    assert(
+      escalaMax >= escalaMin,
+      "Escala máxima deve ser maior ou igual à mínima.",
+      400,
+      {
+        code: "ESCALA_INVALIDA",
+        details: { index, tipo },
+      },
+    );
 
     const peso = Number(criterio.peso ?? 1);
 
-    assert(Number.isFinite(peso) && peso > 0 && peso <= 100, "Peso inválido.", 400, {
-      code: "PESO_INVALIDO",
-      details: { index, tipo },
-    });
+    assert(
+      Number.isFinite(peso) && peso > 0 && peso <= 100,
+      "Peso inválido.",
+      400,
+      {
+        code: "PESO_INVALIDO",
+        details: { index, tipo },
+      },
+    );
 
     return {
       ordem,
-      titulo: textoObrigatorio(criterio.titulo, 200, `criterios[${index}].titulo`),
+      titulo: textoObrigatorio(
+        criterio.titulo,
+        200,
+        `criterios[${index}].titulo`,
+      ),
       escala_min: escalaMin,
       escala_max: escalaMax,
       peso,
@@ -465,11 +523,14 @@ function normalizarChamadaPayload(body, parcial = false) {
     payload.titulo = textoObrigatorio(body.titulo, 200, "Título");
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "descricao_markdown")) {
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "descricao_markdown")
+  ) {
     payload.descricao_markdown = textoObrigatorio(
       body.descricao_markdown,
       50000,
-      "Descrição"
+      "Descrição",
     );
   }
 
@@ -479,18 +540,24 @@ function normalizarChamadaPayload(body, parcial = false) {
   ) {
     payload.periodo_experiencia_inicio = normalizarPeriodo(
       body.periodo_experiencia_inicio,
-      "Período inicial"
+      "Período inicial",
     );
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "periodo_experiencia_fim")) {
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "periodo_experiencia_fim")
+  ) {
     payload.periodo_experiencia_fim = normalizarPeriodo(
       body.periodo_experiencia_fim,
-      "Período final"
+      "Período final",
     );
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "prazo_final_br")) {
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "prazo_final_br")
+  ) {
     payload.prazo_final_br = normalizarPrazoFinal(body.prazo_final_br);
   }
 
@@ -498,11 +565,14 @@ function normalizarChamadaPayload(body, parcial = false) {
     payload.aceita_poster = booleanOficial(body.aceita_poster, true);
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "link_modelo_poster")) {
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "link_modelo_poster")
+  ) {
     payload.link_modelo_poster = textoOpcional(
       body.link_modelo_poster,
       2000,
-      "Link do modelo de pôster"
+      "Link do modelo de pôster",
     );
   }
 
@@ -512,7 +582,7 @@ function normalizarChamadaPayload(body, parcial = false) {
       10,
       "Máximo de coautores",
       0,
-      100
+      100,
     );
   }
 
@@ -524,27 +594,44 @@ function normalizarChamadaPayload(body, parcial = false) {
     payload.limites = normalizarLimites(body.limites);
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "criterios_outros")) {
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "criterios_outros")
+  ) {
     payload.criterios_outros = textoOpcional(
       body.criterios_outros,
       20000,
-      "Critérios adicionais"
+      "Critérios adicionais",
     );
   }
 
   if (!parcial || Object.prototype.hasOwnProperty.call(body, "oral_outros")) {
-    payload.oral_outros = textoOpcional(body.oral_outros, 20000, "Critérios orais adicionais");
+    payload.oral_outros = textoOpcional(
+      body.oral_outros,
+      20000,
+      "Critérios orais adicionais",
+    );
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "premiacao_texto")) {
-    payload.premiacao_texto = textoOpcional(body.premiacao_texto, 20000, "Premiação");
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "premiacao_texto")
+  ) {
+    payload.premiacao_texto = textoOpcional(
+      body.premiacao_texto,
+      20000,
+      "Premiação",
+    );
   }
 
-  if (!parcial || Object.prototype.hasOwnProperty.call(body, "disposicao_finais_texto")) {
+  if (
+    !parcial ||
+    Object.prototype.hasOwnProperty.call(body, "disposicao_finais_texto")
+  ) {
     payload.disposicao_finais_texto = textoOpcional(
       body.disposicao_finais_texto,
       30000,
-      "Disposições finais"
+      "Disposições finais",
     );
   }
 
@@ -553,9 +640,13 @@ function normalizarChamadaPayload(body, parcial = false) {
     payload.periodo_experiencia_fim &&
     payload.periodo_experiencia_inicio > payload.periodo_experiencia_fim
   ) {
-    throw criarErro("Período de experiência inválido: início maior que fim.", 400, {
-      code: "PERIODO_INCONSISTENTE",
-    });
+    throw criarErro(
+      "Período de experiência inválido: início maior que fim.",
+      400,
+      {
+        code: "PERIODO_INCONSISTENTE",
+      },
+    );
   }
 
   return payload;
@@ -584,7 +675,7 @@ async function carregarComplementosChamada(req, chamadaId) {
       WHERE chamada_id = $1
       ORDER BY nome ASC, id ASC
       `,
-      [chamadaId]
+      [chamadaId],
     ),
     queryMany(
       req,
@@ -594,7 +685,7 @@ async function carregarComplementosChamada(req, chamadaId) {
       WHERE chamada_id = $1
       ORDER BY ordem ASC, id ASC
       `,
-      [chamadaId]
+      [chamadaId],
     ),
     queryMany(
       req,
@@ -604,7 +695,7 @@ async function carregarComplementosChamada(req, chamadaId) {
       WHERE chamada_id = $1
       ORDER BY ordem ASC, id ASC
       `,
-      [chamadaId]
+      [chamadaId],
     ),
   ]);
 
@@ -622,7 +713,7 @@ async function obterChamadaPorId(req, chamadaId) {
     ${SELECT_CHAMADA_BASE}
     WHERE c.id = $1
     `,
-    [chamadaId]
+    [chamadaId],
   );
 }
 
@@ -634,16 +725,26 @@ async function verificarPublicacaoPossivel(req, chamadaId) {
       (SELECT COUNT(*)::int FROM trabalhos_chamada_linhas WHERE chamada_id = $1) AS linhas,
       (SELECT COUNT(*)::int FROM trabalhos_chamada_criterios WHERE chamada_id = $1) AS criterios
     `,
-    [chamadaId]
+    [chamadaId],
   );
 
-  assert(Number(row?.linhas || 0) > 0, "Inclua ao menos uma linha temática antes de publicar.", 400, {
-    code: "CHAMADA_SEM_LINHA_TEMATICA",
-  });
+  assert(
+    Number(row?.linhas || 0) > 0,
+    "Inclua ao menos uma linha temática antes de publicar.",
+    400,
+    {
+      code: "CHAMADA_SEM_LINHA_TEMATICA",
+    },
+  );
 
-  assert(Number(row?.criterios || 0) > 0, "Inclua ao menos um critério escrito antes de publicar.", 400, {
-    code: "CHAMADA_SEM_CRITERIO",
-  });
+  assert(
+    Number(row?.criterios || 0) > 0,
+    "Inclua ao menos um critério escrito antes de publicar.",
+    400,
+    {
+      code: "CHAMADA_SEM_CRITERIO",
+    },
+  );
 }
 
 /* =========================================================================
@@ -658,7 +759,7 @@ exports.listarAtivas = async (req, res, next) => {
       ${SELECT_CHAMADA_BASE}
       WHERE c.publicado = TRUE
       ORDER BY c.prazo_final_br ASC, c.id ASC
-      `
+      `,
     );
 
     logInfo(req, "Chamadas ativas listadas.", { total: rows.length });
@@ -823,7 +924,7 @@ exports.listarAdmin = async (req, res, next) => {
       ${whereSql}
       ORDER BY s.criado_em DESC NULLS LAST, s.id DESC
       `,
-      params
+      params,
     );
 
     const data = rows.map((row) => ({
@@ -902,7 +1003,7 @@ exports.criar = async (req, res, next) => {
           payload.oral_outros,
           payload.premiacao_texto,
           payload.disposicao_finais_texto,
-        ]
+        ],
       );
 
       for (const linha of linhas) {
@@ -913,7 +1014,7 @@ exports.criar = async (req, res, next) => {
           VALUES
             ($1,$2,$3,$4)
           `,
-          [chamada.id, linha.codigo, linha.nome, linha.descricao]
+          [chamada.id, linha.codigo, linha.nome, linha.descricao],
         );
       }
 
@@ -932,7 +1033,7 @@ exports.criar = async (req, res, next) => {
             criterio.escala_min,
             criterio.escala_max,
             criterio.peso,
-          ]
+          ],
         );
       }
 
@@ -951,7 +1052,7 @@ exports.criar = async (req, res, next) => {
             criterio.escala_min,
             criterio.escala_max,
             criterio.peso,
-          ]
+          ],
         );
       }
 
@@ -988,7 +1089,10 @@ exports.atualizar = async (req, res, next) => {
       ? normalizarCriterios(body.criterios, "escrito")
       : null;
 
-    const criteriosOrais = Object.prototype.hasOwnProperty.call(body, "criterios_orais")
+    const criteriosOrais = Object.prototype.hasOwnProperty.call(
+      body,
+      "criterios_orais",
+    )
       ? normalizarCriterios(body.criterios_orais, "oral")
       : null;
 
@@ -1025,14 +1129,15 @@ exports.atualizar = async (req, res, next) => {
                  atualizado_em = NOW()
            WHERE id = $${values.length}
           `,
-          values
+          values,
         );
       }
 
       if (linhas) {
-        await tx.none(`DELETE FROM trabalhos_chamada_linhas WHERE chamada_id = $1`, [
-          chamadaId,
-        ]);
+        await tx.none(
+          `DELETE FROM trabalhos_chamada_linhas WHERE chamada_id = $1`,
+          [chamadaId],
+        );
 
         for (const linha of linhas) {
           await tx.none(
@@ -1042,15 +1147,16 @@ exports.atualizar = async (req, res, next) => {
             VALUES
               ($1,$2,$3,$4)
             `,
-            [chamadaId, linha.codigo, linha.nome, linha.descricao]
+            [chamadaId, linha.codigo, linha.nome, linha.descricao],
           );
         }
       }
 
       if (criterios) {
-        await tx.none(`DELETE FROM trabalhos_chamada_criterios WHERE chamada_id = $1`, [
-          chamadaId,
-        ]);
+        await tx.none(
+          `DELETE FROM trabalhos_chamada_criterios WHERE chamada_id = $1`,
+          [chamadaId],
+        );
 
         for (const criterio of criterios) {
           await tx.none(
@@ -1067,7 +1173,7 @@ exports.atualizar = async (req, res, next) => {
               criterio.escala_min,
               criterio.escala_max,
               criterio.peso,
-            ]
+            ],
           );
         }
       }
@@ -1075,7 +1181,7 @@ exports.atualizar = async (req, res, next) => {
       if (criteriosOrais) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_criterios_orais WHERE chamada_id = $1`,
-          [chamadaId]
+          [chamadaId],
         );
 
         for (const criterio of criteriosOrais) {
@@ -1093,7 +1199,7 @@ exports.atualizar = async (req, res, next) => {
               criterio.escala_min,
               criterio.escala_max,
               criterio.peso,
-            ]
+            ],
           );
         }
       }
@@ -1103,7 +1209,7 @@ exports.atualizar = async (req, res, next) => {
         ${SELECT_CHAMADA_BASE}
         WHERE c.id = $1
         `,
-        [chamadaId]
+        [chamadaId],
       );
     });
 
@@ -1120,7 +1226,10 @@ exports.publicar = async (req, res, next) => {
   try {
     const chamadaId = toId(req.params.id);
 
-    const publicado = Object.prototype.hasOwnProperty.call(req.body || {}, "publicado")
+    const publicado = Object.prototype.hasOwnProperty.call(
+      req.body || {},
+      "publicado",
+    )
       ? booleanOficial(req.body.publicado, true)
       : true;
 
@@ -1143,7 +1252,7 @@ exports.publicar = async (req, res, next) => {
        WHERE id = $2
        RETURNING *
       `,
-      [publicado, chamadaId]
+      [publicado, chamadaId],
     );
 
     logInfo(req, "Publicação de chamada atualizada.", {
@@ -1177,7 +1286,7 @@ exports.remover = async (req, res, next) => {
       FROM trabalhos_submissoes
       WHERE chamada_id = $1
       `,
-      [chamadaId]
+      [chamadaId],
     );
 
     assert(
@@ -1191,27 +1300,33 @@ exports.remover = async (req, res, next) => {
         details: {
           submissao_total: Number(vinculos?.total || 0),
         },
-      }
+      },
     );
 
     await transaction(req, async (tx) => {
-      await tx.none(`DELETE FROM trabalhos_chamada_criterios_orais WHERE chamada_id = $1`, [
+      await tx.none(
+        `DELETE FROM trabalhos_chamada_criterios_orais WHERE chamada_id = $1`,
+        [chamadaId],
+      );
+
+      await tx.none(
+        `DELETE FROM trabalhos_chamada_criterios WHERE chamada_id = $1`,
+        [chamadaId],
+      );
+
+      await tx.none(
+        `DELETE FROM trabalhos_chamada_linhas WHERE chamada_id = $1`,
+        [chamadaId],
+      );
+
+      await tx.none(
+        `DELETE FROM trabalhos_chamadas_modelos WHERE chamada_id = $1`,
+        [chamadaId],
+      );
+
+      await tx.none(`DELETE FROM trabalhos_chamadas WHERE id = $1`, [
         chamadaId,
       ]);
-
-      await tx.none(`DELETE FROM trabalhos_chamada_criterios WHERE chamada_id = $1`, [
-        chamadaId,
-      ]);
-
-      await tx.none(`DELETE FROM trabalhos_chamada_linhas WHERE chamada_id = $1`, [
-        chamadaId,
-      ]);
-
-      await tx.none(`DELETE FROM trabalhos_chamadas_modelos WHERE chamada_id = $1`, [
-        chamadaId,
-      ]);
-
-      await tx.none(`DELETE FROM trabalhos_chamadas WHERE id = $1`, [chamadaId]);
     });
 
     logInfo(req, "Chamada removida sem vínculos.", { chamadaId });
@@ -1253,7 +1368,7 @@ function setCachePublico(res, stat, maxAge = 3600) {
   res.setHeader("Accept-Ranges", "bytes");
   res.setHeader(
     "Access-Control-Expose-Headers",
-    "Content-Disposition, Content-Length, Last-Modified, ETag"
+    "Content-Disposition, Content-Length, Last-Modified, ETag",
   );
 }
 
@@ -1261,7 +1376,11 @@ function recursoNaoModificado(req, res, stat) {
   const ifNoneMatch = req.headers["if-none-match"];
   const etagAtual = res.getHeader("ETag");
 
-  if (ifNoneMatch && etagAtual && String(ifNoneMatch).trim() === String(etagAtual)) {
+  if (
+    ifNoneMatch &&
+    etagAtual &&
+    String(ifNoneMatch).trim() === String(etagAtual)
+  ) {
     res.status(304).end();
     return true;
   }
@@ -1289,21 +1408,26 @@ exports.exportarModeloBanner = async (req, res, next) => {
   try {
     const filePath = localizarModeloPadraoBanner();
 
-    assert(filePath, "Modelo padrão de banner não encontrado no servidor.", 404, {
-      code: "MODELO_PADRAO_NAO_ENCONTRADO",
-      adminHint:
-        "Verifique se banner-padrao.pptx existe em assets/modelos ou public/modelos.",
-    });
+    assert(
+      filePath,
+      "Modelo padrão de banner não encontrado no servidor.",
+      404,
+      {
+        code: "MODELO_PADRAO_NAO_ENCONTRADO",
+        adminHint:
+          "Verifique se banner-padrao.pptx existe em assets/modelos ou public/modelos.",
+      },
+    );
 
     const stat = await fsp.stat(filePath);
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename*=UTF-8''${encodeURIComponent("banner-padrao.pptx")}`
+      `attachment; filename*=UTF-8''${encodeURIComponent("banner-padrao.pptx")}`,
     );
     res.setHeader("Content-Length", String(stat.size));
 
@@ -1399,7 +1523,7 @@ async function obterModeloMaisRecente(req, chamadaId, tipo) {
     ORDER BY updated_at DESC, id DESC
     LIMIT 1
     `,
-    [chamadaId, tipo]
+    [chamadaId, tipo],
   );
 }
 
@@ -1418,9 +1542,14 @@ async function salvarModelo(req, chamadaId, file, cfg) {
   const nomeOriginal = file.originalname || cfg.nomePadrao;
   const ext = path.extname(nomeOriginal).toLowerCase();
 
-  assert(ext === ".ppt" || ext === ".pptx", "Envie arquivo .ppt ou .pptx.", 400, {
-    code: "MODELO_EXTENSAO_INVALIDA",
-  });
+  assert(
+    ext === ".ppt" || ext === ".pptx",
+    "Envie arquivo .ppt ou .pptx.",
+    400,
+    {
+      code: "MODELO_EXTENSAO_INVALIDA",
+    },
+  );
 
   assert(
     MIME_PPT.has(file.mimetype) || ext === ".ppt" || ext === ".pptx",
@@ -1429,7 +1558,7 @@ async function salvarModelo(req, chamadaId, file, cfg) {
     {
       code: "MODELO_MIME_INVALIDO",
       details: { mimetype: file.mimetype },
-    }
+    },
   );
 
   assert(
@@ -1440,7 +1569,7 @@ async function salvarModelo(req, chamadaId, file, cfg) {
       code: "MODELO_ASSINATURA_INVALIDA",
       adminHint:
         "A extensão do arquivo indica PowerPoint, mas a assinatura binária não corresponde.",
-    }
+    },
   );
 
   const hash = crypto.createHash("sha256").update(file.buffer).digest("hex");
@@ -1504,7 +1633,7 @@ async function salvarModelo(req, chamadaId, file, cfg) {
       hash,
       cfg.tipo,
       usuarioId,
-    ]
+    ],
   );
 }
 
@@ -1572,12 +1701,13 @@ function criarDownloadModelo(tipoModelo) {
 
       const stat = await fsp.stat(absPath);
       const nomeArquivo = row.nome_arquivo || cfg.nomePadrao;
-      const mimeType = row.mime || mime.lookup(nomeArquivo) || "application/octet-stream";
+      const mimeType =
+        row.mime || mime.lookup(nomeArquivo) || "application/octet-stream";
 
       res.setHeader("Content-Type", mimeType);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename*=UTF-8''${encodeURIComponent(nomeArquivo)}`
+        `attachment; filename*=UTF-8''${encodeURIComponent(nomeArquivo)}`,
       );
       res.setHeader("Content-Length", String(stat.size));
 

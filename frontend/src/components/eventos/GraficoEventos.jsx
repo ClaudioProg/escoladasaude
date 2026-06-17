@@ -87,14 +87,20 @@ function normalizeHeight(value) {
 
 function useDarkModeFromDocument() {
   const [isDark, setIsDark] = useState(() => {
-    if (typeof document === "undefined") return false;
+    if (typeof document === "undefined") {
+      return false;
+    }
 
     return document.documentElement.classList.contains("dark");
   });
 
   useEffect(() => {
-    if (typeof document === "undefined") return undefined;
-    if (typeof MutationObserver === "undefined") return undefined;
+    if (typeof document === "undefined") {
+      return undefined;
+    }
+    if (typeof MutationObserver === "undefined") {
+      return undefined;
+    }
 
     const html = document.documentElement;
 
@@ -133,12 +139,16 @@ const ValueLabelsPlugin = {
   id: "valueLabelsEventosDashboard",
 
   afterDatasetsDraw(chart, _args, pluginOptions) {
-    if (!pluginOptions?.show) return;
+    if (!pluginOptions?.show) {
+      return;
+    }
 
     const { ctx } = chart;
     const datasetMeta = chart.getDatasetMeta(0);
 
-    if (!datasetMeta?.data?.length) return;
+    if (!datasetMeta?.data?.length) {
+      return;
+    }
 
     const isDark =
       typeof document !== "undefined" &&
@@ -156,7 +166,9 @@ const ValueLabelsPlugin = {
     datasetMeta.data.forEach((bar, index) => {
       const value = chart.data.datasets[0].data[index];
 
-      if (!bar || value == null) return;
+      if (!bar || value == null) {
+        return;
+      }
 
       const { x, y } = bar.tooltipPosition();
       const text = String(value);
@@ -188,12 +200,12 @@ export default function GraficoEventos({
 
   const dataValues = useMemo(
     () => OFFICIAL_KEYS.map((key) => normalized[key]),
-    [normalized]
+    [normalized],
   );
 
   const total = useMemo(
     () => dataValues.reduce((acc, value) => acc + Number(value || 0), 0),
-    [dataValues]
+    [dataValues],
   );
 
   const hasData = dataValues.some((value) => Number(value) > 0);
@@ -232,7 +244,7 @@ export default function GraficoEventos({
         },
       ],
     }),
-    [borderColor, borderRadius, colors, dataValues]
+    [borderColor, borderRadius, colors, dataValues],
   );
 
   const chartOptions = useMemo(
@@ -317,7 +329,7 @@ export default function GraficoEventos({
       showValueLabels,
       tickColor,
       total,
-    ]
+    ],
   );
 
   const ariaLabel = `Gráfico de barras com resumo de eventos do usuário. Total: ${total}. Cursos realizados: ${normalized.cursosRealizados}. Próximos eventos: ${normalized.proximosEventos}. Eventos como organizador: ${normalized.eventosorganizador}.`;
@@ -328,7 +340,7 @@ export default function GraficoEventos({
         className={classNames(
           "rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm",
           "dark:border-slate-800 dark:bg-slate-900",
-          className
+          className,
         )}
         role="status"
         aria-live="polite"
@@ -413,7 +425,10 @@ GraficoEventos.propTypes = {
   dados: PropTypes.shape({
     cursosRealizados: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     proximosEventos: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    eventosorganizador: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    eventosorganizador: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
   }),
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   className: PropTypes.string,

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/pages/Perfil.jsx — v2.1
 // Atualizado em: 21/05/2026
 // Plataforma Escola da Saúde
@@ -20,7 +19,6 @@ import {
   RefreshCw,
   Save,
   ShieldCheck,
-  Sparkles,
   User,
 } from "lucide-react";
 
@@ -76,7 +74,9 @@ function normText(value) {
 }
 
 function normEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function unwrap(response) {
@@ -94,8 +94,12 @@ function aplicarMascaraCPF(value) {
 function aplicarMascaraCelular(value) {
   const digits = onlyDigits(value).slice(0, 11);
 
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
   if (digits.length <= 10) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
@@ -106,8 +110,12 @@ function aplicarMascaraCelular(value) {
 function aplicarMascaraRegistro(value) {
   const digits = onlyDigits(value).slice(0, 7);
 
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 5) {
+    return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  }
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}-${digits.slice(5, 6)}`;
 }
 
@@ -125,7 +133,7 @@ function todayYmd() {
   const pad = (number) => String(number).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
@@ -140,7 +148,9 @@ function toYmd(value) {
 function validarYmdReal(value) {
   const ymd = String(value || "").trim();
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return false;
+  }
 
   const [anoRaw, mesRaw, diaRaw] = ymd.split("-");
   const ano = Number(anoRaw);
@@ -154,14 +164,20 @@ function validarYmdReal(value) {
     date.getUTCMonth() === mes - 1 &&
     date.getUTCDate() === dia;
 
-  if (!existe) return false;
-  if (ano < 1900) return false;
+  if (!existe) {
+    return false;
+  }
+  if (ano < 1900) {
+    return false;
+  }
 
   return ymd <= todayYmd();
 }
 
 function toNumberOrNull(value) {
-  if (value === "" || value === null || value === undefined) return null;
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
 
   const number = Number(value);
 
@@ -185,8 +201,8 @@ function ordenarPorNome(array = []) {
     String(a?.nome || a?.sigla || "").localeCompare(
       String(b?.nome || b?.sigla || ""),
       "pt-BR",
-      { sensitivity: "base" }
-    )
+      { sensitivity: "base" },
+    ),
   );
 }
 
@@ -195,8 +211,8 @@ function ordenarUnidades(array = []) {
     String(a?.sigla || a?.nome || "").localeCompare(
       String(b?.sigla || b?.nome || ""),
       "pt-BR",
-      { sensitivity: "base" }
-    )
+      { sensitivity: "base" },
+    ),
   );
 }
 
@@ -220,11 +236,11 @@ function montarSnapshot(values) {
 function perfilObrigatorioCompleto(usuario = {}) {
   return Boolean(
     validarCelularObrigatorio(usuario.celular) &&
-      usuario.unidade_id &&
-      usuario.cargo_id &&
-      usuario.escolaridade_id &&
-      usuario.deficiencia_id &&
-      toYmd(usuario.data_nascimento)
+    usuario.unidade_id &&
+    usuario.cargo_id &&
+    usuario.escolaridade_id &&
+    usuario.deficiencia_id &&
+    toYmd(usuario.data_nascimento),
   );
 }
 
@@ -246,26 +262,26 @@ function sincronizarSessaoPerfil(usuarioAtualizado) {
           usuario: novo,
           perfil_incompleto: Boolean(novo.perfil_incompleto),
         },
-      })
+      }),
     );
 
     window.dispatchEvent(
-  new CustomEvent("escola:sessao-atualizada", {
-    detail: {
-      usuario: novo,
-    },
-  })
-);
+      new CustomEvent("escola:sessao-atualizada", {
+        detail: {
+          usuario: novo,
+        },
+      }),
+    );
 
-window.dispatchEvent(
-  new CustomEvent("auth:changed", {
-    detail: {
-      authenticated: true,
-      usuario: novo,
-      origem: "perfil_atualizado",
-    },
-  })
-);
+    window.dispatchEvent(
+      new CustomEvent("auth:changed", {
+        detail: {
+          authenticated: true,
+          usuario: novo,
+          origem: "perfil_atualizado",
+        },
+      }),
+    );
   } catch {
     // noop
   }
@@ -319,22 +335,33 @@ function BotaoLocal({
 }
 
 function FieldError({ id, children }) {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
 
   return (
-    <p id={id} className="mt-1 text-xs text-rose-600 dark:text-rose-300" role="alert">
+    <p
+      id={id}
+      className="mt-1 text-xs text-rose-600 dark:text-rose-300"
+      role="alert"
+    >
       {children}
     </p>
   );
 }
 
 function FieldHint({ id, children, isDark }) {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
 
   return (
     <p
       id={id}
-      className={cx("mt-1 text-[11px]", isDark ? "text-zinc-400" : "text-slate-500")}
+      className={cx(
+        "mt-1 text-[11px]",
+        isDark ? "text-zinc-400" : "text-slate-500",
+      )}
     >
       {children}
     </p>
@@ -346,7 +373,7 @@ function SectionCard({ title, description, icon: Icon, isDark, children }) {
     <section
       className={cx(
         "rounded-3xl border p-5 shadow-sm md:p-7",
-        isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white"
+        isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white",
       )}
     >
       <div className="mb-5 flex items-start gap-3">
@@ -355,7 +382,7 @@ function SectionCard({ title, description, icon: Icon, isDark, children }) {
             "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
             isDark
               ? "border-white/10 bg-white/5 text-emerald-300"
-              : "border-emerald-100 bg-emerald-50 text-emerald-700"
+              : "border-emerald-100 bg-emerald-50 text-emerald-700",
           )}
         >
           <Icon className="h-5 w-5" aria-hidden="true" />
@@ -364,7 +391,12 @@ function SectionCard({ title, description, icon: Icon, isDark, children }) {
         <div>
           <h2 className="text-lg font-extrabold">{title}</h2>
           {description ? (
-            <p className={cx("mt-0.5 text-sm", isDark ? "text-zinc-400" : "text-slate-500")}>
+            <p
+              className={cx(
+                "mt-0.5 text-sm",
+                isDark ? "text-zinc-400" : "text-slate-500",
+              )}
+            >
               {description}
             </p>
           ) : null}
@@ -382,10 +414,8 @@ function StatusItem({ icon: Icon, label, value, hint, tone = "emerald" }) {
       "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/25 dark:text-emerald-200 dark:border-emerald-900/40",
     amber:
       "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/25 dark:text-amber-200 dark:border-amber-900/40",
-    rose:
-      "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/25 dark:text-rose-200 dark:border-rose-900/40",
-    sky:
-      "bg-sky-50 text-sky-700 border-sky-100 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40",
+    rose: "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/25 dark:text-rose-200 dark:border-rose-900/40",
+    sky: "bg-sky-50 text-sky-700 border-sky-100 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40",
   };
 
   return (
@@ -393,7 +423,7 @@ function StatusItem({ icon: Icon, label, value, hint, tone = "emerald" }) {
       <div
         className={cx(
           "grid h-12 w-12 shrink-0 place-items-center rounded-2xl border",
-          tones[tone] || tones.emerald
+          tones[tone] || tones.emerald,
         )}
       >
         <Icon className="h-5 w-5" aria-hidden="true" />
@@ -407,7 +437,9 @@ function StatusItem({ icon: Icon, label, value, hint, tone = "emerald" }) {
           {value}
         </p>
         {hint ? (
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400">{hint}</p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400">
+            {hint}
+          </p>
         ) : null}
       </div>
     </div>
@@ -432,7 +464,7 @@ function ProfileStatusPanel({
     <section
       className={cx(
         "rounded-3xl border p-5 shadow-sm md:p-6",
-        isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white"
+        isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white",
       )}
       aria-label="Resumo do perfil"
     >
@@ -441,7 +473,11 @@ function ProfileStatusPanel({
           icon={completo ? CheckCircle2 : AlertTriangle}
           label="Status"
           value={completo ? "Completo" : "Incompleto"}
-          hint={completo ? "Dados obrigatórios preenchidos" : `${stats.pendentes} pendente(s)`}
+          hint={
+            completo
+              ? "Dados obrigatórios preenchidos"
+              : `${stats.pendentes} pendente(s)`
+          }
           tone={completo ? "emerald" : "amber"}
         />
 
@@ -466,7 +502,11 @@ function ProfileStatusPanel({
             icon={CalendarDays}
             label="Pendentes"
             value={stats.pendentes}
-            hint={stats.pendentes === 1 ? "campo obrigatório" : "campos obrigatórios"}
+            hint={
+              stats.pendentes === 1
+                ? "campo obrigatório"
+                : "campos obrigatórios"
+            }
             tone={stats.pendentes ? "rose" : "emerald"}
           />
         </div>
@@ -495,7 +535,11 @@ function ProfileStatusPanel({
           aria-label="Salvar alterações no perfil"
           leftIcon={<Save className="h-4 w-4" aria-hidden="true" />}
         >
-          {salvando ? "Salvando..." : dirty ? "Salvar alterações" : "Sem alterações"}
+          {salvando
+            ? "Salvando..."
+            : dirty
+              ? "Salvar alterações"
+              : "Sem alterações"}
         </BotaoLocal>
 
         {podeGerenciarAssinatura ? (
@@ -525,7 +569,7 @@ function SaveBottomPanel({ dirty, salvando, stats, onSave, isDark }) {
             : "border-emerald-200 bg-emerald-50"
           : isDark
             ? "border-amber-900/40 bg-amber-950/20"
-            : "border-amber-200 bg-amber-50"
+            : "border-amber-200 bg-amber-50",
       )}
       aria-label="Finalizar atualização cadastral"
     >
@@ -540,7 +584,7 @@ function SaveBottomPanel({ dirty, salvando, stats, onSave, isDark }) {
                   : "text-emerald-900"
                 : isDark
                   ? "text-amber-100"
-                  : "text-amber-950"
+                  : "text-amber-950",
             )}
           >
             Finalizar atualização cadastral
@@ -555,7 +599,7 @@ function SaveBottomPanel({ dirty, salvando, stats, onSave, isDark }) {
                   : "text-emerald-800"
                 : isDark
                   ? "text-amber-200/80"
-                  : "text-amber-900/80"
+                  : "text-amber-900/80",
             )}
           >
             Revise os dados obrigatórios e salve para liberar a navegação na
@@ -569,14 +613,16 @@ function SaveBottomPanel({ dirty, salvando, stats, onSave, isDark }) {
           loading={salvando}
           className={cx(
             "w-full sm:w-auto",
-            dirty
-              ? "bg-emerald-700 text-white hover:bg-emerald-800"
-              : ""
+            dirty ? "bg-emerald-700 text-white hover:bg-emerald-800" : "",
           )}
           aria-label="Salvar alterações do cadastro"
           leftIcon={<Save className="h-4 w-4" aria-hidden="true" />}
         >
-          {salvando ? "Salvando..." : dirty ? "Salvar alterações" : "Sem alterações"}
+          {salvando
+            ? "Salvando..."
+            : dirty
+              ? "Salvar alterações"
+              : "Sem alterações"}
         </BotaoLocal>
       </div>
     </section>
@@ -643,23 +689,25 @@ export default function Perfil() {
   const rCor = useRef(null);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message || "";
+    if (liveRef.current) {
+      liveRef.current.textContent = message || "";
+    }
   }, []);
 
   const destinoAposPerfil = useMemo(() => {
-  try {
-    const params = new URLSearchParams(location.search);
-    const next = String(params.get("next") || "").trim();
+    try {
+      const params = new URLSearchParams(location.search);
+      const next = String(params.get("next") || "").trim();
 
-    if (next && next.startsWith("/") && !next.startsWith("//")) {
-      return next;
+      if (next && next.startsWith("/") && !next.startsWith("//")) {
+        return next;
+      }
+    } catch {
+      // noop
     }
-  } catch {
-    // noop
-  }
 
-  return "/painel";
-}, [location.search]);
+    return "/painel";
+  }, [location.search]);
 
   const inputCls = useCallback(
     (hasError) =>
@@ -669,21 +717,21 @@ export default function Perfil() {
         isDark
           ? "border-white/10 bg-zinc-950/30 text-zinc-100 placeholder:text-zinc-500"
           : "border-slate-300 bg-white text-slate-900 placeholder:text-slate-400",
-        hasError ? "border-red-500/60 ring-2 ring-red-500/60" : ""
+        hasError ? "border-red-500/60 ring-2 ring-red-500/60" : "",
       ),
-    [isDark]
+    [isDark],
   );
 
   const selectCls = useCallback(
     (hasError) => cx(inputCls(hasError), "appearance-none"),
-    [inputCls]
+    [inputCls],
   );
 
   const readonlyCls = cx(
     "w-full rounded-2xl border px-4 py-3 text-sm",
     isDark
       ? "border-white/10 bg-zinc-950/30 text-zinc-400"
-      : "border-slate-200 bg-slate-100 text-slate-600"
+      : "border-slate-200 bg-slate-100 text-slate-600",
   );
 
   const hintCls = isDark ? "text-zinc-400" : "text-slate-500";
@@ -794,15 +842,19 @@ export default function Perfil() {
       orientacaoSexualId,
       registro,
       unidadeId,
-    ]
+    ],
   );
 
   const dirty = useMemo(() => {
-    if (!baseline) return false;
-    if (senha) return true;
+    if (!baseline) {
+      return false;
+    }
+    if (senha) {
+      return true;
+    }
 
     return Object.keys(snapshotAtual).some(
-      (key) => String(snapshotAtual[key] ?? "") !== String(baseline[key] ?? "")
+      (key) => String(snapshotAtual[key] ?? "") !== String(baseline[key] ?? ""),
     );
   }, [baseline, senha, snapshotAtual]);
 
@@ -823,7 +875,7 @@ export default function Perfil() {
     };
 
     const pendentes = CAMPOS_INSTITUCIONAIS_OBRIGATORIOS.filter(
-      (field) => !String(required[field] || "").trim()
+      (field) => !String(required[field] || "").trim(),
     ).length;
 
     const total = CAMPOS_INSTITUCIONAIS_OBRIGATORIOS.length;
@@ -835,7 +887,14 @@ export default function Perfil() {
       percent,
       celular_pendente: !String(required.celular || "").trim(),
     };
-  }, [cargoId, celular, dataNascimento, deficienciaId, escolaridadeId, unidadeId]);
+  }, [
+    cargoId,
+    celular,
+    dataNascimento,
+    deficienciaId,
+    escolaridadeId,
+    unidadeId,
+  ]);
 
   const carregarPerfil = useCallback(async () => {
     try {
@@ -854,16 +913,15 @@ export default function Perfil() {
         throw new Error("Perfil não encontrado.");
       }
 
-            preencherFormulario(me);
+      preencherFormulario(me);
       sincronizarSessaoPerfil(me);
 
       const incompleto = Boolean(
-        me.perfil_incompleto || !perfilObrigatorioCompleto(me)
+        me.perfil_incompleto || !perfilObrigatorioCompleto(me),
       );
 
       setPerfilIncompletoFlag?.(incompleto);
       setLive("Perfil atualizado.");
-    
     } catch (error) {
       console.error("[Perfil] falha ao atualizar perfil", {
         message: error?.message,
@@ -883,24 +941,36 @@ export default function Perfil() {
       const response = await apiPerfilOpcao();
       const opcoes = unwrap(response) || {};
 
-      setUnidades(ordenarUnidades(Array.isArray(opcoes.unidades) ? opcoes.unidades : []));
-      setCargos(ordenarPorNome(Array.isArray(opcoes.cargos) ? opcoes.cargos : []));
+      setUnidades(
+        ordenarUnidades(Array.isArray(opcoes.unidades) ? opcoes.unidades : []),
+      );
+      setCargos(
+        ordenarPorNome(Array.isArray(opcoes.cargos) ? opcoes.cargos : []),
+      );
       setEscolaridades(
-        ordenarPorNome(Array.isArray(opcoes.escolaridades) ? opcoes.escolaridades : [])
+        ordenarPorNome(
+          Array.isArray(opcoes.escolaridades) ? opcoes.escolaridades : [],
+        ),
       );
       setDeficiencias(
-        ordenarPorNome(Array.isArray(opcoes.deficiencias) ? opcoes.deficiencias : [])
+        ordenarPorNome(
+          Array.isArray(opcoes.deficiencias) ? opcoes.deficiencias : [],
+        ),
       );
-      setGeneros(ordenarPorNome(Array.isArray(opcoes.generos) ? opcoes.generos : []));
+      setGeneros(
+        ordenarPorNome(Array.isArray(opcoes.generos) ? opcoes.generos : []),
+      );
       setOrientacoesSexuais(
         ordenarPorNome(
           Array.isArray(opcoes.orientacoes_sexuais)
             ? opcoes.orientacoes_sexuais
-            : []
-        )
+            : [],
+        ),
       );
       setCoresRacas(
-        ordenarPorNome(Array.isArray(opcoes.cores_racas) ? opcoes.cores_racas : [])
+        ordenarPorNome(
+          Array.isArray(opcoes.cores_racas) ? opcoes.cores_racas : [],
+        ),
       );
     } catch (error) {
       console.error("[Perfil] falha ao carregar opções", error);
@@ -929,7 +999,7 @@ export default function Perfil() {
     carregarAssinatura();
   }, [carregarAssinatura, podeGerenciarAssinatura]);
 
-  function validarCliente() {
+  const validarCliente = useCallback(() => {
     const fields = {};
 
     if (!normText(nome)) {
@@ -957,16 +1027,39 @@ export default function Perfil() {
       fields.data_nascimento = "Data de nascimento inválida.";
     }
 
-    if (!unidadeId) fields.unidade_id = "Unidade é obrigatória.";
-    if (!cargoId) fields.cargo_id = "Cargo é obrigatório.";
-    if (!escolaridadeId) fields.escolaridade_id = "Escolaridade é obrigatória.";
-    if (!deficienciaId) fields.deficiencia_id = "Deficiência é obrigatória.";
+    if (!unidadeId) {
+      fields.unidade_id = "Unidade é obrigatória.";
+    }
+
+    if (!cargoId) {
+      fields.cargo_id = "Cargo é obrigatório.";
+    }
+
+    if (!escolaridadeId) {
+      fields.escolaridade_id = "Escolaridade é obrigatória.";
+    }
+
+    if (!deficienciaId) {
+      fields.deficiencia_id = "Deficiência é obrigatória.";
+    }
 
     return fields;
-  }
+  }, [
+    cargoId,
+    celular,
+    dataNascimento,
+    deficienciaId,
+    email,
+    escolaridadeId,
+    nome,
+    senha,
+    unidadeId,
+  ]);
 
   const salvarAlteracao = useCallback(async () => {
-    if (!usuario?.id) return;
+    if (!usuario?.id) {
+      return;
+    }
 
     if (!dirty) {
       toast.info("Nenhuma alteração para salvar.");
@@ -1046,42 +1139,42 @@ export default function Perfil() {
 
       const atualizado = unwrap(atualizadoResponse);
 
-            preencherFormulario(atualizado);
+      preencherFormulario(atualizado);
       setSenha("");
       sincronizarSessaoPerfil(atualizado);
 
       const incompleto = Boolean(
-        atualizado?.perfil_incompleto || !perfilObrigatorioCompleto(atualizado)
+        atualizado?.perfil_incompleto || !perfilObrigatorioCompleto(atualizado),
       );
 
       setPerfilIncompletoFlag?.(incompleto);
 
-window.dispatchEvent(
-  new CustomEvent("auth:changed", {
-    detail: {
-      authenticated: true,
-      usuario: atualizado,
-      perfil_incompleto: incompleto,
-      origem: "perfil_salvo",
-    },
-  })
-);
+      window.dispatchEvent(
+        new CustomEvent("auth:changed", {
+          detail: {
+            authenticated: true,
+            usuario: atualizado,
+            perfil_incompleto: incompleto,
+            origem: "perfil_salvo",
+          },
+        }),
+      );
 
-toast.success("Dados atualizados com sucesso.");
-setLive("Alterações salvas.");
+      toast.success("Dados atualizados com sucesso.");
+      setLive("Alterações salvas.");
 
-if (!incompleto) {
-  window.setTimeout(() => {
-    navigate(destinoAposPerfil, { replace: true });
-  }, 300);
-}
+      if (!incompleto) {
+        window.setTimeout(() => {
+          navigate(destinoAposPerfil, { replace: true });
+        }, 300);
+      }
     } catch (error) {
       console.error("[Perfil] falha ao salvar alterações", error);
 
       const fieldsServidor = getFieldErrors(error);
       const message = getErrorMessage(
         error,
-        "Não foi possível salvar as alterações."
+        "Não foi possível salvar as alterações.",
       );
 
       if (Object.keys(fieldsServidor).length) {
@@ -1113,6 +1206,8 @@ if (!incompleto) {
     navigate,
     destinoAposPerfil,
     usuario?.id,
+    setLive,
+    validarCliente,
   ]);
 
   useEffect(() => {
@@ -1121,7 +1216,9 @@ if (!incompleto) {
         (event.ctrlKey || event.metaKey) &&
         String(event.key).toLowerCase() === "s";
 
-      if (!isSave) return;
+      if (!isSave) {
+        return;
+      }
 
       event.preventDefault();
       salvarAlteracao();
@@ -1137,7 +1234,7 @@ if (!incompleto) {
       <main
         className={cx(
           "flex min-h-screen flex-col",
-          isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900"
+          isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900",
         )}
       >
         <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
@@ -1154,7 +1251,9 @@ if (!incompleto) {
           <div
             className={cx(
               "rounded-3xl border p-6 text-center shadow-sm md:p-8",
-              isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white"
+              isDark
+                ? "border-white/10 bg-zinc-900/50"
+                : "border-slate-200 bg-white",
             )}
           >
             <div className="inline-flex items-center gap-2 text-sm font-semibold">
@@ -1173,7 +1272,7 @@ if (!incompleto) {
     <main
       className={cx(
         "flex min-h-screen flex-col transition-colors",
-        isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900"
+        isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900",
       )}
     >
       <p ref={liveRef} className="sr-only" aria-live="polite" />
@@ -1209,18 +1308,24 @@ if (!incompleto) {
               "rounded-2xl border px-4 py-3 text-sm",
               stats.completo
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-200"
-                : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200"
+                : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200",
             )}
           >
             {stats.completo ? (
               <>
-                <CheckCircle2 className="mr-1 inline h-4 w-4" aria-hidden="true" />
+                <CheckCircle2
+                  className="mr-1 inline h-4 w-4"
+                  aria-hidden="true"
+                />
                 <strong className="font-extrabold">Cadastro completo.</strong>{" "}
                 Seus dados obrigatórios estão preenchidos.
               </>
             ) : (
               <>
-                <AlertTriangle className="mr-1 inline h-4 w-4" aria-hidden="true" />
+                <AlertTriangle
+                  className="mr-1 inline h-4 w-4"
+                  aria-hidden="true"
+                />
                 <strong className="font-extrabold">Perfil incompleto:</strong>{" "}
                 complete os campos obrigatórios para evitar bloqueios de fluxo.
               </>
@@ -1240,7 +1345,8 @@ if (!incompleto) {
                       Celular obrigatório
                     </p>
                     <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
-                      Informe um número de celular para contato e segurança da conta.
+                      Informe um número de celular para contato e segurança da
+                      conta.
                     </p>
                   </div>
                 </div>
@@ -1265,25 +1371,30 @@ if (!incompleto) {
                 "rounded-2xl border px-4 py-3 text-sm",
                 temAssinatura === false
                   ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200"
-                  : "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-900/20 dark:text-sky-200"
+                  : "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-900/20 dark:text-sky-200",
               )}
             >
               <div className="flex items-start gap-2">
                 <ShieldCheck className="mt-0.5 h-4 w-4" aria-hidden="true" />
                 <div>
-                  <strong className="font-extrabold">Assinatura digital:</strong>{" "}
+                  <strong className="font-extrabold">
+                    Assinatura digital:
+                  </strong>{" "}
                   {temAssinatura === false ? (
                     <>
                       você ainda não cadastrou uma assinatura. Use{" "}
-                      <em>Gerenciar assinatura</em> para registrar uma assinatura
-                      digital.
+                      <em>Gerenciar assinatura</em> para registrar uma
+                      assinatura digital.
                     </>
                   ) : temAssinatura === true ? (
-                    <>assinatura localizada. Você pode alterá-la quando necessário.</>
+                    <>
+                      assinatura localizada. Você pode alterá-la quando
+                      necessário.
+                    </>
                   ) : (
                     <>
-                      use <em>Gerenciar assinatura</em> para consultar, cadastrar ou
-                      atualizar sua assinatura digital.
+                      use <em>Gerenciar assinatura</em> para consultar,
+                      cadastrar ou atualizar sua assinatura digital.
                     </>
                   )}
                 </div>
@@ -1345,7 +1456,7 @@ if (!incompleto) {
                   <Mail
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      hintCls
+                      hintCls,
                     )}
                     aria-hidden="true"
                   />
@@ -1382,7 +1493,7 @@ if (!incompleto) {
                   <Phone
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      hintCls
+                      hintCls,
                     )}
                     aria-hidden="true"
                   />
@@ -1402,7 +1513,9 @@ if (!incompleto) {
                     autoComplete="tel"
                     disabled={salvando}
                     aria-invalid={!!erros.celular}
-                    aria-describedby={erros.celular ? "erro-celular" : "dica-celular"}
+                    aria-describedby={
+                      erros.celular ? "erro-celular" : "dica-celular"
+                    }
                   />
                 </div>
                 {erros.celular ? (
@@ -1422,7 +1535,7 @@ if (!incompleto) {
                   <LockKeyhole
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      hintCls
+                      hintCls,
                     )}
                     aria-hidden="true"
                   />
@@ -1471,7 +1584,9 @@ if (!incompleto) {
                   disabled={salvando}
                   inputMode="numeric"
                   aria-invalid={!!erros.registro}
-                  aria-describedby={erros.registro ? "erro-registro" : "dica-registro"}
+                  aria-describedby={
+                    erros.registro ? "erro-registro" : "dica-registro"
+                  }
                 />
                 {erros.registro ? (
                   <FieldError id="erro-registro">{erros.registro}</FieldError>
@@ -1490,7 +1605,7 @@ if (!incompleto) {
                   <CalendarDays
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      hintCls
+                      hintCls,
                     )}
                     aria-hidden="true"
                   />
@@ -1541,7 +1656,9 @@ if (!incompleto) {
                   className={selectCls(!!erros.unidade_id)}
                   disabled={salvando || carregandoListas}
                   aria-invalid={!!erros.unidade_id}
-                  aria-describedby={erros.unidade_id ? "erro-unidade_id" : undefined}
+                  aria-describedby={
+                    erros.unidade_id ? "erro-unidade_id" : undefined
+                  }
                 >
                   <option value="">
                     {carregandoListas ? "Carregando..." : "Selecione…"}
@@ -1578,7 +1695,10 @@ if (!incompleto) {
                     {carregandoListas ? "Carregando..." : "Selecione…"}
                   </option>
                   {escolaridades.map((escolaridade) => (
-                    <option key={escolaridade.id} value={String(escolaridade.id)}>
+                    <option
+                      key={escolaridade.id}
+                      value={String(escolaridade.id)}
+                    >
                       {escolaridade.nome}
                     </option>
                   ))}
@@ -1603,7 +1723,9 @@ if (!incompleto) {
                   className={selectCls(!!erros.cargo_id)}
                   disabled={salvando || carregandoListas}
                   aria-invalid={!!erros.cargo_id}
-                  aria-describedby={erros.cargo_id ? "erro-cargo_id" : undefined}
+                  aria-describedby={
+                    erros.cargo_id ? "erro-cargo_id" : undefined
+                  }
                 >
                   <option value="">
                     {carregandoListas ? "Carregando..." : "Selecione…"}
@@ -1633,7 +1755,9 @@ if (!incompleto) {
                   disabled={salvando || carregandoListas}
                   aria-invalid={!!erros.deficiencia_id}
                   aria-describedby={
-                    erros.deficiencia_id ? "erro-deficiencia_id" : "dica-deficiencia_id"
+                    erros.deficiencia_id
+                      ? "erro-deficiencia_id"
+                      : "dica-deficiencia_id"
                   }
                 >
                   <option value="">
@@ -1651,7 +1775,8 @@ if (!incompleto) {
                   </FieldError>
                 ) : (
                   <FieldHint id="dica-deficiencia_id" isDark={isDark}>
-                    Se não possuir deficiência, selecione a opção correspondente.
+                    Se não possuir deficiência, selecione a opção
+                    correspondente.
                   </FieldHint>
                 )}
               </div>
@@ -1680,7 +1805,9 @@ if (!incompleto) {
                   className={selectCls(!!erros.genero_id)}
                   disabled={salvando || carregandoListas}
                   aria-invalid={!!erros.genero_id}
-                  aria-describedby={erros.genero_id ? "erro-genero_id" : undefined}
+                  aria-describedby={
+                    erros.genero_id ? "erro-genero_id" : undefined
+                  }
                 >
                   <option value="">
                     {carregandoListas ? "Carregando..." : "Não informar"}
@@ -1744,7 +1871,9 @@ if (!incompleto) {
                   className={selectCls(!!erros.cor_raca_id)}
                   disabled={salvando || carregandoListas}
                   aria-invalid={!!erros.cor_raca_id}
-                  aria-describedby={erros.cor_raca_id ? "erro-cor_raca_id" : undefined}
+                  aria-describedby={
+                    erros.cor_raca_id ? "erro-cor_raca_id" : undefined
+                  }
                 >
                   <option value="">
                     {carregandoListas ? "Carregando..." : "Não informar"}
@@ -1755,7 +1884,9 @@ if (!incompleto) {
                     </option>
                   ))}
                 </select>
-                <FieldError id="erro-cor_raca_id">{erros.cor_raca_id}</FieldError>
+                <FieldError id="erro-cor_raca_id">
+                  {erros.cor_raca_id}
+                </FieldError>
               </div>
             </div>
           </SectionCard>
@@ -1772,7 +1903,9 @@ if (!incompleto) {
             isOpen={modalAberto}
             onClose={() => {
               setModalAberto(false);
-              if (podeGerenciarAssinatura) carregarAssinatura();
+              if (podeGerenciarAssinatura) {
+                carregarAssinatura();
+              }
             }}
           />
         </div>

@@ -51,14 +51,14 @@ if (typeof requireAuth !== "function") {
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[dashboardRoute] authorize deve ser exportado como função nomeada por middlewares/authorize."
+    "[dashboardRoute] authorize deve ser exportado como função nomeada por middlewares/authorize.",
   );
 }
 
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[dashboardRoute] Handler obrigatório ausente: dashboardController.${name}`
+      `[dashboardRoute] Handler obrigatório ausente: dashboardController.${name}`,
     );
   }
 }
@@ -66,7 +66,7 @@ function assertHandler(name, handler) {
 assertHandler("getResumoDashboard", dashboardController.getResumoDashboard);
 assertHandler(
   "getAvaliacaoRecenteorganizador",
-  dashboardController.getAvaliacaoRecenteorganizador
+  dashboardController.getAvaliacaoRecenteorganizador,
 );
 assertHandler("obterDashboard", dashboardController.obterDashboard);
 
@@ -74,10 +74,8 @@ assertHandler("obterDashboard", dashboardController.obterDashboard);
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -139,16 +137,14 @@ router.use(dashboardLimiter);
 router.get(
   "/",
   routeTag("dashboardRoute:v2.1:GET /"),
-  asyncHandler(dashboardController.getResumoDashboard)
+  asyncHandler(dashboardController.getResumoDashboard),
 );
 
 /**
  * HEAD /api/dashboard
  */
-router.head(
-  "/",
-  routeTag("dashboardRoute:v2.1:HEAD /"),
-  (_req, res) => res.sendStatus(204)
+router.head("/", routeTag("dashboardRoute:v2.1:HEAD /"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -161,7 +157,7 @@ router.head(
 router.get(
   "/avaliacao-recente",
   routeTag("dashboardRoute:v2.1:GET /avaliacao-recente"),
-  asyncHandler(dashboardController.getAvaliacaoRecenteorganizador)
+  asyncHandler(dashboardController.getAvaliacaoRecenteorganizador),
 );
 
 /**
@@ -170,7 +166,7 @@ router.get(
 router.head(
   "/avaliacao-recente",
   routeTag("dashboardRoute:v2.1:HEAD /avaliacao-recente"),
-  (_req, res) => res.sendStatus(204)
+  (_req, res) => res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -184,7 +180,7 @@ router.get(
   "/administrador",
   authorize("administrador"),
   routeTag("dashboardRoute:v2.1:GET /administrador"),
-  asyncHandler(dashboardController.obterDashboard)
+  asyncHandler(dashboardController.obterDashboard),
 );
 
 /**
@@ -194,7 +190,7 @@ router.head(
   "/administrador",
   authorize("administrador"),
   routeTag("dashboardRoute:v2.1:HEAD /administrador"),
-  (_req, res) => res.sendStatus(204)
+  (_req, res) => res.sendStatus(204),
 );
 
 module.exports = router;

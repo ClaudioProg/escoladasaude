@@ -18,12 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  Users,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw, Users } from "lucide-react";
 
 import { api } from "../../services/api";
 import CarregandoSkeleton from "../ui/CarregandoSkeleton";
@@ -39,7 +34,9 @@ function classNames(...classes) {
 function clamp(value, min, max) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return min;
+  if (!Number.isFinite(number)) {
+    return min;
+  }
 
   return Math.min(Math.max(number, min), max);
 }
@@ -150,7 +147,9 @@ function normalizarResumo(raw) {
 }
 
 function faixaPorPercentual(percentual, thresholdOk) {
-  if (percentual >= thresholdOk) return "ok";
+  if (percentual >= thresholdOk) {
+    return "ok";
+  }
 
   if (percentual >= Math.max(1, Math.round(thresholdOk * 0.66))) {
     return "medio";
@@ -212,15 +211,21 @@ export default function ResumoPresencasSimples({
     const totalSeguro = clamp(resumo.total, 0, Number.MAX_SAFE_INTEGER);
     const presentesSeguro = clamp(resumo.presentes, 0, totalSeguro);
 
-    if (!mountedRef.current) return;
+    if (!mountedRef.current) {
+      return;
+    }
 
     setTotal(totalSeguro);
     setPresentes(presentesSeguro);
   }, []);
 
   const fetchDados = useCallback(async () => {
-    if (!turma_id) return;
-    if (fetchingRef.current) return;
+    if (!turma_id) {
+      return;
+    }
+    if (fetchingRef.current) {
+      return;
+    }
 
     fetchingRef.current = true;
 
@@ -247,11 +252,13 @@ export default function ResumoPresencasSimples({
 
       aplicarDados(response);
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
       if (mountedRef.current) {
         setErro(
-          getErrorMessage(error, "Não foi possível carregar as presenças.")
+          getErrorMessage(error, "Não foi possível carregar as presenças."),
         );
         setTotal(0);
         setPresentes(0);
@@ -288,10 +295,13 @@ export default function ResumoPresencasSimples({
 
     if (Number.isFinite(intervalo) && intervalo > 0) {
       const tick = () => {
-        timerRef.current = window.setTimeout(async () => {
-          await fetchDados();
-          tick();
-        }, Math.max(1000, intervalo));
+        timerRef.current = window.setTimeout(
+          async () => {
+            await fetchDados();
+            tick();
+          },
+          Math.max(1000, intervalo),
+        );
       };
 
       tick();
@@ -312,19 +322,21 @@ export default function ResumoPresencasSimples({
   }, [aplicarDados, autoRefreshMs, dataOverride, fetchDados]);
 
   const percentual = useMemo(() => {
-    if (!total) return 0;
+    if (!total) {
+      return 0;
+    }
 
     return Math.round((presentes / total) * 100);
   }, [presentes, total]);
 
   const thresholdSeguro = useMemo(
     () => clamp(thresholdOk, 0, 100),
-    [thresholdOk]
+    [thresholdOk],
   );
 
   const faixa = useMemo(
     () => faixaPorPercentual(percentual, thresholdSeguro),
-    [percentual, thresholdSeguro]
+    [percentual, thresholdSeguro],
   );
 
   const barClass =
@@ -353,7 +365,11 @@ export default function ResumoPresencasSimples({
         aria-live="polite"
         data-testid={testId}
       >
-        <CarregandoSkeleton linhas={2} compacto texto="Carregando presenças..." />
+        <CarregandoSkeleton
+          linhas={2}
+          compacto
+          texto="Carregando presenças..."
+        />
       </div>
     );
   }
@@ -442,7 +458,7 @@ export default function ResumoPresencasSimples({
           <span
             className={classNames(
               "inline-flex items-center rounded-full px-2 py-1 text-[11px] font-black ring-1",
-              chipClass
+              chipClass,
             )}
             title={
               faixa === "ok"

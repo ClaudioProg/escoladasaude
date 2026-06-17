@@ -43,13 +43,11 @@ import {
   Info,
   Loader2,
   Lock,
-  MapPin,
   Pencil,
   RefreshCcw,
   ShieldCheck,
   Sparkles,
   Trash2,
-  Users,
   Waves,
   X,
 } from "lucide-react";
@@ -141,7 +139,9 @@ function getHojeISO() {
 }
 
 function splitISO(dateISO) {
-  const [year, month, day] = String(dateISO || "").split("-").map(Number);
+  const [year, month, day] = String(dateISO || "")
+    .split("-")
+    .map(Number);
 
   return {
     year: Number.isFinite(year) ? year : 0,
@@ -192,17 +192,23 @@ function formatISO(ano, mesIndex, dia) {
 function formatDataBR(dataISO) {
   const { day, month, year } = splitISO(dataISO);
 
-  if (!day || !month || !year) return "—";
+  if (!day || !month || !year) {
+    return "—";
+  }
 
   return `${pad2(day)}/${pad2(month)}/${year}`;
 }
 
 function formatDateTimeBR(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
 
   const day = pad2(date.getDate());
   const month = pad2(date.getMonth() + 1);
@@ -216,7 +222,9 @@ function formatDateTimeBR(value) {
 function getDayOfWeekFromISO(dataISO) {
   const { year, month, day } = splitISO(dataISO);
 
-  if (!year || !month || !day) return 0;
+  if (!year || !month || !day) {
+    return 0;
+  }
 
   return new Date(year, month - 1, day).getDay();
 }
@@ -230,7 +238,11 @@ function keySlot(dataISO, periodo, sala) {
 }
 
 function unwrapData(response) {
-  if (response?.data && typeof response.data === "object" && "ok" in response.data) {
+  if (
+    response?.data &&
+    typeof response.data === "object" &&
+    "ok" in response.data
+  ) {
     return response.data.data || {};
   }
 
@@ -251,13 +263,17 @@ function getErrorMessage(error, fallback) {
 }
 
 function normalizarStatus(status) {
-  const value = String(status || "pendente").trim().toLowerCase();
+  const value = String(status || "pendente")
+    .trim()
+    .toLowerCase();
 
   return STATUS_OFICIAL.has(value) ? value : "pendente";
 }
 
 function reservaOcupaSlot(reserva) {
-  if (!reserva) return false;
+  if (!reserva) {
+    return false;
+  }
 
   return STATUS_OCUPA_SLOT.has(normalizarStatus(reserva.status));
 }
@@ -347,7 +363,9 @@ function getStatusTone(status) {
 function limparPrefixosFeriado(texto) {
   const value = String(texto || "").trim();
 
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   return value
     .replace(/^feriado\s*[-—:]\s*/i, "")
@@ -367,7 +385,7 @@ function motivoBloqueio({
       bloqueioObj?.motivo ||
         bloqueioObj?.descricao ||
         bloqueioObj?.titulo ||
-        ""
+        "",
     ).trim();
 
     return motivo ? `Bloqueado — ${motivo}` : "Bloqueado";
@@ -382,16 +400,26 @@ function motivoBloqueio({
       "";
 
     const nome = limparPrefixosFeriado(nomeCru);
-    const tipo = String(feriadoObj?.tipo || "").trim().toLowerCase();
+    const tipo = String(feriadoObj?.tipo || "")
+      .trim()
+      .toLowerCase();
 
-    if (nome) return nome;
-    if (tipo === "ponto_facultativo") return "Ponto Facultativo";
+    if (nome) {
+      return nome;
+    }
+    if (tipo === "ponto_facultativo") {
+      return "Ponto Facultativo";
+    }
 
     return "Feriado";
   }
 
-  if (diaSemana === 6) return "Sábado";
-  if (diaSemana === 0) return "Domingo";
+  if (diaSemana === 6) {
+    return "Sábado";
+  }
+  if (diaSemana === 0) {
+    return "Domingo";
+  }
 
   return "Indisponível";
 }
@@ -422,7 +450,13 @@ function DashboardCard({ icon: Icon, label, value, loading }) {
   );
 }
 
-function SoftIconButton({ title, ariaLabel, onClick, disabled = false, children }) {
+function SoftIconButton({
+  title,
+  ariaLabel,
+  onClick,
+  disabled = false,
+  children,
+}) {
   return (
     <button
       type="button"
@@ -434,7 +468,7 @@ function SoftIconButton({ title, ariaLabel, onClick, disabled = false, children 
         "rounded-full border border-slate-200 bg-white/80 p-2 shadow-sm transition hover:bg-white",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2",
         "dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:bg-zinc-900 dark:focus-visible:ring-offset-zinc-950",
-        disabled ? "cursor-not-allowed opacity-50" : ""
+        disabled ? "cursor-not-allowed opacity-50" : "",
       )}
     >
       {children}
@@ -489,7 +523,8 @@ function AlertBox({ type = "info", title, message, onClose }) {
 }
 
 function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
-  const { estado, motivo, labelResumo, salasDisponiveis, temPendencia } = diaInfo;
+  const { estado, motivo, labelResumo, salasDisponiveis, temPendencia } =
+    diaInfo;
 
   const cellTone = {
     bloqueado:
@@ -514,8 +549,10 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
       className={cx(
         "relative min-h-[108px] w-full border-b border-r p-2.5 text-left transition sm:min-h-[132px] sm:p-3 md:min-h-[150px]",
         cellTone,
-        eHoje ? "bg-sky-100/70 ring-2 ring-sky-500/70 dark:bg-sky-950/25 dark:ring-sky-700/60" : "",
-        "hover:brightness-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+        eHoje
+          ? "bg-sky-100/70 ring-2 ring-sky-500/70 dark:bg-sky-950/25 dark:ring-sky-700/60"
+          : "",
+        "hover:brightness-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60",
       )}
       aria-label={`Dia ${dia}. ${labelResumo}`}
       title={labelResumo}
@@ -527,7 +564,7 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
               "text-sm font-extrabold sm:text-base",
               eHoje
                 ? "text-sky-800 dark:text-sky-200"
-                : "text-slate-900 dark:text-white"
+                : "text-slate-900 dark:text-white",
             )}
           >
             {dia}
@@ -555,7 +592,8 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
       </div>
 
       <div className="mt-3 flex flex-col gap-2">
-        {(estado === "parcial" || estado === "vazio") && salasDisponiveis > 0 ? (
+        {(estado === "parcial" || estado === "vazio") &&
+        salasDisponiveis > 0 ? (
           <span className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700 sm:text-[11px]">
             {salasDisponiveis} sala{salasDisponiveis === 1 ? "" : "s"}
           </span>
@@ -564,7 +602,7 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
         <span
           className={cx(
             "inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-extrabold sm:text-[11px]",
-            chipTone
+            chipTone,
           )}
         >
           {estado === "bloqueado"
@@ -585,7 +623,9 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
 }
 
 function SlotCardDia({ slot, onEditar, onCancelar }) {
-  const status = slot?.reserva ? normalizarStatus(slot.reserva.status) : "livre";
+  const status = slot?.reserva
+    ? normalizarStatus(slot.reserva.status)
+    : "livre";
   const titulo = slot?.reserva?.finalidade?.trim()
     ? slot.reserva.finalidade.trim()
     : slot?.reserva
@@ -594,7 +634,8 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
 
   const solicitante = slot?.reserva?.solicitante_nome || "—";
   const aprovador =
-    slot?.reserva?.aprovador_nome || (status === "aprovado" ? "—" : "Não aprovado");
+    slot?.reserva?.aprovador_nome ||
+    (status === "aprovado" ? "—" : "Não aprovado");
 
   const temTermo =
     Boolean(slot?.reserva?.termo_aceito) &&
@@ -602,11 +643,13 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
     Boolean(slot?.reserva?.assinatura_id);
 
   async function abrirPdfTermo() {
-    if (!slot?.reserva?.id) return;
+    if (!slot?.reserva?.id) {
+      return;
+    }
 
     try {
       const { blob, filename } = await apiGetFile(
-        `/sala/admin/reservas/${slot.reserva.id}/termo-pdf`
+        `/sala/admin/reservas/${slot.reserva.id}/termo-pdf`,
       );
 
       if (!blob || typeof blob.size !== "number" || blob.size <= 0) {
@@ -651,7 +694,7 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
         "rounded-2xl p-3 sm:p-4",
         slot?.reserva
           ? classesStatusSlot(status)
-          : "border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+          : "border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -664,7 +707,7 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
             <span
               className={cx(
                 "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold",
-                getStatusTone(status)
+                getStatusTone(status),
               )}
             >
               {slot?.reserva ? labelStatus(status) : "Livre"}
@@ -685,7 +728,8 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
           {slot?.reserva ? (
             <div className="mt-3 space-y-1.5 text-[12px] text-slate-700 dark:text-zinc-200 sm:text-[13px]">
               <p>
-                <span className="font-semibold">Solicitante:</span> {solicitante}
+                <span className="font-semibold">Solicitante:</span>{" "}
+                {solicitante}
               </p>
 
               <p>
@@ -764,7 +808,9 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
 }
 
 function ConfirmCancelModal({ open, reserva, onClose, onConfirm, loading }) {
-  if (!open || !reserva) return null;
+  if (!open || !reserva) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[90]">
@@ -790,7 +836,8 @@ function ConfirmCancelModal({ open, reserva, onClose, onConfirm, loading }) {
                 Cancelar reserva
               </h3>
               <p className="text-sm text-slate-500 dark:text-zinc-400">
-                O backend v2.0 preserva o histórico e altera o status para cancelado.
+                O backend v2.0 preserva o histórico e altera o status para
+                cancelado.
               </p>
             </div>
 
@@ -822,7 +869,8 @@ function ConfirmCancelModal({ open, reserva, onClose, onConfirm, loading }) {
             </div>
 
             <p className="mt-4 text-sm text-slate-600 dark:text-zinc-300">
-              Confirme apenas se realmente deseja cancelar esta reserva. O horário será liberado para nova utilização.
+              Confirme apenas se realmente deseja cancelar esta reserva. O
+              horário será liberado para nova utilização.
             </p>
           </div>
 
@@ -842,7 +890,11 @@ function ConfirmCancelModal({ open, reserva, onClose, onConfirm, loading }) {
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-rose-700 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               {loading ? "Cancelando..." : "Cancelar reserva"}
             </button>
           </div>
@@ -860,7 +912,9 @@ function ModalDiaAgenda({
   onCancelarReserva,
   onMessage,
 }) {
-  if (!open || !diaDetalhe) return null;
+  if (!open || !diaDetalhe) {
+    return null;
+  }
 
   const { dataISO, bloqueado, motivo, salas } = diaDetalhe;
 
@@ -936,8 +990,8 @@ function ModalDiaAgenda({
                           {salaItem.label}
                         </h4>
                         <p className="text-sm text-slate-500 dark:text-zinc-400">
-                          Capacidade conforto: {salaItem.capacidade.conforto} • Máximo:{" "}
-                          {salaItem.capacidade.max}
+                          Capacidade conforto: {salaItem.capacidade.conforto} •
+                          Máximo: {salaItem.capacidade.max}
                         </p>
                       </div>
 
@@ -1004,16 +1058,19 @@ function AgendaSalasAdmin() {
 
   const semanas = useMemo(() => criarMatrixMes(ano, mesIndex), [ano, mesIndex]);
 
-  function setLive(texto) {
+  const setLive = useCallback((texto) => {
     if (liveRef.current) {
-      liveRef.current.textContent = texto;
+      liveRef.current.textContent = texto || "";
     }
-  }
+  }, []);
 
-  function showMessage(payload) {
-    setMensagem(payload);
-    setLive(`${payload.title || ""} ${payload.message || ""}`.trim());
-  }
+  const showMessage = useCallback(
+    (payload) => {
+      setMensagem(payload);
+      setLive(`${payload?.title || ""} ${payload?.message || ""}`.trim());
+    },
+    [setLive],
+  );
 
   const mudarMes = useCallback(
     (delta) => {
@@ -1031,7 +1088,7 @@ function AgendaSalasAdmin() {
       setMesIndex(novoMes);
       setAno(novoAno);
     },
-    [ano, mesIndex]
+    [ano, mesIndex],
   );
 
   const hojeClick = useCallback(() => {
@@ -1046,17 +1103,23 @@ function AgendaSalasAdmin() {
     (event) => {
       const tag = String(event?.target?.tagName || "").toLowerCase();
 
-      if (["input", "select", "textarea"].includes(tag)) return;
+      if (["input", "select", "textarea"].includes(tag)) {
+        return;
+      }
 
-      if (event.key === "ArrowLeft") mudarMes(-1);
-      if (event.key === "ArrowRight") mudarMes(1);
+      if (event.key === "ArrowLeft") {
+        mudarMes(-1);
+      }
+      if (event.key === "ArrowRight") {
+        mudarMes(1);
+      }
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "h") {
         event.preventDefault();
         hojeClick();
       }
     },
-    [mudarMes, hojeClick]
+    [mudarMes, hojeClick],
   );
 
   useEffect(() => {
@@ -1103,46 +1166,56 @@ function AgendaSalasAdmin() {
       for (const item of dataAuditorio.reservas || []) {
         const reserva = normalizeReserva(item);
 
-        if (!reserva.dataISO || !reserva.sala) continue;
+        if (!reserva.dataISO || !reserva.sala) {
+          continue;
+        }
 
         const key = keySlot(reserva.dataISO, reserva.periodo, reserva.sala);
 
-        if (!novoMapaReservas[key]) novoMapaReservas[key] = [];
+        if (!novoMapaReservas[key]) {
+          novoMapaReservas[key] = [];
+        }
         novoMapaReservas[key].push(reserva);
       }
 
       for (const item of dataSalaReuniao.reservas || []) {
         const reserva = normalizeReserva(item);
 
-        if (!reserva.dataISO || !reserva.sala) continue;
+        if (!reserva.dataISO || !reserva.sala) {
+          continue;
+        }
 
         const key = keySlot(reserva.dataISO, reserva.periodo, reserva.sala);
 
-        if (!novoMapaReservas[key]) novoMapaReservas[key] = [];
+        if (!novoMapaReservas[key]) {
+          novoMapaReservas[key] = [];
+        }
         novoMapaReservas[key].push(reserva);
       }
 
-      const feriadosBase =
-        dataAuditorio.feriados?.length
-          ? dataAuditorio.feriados
-          : dataSalaReuniao.feriados || [];
+      const feriadosBase = dataAuditorio.feriados?.length
+        ? dataAuditorio.feriados
+        : dataSalaReuniao.feriados || [];
 
-      const bloqueiosBase =
-        dataAuditorio.datas_bloqueadas?.length
-          ? dataAuditorio.datas_bloqueadas
-          : dataSalaReuniao.datas_bloqueadas || [];
+      const bloqueiosBase = dataAuditorio.datas_bloqueadas?.length
+        ? dataAuditorio.datas_bloqueadas
+        : dataSalaReuniao.datas_bloqueadas || [];
 
       const feriados = {};
       const bloqueios = {};
 
       for (const feriado of feriadosBase) {
         const dataISO = String(feriado.data || "").slice(0, 10);
-        if (dataISO) feriados[dataISO] = feriado;
+        if (dataISO) {
+          feriados[dataISO] = feriado;
+        }
       }
 
       for (const bloqueio of bloqueiosBase) {
         const dataISO = String(bloqueio.data || "").slice(0, 10);
-        if (dataISO) bloqueios[dataISO] = bloqueio;
+        if (dataISO) {
+          bloqueios[dataISO] = bloqueio;
+        }
       }
 
       setReservasMap(novoMapaReservas);
@@ -1158,20 +1231,22 @@ function AgendaSalasAdmin() {
         title: "Erro ao carregar agenda",
         message: getErrorMessage(
           error,
-          "Não foi possível carregar a agenda de salas. Verifique sua conexão e tente novamente."
+          "Não foi possível carregar a agenda de salas. Verifique sua conexão e tente novamente.",
         ),
       });
     } finally {
       setLoading(false);
     }
-  }, [ano, mesIndex]);
+  }, [ano, mesIndex, showMessage, setLive]);
 
   useEffect(() => {
     carregarAgenda();
   }, [carregarAgenda]);
 
   function abrirModalSlot(slot) {
-    if (!slot?.dataISO || !slot?.periodo || !slot?.sala) return;
+    if (!slot?.dataISO || !slot?.periodo || !slot?.sala) {
+      return;
+    }
 
     setSlotSelecionado({
       dataISO: slot.dataISO,
@@ -1195,14 +1270,24 @@ function AgendaSalasAdmin() {
   }
 
   function prioridadeReservaAdmin(reserva) {
-    if (!reserva) return 0;
+    if (!reserva) {
+      return 0;
+    }
 
     const status = normalizarStatus(reserva.status);
 
-    if (status === "pendente") return 50;
-    if (status === "aprovado") return 40;
-    if (status === "bloqueado") return 30;
-    if (status === "rejeitado" || status === "cancelado") return 0;
+    if (status === "pendente") {
+      return 50;
+    }
+    if (status === "aprovado") {
+      return 40;
+    }
+    if (status === "bloqueado") {
+      return 30;
+    }
+    if (status === "rejeitado" || status === "cancelado") {
+      return 0;
+    }
 
     return 10;
   }
@@ -1210,7 +1295,9 @@ function AgendaSalasAdmin() {
   function getReservasSlot(dataISO, periodo, salaKey) {
     const raw = reservasMap[keySlot(dataISO, periodo, salaKey)];
 
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
 
     return Array.isArray(raw) ? raw : [raw];
   }
@@ -1218,14 +1305,18 @@ function AgendaSalasAdmin() {
   function getReservaSlot(dataISO, periodo, salaKey) {
     const reservas = getReservasSlot(dataISO, periodo, salaKey);
 
-    if (!reservas.length) return null;
+    if (!reservas.length) {
+      return null;
+    }
 
     const reservasAtivas = reservas.filter(reservaOcupaSlot);
 
-    if (!reservasAtivas.length) return null;
+    if (!reservasAtivas.length) {
+      return null;
+    }
 
     return [...reservasAtivas].sort(
-      (a, b) => prioridadeReservaAdmin(b) - prioridadeReservaAdmin(a)
+      (a, b) => prioridadeReservaAdmin(b) - prioridadeReservaAdmin(a),
     )[0];
   }
 
@@ -1257,8 +1348,12 @@ function AgendaSalasAdmin() {
         const reserva = getReservaSlot(dataISO, periodo.value, salaKey);
         const ocupa = reservaOcupaSlot(reserva);
 
-        if (ocupa) ocupados += 1;
-        if (reserva?.status === "pendente") temPendencia = true;
+        if (ocupa) {
+          ocupados += 1;
+        }
+        if (reserva?.status === "pendente") {
+          temPendencia = true;
+        }
 
         return {
           dataISO,
@@ -1270,7 +1365,9 @@ function AgendaSalasAdmin() {
         };
       });
 
-      const ocupadosSala = slots.filter((slot) => reservaOcupaSlot(slot.reserva)).length;
+      const ocupadosSala = slots.filter((slot) =>
+        reservaOcupaSlot(slot.reserva),
+      ).length;
 
       if (ocupadosSala < PERIODOS.length) {
         salasDisponiveis += 1;
@@ -1287,9 +1384,13 @@ function AgendaSalasAdmin() {
 
     let estado = "vazio";
 
-    if (bloqueado) estado = "bloqueado";
-    else if (ocupados >= totalSlots) estado = "lotado";
-    else if (ocupados > 0) estado = "parcial";
+    if (bloqueado) {
+      estado = "bloqueado";
+    } else if (ocupados >= totalSlots) {
+      estado = "lotado";
+    } else if (ocupados > 0) {
+      estado = "parcial";
+    }
 
     const labelResumo =
       estado === "bloqueado"
@@ -1331,7 +1432,9 @@ function AgendaSalasAdmin() {
   }, [ano, mesIndex, diasDoMes, reservasMap, feriadosMap, datasBloqueadasMap]);
 
   const diaDetalheSelecionado = useMemo(() => {
-    if (!diaSelecionadoISO) return null;
+    if (!diaSelecionadoISO) {
+      return null;
+    }
 
     return diaInfosMap[diaSelecionadoISO] || null;
   }, [diaSelecionadoISO, diaInfosMap]);
@@ -1339,42 +1442,46 @@ function AgendaSalasAdmin() {
   const reservasFlat = useMemo(
     () =>
       Object.values(reservasMap).flatMap((item) =>
-        Array.isArray(item) ? item : [item]
+        Array.isArray(item) ? item : [item],
       ),
-    [reservasMap]
+    [reservasMap],
   );
 
   const reservasAtivas = useMemo(
     () => reservasFlat.filter(reservaOcupaSlot),
-    [reservasFlat]
+    [reservasFlat],
   );
 
   const totalMes = reservasAtivas.length;
 
   const totalAprovados = reservasAtivas.filter(
-    (reserva) => normalizarStatus(reserva.status) === "aprovado"
+    (reserva) => normalizarStatus(reserva.status) === "aprovado",
   ).length;
 
   const totalPendentes = reservasAtivas.filter(
-    (reserva) => normalizarStatus(reserva.status) === "pendente"
+    (reserva) => normalizarStatus(reserva.status) === "pendente",
   ).length;
 
   const totalDiasBloqueados = useMemo(
-    () => Object.values(diaInfosMap).filter((dia) => dia?.estado === "bloqueado").length,
-    [diaInfosMap]
+    () =>
+      Object.values(diaInfosMap).filter((dia) => dia?.estado === "bloqueado")
+        .length,
+    [diaInfosMap],
   );
 
   const totalDiasLotados = useMemo(
-    () => Object.values(diaInfosMap).filter((dia) => dia?.estado === "lotado").length,
-    [diaInfosMap]
+    () =>
+      Object.values(diaInfosMap).filter((dia) => dia?.estado === "lotado")
+        .length,
+    [diaInfosMap],
   );
 
   const totalDiasComDisponibilidade = useMemo(
     () =>
       Object.values(diaInfosMap).filter(
-        (dia) => dia?.estado === "parcial" || dia?.estado === "vazio"
+        (dia) => dia?.estado === "parcial" || dia?.estado === "vazio",
       ).length,
-    [diaInfosMap]
+    [diaInfosMap],
   );
 
   function abrirDia(dataISO) {
@@ -1402,14 +1509,18 @@ function AgendaSalasAdmin() {
   }
 
   function fecharCancelarReserva() {
-    if (cancelandoReserva) return;
+    if (cancelandoReserva) {
+      return;
+    }
 
     setConfirmCancelOpen(false);
     setReservaParaCancelar(null);
   }
 
   async function confirmarCancelarReserva() {
-    if (!reservaParaCancelar?.id) return;
+    if (!reservaParaCancelar?.id) {
+      return;
+    }
 
     setCancelandoReserva(true);
     setMensagem(null);
@@ -1437,7 +1548,7 @@ function AgendaSalasAdmin() {
         title: "Não foi possível cancelar",
         message: getErrorMessage(
           error,
-          "A reserva não pôde ser cancelada. Verifique o status atual e tente novamente."
+          "A reserva não pôde ser cancelada. Verifique o status atual e tente novamente.",
         ),
       });
     } finally {
@@ -1450,71 +1561,76 @@ function AgendaSalasAdmin() {
       <p ref={liveRef} className="sr-only" aria-live="polite" />
 
       <HeaderHero
-  titulo="Agenda administrativa de salas"
-  subtitulo="Gestão premium de reservas, bloqueios, disponibilidade e utilização institucional dos ambientes da Escola da Saúde."
-  icon={CalendarDays}
-/>
+        titulo="Agenda administrativa de salas"
+        subtitulo="Gestão premium de reservas, bloqueios, disponibilidade e utilização institucional dos ambientes da Escola da Saúde."
+        icon={CalendarDays}
+      />
 
-     <main id="conteudo" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">
-      <section className="mb-5 space-y-4">
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-    <DashboardCard
-      icon={Sparkles}
-      label="Reservas"
-      value={totalMes}
-      loading={loading}
-    />
+      <main
+        id="conteudo"
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8"
+      >
+        <section className="mb-5 space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <DashboardCard
+              icon={Sparkles}
+              label="Reservas"
+              value={totalMes}
+              loading={loading}
+            />
 
-    <DashboardCard
-      icon={ShieldCheck}
-      label="Aprovadas"
-      value={totalAprovados}
-      loading={loading}
-    />
+            <DashboardCard
+              icon={ShieldCheck}
+              label="Aprovadas"
+              value={totalAprovados}
+              loading={loading}
+            />
 
-    <DashboardCard
-      icon={Waves}
-      label="Pendentes"
-      value={totalPendentes}
-      loading={loading}
-    />
+            <DashboardCard
+              icon={Waves}
+              label="Pendentes"
+              value={totalPendentes}
+              loading={loading}
+            />
 
-    <DashboardCard
-      icon={Lock}
-      label="Bloqueados"
-      value={totalDiasBloqueados}
-      loading={loading}
-    />
+            <DashboardCard
+              icon={Lock}
+              label="Bloqueados"
+              value={totalDiasBloqueados}
+              loading={loading}
+            />
 
-    <DashboardCard
-      icon={CheckCircle2}
-      label="Disponíveis"
-      value={totalDiasComDisponibilidade}
-      loading={loading}
-    />
-  </div>
+            <DashboardCard
+              icon={CheckCircle2}
+              label="Disponíveis"
+              value={totalDiasComDisponibilidade}
+              loading={loading}
+            />
+          </div>
 
-  <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-    <button
-      type="button"
-      onClick={carregarAgenda}
-      disabled={loading}
-      className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
-    >
-      <RefreshCcw className={cx("h-4 w-4", loading && "animate-spin")} />
-      {loading ? "Atualizando..." : "Atualizar agenda"}
-    </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={carregarAgenda}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", loading && "animate-spin")}
+              />
+              {loading ? "Atualizando..." : "Atualizar agenda"}
+            </button>
 
-    <button
-      type="button"
-      onClick={() => navigate("/gestao/calendario-bloqueio")}
-      className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-slate-900 px-5 py-4 text-sm font-black text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
-    >
-      <Lock className="h-4 w-4" />
-      Gerenciar bloqueios
-    </button>
-  </div>
-</section>
+            <button
+              type="button"
+              onClick={() => navigate("/gestao/calendario-bloqueio")}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-slate-900 px-5 py-4 text-sm font-black text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
+            >
+              <Lock className="h-4 w-4" />
+              Gerenciar bloqueios
+            </button>
+          </div>
+        </section>
         {mensagem ? (
           <div className="mb-4">
             <AlertBox
@@ -1570,7 +1686,9 @@ function AgendaSalasAdmin() {
                 disabled={loading}
                 className="ml-1 inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-extrabold text-slate-800 transition hover:bg-slate-50 disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
               >
-                <RefreshCcw className={cx("h-3.5 w-3.5", loading && "animate-spin")} />
+                <RefreshCcw
+                  className={cx("h-3.5 w-3.5", loading && "animate-spin")}
+                />
                 Atualizar
               </button>
             </div>
@@ -1604,7 +1722,8 @@ function AgendaSalasAdmin() {
             <Info className="mt-0.5 h-4 w-4 text-sky-700 dark:text-sky-300" />
             <p>
               <strong>Feriados</strong>, <strong>pontos facultativos</strong> e{" "}
-              <strong>datas bloqueadas</strong> deixam o dia indisponível. Dias com todos os horários ocupados ficam em{" "}
+              <strong>datas bloqueadas</strong> deixam o dia indisponível. Dias
+              com todos os horários ocupados ficam em{" "}
               <strong>lilás suave</strong>.
             </p>
           </div>
@@ -1693,7 +1812,8 @@ function AgendaSalasAdmin() {
 
           {!loading && !Object.keys(reservasMap).length ? (
             <div className="p-6 text-center text-sm text-slate-500 dark:text-zinc-400">
-              Nenhuma reserva ativa localizada para {NOMES_MESES[mesIndex]} / {ano}. Os dias continuam clicáveis para criação ou análise.
+              Nenhuma reserva ativa localizada para {NOMES_MESES[mesIndex]} /{" "}
+              {ano}. Os dias continuam clicáveis para criação ou análise.
             </div>
           ) : null}
         </section>
@@ -1702,47 +1822,47 @@ function AgendaSalasAdmin() {
       <Footer />
 
       {diaModalAberto
-  ? createPortal(
-      <ModalDiaAgenda
-        open={diaModalAberto}
-        diaDetalhe={diaDetalheSelecionado}
-        onClose={fecharModalDia}
-        onEditarSlot={abrirEditarSlot}
-        onCancelarReserva={abrirCancelarReserva}
-        onMessage={showMessage}
-      />,
-      document.body
-    )
-  : null}
+        ? createPortal(
+            <ModalDiaAgenda
+              open={diaModalAberto}
+              diaDetalhe={diaDetalheSelecionado}
+              onClose={fecharModalDia}
+              onEditarSlot={abrirEditarSlot}
+              onCancelarReserva={abrirCancelarReserva}
+              onMessage={showMessage}
+            />,
+            document.body,
+          )
+        : null}
 
       {confirmCancelOpen
-  ? createPortal(
-      <ConfirmCancelModal
-        open={confirmCancelOpen}
-        reserva={reservaParaCancelar}
-        onClose={fecharCancelarReserva}
-        onConfirm={confirmarCancelarReserva}
-        loading={cancelandoReserva}
-      />,
-      document.body
-    )
-  : null}
+        ? createPortal(
+            <ConfirmCancelModal
+              open={confirmCancelOpen}
+              reserva={reservaParaCancelar}
+              onClose={fecharCancelarReserva}
+              onConfirm={confirmarCancelarReserva}
+              loading={cancelandoReserva}
+            />,
+            document.body,
+          )
+        : null}
 
       {modalAberto && slotSelecionado
-  ? createPortal(
-      <ModalReservaAdmin
-        isOpen={modalAberto}
-        onClose={fecharModalSlot}
-        slot={slotSelecionado}
-        reserva={reservaSelecionada}
-        sala={slotSelecionado.sala}
-        capacidadeSala={CAPACIDADES_SALA[slotSelecionado.sala]}
-        recarregar={carregarAgenda}
-        origem="calendario_dia"
-      />,
-      document.body
-    )
-  : null}
+        ? createPortal(
+            <ModalReservaAdmin
+              isOpen={modalAberto}
+              onClose={fecharModalSlot}
+              slot={slotSelecionado}
+              reserva={reservaSelecionada}
+              sala={slotSelecionado.sala}
+              capacidadeSala={CAPACIDADES_SALA[slotSelecionado.sala]}
+              recarregar={carregarAgenda}
+              origem="calendario_dia"
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

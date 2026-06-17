@@ -103,13 +103,7 @@ function gerarRequestId(prefix = "sala") {
 
 function sucesso(
   res,
-  {
-    status = 200,
-    data = null,
-    message = "OK",
-    code = "OK",
-    meta = null,
-  } = {}
+  { status = 200, data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(status).json({
     ok: true,
@@ -129,7 +123,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -284,7 +278,7 @@ function isStatusPendente(status) {
 
 function isStatusFinal(status) {
   return [STATUS_RESERVA.REJEITADO, STATUS_RESERVA.CANCELADO].includes(
-    String(status || "").toLowerCase()
+    String(status || "").toLowerCase(),
   );
 }
 
@@ -495,7 +489,7 @@ async function getAssinaturaById(assinaturaId) {
        WHERE id = $1
        LIMIT 1
     `,
-    [id]
+    [id],
   );
 
   return rows?.[0] || null;
@@ -513,7 +507,7 @@ async function getAssinaturaByUsuarioId(usuarioId) {
        WHERE usuario_id = $1
        LIMIT 1
     `,
-    [id]
+    [id],
   );
 
   return rows?.[0] || null;
@@ -533,7 +527,7 @@ async function upsertAssinaturaUsuario(client, usuarioId, imagemBase64) {
       DO UPDATE SET imagem_base64 = EXCLUDED.imagem_base64
       RETURNING id, usuario_id, imagem_base64
     `,
-    [userId, base64]
+    [userId, base64],
   );
 
   return rows?.[0] || null;
@@ -569,7 +563,7 @@ async function resolveAssinaturaParaSolicitacao(client, usuarioId, body) {
     assinatura = await upsertAssinaturaUsuario(
       client,
       usuarioId,
-      assinaturaBase64
+      assinaturaBase64,
     );
   }
 
@@ -620,13 +614,11 @@ async function datasBloqueadasISO(datasISO) {
        WHERE data = ANY($1::date[])
          AND tipo = ANY($2::text[])
     `,
-    [validas, Array.from(TIPOS_BLOQUEIO_OFICIAIS)]
+    [validas, Array.from(TIPOS_BLOQUEIO_OFICIAIS)],
   );
 
   return new Set(
-    (rows || [])
-      .map((row) => dateValueToISO(row.data))
-      .filter(Boolean)
+    (rows || []).map((row) => dateValueToISO(row.data)).filter(Boolean),
   );
 }
 
@@ -666,12 +658,7 @@ async function existeConflitoReserva({
 }) {
   const executor = client || { query };
 
-  const params = [
-    sala,
-    data,
-    periodo,
-    Array.from(STATUS_OCUPA_SLOT),
-  ];
+  const params = [sala, data, periodo, Array.from(STATUS_OCUPA_SLOT)];
 
   let extra = "";
 
@@ -691,7 +678,7 @@ async function existeConflitoReserva({
          ${extra}
        LIMIT 1
     `,
-    params
+    params,
   );
 
   return rowCount > 0;
@@ -740,7 +727,8 @@ function validarDadosReservaUsuario(body, fallback = {}) {
   if (!isDateAllowedForUsuario(data)) {
     return {
       ok: false,
-      message: "A data escolhida está fora da janela permitida para agendamento.",
+      message:
+        "A data escolhida está fora da janela permitida para agendamento.",
       code: "DATA_FORA_DA_JANELA",
     };
   }
@@ -822,7 +810,7 @@ ua.nome AS aprovador_nome
           ${filtroSala}
         ORDER BY rs.data ASC, rs.sala ASC, rs.periodo ASC, rs.created_at DESC NULLS LAST
       `,
-      params
+      params,
     );
 
     const { rows: bloqueios } = await query(
@@ -833,7 +821,7 @@ ua.nome AS aprovador_nome
            AND EXTRACT(MONTH FROM data) = $2
          ORDER BY data ASC, id ASC
       `,
-      [ano, mes]
+      [ano, mes],
     );
 
     const reservas = reservasRaw.map((row) => mapReserva(row));
@@ -841,8 +829,8 @@ ua.nome AS aprovador_nome
     const feriados = bloqueios
       .filter((row) =>
         ["feriado_nacional", "feriado_municipal", "ponto_facultativo"].includes(
-          row.tipo
-        )
+          row.tipo,
+        ),
       )
       .map((row) => ({
         ...row,
@@ -987,7 +975,7 @@ rs.solicitante_id,
           ${filtroSala}
         ORDER BY rs.data ASC, rs.sala ASC, rs.periodo ASC, rs.created_at DESC NULLS LAST
       `,
-      [...params, Array.from(STATUS_OCUPA_SLOT)]
+      [...params, Array.from(STATUS_OCUPA_SLOT)],
     );
 
     const { rows: bloqueios } = await query(
@@ -998,7 +986,7 @@ rs.solicitante_id,
            AND EXTRACT(MONTH FROM data) = $2
          ORDER BY data ASC, id ASC
       `,
-      [ano, mes]
+      [ano, mes],
     );
 
     const reservas = reservasRaw.map((row) => mapReserva(row, usuarioId));
@@ -1006,8 +994,8 @@ rs.solicitante_id,
     const feriados = bloqueios
       .filter((row) =>
         ["feriado_nacional", "feriado_municipal", "ponto_facultativo"].includes(
-          row.tipo
-        )
+          row.tipo,
+        ),
       )
       .map((row) => ({
         ...row,
@@ -1123,7 +1111,7 @@ async function solicitarReserva(req, res) {
     const assinaturaInfo = await resolveAssinaturaParaSolicitacao(
       client,
       usuarioId,
-      req.body || {}
+      req.body || {},
     );
 
     const { rows } = await client.query(
@@ -1158,7 +1146,7 @@ async function solicitarReserva(req, res) {
         assinaturaInfo.termoAceito,
         assinaturaInfo.termoAssinadoEm,
         assinaturaInfo.assinaturaId,
-      ]
+      ],
     );
 
     await client.query("COMMIT");
@@ -1242,7 +1230,7 @@ async function atualizarReservaUsuario(req, res) {
          WHERE id = $1
          FOR UPDATE
       `,
-      [id]
+      [id],
     );
 
     const atual = atualResult.rows?.[0];
@@ -1274,7 +1262,8 @@ async function atualizarReservaUsuario(req, res) {
 
       return falha(res, {
         status: 403,
-        message: "A edição é permitida apenas enquanto a solicitação estiver pendente.",
+        message:
+          "A edição é permitida apenas enquanto a solicitação estiver pendente.",
         code: "EDICAO_APENAS_PENDENTE",
         requestId,
       });
@@ -1354,7 +1343,7 @@ async function atualizarReservaUsuario(req, res) {
         payload.qtd_pessoas,
         payload.coffee_break,
         payload.finalidade,
-      ]
+      ],
     );
 
     await client.query("COMMIT");
@@ -1427,7 +1416,7 @@ async function excluirReservaUsuario(req, res) {
          WHERE id = $1
          LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     const row = atual.rows?.[0];
@@ -1453,7 +1442,8 @@ async function excluirReservaUsuario(req, res) {
     if (String(row.status) !== STATUS_RESERVA.PENDENTE) {
       return falha(res, {
         status: 403,
-        message: "Cancelamento pelo usuário é permitido apenas enquanto pendente.",
+        message:
+          "Cancelamento pelo usuário é permitido apenas enquanto pendente.",
         code: "CANCELAMENTO_APENAS_PENDENTE",
         requestId,
       });
@@ -1467,7 +1457,7 @@ async function excluirReservaUsuario(req, res) {
          WHERE id = $1
          RETURNING *;
       `,
-      [id, STATUS_RESERVA.CANCELADO]
+      [id, STATUS_RESERVA.CANCELADO],
     );
 
     return sucesso(res, {
@@ -1501,7 +1491,7 @@ function getDateByOrdemSemana(
   monthIndex,
   weekday,
   ordemSemana,
-  ehUltimaSemana
+  ehUltimaSemana,
 ) {
   if (ehUltimaSemana) {
     const lastDay = new Date(year, monthIndex + 1, 0, 12, 0, 0);
@@ -1555,7 +1545,14 @@ function gerarDatasRecorrencia(dataBaseISO, recorrencia) {
       date.setMonth(date.getMonth() + index);
 
       if (date.getDate() !== originalDay) {
-        const last = new Date(date.getFullYear(), date.getMonth() + 1, 0, 12, 0, 0);
+        const last = new Date(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          0,
+          12,
+          0,
+          0,
+        );
         date.setDate(last.getDate());
       }
 
@@ -1582,7 +1579,7 @@ function gerarDatasRecorrencia(dataBaseISO, recorrencia) {
   if (tipo === "semanal" && recorrencia.semanal) {
     const intervaloSemanas = Math.max(
       1,
-      Number(recorrencia.semanal.intervaloSemanas) || 1
+      Number(recorrencia.semanal.intervaloSemanas) || 1,
     );
 
     const diasSemana = Array.isArray(recorrencia.semanal.diasSemana)
@@ -1590,7 +1587,7 @@ function gerarDatasRecorrencia(dataBaseISO, recorrencia) {
       : [];
 
     const diasSet = new Set(
-      diasSemana.map(Number).filter((day) => day >= 0 && day <= 6)
+      diasSemana.map(Number).filter((day) => day >= 0 && day <= 6),
     );
 
     if (!diasSet.size) return [];
@@ -1639,13 +1636,13 @@ function gerarDatasRecorrencia(dataBaseISO, recorrencia) {
           month,
           Number(recorrencia.mensal.diaSemanaBaseIndex),
           Number(recorrencia.mensal.ordemSemanaBase),
-          Boolean(recorrencia.mensal.ehUltimaSemana)
+          Boolean(recorrencia.mensal.ehUltimaSemana),
         );
       } else {
         const lastDay = new Date(year, month + 1, 0, 12, 0, 0).getDate();
         const day = Math.min(
           Number(recorrencia.mensal.diaMesBase) || baseDate.getDate(),
-          lastDay
+          lastDay,
         );
 
         date = new Date(year, month, day, 12, 0, 0);
@@ -1666,7 +1663,7 @@ function gerarDatasRecorrencia(dataBaseISO, recorrencia) {
       : [];
 
     const mesesSorted = Array.from(
-      new Set(meses.map(Number).filter((month) => month >= 0 && month <= 11))
+      new Set(meses.map(Number).filter((month) => month >= 0 && month <= 11)),
     ).sort((a, b) => a - b);
 
     if (!mesesSorted.length) return [];
@@ -1691,13 +1688,13 @@ function gerarDatasRecorrencia(dataBaseISO, recorrencia) {
             month,
             Number(recorrencia.anual.diaSemanaBaseIndex),
             Number(recorrencia.anual.ordemSemanaBase),
-            Boolean(recorrencia.anual.ehUltimaSemana)
+            Boolean(recorrencia.anual.ehUltimaSemana),
           );
         } else {
           const lastDay = new Date(year, month + 1, 0, 12, 0, 0).getDate();
           const day = Math.min(
             Number(recorrencia.anual.diaMesBase) || baseDate.getDate(),
-            lastDay
+            lastDay,
           );
 
           date = new Date(year, month, day, 12, 0, 0);
@@ -1757,7 +1754,8 @@ async function criarReservaAdmin(req, res) {
     if (!sala || !isISODateOnly(data) || !periodo || !qtdPessoas) {
       return falha(res, {
         status: 400,
-        message: "Sala, data, período e quantidade de pessoas são obrigatórios.",
+        message:
+          "Sala, data, período e quantidade de pessoas são obrigatórios.",
         code: "DADOS_OBRIGATORIOS",
         requestId,
       });
@@ -1795,13 +1793,13 @@ async function criarReservaAdmin(req, res) {
     }
 
     const datasUnicas = Array.from(
-      new Set([data, ...datasRecorrentes].filter(isISODateOnly))
+      new Set([data, ...datasRecorrentes].filter(isISODateOnly)),
     ).sort();
 
     const bloqueiosSet = await datasBloqueadasISO(datasUnicas);
 
     const datasValidas = datasUnicas.filter(
-      (dateISO) => !isWeekend(dateISO) && !bloqueiosSet.has(dateISO)
+      (dateISO) => !isWeekend(dateISO) && !bloqueiosSet.has(dateISO),
     );
 
     if (datasValidas.length === 0) {
@@ -1870,7 +1868,7 @@ async function criarReservaAdmin(req, res) {
             observacao,
             finalidade,
             aprovadorId,
-          ]
+          ],
         );
 
         inseridas.push(mapReserva(rows[0]));
@@ -1988,7 +1986,7 @@ async function atualizarReservaAdmin(req, res) {
         WHERE rs.id = $1
         LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     const atual = atualResult.rows?.[0];
@@ -2076,7 +2074,7 @@ async function atualizarReservaAdmin(req, res) {
         observacao,
         finalidade,
         aprovadorId,
-      ]
+      ],
     );
 
     const reserva = rows?.[0];
@@ -2165,7 +2163,7 @@ async function excluirReservaAdmin(req, res) {
          WHERE id = $1
          RETURNING *;
       `,
-      [id, STATUS_RESERVA.CANCELADO]
+      [id, STATUS_RESERVA.CANCELADO],
     );
 
     const reserva = rows?.[0];
@@ -2248,7 +2246,7 @@ async function visualizarTermoReservaAdmin(req, res) {
         WHERE rs.id = $1
         LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     const reserva = rows?.[0];
@@ -2294,7 +2292,7 @@ async function visualizarTermoReservaAdmin(req, res) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename="termo-reserva-${id}.pdf"`
+      `inline; filename="termo-reserva-${id}.pdf"`,
     );
     res.setHeader("Cache-Control", "no-store");
 
@@ -2353,19 +2351,22 @@ async function visualizarTermoReservaAdmin(req, res) {
       {
         align: "justify",
         width: contentWidth,
-      }
+      },
     );
 
     doc.moveDown(1);
     doc.font("Helvetica-Bold").fontSize(12).text("1. Finalidade de Uso");
     doc.moveDown(0.3);
-    doc.font("Helvetica").fontSize(11).text(
-      "As salas destinam-se, prioritariamente, às atividades de Educação Permanente em Saúde.",
-      {
-        align: "justify",
-        width: contentWidth,
-      }
-    );
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(
+        "As salas destinam-se, prioritariamente, às atividades de Educação Permanente em Saúde.",
+        {
+          align: "justify",
+          width: contentWidth,
+        },
+      );
 
     doc.moveDown(1);
     doc
@@ -2397,13 +2398,16 @@ async function visualizarTermoReservaAdmin(req, res) {
     doc.moveDown(0.4);
     doc.font("Helvetica-Bold").fontSize(12).text("3. Disposições Finais");
     doc.moveDown(0.3);
-    doc.font("Helvetica").fontSize(11).text(
-      "De acordo com a Ordem de Serviço Nº 007/2020 – GAB/SMS, a Escola da Saúde é responsável pelo gerenciamento, divulgação institucional, autorização e apoio às atividades de educação permanente em saúde no âmbito da SMS.",
-      {
-        align: "justify",
-        width: contentWidth,
-      }
-    );
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(
+        "De acordo com a Ordem de Serviço Nº 007/2020 – GAB/SMS, a Escola da Saúde é responsável pelo gerenciamento, divulgação institucional, autorização e apoio às atividades de educação permanente em saúde no âmbito da SMS.",
+        {
+          align: "justify",
+          width: contentWidth,
+        },
+      );
 
     doc.moveDown(0.5);
     doc.text(
@@ -2411,7 +2415,7 @@ async function visualizarTermoReservaAdmin(req, res) {
       {
         align: "justify",
         width: contentWidth,
-      }
+      },
     );
 
     doc.moveDown(1.3);
@@ -2468,23 +2472,26 @@ async function visualizarTermoReservaAdmin(req, res) {
 
     doc.moveDown(0.4);
     doc.font("Helvetica-Bold").fontSize(11).fillColor("#111827");
-    doc.text(reserva.solicitante_nome || "—", doc.page.margins.left + 60, doc.y, {
-      width: 240,
-      align: "center",
-    });
+    doc.text(
+      reserva.solicitante_nome || "—",
+      doc.page.margins.left + 60,
+      doc.y,
+      {
+        width: 240,
+        align: "center",
+      },
+    );
 
     doc.moveDown(0.3);
     doc.font("Helvetica").fontSize(10).fillColor("#475569");
     doc.text(
-      `Assinado digitalmente em ${formatDateTimeBR(
-        reserva.termo_assinado_em
-      )}`,
+      `Assinado digitalmente em ${formatDateTimeBR(reserva.termo_assinado_em)}`,
       doc.page.margins.left + 40,
       doc.y,
       {
         width: 280,
         align: "center",
-      }
+      },
     );
 
     doc.end();
@@ -2529,7 +2536,11 @@ async function diagnosticarConfirmacaoUsoSala(req, res) {
       meta: resultado.meta,
     });
   } catch (error) {
-    logErro(requestId, "Erro ao diagnosticar confirmação de uso de sala", error);
+    logErro(
+      requestId,
+      "Erro ao diagnosticar confirmação de uso de sala",
+      error,
+    );
 
     return falha(res, {
       status: error?.httpStatus || 500,
@@ -2669,9 +2680,8 @@ async function diagnosticarCancelamentoSemConfirmacaoSala(req, res) {
   try {
     const options = montarOptionsConfirmacao(req);
 
-    const resultado = await diagnosticarCancelamentosSemConfirmacaoUsoSala(
-      options
-    );
+    const resultado =
+      await diagnosticarCancelamentosSemConfirmacaoUsoSala(options);
 
     return sucesso(res, {
       data: resultado.data,
@@ -2683,7 +2693,7 @@ async function diagnosticarCancelamentoSemConfirmacaoSala(req, res) {
     logErro(
       requestId,
       "Erro ao diagnosticar cancelamentos sem confirmação de sala",
-      error
+      error,
     );
 
     return falha(res, {
@@ -2693,8 +2703,7 @@ async function diagnosticarCancelamentoSemConfirmacaoSala(req, res) {
           ? error.message
           : "Erro ao diagnosticar cancelamentos por falta de confirmação.",
       code:
-        error?.code ||
-        "SALAS_CANCELAMENTO_SEM_CONFIRMACAO_DIAGNOSTICO_ERRO",
+        error?.code || "SALAS_CANCELAMENTO_SEM_CONFIRMACAO_DIAGNOSTICO_ERRO",
       adminHint:
         error?.httpStatus && error?.httpStatus < 500
           ? null
@@ -2730,7 +2739,7 @@ async function executarCancelamentoSemConfirmacaoSala(req, res) {
     logErro(
       requestId,
       "Erro ao executar cancelamentos sem confirmação de sala",
-      error
+      error,
     );
 
     return falha(res, {
@@ -2739,9 +2748,7 @@ async function executarCancelamentoSemConfirmacaoSala(req, res) {
         error?.httpStatus && error?.httpStatus < 500
           ? error.message
           : "Erro ao executar cancelamentos por falta de confirmação.",
-      code:
-        error?.code ||
-        "SALAS_CANCELAMENTO_SEM_CONFIRMACAO_EXECUTAR_ERRO",
+      code: error?.code || "SALAS_CANCELAMENTO_SEM_CONFIRMACAO_EXECUTAR_ERRO",
       adminHint:
         error?.httpStatus && error?.httpStatus < 500
           ? null

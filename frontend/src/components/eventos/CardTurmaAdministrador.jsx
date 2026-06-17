@@ -1,42 +1,5 @@
-/* eslint-disable no-console */
-// ✅ frontend/src/components/eventos/CardTurmaAdministrador.jsx — v2.0
-// Atualizado em: 14/05/2026
-// Plataforma Escola da Saúde
-//
-// Card administrativo premium de turma vinculada a evento.
-//
-// Contratos aplicados:
-// - Pasta do domínio: src/components/eventos/
-// - Componentes visuais globais vêm de ../ui/
-// - Date-only seguro: YYYY-MM-DD tratado por partes
-// - Sem new Date("YYYY-MM-DD")
-// - Sem formatDateBr legado
-// - Sem assinante_id como fallback funcional
-// - Sem campos paralelos de vagas/carga como fonte principal
-// - Sem status em_andamento
-// - Sem status desconhecido
-// - Status oficial: programado | andamento | encerrado | sem_datas
-// - Rótulo oficial: Datas, não Encontros
-// - Horário oficial: HH:mm ou HH:mm:ss convertido para HH:mm
-// - Contrato principal da turma:
-//   {
-//     id,
-//     nome,
-//     datas: [{ data, horario_inicio, horario_fim }],
-//     data_inicio,
-//     data_fim,
-//     horario_inicio,
-//     horario_fim,
-//     vagas_total,
-//     carga_horaria,
-//     organizadores,
-//     organizador_assinante_id,
-//     organizador_assinante
-//   }
-//
-// Diretriz visual:
-// - Card administrativo mais claro, com hierarquia, diagnóstico, ações agrupadas,
-//   melhor leitura mobile e melhor separação entre informação e operação.
+// ✅ frontend/src/components/eventos/CardTurmaAdministrador.jsx — v2.2
+// Atualizado em: 16/06/2026
 
 import PropTypes from "prop-types";
 import { motion } from "framer-motion";
@@ -50,12 +13,68 @@ import {
   QrCode,
   ShieldCheck,
   TrendingUp,
-  UserCheck,
   Users,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────
-   Constantes oficiais
+   Componente de Botão de Ação para o Card
+────────────────────────────────────────────────────────────── */
+
+function ActionButton({
+  children,
+  onClick,
+  ariaLabel,
+  title,
+  variant,
+  cor,
+  type = "button",
+}) {
+  const baseClasses =
+    "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition disabled:opacity-60";
+
+  const variants = {
+    outline:
+      "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+    solid: "border-transparent text-white",
+  };
+
+  const cores = {
+    verde: "bg-emerald-600 hover:bg-emerald-700",
+    azulPetroleo: "bg-sky-700 hover:bg-sky-800",
+    laranjaQueimado: "bg-orange-700 hover:bg-orange-800",
+    amareloOuro: "bg-amber-600 hover:bg-amber-700",
+    vermelhoCoral: "bg-rose-600 hover:bg-rose-700",
+  };
+
+  const variantClass = variants[variant] || variants.outline;
+  const corClass =
+    variant === "outline" ? "" : cores[cor] || cores.azulPetroleo;
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      title={title}
+      className={cx(baseClasses, variantClass, corClass)}
+    >
+      {children}
+    </button>
+  );
+}
+
+ActionButton.propTypes = {
+  children: PropTypes.node.isRequired,
+  onClick: PropTypes.func,
+  ariaLabel: PropTypes.string,
+  title: PropTypes.string,
+  variant: PropTypes.string,
+  cor: PropTypes.string,
+  type: PropTypes.string,
+};
+
+/* ─────────────────────────────────────────────────────────────
+   Constantes e Helpers (mantidos iguais)
 ────────────────────────────────────────────────────────────── */
 
 const STATUS_TURMA = Object.freeze({
@@ -65,9 +84,9 @@ const STATUS_TURMA = Object.freeze({
   SEM_DATAS: "sem_datas",
 });
 
-/* ─────────────────────────────────────────────────────────────
-   Helpers date-only / hora
-────────────────────────────────────────────────────────────── */
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
 
 function pad2(value) {
   return String(value).padStart(2, "0");
@@ -75,10 +94,7 @@ function pad2(value) {
 
 function todayLocalYmd() {
   const now = new Date();
-
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(
-    now.getDate()
-  )}`;
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
 function isDateOnly(value) {
@@ -86,85 +102,81 @@ function isDateOnly(value) {
 }
 
 function normalizeDateOnly(value) {
-  if (!value) return "";
-
+  if (!value) {
+    return "";
+  }
   if (typeof value === "object" && value?.data) {
     return normalizeDateOnly(value.data);
   }
-
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(
-      value.getDate()
-    )}`;
+    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
   }
-
   if (typeof value === "string") {
     const raw = value.trim();
-
-    if (isDateOnly(raw)) return raw;
-
+    if (isDateOnly(raw)) {
+      return raw;
+    }
     const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
     return match ? match[1] : "";
   }
-
   return "";
 }
 
 function normalizeHHmm(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
-
+  if (typeof value !== "string") {
+    return fallback;
+  }
   const raw = value.trim();
-
-  if (!raw) return fallback;
-  if (/^\d{2}:\d{2}$/.test(raw)) return raw;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) return raw.slice(0, 5);
-
+  if (!raw) {
+    return fallback;
+  }
+  if (/^\d{2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) {
+    return raw.slice(0, 5);
+  }
   return fallback;
 }
 
 function formatDateBr(value) {
   const date = normalizeDateOnly(value);
-
-  if (!date) return "";
-
+  if (!date) {
+    return "";
+  }
   const [year, month, day] = date.split("-");
   return `${day}/${month}/${year}`;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Helpers de turma
-────────────────────────────────────────────────────────────── */
-
 function clamp(value, min, max) {
   const number = Number(value);
-
-  if (!Number.isFinite(number)) return min;
-
+  if (!Number.isFinite(number)) {
+    return min;
+  }
   return Math.max(min, Math.min(max, number));
 }
 
 function toPositiveInt(value, fallback = 0) {
   const number = Number(value);
-
-  if (!Number.isInteger(number) || number < 0) return fallback;
-
+  if (!Number.isInteger(number) || number < 0) {
+    return fallback;
+  }
   return number;
 }
 
 function getDatasTurma(turma) {
   const datas = Array.isArray(turma?.datas) ? turma.datas : [];
-
   if (datas.length) {
     return datas
       .map((item) => ({
         data: normalizeDateOnly(item?.data || item),
         horario_inicio: normalizeHHmm(
           item?.horario_inicio || turma?.horario_inicio || "",
-          ""
+          "",
         ),
         horario_fim: normalizeHHmm(
           item?.horario_fim || turma?.horario_fim || "",
-          ""
+          "",
         ),
       }))
       .filter((item) => item.data)
@@ -176,8 +188,9 @@ function getDatasTurma(turma) {
   const horarioInicio = normalizeHHmm(turma?.horario_inicio || "", "");
   const horarioFim = normalizeHHmm(turma?.horario_fim || "", "");
 
-  if (!dataInicio) return [];
-
+  if (!dataInicio) {
+    return [];
+  }
   if (dataFim && dataFim !== dataInicio) {
     return [
       {
@@ -185,14 +198,9 @@ function getDatasTurma(turma) {
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
       },
-      {
-        data: dataFim,
-        horario_inicio: horarioInicio,
-        horario_fim: horarioFim,
-      },
+      { data: dataFim, horario_inicio: horarioInicio, horario_fim: horarioFim },
     ];
   }
-
   return [
     {
       data: dataInicio,
@@ -204,114 +212,112 @@ function getDatasTurma(turma) {
 
 function getRangeTurma(turma) {
   const datas = getDatasTurma(turma);
-
   const dataInicio =
     datas[0]?.data || normalizeDateOnly(turma?.data_inicio) || "";
-
   const dataFim =
     datas.at(-1)?.data ||
     normalizeDateOnly(turma?.data_fim) ||
     dataInicio ||
     "";
-
   const primeiroComHorario = datas.find((item) => item.horario_inicio);
-  const ultimoComHorario = [...datas].reverse().find((item) => item.horario_fim);
+  const ultimoComHorario = [...datas]
+    .reverse()
+    .find((item) => item.horario_fim);
 
   const horarioInicio =
     normalizeHHmm(turma?.horario_inicio || "", "") ||
     primeiroComHorario?.horario_inicio ||
     "";
-
   const horarioFim =
     normalizeHHmm(turma?.horario_fim || "", "") ||
     ultimoComHorario?.horario_fim ||
     "";
 
-  return {
-    datas,
-    dataInicio,
-    dataFim,
-    horarioInicio,
-    horarioFim,
-  };
+  return { datas, dataInicio, dataFim, horarioInicio, horarioFim };
 }
 
 function getStatusKey({ turma, hojeISO }) {
   const { dataInicio, dataFim } = getRangeTurma(turma);
-
-  if (!dataInicio || !dataFim) return STATUS_TURMA.SEM_DATAS;
-  if (dataFim < dataInicio) return STATUS_TURMA.SEM_DATAS;
-
+  if (!dataInicio || !dataFim) {
+    return STATUS_TURMA.SEM_DATAS;
+  }
+  if (dataFim < dataInicio) {
+    return STATUS_TURMA.SEM_DATAS;
+  }
   const today = normalizeDateOnly(hojeISO) || todayLocalYmd();
-
-  if (today < dataInicio) return STATUS_TURMA.PROGRAMADO;
-  if (today > dataFim) return STATUS_TURMA.ENCERRADO;
-
+  if (today < dataInicio) {
+    return STATUS_TURMA.PROGRAMADO;
+  }
+  if (today > dataFim) {
+    return STATUS_TURMA.ENCERRADO;
+  }
   return STATUS_TURMA.ANDAMENTO;
 }
 
 function periodoTexto(turma) {
   const { dataInicio, dataFim } = getRangeTurma(turma);
-
   if (dataInicio && dataFim) {
     return dataInicio === dataFim
       ? formatDateBr(dataInicio)
       : `${formatDateBr(dataInicio)} a ${formatDateBr(dataFim)}`;
   }
-
-  if (dataInicio) return formatDateBr(dataInicio);
-
+  if (dataInicio) {
+    return formatDateBr(dataInicio);
+  }
   return "Datas a definir";
 }
 
 function horarioTexto(turma) {
   const { horarioInicio, horarioFim } = getRangeTurma(turma);
-
-  if (horarioInicio && horarioFim) return `${horarioInicio} às ${horarioFim}`;
-  if (horarioInicio) return `A partir de ${horarioInicio}`;
-  if (horarioFim) return `Até ${horarioFim}`;
-
+  if (horarioInicio && horarioFim) {
+    return `${horarioInicio} às ${horarioFim}`;
+  }
+  if (horarioInicio) {
+    return `A partir de ${horarioInicio}`;
+  }
+  if (horarioFim) {
+    return `Até ${horarioFim}`;
+  }
   return "Horário a definir";
 }
 
 function resolveAssinanteNome(turma) {
-  if (!turma) return null;
-
+  if (!turma) {
+    return null;
+  }
   if (turma?.organizador_assinante?.nome) {
     return turma.organizador_assinante.nome;
   }
-
   const assinanteId = Number(turma?.organizador_assinante_id);
-
-  if (!Number.isFinite(assinanteId)) return null;
-
-  const organizadores = Array.isArray(turma?.organizadores) ? turma.organizadores : [];
-
+  if (!Number.isFinite(assinanteId)) {
+    return null;
+  }
+  const organizadores = Array.isArray(turma?.organizadores)
+    ? turma.organizadores
+    : [];
   for (const item of organizadores) {
     const id = Number(typeof item === "object" ? item.id : item);
     const nome = typeof item === "object" ? item?.nome : null;
-
-    if (id === assinanteId) return nome || null;
+    if (id === assinanteId) {
+      return nome || null;
+    }
   }
-
   return null;
 }
 
 function getCargaHoraria(turma) {
   const value = Number(turma?.carga_horaria);
-
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function getorganizadores(turma) {
   const raw = Array.isArray(turma?.organizadores) ? turma.organizadores : [];
   const map = new Map();
-
   for (const item of raw) {
     const id = Number(item?.id ?? item);
-
-    if (!Number.isFinite(id) || map.has(id)) continue;
-
+    if (!Number.isFinite(id) || map.has(id)) {
+      continue;
+    }
     map.set(id, {
       id,
       nome:
@@ -320,20 +326,24 @@ function getorganizadores(turma) {
           : `organizador ${id}`,
     });
   }
-
   return [...map.values()];
 }
 
 function getStatusText(statusKey) {
-  if (statusKey === STATUS_TURMA.PROGRAMADO) return "Programado";
-  if (statusKey === STATUS_TURMA.ANDAMENTO) return "Em andamento";
-  if (statusKey === STATUS_TURMA.ENCERRADO) return "Encerrado";
-
+  if (statusKey === STATUS_TURMA.PROGRAMADO) {
+    return "Programado";
+  }
+  if (statusKey === STATUS_TURMA.ANDAMENTO) {
+    return "Em andamento";
+  }
+  if (statusKey === STATUS_TURMA.ENCERRADO) {
+    return "Encerrado";
+  }
   return "Sem datas";
 }
 
 /* ─────────────────────────────────────────────────────────────
-   UI helpers
+   UI helpers e Componentes
 ────────────────────────────────────────────────────────────── */
 
 const STATUS_BAR = {
@@ -357,18 +367,20 @@ function StatusTurmaBadge({ statusKey, label }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black ${
-        tones[statusKey] || tones.sem_datas
-      }`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black ${tones[statusKey] || tones.sem_datas}`}
     >
       {label}
     </span>
   );
 }
 
+StatusTurmaBadge.propTypes = {
+  statusKey: PropTypes.string,
+  label: PropTypes.string,
+};
+
 function BadgeOcupacao({ pct }) {
   const percentual = clamp(pct, 0, 100);
-
   const cls =
     percentual >= 100
       ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800/60"
@@ -377,15 +389,20 @@ function BadgeOcupacao({ pct }) {
         : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-800/60";
 
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${cls}`}>
+    <span
+      className={`rounded-full border px-2.5 py-1 text-xs font-black ${cls}`}
+    >
       {percentual}%
     </span>
   );
 }
 
+BadgeOcupacao.propTypes = {
+  pct: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
+
 function ProgressOcupacao({ pct }) {
   const percentual = clamp(pct, 0, 100);
-
   const barClass =
     percentual >= 100
       ? "bg-red-600"
@@ -411,14 +428,16 @@ function ProgressOcupacao({ pct }) {
   );
 }
 
+ProgressOcupacao.propTypes = {
+  pct: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
+
 function InfoTile({ icon: Icon, label, value, tone = "zinc" }) {
   const tones = {
-    zinc:
-      "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
+    zinc: "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
+    sky: "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100",
     violet:
@@ -426,12 +445,13 @@ function InfoTile({ icon: Icon, label, value, tone = "zinc" }) {
   };
 
   return (
-    <div className={`rounded-2xl border p-3 shadow-sm ${tones[tone] || tones.zinc}`}>
+    <div
+      className={`rounded-2xl border p-3 shadow-sm ${tones[tone] || tones.zinc}`}
+    >
       <div className="flex items-center gap-2">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70 dark:bg-white/5">
           <Icon className="h-4.5 w-4.5" aria-hidden="true" />
         </span>
-
         <div className="min-w-0">
           <div className="text-[11px] font-black uppercase tracking-wide opacity-65">
             {label}
@@ -445,9 +465,17 @@ function InfoTile({ icon: Icon, label, value, tone = "zinc" }) {
   );
 }
 
-function InstructorPills({ organizadores, assinanteNome }) {
-  if (!organizadores.length && !assinanteNome) return null;
+InfoTile.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  tone: PropTypes.oneOf(["zinc", "emerald", "sky", "amber", "violet"]),
+};
 
+function InstructorPills({ organizadores, assinanteNome }) {
+  if (!organizadores.length && !assinanteNome) {
+    return null;
+  }
   return (
     <div className="flex flex-wrap gap-2">
       {assinanteNome && (
@@ -459,7 +487,6 @@ function InstructorPills({ organizadores, assinanteNome }) {
           Assinante: {assinanteNome}
         </span>
       )}
-
       {organizadores.map((organizador) => (
         <span
           key={organizador.id}
@@ -477,8 +504,13 @@ function InstructorPills({ organizadores, assinanteNome }) {
   );
 }
 
+InstructorPills.propTypes = {
+  organizadores: PropTypes.array,
+  assinanteNome: PropTypes.string,
+};
+
 /* ─────────────────────────────────────────────────────────────
-   Componente
+   Componente Principal
 ────────────────────────────────────────────────────────────── */
 
 export default function CardTurmaAdministrador({
@@ -495,33 +527,28 @@ export default function CardTurmaAdministrador({
   onExpandirOuRecolher,
   somenteInfo = false,
 }) {
-  if (!turma) return null;
+  if (!turma) {
+    return null;
+  }
 
   const turmaId = turma?.id;
-
   const statusKey = getStatusKey({ turma, hojeISO });
   const statusLabel = getStatusText(statusKey);
-
   const eventoJaIniciado =
-    statusKey === STATUS_TURMA.ANDAMENTO || statusKey === STATUS_TURMA.ENCERRADO;
-
+    statusKey === STATUS_TURMA.ANDAMENTO ||
+    statusKey === STATUS_TURMA.ENCERRADO;
   const dentroDoPeriodo = statusKey === STATUS_TURMA.ANDAMENTO;
-
   const vagasTotais = toPositiveInt(turma?.vagas_total, 0);
   const qtdInscritos = Array.isArray(inscritos) ? inscritos.length : 0;
-
   const pct =
     vagasTotais > 0
       ? clamp(Math.round((qtdInscritos / vagasTotais) * 100), 0, 100)
       : 0;
-
   const cargaHoraria = getCargaHoraria(turma);
   const assinanteNome = resolveAssinanteNome(turma);
   const organizadores = getorganizadores(turma);
-
   const periodo = periodoTexto(turma);
   const horario = horarioTexto(turma);
-
   const { datas } = getRangeTurma(turma);
   const totalDatas = datas.length;
 
@@ -529,7 +556,9 @@ export default function CardTurmaAdministrador({
   const periodoId = `turma-${turmaId || "sem-id"}-periodo`;
 
   const ir = (path) => {
-    if (typeof navigate === "function" && path) navigate(path);
+    if (typeof navigate === "function" && path) {
+      navigate(path);
+    }
   };
 
   const barClass = STATUS_BAR[statusKey] || STATUS_BAR[STATUS_TURMA.SEM_DATAS];
@@ -542,7 +571,6 @@ export default function CardTurmaAdministrador({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22 }}
       className="relative overflow-hidden rounded-[1.35rem] border border-zinc-200 bg-white shadow-[0_14px_45px_-35px_rgba(15,23,42,0.55)] dark:border-zinc-800 dark:bg-zinc-950"
-      role="region"
       aria-labelledby={tituloId}
       aria-describedby={periodoId}
     >
@@ -551,9 +579,6 @@ export default function CardTurmaAdministrador({
         aria-hidden="true"
       />
 
-      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-indigo-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl" />
-
       <div className="relative p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
@@ -561,7 +586,6 @@ export default function CardTurmaAdministrador({
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <StatusTurmaBadge statusKey={statusKey} label={statusLabel} />
-
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-bold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                     <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
                     {statusLabel}
@@ -572,7 +596,6 @@ export default function CardTurmaAdministrador({
                   id={tituloId}
                   className="break-words text-lg font-black leading-tight text-zinc-950 dark:text-white sm:text-xl"
                   title={turma?.nome || "Turma"}
-                  aria-live="polite"
                 >
                   {turma?.nome || "Turma"}
                 </h4>
@@ -593,21 +616,18 @@ export default function CardTurmaAdministrador({
                 value={periodo}
                 tone="violet"
               />
-
               <InfoTile
                 icon={Clock}
                 label="Horário"
                 value={horario}
                 tone="sky"
               />
-
               <InfoTile
                 icon={CheckCircle2}
                 label="Datas"
                 value={totalDatas || "—"}
                 tone="zinc"
               />
-
               <InfoTile
                 icon={TrendingUp}
                 label="Carga"
@@ -622,12 +642,10 @@ export default function CardTurmaAdministrador({
                   <div className="text-sm font-black text-zinc-900 dark:text-white">
                     Vagas e ocupação
                   </div>
-
                   <div className="text-xs text-zinc-500 dark:text-zinc-400">
                     Controle administrativo de inscrições desta turma.
                   </div>
                 </div>
-
                 <BadgeOcupacao pct={pct} />
               </div>
 
@@ -639,7 +657,6 @@ export default function CardTurmaAdministrador({
                     </span>
                     <span>{pct}%</span>
                   </div>
-
                   <ProgressOcupacao pct={pct} />
                 </>
               ) : (
@@ -663,113 +680,88 @@ export default function CardTurmaAdministrador({
                 <div className="mb-3 text-sm font-black text-zinc-900 dark:text-white">
                   Ações da turma
                 </div>
-
                 {!modoAdminPresencas ? (
                   <div className="grid grid-cols-1 gap-2">
-                    <button
+                    <ActionButton
                       onClick={() => carregarInscritos?.(turmaId)}
-                      aria-label="Abrir lista de inscritos"
+                      ariaLabel="Abrir lista de inscritos"
                       title="Inscritos"
                       variant="outline"
                       cor="verde"
                     >
-                      <span className="inline-flex items-center gap-1.5">
-                        <Users size={16} aria-hidden="true" />
-                        Inscritos
-                      </span>
-                    </button>
-
-                    <button
+                      <Users size={16} aria-hidden="true" /> Inscritos
+                    </ActionButton>
+                    <ActionButton
                       onClick={() => carregarAvaliacao?.(turmaId)}
-                      aria-label="Abrir avaliações da turma"
+                      ariaLabel="Abrir avaliações da turma"
                       title="Avaliações"
                       variant="outline"
                       cor="azulPetroleo"
                     >
-                      <span className="inline-flex items-center gap-1.5">
-                        <BarChart3 size={16} aria-hidden="true" />
-                        Avaliações
-                      </span>
-                    </button>
-
+                      <BarChart3 size={16} aria-hidden="true" /> Avaliações
+                    </ActionButton>
                     {dentroDoPeriodo && (
-                      <button
+                      <ActionButton
                         onClick={() => ir("/scanner")}
-                        aria-label="Abrir leitor de QR Code para presença"
+                        ariaLabel="Abrir leitor de QR Code para presença"
                         title="Registro de presença por QR Code"
                         cor="verde"
                       >
-                        <span className="inline-flex items-center gap-1.5">
-                          <QrCode size={16} aria-hidden="true" />
-                          QR Code
-                        </span>
-                      </button>
+                        <QrCode size={16} aria-hidden="true" /> QR Code
+                      </ActionButton>
                     )}
-
                     {eventoJaIniciado && (
-                      <button
+                      <ActionButton
                         onClick={() => gerarRelatorioPDF?.(turmaId)}
-                        aria-label="Gerar PDF desta turma"
+                        ariaLabel="Gerar PDF desta turma"
                         title="Gerar relatório em PDF"
                         variant="outline"
                         cor="laranjaQueimado"
                       >
-                        <span className="inline-flex items-center gap-1.5">
-                          <FileText size={16} aria-hidden="true" />
-                          PDF
-                        </span>
-                      </button>
+                        <FileText size={16} aria-hidden="true" /> PDF
+                      </ActionButton>
                     )}
-
-                    <button
+                    <ActionButton
                       onClick={() => ir(`/turmas/editar/${turmaId}`)}
-                      aria-label="Editar turma"
+                      ariaLabel="Editar turma"
                       title="Editar turma"
                       variant="outline"
                       cor="amareloOuro"
                     >
-                      <span className="inline-flex items-center gap-1.5">
-                        <Edit3 size={16} aria-hidden="true" />
-                        Editar
-                      </span>
-                    </button>
-
-                    <button
+                      <Edit3 size={16} aria-hidden="true" /> Editar
+                    </ActionButton>
+                    <ActionButton
                       onClick={() => ir(`/turmas/presencas/${turmaId}`)}
-                      aria-label="Ver presenças da turma"
+                      ariaLabel="Ver presenças da turma"
                       title="Presenças"
                       variant="outline"
                       cor="vermelhoCoral"
                     >
-                      <span className="inline-flex items-center gap-1.5">
-                        <CalendarDays size={16} aria-hidden="true" />
-                        Presenças
-                      </span>
-                    </button>
+                      <CalendarDays size={16} aria-hidden="true" /> Presenças
+                    </ActionButton>
                   </div>
                 ) : (
-                  <button
+                  <ActionButton
                     onClick={() => {
-                      if (!turmaId) return;
-
+                      if (!turmaId) {
+                        return;
+                      }
                       onExpandirOuRecolher?.(turmaId);
-
                       if (!estaExpandida) {
                         carregarInscritos?.(turmaId);
                         carregarAvaliacao?.(turmaId);
                         carregarPresencas?.(turmaId);
                       }
                     }}
-                    aria-label={
+                    ariaLabel={
                       estaExpandida
                         ? "Recolher detalhes da turma"
                         : "Ver detalhes da turma"
                     }
-                    rightIcon={<span aria-hidden>{estaExpandida ? "▴" : "▾"}</span>}
                     cor="azulPetroleo"
                   >
                     {estaExpandida ? "Recolher detalhes" : "Ver detalhes"}
-                  </button>
+                  </ActionButton>
                 )}
               </div>
             </div>
@@ -780,30 +772,6 @@ export default function CardTurmaAdministrador({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   PropTypes
-────────────────────────────────────────────────────────────── */
-
-BadgeOcupacao.propTypes = {
-  pct: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-};
-
-ProgressOcupacao.propTypes = {
-  pct: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-};
-
-InfoTile.propTypes = {
-  icon: PropTypes.elementType.isRequired,
-  label: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  tone: PropTypes.oneOf(["zinc", "emerald", "sky", "amber", "violet"]),
-};
-
-InstructorPills.propTypes = {
-  organizadores: PropTypes.array,
-  assinanteNome: PropTypes.string,
-};
-
 CardTurmaAdministrador.propTypes = {
   turma: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -813,10 +781,11 @@ CardTurmaAdministrador.propTypes = {
     horario_inicio: PropTypes.string,
     horario_fim: PropTypes.string,
     vagas_total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    organizador_assinante_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    organizador_assinante: PropTypes.shape({
-      nome: PropTypes.string,
-    }),
+    organizador_assinante_id: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    organizador_assinante: PropTypes.shape({ nome: PropTypes.string }),
     organizadores: PropTypes.array,
     carga_horaria: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     datas: PropTypes.arrayOf(
@@ -824,21 +793,18 @@ CardTurmaAdministrador.propTypes = {
         data: PropTypes.string,
         horario_inicio: PropTypes.string,
         horario_fim: PropTypes.string,
-      })
+      }),
     ),
   }).isRequired,
-
   inscritos: PropTypes.array,
   hojeISO: PropTypes.string,
   estaExpandida: PropTypes.bool,
   modoAdminPresencas: PropTypes.bool,
-
   carregarInscritos: PropTypes.func,
   carregarAvaliacao: PropTypes.func,
   carregarPresencas: PropTypes.func,
   gerarRelatorioPDF: PropTypes.func,
   navigate: PropTypes.func,
   onExpandirOuRecolher: PropTypes.func,
-
   somenteInfo: PropTypes.bool,
 };

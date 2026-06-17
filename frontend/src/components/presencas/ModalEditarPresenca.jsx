@@ -53,7 +53,9 @@ function classNames(...classes) {
 }
 
 function normalizarStatus(value) {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
 
   return STATUS_OPCAO.includes(status) ? status : "faltou";
 }
@@ -70,7 +72,9 @@ function getErrorMessage(error, fallback = "Falha ao salvar presença.") {
 }
 
 function isInteractiveElement(element) {
-  if (!element) return false;
+  if (!element) {
+    return false;
+  }
 
   const selector = [
     "a[href]",
@@ -85,7 +89,9 @@ function isInteractiveElement(element) {
 }
 
 function getFocusableElements(container) {
-  if (!container) return [];
+  if (!container) {
+    return [];
+  }
 
   const selector = [
     "a[href]",
@@ -99,7 +105,7 @@ function getFocusableElements(container) {
   return Array.from(container.querySelectorAll(selector)).filter(
     (element) =>
       !element.hasAttribute("disabled") &&
-      element.getAttribute("aria-hidden") !== "true"
+      element.getAttribute("aria-hidden") !== "true",
   );
 }
 
@@ -129,12 +135,12 @@ export default function ModalEditarPresenca({
 
   const statusInicial = useMemo(
     () => normalizarStatus(inscrito?.status),
-    [inscrito?.status]
+    [inscrito?.status],
   );
 
   const [status, setStatus] = useState(statusInicial);
   const [justificativa, setJustificativa] = useState(
-    inscrito?.justificativa || ""
+    inscrito?.justificativa || "",
   );
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -146,7 +152,9 @@ export default function ModalEditarPresenca({
   const faltaInvalida = justificativaObrigatoria && contar < minJustLen;
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     previousFocusRef.current = document.activeElement;
 
@@ -184,7 +192,9 @@ export default function ModalEditarPresenca({
   }, [justificativa, status]);
 
   const handleClose = useCallback(() => {
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
     onClose?.();
   }, [onClose, salvando]);
 
@@ -196,11 +206,15 @@ export default function ModalEditarPresenca({
         return;
       }
 
-      if (event.key !== "Tab") return;
+      if (event.key !== "Tab") {
+        return;
+      }
 
       const focusable = getFocusableElements(dialogRef.current);
 
-      if (!focusable.length) return;
+      if (!focusable.length) {
+        return;
+      }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -213,14 +227,16 @@ export default function ModalEditarPresenca({
         first.focus();
       }
     },
-    [handleClose]
+    [handleClose],
   );
 
   const handleChipsKeyDown = useCallback(
     (event) => {
       const keys = ["ArrowRight", "ArrowLeft", "Home", "End"];
 
-      if (!keys.includes(event.key)) return;
+      if (!keys.includes(event.key)) {
+        return;
+      }
 
       const current = STATUS_OPCAO.indexOf(status);
       let next = current;
@@ -248,7 +264,7 @@ export default function ModalEditarPresenca({
       setStatus(nextStatus);
       requestAnimationFrame(() => chipRefs.current[next]?.focus?.());
     },
-    [status]
+    [status],
   );
 
   const handleSubmit = useCallback(
@@ -296,10 +312,12 @@ export default function ModalEditarPresenca({
       onClose,
       onSalvar,
       status,
-    ]
+    ],
   );
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div
@@ -311,7 +329,8 @@ export default function ModalEditarPresenca({
         }
       }}
     >
-      <section
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+      <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -329,7 +348,10 @@ export default function ModalEditarPresenca({
           <div className="relative flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-xs font-black uppercase tracking-wide ring-1 ring-white/15">
-                <ClipboardSignature className="h-3.5 w-3.5" aria-hidden="true" />
+                <ClipboardSignature
+                  className="h-3.5 w-3.5"
+                  aria-hidden="true"
+                />
                 Presença
               </div>
 
@@ -417,6 +439,7 @@ export default function ModalEditarPresenca({
                         chipRefs.current[index] = element;
                       }}
                       tabIndex={selected ? 0 : -1}
+                      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role
                       role="radio"
                       aria-checked={selected}
                       className={classNames(
@@ -425,7 +448,7 @@ export default function ModalEditarPresenca({
                         selected
                           ? option.selectedClass
                           : "border-slate-300 bg-white text-slate-700 hover:border-teal-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
-                        salvando && "cursor-not-allowed opacity-70"
+                        salvando && "cursor-not-allowed opacity-70",
                       )}
                     >
                       <input
@@ -464,7 +487,7 @@ export default function ModalEditarPresenca({
                     "min-h-28 w-full resize-y rounded-2xl border bg-white p-3 text-sm text-slate-950 outline-none transition dark:bg-slate-900 dark:text-white",
                     faltaInvalida
                       ? "border-rose-400 focus:ring-4 focus:ring-rose-500/15"
-                      : "border-slate-300 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15 dark:border-slate-700"
+                      : "border-slate-300 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15 dark:border-slate-700",
                   )}
                   rows={4}
                   disabled={salvando}
@@ -485,7 +508,7 @@ export default function ModalEditarPresenca({
                     className={classNames(
                       contar < minJustLen
                         ? "text-rose-600 dark:text-rose-300"
-                        : "text-slate-400"
+                        : "text-slate-400",
                     )}
                   >
                     {contar} caractere{contar === 1 ? "" : "s"}
@@ -530,7 +553,10 @@ export default function ModalEditarPresenca({
             >
               {salvando ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                   Salvando...
                 </span>
               ) : (
@@ -542,7 +568,7 @@ export default function ModalEditarPresenca({
             </Botao>
           </footer>
         </form>
-      </section>
+      </div>
     </div>
   );
 }

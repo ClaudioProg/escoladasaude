@@ -2,7 +2,14 @@
 // Atualizado em: 15/05/2026
 // Plataforma Escola da Saúde
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import {
   ArrowDown,
@@ -30,7 +37,7 @@ import NadaEncontrado from "../ui/NadaEncontrado";
  * - Sem dependência de endpoint.
  * - Sem toast.
  * - Sem alias de payload.
- */
+ * */
 
 function cx(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -55,7 +62,9 @@ function formatarCabecalho(value) {
     .replace(/_/g, " ")
     .trim();
 
-  if (!text) return "Campo";
+  if (!text) {
+    return "Campo";
+  }
 
   return text
     .replace(/\bid\b/gi, "ID")
@@ -80,12 +89,18 @@ function parseNumero(value) {
     return Number.isFinite(value) ? value : null;
   }
 
-  if (typeof value !== "string") return null;
-  if (isIsoDateLike(value)) return null;
+  if (typeof value !== "string") {
+    return null;
+  }
+  if (isIsoDateLike(value)) {
+    return null;
+  }
 
   const text = value.trim();
 
-  if (!text) return null;
+  if (!text) {
+    return null;
+  }
 
   const normalized =
     text.includes(",") && text.includes(".")
@@ -103,7 +118,9 @@ function formatarData(value) {
   const text = String(value || "");
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
 
-  if (!match) return "";
+  if (!match) {
+    return "";
+  }
 
   const date = `${match[3]}/${match[2]}/${match[1]}`;
 
@@ -115,8 +132,12 @@ function formatarData(value) {
 }
 
 function formatarCelula(value) {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Sim" : "Não";
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  if (typeof value === "boolean") {
+    return value ? "Sim" : "Não";
+  }
 
   if (isIsoDateLike(value)) {
     return formatarData(value) || String(value);
@@ -146,7 +167,9 @@ function formatarCelula(value) {
 }
 
 function tooltipTexto(value) {
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined) {
+    return "";
+  }
 
   if (typeof value === "object") {
     try {
@@ -182,15 +205,21 @@ function colunaEhNumerica(rows, col) {
   let numeric = 0;
 
   for (const row of rows) {
-    if (!row || !(col in row)) continue;
+    if (!row || !(col in row)) {
+      continue;
+    }
 
     const value = row[col];
 
-    if (value === null || value === undefined || value === "") continue;
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
 
     total += 1;
 
-    if (parseNumero(value) !== null) numeric += 1;
+    if (parseNumero(value) !== null) {
+      numeric += 1;
+    }
   }
 
   return total > 0 && numeric / total >= 0.5;
@@ -273,7 +302,7 @@ function StatusPill({ value }) {
       className={cx(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-black ring-1",
         tones[status] ||
-          "bg-slate-100 text-slate-700 ring-slate-200 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-700"
+          "bg-slate-100 text-slate-700 ring-slate-200 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-700",
       )}
     >
       {safeText(value)}
@@ -284,7 +313,11 @@ function StatusPill({ value }) {
 function shouldRenderStatusPill(key, value) {
   const k = String(key || "").toLowerCase();
 
-  if (k.includes("status") || k.includes("severidade") || k.includes("motivo")) {
+  if (
+    k.includes("status") ||
+    k.includes("severidade") ||
+    k.includes("motivo")
+  ) {
     return typeof value === "string" && value.trim() !== "";
   }
 
@@ -292,8 +325,14 @@ function shouldRenderStatusPill(key, value) {
 }
 
 function SortIcon({ active, dir }) {
-  if (!active) return <ArrowUpDown className="h-3.5 w-3.5 opacity-75" aria-hidden="true" />;
-  if (dir === "asc") return <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />;
+  if (!active) {
+    return (
+      <ArrowUpDown className="h-3.5 w-3.5 opacity-75" aria-hidden="true" />
+    );
+  }
+  if (dir === "asc") {
+    return <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />;
+  }
   return <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />;
 }
 
@@ -329,11 +368,13 @@ export default function RelatoriosTabela({
   const rows = useMemo(() => safeArray(data), [data]);
   const hiddenSet = useMemo(
     () => new Set(safeArray(hiddenKeys).map(String)),
-    [hiddenKeys]
+    [hiddenKeys],
   );
 
   const colunas = useMemo(() => {
-    return extrairColunas(rows, columns).filter((key) => !hiddenSet.has(String(key)));
+    return extrairColunas(rows, columns).filter(
+      (key) => !hiddenSet.has(String(key)),
+    );
   }, [rows, columns, hiddenSet]);
 
   const labels = useMemo(() => {
@@ -347,7 +388,9 @@ export default function RelatoriosTabela({
   }, [colunas]);
 
   const [sort, setSort] = useState(() => {
-    if (defaultSort?.key) return defaultSort;
+    if (defaultSort?.key) {
+      return defaultSort;
+    }
     return { key: null, dir: "asc" };
   });
 
@@ -357,7 +400,7 @@ export default function RelatoriosTabela({
 
   const pinnedSet = useMemo(
     () => new Set(safeArray(pinnedLeft).map(String)),
-    [pinnedLeft]
+    [pinnedLeft],
   );
 
   const clickable = typeof onRowClick === "function";
@@ -376,25 +419,35 @@ export default function RelatoriosTabela({
   }, []);
 
   const effectiveView = useMemo(() => {
-    if (view === "table") return "table";
-    if (view === "cards") return "cards";
+    if (view === "table") {
+      return "table";
+    }
+    if (view === "cards") {
+      return "cards";
+    }
 
     return mobileAsCards && isMobile ? "cards" : "table";
   }, [view, mobileAsCards, isMobile]);
 
   const sortedData = useMemo(() => {
-    if (!sortable || !sort?.key) return rows;
+    if (!sortable || !sort?.key) {
+      return rows;
+    }
 
     const clone = rows.slice();
     const factor = sort.dir === "desc" ? -1 : 1;
 
-    clone.sort((a, b) => factor * compararValores(a?.[sort.key], b?.[sort.key]));
+    clone.sort(
+      (a, b) => factor * compararValores(a?.[sort.key], b?.[sort.key]),
+    );
 
     return clone;
   }, [rows, sortable, sort]);
 
   const totais = useMemo(() => {
-    if (!totals) return null;
+    if (!totals) {
+      return null;
+    }
 
     const out = {};
 
@@ -424,13 +477,17 @@ export default function RelatoriosTabela({
     }
 
     const compute = () => {
-      const ths = Array.from(headRef.current.querySelectorAll("th[data-colkey]"));
+      const ths = Array.from(
+        headRef.current.querySelectorAll("th[data-colkey]"),
+      );
       const widths = {};
 
       for (const th of ths) {
         const key = th.getAttribute("data-colkey");
 
-        if (!key) continue;
+        if (!key) {
+          continue;
+        }
 
         widths[key] = th.getBoundingClientRect().width || 0;
       }
@@ -459,14 +516,18 @@ export default function RelatoriosTabela({
 
     observer.observe(headRef.current);
 
-    if (wrapRef.current) observer.observe(wrapRef.current);
+    if (wrapRef.current) {
+      observer.observe(wrapRef.current);
+    }
 
     return () => observer.disconnect();
   }, [colunas, pinnedSet]);
 
   const handleSort = useCallback(
     (key) => {
-      if (!sortable) return;
+      if (!sortable) {
+        return;
+      }
 
       setSort((prev) => {
         if (prev.key === key) {
@@ -482,15 +543,17 @@ export default function RelatoriosTabela({
         };
       });
     },
-    [sortable]
+    [sortable],
   );
 
   const ariaSort = useCallback(
     (key) => {
-      if (!sortable || sort.key !== key) return "none";
+      if (!sortable || sort.key !== key) {
+        return "none";
+      }
       return sort.dir === "asc" ? "ascending" : "descending";
     },
-    [sortable, sort]
+    [sortable, sort],
   );
 
   const renderCell = useCallback(
@@ -505,19 +568,21 @@ export default function RelatoriosTabela({
 
       return formatarCelula(value);
     },
-    [formatters]
+    [formatters],
   );
 
   const onRowKeyDown = useCallback(
     (event, row) => {
-      if (!clickable) return;
+      if (!clickable) {
+        return;
+      }
 
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         onRowClick(row);
       }
     },
-    [clickable, onRowClick]
+    [clickable, onRowClick],
   );
 
   if (loading) {
@@ -525,7 +590,7 @@ export default function RelatoriosTabela({
       <section
         className={cx(
           "rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800",
-          className
+          className,
         )}
         aria-label={caption}
         aria-busy="true"
@@ -558,7 +623,7 @@ export default function RelatoriosTabela({
       ref={wrapRef}
       className={cx(
         "overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800",
-        className
+        className,
       )}
       aria-labelledby={headerId}
     >
@@ -585,7 +650,7 @@ export default function RelatoriosTabela({
                 "flex-1 px-3 py-2 text-xs font-black transition sm:flex-none",
                 view === "auto"
                   ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                  : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800",
               )}
             >
               Auto
@@ -598,7 +663,7 @@ export default function RelatoriosTabela({
                 "inline-flex flex-1 items-center justify-center gap-1 px-3 py-2 text-xs font-black transition sm:flex-none",
                 view === "table"
                   ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                  : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800",
               )}
             >
               <Table2 className="h-4 w-4" aria-hidden="true" />
@@ -612,7 +677,7 @@ export default function RelatoriosTabela({
                 "inline-flex flex-1 items-center justify-center gap-1 px-3 py-2 text-xs font-black transition sm:flex-none",
                 view === "cards"
                   ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                  : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800",
               )}
             >
               <LayoutGrid className="h-4 w-4" aria-hidden="true" />
@@ -628,19 +693,21 @@ export default function RelatoriosTabela({
             {sortedData.map((row, index) => {
               const key = getRowKey(row, index, keyField);
               const title = renderCell(titleKey, row?.[titleKey], row);
+              const CardTag = clickable ? "button" : "li";
 
               return (
-                <li
+                <CardTag
                   key={key}
+                  type={clickable ? "button" : undefined}
                   className={cx(
-                    "rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200 dark:bg-zinc-950 dark:ring-zinc-800",
+                    "block w-full text-left rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200 dark:bg-zinc-950 dark:ring-zinc-800",
                     clickable &&
-                      "cursor-pointer transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:hover:bg-zinc-800"
+                      "cursor-pointer transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:hover:bg-zinc-800",
                   )}
-                  role={clickable ? "button" : "listitem"}
-                  tabIndex={clickable ? 0 : undefined}
                   onClick={clickable ? () => onRowClick(row) : undefined}
-                  onKeyDown={(event) => onRowKeyDown(event, row)}
+                  onKeyDown={
+                    clickable ? (event) => onRowKeyDown(event, row) : undefined
+                  }
                 >
                   <div className="break-words text-sm font-black text-slate-950 dark:text-white">
                     {title || "Registro"}
@@ -651,7 +718,10 @@ export default function RelatoriosTabela({
                       .filter((col) => col !== titleKey)
                       .slice(0, 9)
                       .map((col) => (
-                        <div key={col} className="grid grid-cols-[110px_1fr] gap-2">
+                        <div
+                          key={col}
+                          className="grid grid-cols-[110px_1fr] gap-2"
+                        >
                           <dt className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
                             {labels[col]}
                           </dt>
@@ -667,7 +737,7 @@ export default function RelatoriosTabela({
                       + {colunas.length - 10} campo(s)
                     </p>
                   ) : null}
-                </li>
+                </CardTag>
               );
             })}
           </ul>
@@ -700,7 +770,7 @@ export default function RelatoriosTabela({
                         "border-b border-white/15 px-4 font-black whitespace-nowrap",
                         dense ? "py-2" : "py-3",
                         numeric ? "text-right" : "text-left",
-                        pinned && "sticky z-30 bg-slate-950"
+                        pinned && "sticky z-30 bg-slate-950",
                       )}
                       style={pinned ? { left } : undefined}
                     >
@@ -711,7 +781,7 @@ export default function RelatoriosTabela({
                         className={cx(
                           "inline-flex items-center gap-1.5 rounded text-inherit",
                           sortable &&
-                            "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                            "hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
                         )}
                         title={sortable ? "Ordenar coluna" : undefined}
                       >
@@ -742,7 +812,7 @@ export default function RelatoriosTabela({
                       zebra,
                       clickable
                         ? "cursor-pointer hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:hover:bg-violet-950/20"
-                        : "hover:bg-slate-50 dark:hover:bg-zinc-800/60"
+                        : "hover:bg-slate-50 dark:hover:bg-zinc-800/60",
                     )}
                     role={clickable ? "button" : "row"}
                     tabIndex={clickable ? 0 : undefined}
@@ -764,7 +834,7 @@ export default function RelatoriosTabela({
                             numeric ? "text-right" : "text-left",
                             pinned &&
                               "sticky z-10 bg-white/95 dark:bg-zinc-950/95",
-                            getCellClass(value, col, row, cellClassName)
+                            getCellClass(value, col, row, cellClassName),
                           )}
                           style={pinned ? { left } : undefined}
                           title={tooltipTexto(value)}
@@ -795,7 +865,7 @@ export default function RelatoriosTabela({
                           dense ? "py-1.5" : "py-2.5",
                           hasTotal
                             ? "text-right text-slate-950 dark:text-white"
-                            : "text-left text-slate-500 dark:text-zinc-400"
+                            : "text-left text-slate-500 dark:text-zinc-400",
                         )}
                       >
                         {hasTotal

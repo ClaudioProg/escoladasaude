@@ -109,11 +109,13 @@ function onlyDigits(value) {
 function formatarCPFSeguro(value) {
   const digits = onlyDigits(value);
 
-  if (digits.length !== 11) return value || "Não informado";
+  if (digits.length !== 11) {
+    return value || "Não informado";
+  }
 
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(
     6,
-    9
+    9,
   )}-${digits.slice(9)}`;
 }
 
@@ -156,11 +158,13 @@ function makeLocalDate(dateISO, hhmm = "00:00") {
 }
 
 function isoDia(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (value instanceof Date && !Number.isNaN(Number(value))) {
     return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(
-      value.getDate()
+      value.getDate(),
     )}`;
   }
 
@@ -172,7 +176,9 @@ function isoDia(value) {
 function formatarDataBR(value) {
   const iso = isoDia(value);
 
-  if (!iso) return "—";
+  if (!iso) {
+    return "—";
+  }
 
   const [year, month, day] = iso.split("-");
 
@@ -187,8 +193,12 @@ function compararTurmasPorInicioDesc(a, b) {
   const dataA = isoDia(a?.data_inicio) || "0000-00-00";
   const dataB = isoDia(b?.data_inicio) || "0000-00-00";
 
-  if (dataA < dataB) return 1;
-  if (dataA > dataB) return -1;
+  if (dataA < dataB) {
+    return 1;
+  }
+  if (dataA > dataB) {
+    return -1;
+  }
   return 0;
 }
 
@@ -197,7 +207,9 @@ function compararTurmasPorInicioDesc(a, b) {
 =========================================================================== */
 
 function normalizarStatusTurma(status) {
-  const value = String(status || "").trim().toLowerCase();
+  const value = String(status || "")
+    .trim()
+    .toLowerCase();
 
   return STATUS_TURMA_OFICIAL.has(value) ? value : "programado";
 }
@@ -238,7 +250,7 @@ function pessoaEstaPresente(pessoa, dia) {
     return pessoa.presencas.some(
       (presenca) =>
         isoDia(presenca?.data_presenca || presenca?.data) === dia &&
-        presenca?.presente === true
+        presenca?.presente === true,
     );
   }
 
@@ -260,8 +272,7 @@ function calcularJanelaConfirmacao({ dia, horarioInicio, horarioFim }) {
   const passou60 =
     inicioValido &&
     agoraMs >=
-      inicioLocal.getTime() +
-        JANELA_ADMIN.LIBERAR_APOS_MINUTOS * 60 * 1000;
+      inicioLocal.getTime() + JANELA_ADMIN.LIBERAR_APOS_MINUTOS * 60 * 1000;
 
   const deadlineAdmin = fimValido
     ? addDaysMs(fimLocal.getTime(), JANELA_ADMIN.EXPIRAR_APOS_DIAS)
@@ -335,8 +346,7 @@ function Badge({ tone = "zinc", children, className = "" }) {
       "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-900/40 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/40 dark:text-amber-200",
-    rose:
-      "border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-800/50 dark:bg-rose-900/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-800/50 dark:bg-rose-900/40 dark:text-rose-200",
     sky: "border-sky-200 bg-sky-100 text-sky-800 dark:border-sky-800/50 dark:bg-sky-900/40 dark:text-sky-200",
   };
 
@@ -345,7 +355,7 @@ function Badge({ tone = "zinc", children, className = "" }) {
       className={cx(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold",
         tones[tone] || tones.zinc,
-        className
+        className,
       )}
     >
       {children}
@@ -387,7 +397,9 @@ function MiniStat({ icon: Icon, label, value, tone = "emerald" }) {
         {label}
       </div>
 
-      <div className={cx("mt-1 text-3xl font-black", tones[tone] || tones.zinc)}>
+      <div
+        className={cx("mt-1 text-3xl font-black", tones[tone] || tones.zinc)}
+      >
         {value}
       </div>
     </div>
@@ -396,7 +408,10 @@ function MiniStat({ icon: Icon, label, value, tone = "emerald" }) {
 
 function HeaderHero({ totalTurmas }) {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div
         className="absolute inset-0 bg-gradient-to-br from-slate-950 via-emerald-800 to-teal-700"
         aria-hidden="true"
@@ -425,7 +440,10 @@ function HeaderHero({ totalTurmas }) {
         <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
           <div className="min-w-0">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-200" aria-hidden="true" />
+              <Sparkles
+                className="h-3.5 w-3.5 text-emerald-200"
+                aria-hidden="true"
+              />
               Gestão de presenças • turmas e inscritos
             </div>
 
@@ -448,29 +466,32 @@ function HeaderHero({ totalTurmas }) {
 
           <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/85 backdrop-blur">
             <div className="flex items-center gap-2 font-black text-white">
-              <ShieldCheck className="h-4 w-4 text-emerald-200" aria-hidden="true" />
+              <ShieldCheck
+                className="h-4 w-4 text-emerald-200"
+                aria-hidden="true"
+              />
               Regra administrativa
             </div>
             <p className="mt-1 max-w-sm text-xs leading-relaxed">
-              Confirmação manual liberada 1h após o início e até 15 dias após o fim da aula.
+              Confirmação manual liberada 1h após o início e até 15 dias após o
+              fim da aula.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-white/25" aria-hidden="true" />
+      <div
+        className="absolute bottom-0 left-0 right-0 h-px bg-white/25"
+        aria-hidden="true"
+      />
     </header>
   );
 }
 
-function ModalConfirmarPresenca({
-  open,
-  dados,
-  loading,
-  onClose,
-  onConfirm,
-}) {
-  if (!open || !dados) return null;
+function ModalConfirmarPresenca({ open, dados, loading, onClose, onConfirm }) {
+  if (!open || !dados) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[1200]">
@@ -587,8 +608,12 @@ function StatusPresencaBadge({ status }) {
 }
 
 function calcularStatusPresenca({ presente, passou60 }) {
-  if (presente) return STATUS_PRESENCA.PRESENTE;
-  if (passou60) return STATUS_PRESENCA.FALTOU;
+  if (presente) {
+    return STATUS_PRESENCA.PRESENTE;
+  }
+  if (passou60) {
+    return STATUS_PRESENCA.FALTOU;
+  }
   return STATUS_PRESENCA.AGUARDANDO;
 }
 
@@ -610,7 +635,7 @@ function BotaoConfirmarPresenca({
         disabled
           ? "cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
           : "bg-emerald-700 text-white hover:bg-emerald-800",
-        loading ? "opacity-70" : ""
+        loading ? "opacity-70" : "",
       )}
       aria-label={ariaLabel}
       title={title}
@@ -657,12 +682,14 @@ export default function ListaPresencasTurma({
 
   const turmasOrdenadas = useMemo(() => {
     return [...(Array.isArray(turmas) ? turmas : [])].sort(
-      compararTurmasPorInicioDesc
+      compararTurmasPorInicioDesc,
     );
   }, [turmas]);
 
   useEffect(() => {
-    if (!turmaExpandidaId || !carregarInscritos) return;
+    if (!turmaExpandidaId || !carregarInscritos) {
+      return;
+    }
 
     const lista = inscritosState?.[turmaExpandidaId];
 
@@ -677,7 +704,7 @@ export default function ListaPresencasTurma({
   const inscritosCarregados = useMemo(() => {
     return Object.values(inscritosState || {}).reduce(
       (acc, lista) => acc + (Array.isArray(lista) ? lista.length : 0),
-      0
+      0,
     );
   }, [inscritosState]);
 
@@ -713,11 +740,13 @@ export default function ListaPresencasTurma({
           next[turmaId] = lista.map((pessoa) => {
             const idNormalizado = pessoa.usuario_id ?? pessoa.id;
 
-            if (String(idNormalizado) !== String(usuarioId)) return pessoa;
+            if (String(idNormalizado) !== String(usuarioId)) {
+              return pessoa;
+            }
 
             if (Array.isArray(pessoa.presencas)) {
               const jaExiste = pessoa.presencas.some(
-                (presenca) => isoDia(presenca?.data_presenca) === diaISO
+                (presenca) => isoDia(presenca?.data_presenca) === diaISO,
               );
 
               return jaExiste
@@ -757,7 +786,7 @@ export default function ListaPresencasTurma({
           title: "Erro ao confirmar presença",
           message: getErrorMessage(
             error,
-            "Não foi possível confirmar a presença. Verifique a janela administrativa e tente novamente."
+            "Não foi possível confirmar a presença. Verifique a janela administrativa e tente novamente.",
           ),
         });
 
@@ -766,7 +795,7 @@ export default function ListaPresencasTurma({
         setLoading(null);
       }
     },
-    [carregarInscritos]
+    [carregarInscritos],
   );
 
   function abrirModalConfirmar(turmaId, usuarioId, diaISO, nome) {
@@ -819,7 +848,12 @@ export default function ListaPresencasTurma({
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       <HeaderHero totalTurmas={turmasOrdenadas.length} />
 
@@ -880,7 +914,9 @@ export default function ListaPresencasTurma({
               const bar = statusBarClass(turma.status);
 
               const inscritos = inscritosState?.[turma.id];
-              const inscritosCount = Array.isArray(inscritos) ? inscritos.length : 0;
+              const inscritosCount = Array.isArray(inscritos)
+                ? inscritos.length
+                : 0;
 
               return (
                 <section
@@ -888,7 +924,10 @@ export default function ListaPresencasTurma({
                   className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
                   aria-labelledby={`turma-${turma.id}-titulo`}
                 >
-                  <div className={cx("absolute left-0 right-0 top-0 h-1.5", bar)} aria-hidden="true" />
+                  <div
+                    className={cx("absolute left-0 right-0 top-0 h-1.5", bar)}
+                    aria-hidden="true"
+                  />
 
                   <div className="p-4 sm:p-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -902,7 +941,10 @@ export default function ListaPresencasTurma({
 
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                           <span className="inline-flex items-center gap-1">
-                            <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                            <CalendarDays
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
                             {inicioDia ? formatarDataBR(inicioDia) : "—"} até{" "}
                             {fimDia ? formatarDataBR(fimDia) : "—"}
                           </span>
@@ -975,7 +1017,8 @@ export default function ListaPresencasTurma({
                         ) : (
                           <div className="space-y-3">
                             {inscritos.map((pessoa) => {
-                              const usuarioIdNorm = pessoa.usuario_id ?? pessoa.id;
+                              const usuarioIdNorm =
+                                pessoa.usuario_id ?? pessoa.id;
                               const datas = Array.isArray(pessoa.datas)
                                 ? pessoa.datas
                                 : [];
@@ -997,13 +1040,18 @@ export default function ListaPresencasTurma({
                                       </div>
 
                                       <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
-                                        CPF: {pessoa.cpf ? formatarCPFSeguro(pessoa.cpf) : "Não informado"}
+                                        CPF:{" "}
+                                        {pessoa.cpf
+                                          ? formatarCPFSeguro(pessoa.cpf)
+                                          : "Não informado"}
                                       </div>
                                     </div>
 
                                     <div className="shrink-0">
                                       {datas.length ? (
-                                        <Badge tone="sky">Datas: {datas.length}</Badge>
+                                        <Badge tone="sky">
+                                          Datas: {datas.length}
+                                        </Badge>
                                       ) : (
                                         <Badge tone="zinc">Sem datas</Badge>
                                       )}
@@ -1013,7 +1061,8 @@ export default function ListaPresencasTurma({
                                   <div className="mt-3">
                                     {datas.length === 0 ? (
                                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                        Nenhuma data cadastrada para esta pessoa.
+                                        Nenhuma data cadastrada para esta
+                                        pessoa.
                                       </p>
                                     ) : (
                                       <>
@@ -1021,24 +1070,37 @@ export default function ListaPresencasTurma({
                                           <table className="min-w-full text-sm">
                                             <thead>
                                               <tr className="text-left text-zinc-600 dark:text-zinc-300">
-                                                <th className="py-2 pr-4">Data</th>
-                                                <th className="py-2 pr-4">Situação</th>
-                                                <th className="py-2 pr-4">Ações</th>
+                                                <th className="py-2 pr-4">
+                                                  Data
+                                                </th>
+                                                <th className="py-2 pr-4">
+                                                  Situação
+                                                </th>
+                                                <th className="py-2 pr-4">
+                                                  Ações
+                                                </th>
                                               </tr>
                                             </thead>
 
                                             <tbody>
                                               {datas.map((data) => {
                                                 const dia = isoDia(data);
-                                                const presente = pessoaEstaPresente(pessoa, dia);
+                                                const presente =
+                                                  pessoaEstaPresente(
+                                                    pessoa,
+                                                    dia,
+                                                  );
 
-                                                const janela = calcularJanelaConfirmacao({
-                                                  dia,
-                                                  horarioInicio:
-                                                    turma.horario_inicio || "08:00",
-                                                  horarioFim:
-                                                    turma.horario_fim || "17:00",
-                                                });
+                                                const janela =
+                                                  calcularJanelaConfirmacao({
+                                                    dia,
+                                                    horarioInicio:
+                                                      turma.horario_inicio ||
+                                                      "08:00",
+                                                    horarioFim:
+                                                      turma.horario_fim ||
+                                                      "17:00",
+                                                  });
 
                                                 const podeConfirmar =
                                                   modoadministradorPresencas &&
@@ -1046,14 +1108,17 @@ export default function ListaPresencasTurma({
 
                                                 const isLoading =
                                                   loading &&
-                                                  loading.turmaId === turma.id &&
-                                                  loading.usuarioId === usuarioIdNorm &&
+                                                  loading.turmaId ===
+                                                    turma.id &&
+                                                  loading.usuarioId ===
+                                                    usuarioIdNorm &&
                                                   loading.data === dia;
 
-                                                const status = calcularStatusPresenca({
-                                                  presente,
-                                                  passou60: janela.passou60,
-                                                });
+                                                const status =
+                                                  calcularStatusPresenca({
+                                                    presente,
+                                                    passou60: janela.passou60,
+                                                  });
 
                                                 return (
                                                   <tr
@@ -1065,20 +1130,26 @@ export default function ListaPresencasTurma({
                                                     </td>
 
                                                     <td className="py-2 pr-4">
-                                                      <StatusPresencaBadge status={status} />
+                                                      <StatusPresencaBadge
+                                                        status={status}
+                                                      />
                                                     </td>
 
                                                     <td className="py-2 pr-4">
                                                       {!presente ? (
                                                         <BotaoConfirmarPresenca
-                                                          disabled={!podeConfirmar}
-                                                          loading={Boolean(isLoading)}
+                                                          disabled={
+                                                            !podeConfirmar
+                                                          }
+                                                          loading={Boolean(
+                                                            isLoading,
+                                                          )}
                                                           onClick={() =>
                                                             abrirModalConfirmar(
                                                               turma.id,
                                                               usuarioIdNorm,
                                                               dia,
-                                                              pessoa.nome
+                                                              pessoa.nome,
                                                             )
                                                           }
                                                           ariaLabel={`Confirmar presença de ${pessoa.nome} em ${formatarDataBR(dia)}`}
@@ -1093,7 +1164,9 @@ export default function ListaPresencasTurma({
                                                           }
                                                         />
                                                       ) : (
-                                                        <span className="text-zinc-400">—</span>
+                                                        <span className="text-zinc-400">
+                                                          —
+                                                        </span>
                                                       )}
                                                     </td>
                                                   </tr>
@@ -1106,15 +1179,20 @@ export default function ListaPresencasTurma({
                                         <ul className="space-y-2 sm:hidden">
                                           {datas.map((data) => {
                                             const dia = isoDia(data);
-                                            const presente = pessoaEstaPresente(pessoa, dia);
-
-                                            const janela = calcularJanelaConfirmacao({
+                                            const presente = pessoaEstaPresente(
+                                              pessoa,
                                               dia,
-                                              horarioInicio:
-                                                turma.horario_inicio || "08:00",
-                                              horarioFim:
-                                                turma.horario_fim || "17:00",
-                                            });
+                                            );
+
+                                            const janela =
+                                              calcularJanelaConfirmacao({
+                                                dia,
+                                                horarioInicio:
+                                                  turma.horario_inicio ||
+                                                  "08:00",
+                                                horarioFim:
+                                                  turma.horario_fim || "17:00",
+                                              });
 
                                             const podeConfirmar =
                                               modoadministradorPresencas &&
@@ -1123,13 +1201,15 @@ export default function ListaPresencasTurma({
                                             const isLoading =
                                               loading &&
                                               loading.turmaId === turma.id &&
-                                              loading.usuarioId === usuarioIdNorm &&
+                                              loading.usuarioId ===
+                                                usuarioIdNorm &&
                                               loading.data === dia;
 
-                                            const status = calcularStatusPresenca({
-                                              presente,
-                                              passou60: janela.passou60,
-                                            });
+                                            const status =
+                                              calcularStatusPresenca({
+                                                presente,
+                                                passou60: janela.passou60,
+                                              });
 
                                             return (
                                               <li
@@ -1143,26 +1223,37 @@ export default function ListaPresencasTurma({
                                                     </div>
 
                                                     <div className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
-                                                      {turma.horario_inicio?.slice?.(0, 5) || "—"} às{" "}
-                                                      {turma.horario_fim?.slice?.(0, 5) || "—"}
+                                                      {turma.horario_inicio?.slice?.(
+                                                        0,
+                                                        5,
+                                                      ) || "—"}{" "}
+                                                      às{" "}
+                                                      {turma.horario_fim?.slice?.(
+                                                        0,
+                                                        5,
+                                                      ) || "—"}
                                                     </div>
                                                   </div>
 
-                                                  <StatusPresencaBadge status={status} />
+                                                  <StatusPresencaBadge
+                                                    status={status}
+                                                  />
                                                 </div>
 
                                                 <div className="mt-2">
                                                   {!presente ? (
                                                     <BotaoConfirmarPresenca
                                                       disabled={!podeConfirmar}
-                                                      loading={Boolean(isLoading)}
+                                                      loading={Boolean(
+                                                        isLoading,
+                                                      )}
                                                       label="Confirmar presença"
                                                       onClick={() =>
                                                         abrirModalConfirmar(
                                                           turma.id,
                                                           usuarioIdNorm,
                                                           dia,
-                                                          pessoa.nome
+                                                          pessoa.nome,
                                                         )
                                                       }
                                                       ariaLabel={`Confirmar presença de ${pessoa.nome} em ${formatarDataBR(dia)}`}
@@ -1177,7 +1268,9 @@ export default function ListaPresencasTurma({
                                                       }
                                                     />
                                                   ) : (
-                                                    <div className="text-sm text-zinc-400">—</div>
+                                                    <div className="text-sm text-zinc-400">
+                                                      —
+                                                    </div>
                                                   )}
                                                 </div>
                                               </li>
@@ -1188,8 +1281,9 @@ export default function ListaPresencasTurma({
                                         {modoadministradorPresencas ? (
                                           <p className="mt-2 text-[12px] text-zinc-500 dark:text-zinc-400">
                                             Janela admin: confirmação liberada{" "}
-                                            <strong>1h após o início</strong> e até{" "}
-                                            <strong>15 dias</strong> após o fim da aula.
+                                            <strong>1h após o início</strong> e
+                                            até <strong>15 dias</strong> após o
+                                            fim da aula.
                                           </p>
                                         ) : null}
                                       </>
@@ -1203,7 +1297,9 @@ export default function ListaPresencasTurma({
 
                         <div className="mt-4 text-[12px] text-zinc-500 dark:text-zinc-400">
                           Hoje:{" "}
-                          <strong>{hojeISO ? formatarDataBR(hojeISO) : "—"}</strong>
+                          <strong>
+                            {hojeISO ? formatarDataBR(hojeISO) : "—"}
+                          </strong>
                         </div>
                       </motion.div>
                     ) : null}
@@ -1222,7 +1318,9 @@ export default function ListaPresencasTurma({
         dados={confirmar}
         loading={executandoConfirmacao}
         onClose={() => {
-          if (executandoConfirmacao) return;
+          if (executandoConfirmacao) {
+            return;
+          }
           setConfirmar(null);
         }}
         onConfirm={onConfirmarModal}

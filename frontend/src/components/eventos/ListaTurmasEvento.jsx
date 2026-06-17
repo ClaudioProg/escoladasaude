@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/components/eventos/ListaTurmasEvento.jsx — v2.0
 // Atualizado em: 14/05/2026
 // Plataforma Escola da Saúde
@@ -53,7 +52,9 @@ const STATUS_TURMA = Object.freeze({
 function clamp(number, min = 0, max = 100) {
   const value = Number(number);
 
-  if (!Number.isFinite(value)) return min;
+  if (!Number.isFinite(value)) {
+    return min;
+  }
 
   return Math.max(min, Math.min(max, value));
 }
@@ -61,7 +62,9 @@ function clamp(number, min = 0, max = 100) {
 function toInt(value, fallback = 0) {
   const n = Number(value);
 
-  if (!Number.isInteger(n) || n < 0) return fallback;
+  if (!Number.isInteger(n) || n < 0) {
+    return fallback;
+  }
 
   return n;
 }
@@ -70,7 +73,9 @@ function toPct(num, den) {
   const n = Number(num) || 0;
   const d = Number(den) || 0;
 
-  if (d <= 0) return 0;
+  if (d <= 0) {
+    return 0;
+  }
 
   return clamp(Math.round((n / d) * 100));
 }
@@ -84,7 +89,9 @@ function isDateOnly(value) {
 }
 
 function ymdLocal(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
 
   const y = date.getFullYear();
   const m = pad2(date.getMonth() + 1);
@@ -98,7 +105,9 @@ function hojeIsoLocal() {
 }
 
 function normalizeDateOnly(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (typeof value === "object" && value?.data) {
     return normalizeDateOnly(value.data);
@@ -111,10 +120,14 @@ function normalizeDateOnly(value) {
   if (typeof value === "string") {
     const s = value.trim();
 
-    if (isDateOnly(s)) return s;
+    if (isDateOnly(s)) {
+      return s;
+    }
 
     const matchIso = s.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (matchIso) return matchIso[1];
+    if (matchIso) {
+      return matchIso[1];
+    }
   }
 
   return "";
@@ -123,26 +136,38 @@ function normalizeDateOnly(value) {
 function brDate(value) {
   const date = normalizeDateOnly(value);
 
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   const [year, month, day] = date.split("-");
   return `${day}/${month}/${year}`;
 }
 
 function normalizeTime(value) {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") {
+    return "";
+  }
 
   const raw = value.trim();
 
-  if (!raw) return "";
-  if (/^\d{2}:\d{2}$/.test(raw)) return raw;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) return raw.slice(0, 5);
+  if (!raw) {
+    return "";
+  }
+  if (/^\d{2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) {
+    return raw.slice(0, 5);
+  }
 
   return "";
 }
 
 function toDateLocal(dateOnly, time = "00:00") {
-  if (!isDateOnly(dateOnly)) return null;
+  if (!isDateOnly(dateOnly)) {
+    return null;
+  }
 
   const [year, month, day] = dateOnly.split("-").map(Number);
   const [hour, minute] = String(time || "00:00")
@@ -156,30 +181,47 @@ function toDateLocal(dateOnly, time = "00:00") {
     Number.isFinite(hour) ? hour : 0,
     Number.isFinite(minute) ? minute : 0,
     0,
-    0
+    0,
   );
 }
 
 function statusPorJanela({ dataInicio, dataFim, horaInicio, horaFim, agora }) {
-  if (!dataInicio || !dataFim) return STATUS_TURMA.SEM_DATAS;
+  if (!dataInicio || !dataFim) {
+    return STATUS_TURMA.SEM_DATAS;
+  }
 
   const start = toDateLocal(dataInicio, horaInicio || "00:00");
   const end = toDateLocal(dataFim, horaFim || "23:59");
 
-  if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+  if (
+    !start ||
+    !end ||
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime())
+  ) {
     return STATUS_TURMA.SEM_DATAS;
   }
 
-  if (agora < start) return STATUS_TURMA.PROGRAMADO;
-  if (agora > end) return STATUS_TURMA.ENCERRADO;
+  if (agora < start) {
+    return STATUS_TURMA.PROGRAMADO;
+  }
+  if (agora > end) {
+    return STATUS_TURMA.ENCERRADO;
+  }
 
   return STATUS_TURMA.ANDAMENTO;
 }
 
 function statusLabel(status) {
-  if (status === STATUS_TURMA.ANDAMENTO) return "Em andamento";
-  if (status === STATUS_TURMA.ENCERRADO) return "Encerrada";
-  if (status === STATUS_TURMA.SEM_DATAS) return "Sem datas";
+  if (status === STATUS_TURMA.ANDAMENTO) {
+    return "Em andamento";
+  }
+  if (status === STATUS_TURMA.ENCERRADO) {
+    return "Encerrada";
+  }
+  if (status === STATUS_TURMA.SEM_DATAS) {
+    return "Sem datas";
+  }
 
   return "Programada";
 }
@@ -192,9 +234,11 @@ function getDatasTurma(turma) {
       .map((item) => ({
         data: normalizeDateOnly(item?.data || item),
         horario_inicio: normalizeTime(
-          item?.horario_inicio || turma?.horario_inicio || ""
+          item?.horario_inicio || turma?.horario_inicio || "",
         ),
-        horario_fim: normalizeTime(item?.horario_fim || turma?.horario_fim || ""),
+        horario_fim: normalizeTime(
+          item?.horario_fim || turma?.horario_fim || "",
+        ),
       }))
       .filter((item) => item.data)
       .sort((a, b) => a.data.localeCompare(b.data));
@@ -205,7 +249,9 @@ function getDatasTurma(turma) {
   const horarioInicio = normalizeTime(turma?.horario_inicio || "");
   const horarioFim = normalizeTime(turma?.horario_fim || "");
 
-  if (!dataInicio) return [];
+  if (!dataInicio) {
+    return [];
+  }
 
   if (dataFim && dataFim !== dataInicio) {
     return [
@@ -252,9 +298,7 @@ function getRangeTurma(turma) {
     "";
 
   const horarioFim =
-    normalizeTime(turma?.horario_fim || "") ||
-    fimComHora?.horario_fim ||
-    "";
+    normalizeTime(turma?.horario_fim || "") || fimComHora?.horario_fim || "";
 
   return {
     datas,
@@ -274,8 +318,12 @@ function getVagasPreenchidas(turma) {
 }
 
 function barraClassPorPerc(percentual) {
-  if (percentual >= 90) return "bg-gradient-to-r from-rose-600 to-red-600";
-  if (percentual >= 70) return "bg-gradient-to-r from-amber-500 to-orange-500";
+  if (percentual >= 90) {
+    return "bg-gradient-to-r from-rose-600 to-red-600";
+  }
+  if (percentual >= 70) {
+    return "bg-gradient-to-r from-amber-500 to-orange-500";
+  }
 
   return "bg-gradient-to-r from-emerald-600 to-teal-600";
 }
@@ -405,7 +453,8 @@ const TurmaCard = memo(function TurmaCard({
   const manyDates = qtdDatas > 12;
   const isOpen = !!openDates[turmaId];
 
-  const visibleDates = manyDates && !isOpen ? datasUnicas.slice(0, 8) : datasUnicas;
+  const visibleDates =
+    manyDates && !isOpen ? datasUnicas.slice(0, 8) : datasUnicas;
 
   const bloqueadoPororganizador = Boolean(jaorganizadorDoEvento);
   const bloqueadoPorElegibilidadeEvento = !podeSeInscreverNoEvento;
@@ -430,7 +479,8 @@ const TurmaCard = memo(function TurmaCard({
     (bloqueadoPorElegibilidadeEvento &&
       (motivoBloqueioEvento || "Inscrição indisponível para o seu perfil")) ||
     (emConflito && "Conflito de horário com outra turma já inscrita") ||
-    (bloquearOutrasTurmas && "Você já está inscrito em uma turma deste evento") ||
+    (bloquearOutrasTurmas &&
+      "Você já está inscrito em uma turma deste evento") ||
     (lotada && "Turma lotada") ||
     (encerrada && "Turma encerrada") ||
     (semDatas && "Turma sem datas definidas") ||
@@ -446,7 +496,9 @@ const TurmaCard = memo(function TurmaCard({
           : "Data a definir";
 
   const horarioLabel =
-    horarioInicio && horarioFim ? `${horarioInicio} às ${horarioFim}` : "a definir";
+    horarioInicio && horarioFim
+      ? `${horarioInicio} às ${horarioFim}`
+      : "a definir";
 
   const ctaLabel = carregando
     ? "Processando..."
@@ -483,7 +535,11 @@ const TurmaCard = memo(function TurmaCard({
             </h4>
 
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <MiniStat icon={CalendarDays} label="Período" value={datasLabel} />
+              <MiniStat
+                icon={CalendarDays}
+                label="Período"
+                value={datasLabel}
+              />
               <MiniStat icon={Clock3} label="Horário" value={horarioLabel} />
               <MiniStat
                 icon={Users}
@@ -513,7 +569,9 @@ const TurmaCard = memo(function TurmaCard({
                   lotada ? chipStyles.lotada : statusChipClass(statusTurma)
                 }`}
                 aria-label={
-                  lotada ? "Turma lotada" : `Status: ${statusLabel(statusTurma)}`
+                  lotada
+                    ? "Turma lotada"
+                    : `Status: ${statusLabel(statusTurma)}`
                 }
               >
                 <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
@@ -562,7 +620,6 @@ const TurmaCard = memo(function TurmaCard({
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                   {qtdDatas} data{qtdDatas > 1 ? "s" : ""}
-
                   {exibirRealizadosTotal && (
                     <span
                       className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200"
@@ -610,14 +667,21 @@ const TurmaCard = memo(function TurmaCard({
                     onClick={() => onToggleDates(turmaId)}
                     className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-200 dark:hover:bg-zinc-900/60"
                     aria-expanded={isOpen}
-                    aria-label={isOpen ? "Mostrar menos datas" : "Mostrar mais datas"}
+                    aria-label={
+                      isOpen ? "Mostrar menos datas" : "Mostrar mais datas"
+                    }
                   >
                     <span className="inline-flex items-center gap-1.5">
-                      {isOpen ? "Mostrar menos" : `+${Math.max(0, qtdDatas - 8)} mais`}
+                      {isOpen
+                        ? "Mostrar menos"
+                        : `+${Math.max(0, qtdDatas - 8)} mais`}
                       {isOpen ? (
                         <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                       ) : (
-                        <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                        <ChevronDown
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
                       )}
                     </span>
                   </button>
@@ -679,7 +743,9 @@ const TurmaCard = memo(function TurmaCard({
           <button
             type="button"
             onClick={() => {
-              if (disabled) return;
+              if (disabled) {
+                return;
+              }
               inscrever?.(turma.id);
             }}
             disabled={disabled}
@@ -714,7 +780,9 @@ const TurmaCard = memo(function TurmaCard({
           >
             <span className="inline-flex items-center gap-2">
               {ctaLabel}
-              {!disabled && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
+              {!disabled && (
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              )}
             </span>
           </button>
         </div>
@@ -756,9 +824,9 @@ export default function ListaTurmasEvento({
       new Set(
         (Array.isArray(inscricaoConfirmadas) ? inscricaoConfirmadas : [])
           .map(Number)
-          .filter((n) => Number.isInteger(n) && n > 0)
+          .filter((n) => Number.isInteger(n) && n > 0),
       ),
-    [inscricaoConfirmadas]
+    [inscricaoConfirmadas],
   );
 
   const conflitosSet = useMemo(
@@ -766,13 +834,16 @@ export default function ListaTurmasEvento({
       new Set(
         (Array.isArray(turmasEmConflito) ? turmasEmConflito : [])
           .map(Number)
-          .filter((n) => Number.isInteger(n) && n > 0)
+          .filter((n) => Number.isInteger(n) && n > 0),
       ),
-    [turmasEmConflito]
+    [turmasEmConflito],
   );
 
-  const hojeIso = useMemo(() => normalizeDateOnly(hoje) || hojeIsoLocal(), [hoje]);
-  const agora = useMemo(() => new Date(), [hojeIso]);
+  const hojeIso = useMemo(
+    () => normalizeDateOnly(hoje) || hojeIsoLocal(),
+    [hoje],
+  );
+  const agora = useMemo(() => new Date(), []);
 
   const [openDates, setOpenDates] = useState({});
 
@@ -796,10 +867,17 @@ export default function ListaTurmasEvento({
         return aRange.dataInicio.localeCompare(bRange.dataInicio);
       }
 
-      if (aRange.dataInicio && !bRange.dataInicio) return -1;
-      if (!aRange.dataInicio && bRange.dataInicio) return 1;
+      if (aRange.dataInicio && !bRange.dataInicio) {
+        return -1;
+      }
+      if (!aRange.dataInicio && bRange.dataInicio) {
+        return 1;
+      }
 
-      return String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR");
+      return String(a?.nome || "").localeCompare(
+        String(b?.nome || ""),
+        "pt-BR",
+      );
     });
   }, [turmas]);
 
@@ -863,7 +941,7 @@ const turmaShape = PropTypes.shape({
       data: PropTypes.string,
       horario_inicio: PropTypes.string,
       horario_fim: PropTypes.string,
-    })
+    }),
   ),
 });
 
@@ -873,7 +951,7 @@ ListaTurmasEvento.propTypes = {
   eventoTipo: PropTypes.string,
   hoje: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
   inscricaoConfirmadas: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   ),
   inscrever: PropTypes.func,
   inscrevendo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -882,7 +960,7 @@ ListaTurmasEvento.propTypes = {
   mostrarStatusTurma: PropTypes.bool,
   exibirRealizadosTotal: PropTypes.bool,
   turmasEmConflito: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   ),
   podeSeInscreverNoEvento: PropTypes.bool,
   motivoBloqueioEvento: PropTypes.string,

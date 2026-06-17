@@ -23,7 +23,11 @@ import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifyInfo, notifySuccess } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 import { formatDateBr } from "../utils/dateTime";
 
@@ -67,20 +71,18 @@ const CAMPOS_TEXTOS = [
 ];
 
 const NOTA_STYLE = {
-  Ótimo: "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60",
+  Ótimo:
+    "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60",
   Bom: "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
-  Regular: "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60",
+  Regular:
+    "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60",
   Ruim: "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
-  Péssimo: "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-800/60",
+  Péssimo:
+    "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-800/60",
 };
 
 function isNotaEnumOficial(value) {
   return NOTA_ENUM_OFICIAL.includes(value);
-}
-
-function notaParaPontuacao(value) {
-  if (!isNotaEnumOficial(value)) return null;
-  return NOTA_PONTUACAO[value];
 }
 
 function criarDistribuicaoNotas() {
@@ -110,17 +112,13 @@ function mediaFromDist(dist) {
  * Helpers
  * ───────────────────────────────────────────── */
 
-function getUsuarioLocal() {
-  try {
-    return JSON.parse(localStorage.getItem("usuario") || "{}");
-  } catch {
-    return {};
-  }
-}
-
 function extrairData(response) {
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response)) {
+    return response;
+  }
   return [];
 }
 
@@ -179,7 +177,9 @@ function normalizarEventosDoorganizador(turmas = []) {
   for (const turma of turmas) {
     const eventoId = turma?.evento?.id || turma?.evento_id;
 
-    if (!eventoId) continue;
+    if (!eventoId) {
+      continue;
+    }
 
     const chave = String(eventoId);
     const titulo =
@@ -210,7 +210,8 @@ function normalizarEventosDoorganizador(turmas = []) {
 
     if (
       !evento.data_inicio ||
-      (turma.data_inicio && String(turma.data_inicio) < String(evento.data_inicio))
+      (turma.data_inicio &&
+        String(turma.data_inicio) < String(evento.data_inicio))
     ) {
       evento.data_inicio = turma.data_inicio;
     }
@@ -224,7 +225,7 @@ function normalizarEventosDoorganizador(turmas = []) {
   }
 
   return Array.from(porEvento.values()).sort((a, b) =>
-    String(b.data_inicio || "").localeCompare(String(a.data_inicio || ""))
+    String(b.data_inicio || "").localeCompare(String(a.data_inicio || "")),
   );
 }
 
@@ -259,7 +260,7 @@ function agregarRespostas(respostas) {
   }
 
   const mediasValidas = Object.values(medias).filter((value) =>
-    Number.isFinite(value)
+    Number.isFinite(value),
   );
 
   const mediaGeral = mediasValidas.length
@@ -267,7 +268,7 @@ function agregarRespostas(respostas) {
         (
           mediasValidas.reduce((acc, value) => acc + value, 0) /
           mediasValidas.length
-        ).toFixed(2)
+        ).toFixed(2),
       )
     : null;
 
@@ -282,11 +283,21 @@ function agregarRespostas(respostas) {
 }
 
 function classificarMedia(media) {
-  if (media == null) return "Sem dados";
-  if (media >= 9) return "Excelente";
-  if (media >= 8) return "Muito bom";
-  if (media >= 6) return "Regular";
-  if (media >= 4) return "Atenção";
+  if (media == null) {
+    return "Sem dados";
+  }
+  if (media >= 9) {
+    return "Excelente";
+  }
+  if (media >= 8) {
+    return "Muito bom";
+  }
+  if (media >= 6) {
+    return "Regular";
+  }
+  if (media >= 4) {
+    return "Atenção";
+  }
   return "Crítico";
 }
 
@@ -299,7 +310,7 @@ function obterTopCriterios(medias, modo = "melhores") {
 
   return itens
     .sort((a, b) =>
-      modo === "melhores" ? b.media - a.media : a.media - b.media
+      modo === "melhores" ? b.media - a.media : a.media - b.media,
     )
     .slice(0, 4);
 }
@@ -341,9 +352,7 @@ function StickyControle({
                   {evento.data_inicio
                     ? ` • ${formatDateBr(evento.data_inicio)}`
                     : ""}
-                  {evento.data_fim
-                    ? ` a ${formatDateBr(evento.data_fim)}`
-                    : ""}
+                  {evento.data_fim ? ` a ${formatDateBr(evento.data_fim)}` : ""}
                 </option>
               ))}
 
@@ -536,7 +545,9 @@ function QuadroComentarios({ titulo, itens, icon: Icon }) {
     <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
-          {Icon ? <Icon className="w-4 h-4 text-violet-600" aria-hidden="true" /> : null}
+          {Icon ? (
+            <Icon className="w-4 h-4 text-violet-600" aria-hidden="true" />
+          ) : null}
           {titulo}
         </h3>
 
@@ -573,9 +584,6 @@ export default function Avaliacaoorganizador() {
   const reduceMotion = useReducedMotion();
   const liveRef = useRef(null);
 
-  const [usuario] = useState(() => getUsuarioLocal());
-  const nome = usuario?.nome || "";
-
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [eventos, setEventos] = useState([]);
@@ -591,12 +599,12 @@ export default function Avaliacaoorganizador() {
   const resumoHero = useMemo(() => {
     const turmas = eventos.reduce(
       (acc, evento) => acc + Number(evento.turmas?.length || 0),
-      0
+      0,
     );
 
     const respostas = Object.values(cacheAvaliacoes).reduce(
       (acc, item) => acc + Number(item?.agregados?.total || 0),
-      0
+      0,
     );
 
     return {
@@ -628,7 +636,7 @@ export default function Avaliacaoorganizador() {
     try {
       if (typeof api?.organizador?.minhasTurmas !== "function") {
         throw new Error(
-          "Facade api.organizador.minhasTurmas não encontrada em frontend/src/services/api.js."
+          "Facade api.organizador.minhasTurmas não encontrada em frontend/src/services/api.js.",
         );
       }
 
@@ -655,7 +663,7 @@ export default function Avaliacaoorganizador() {
       setErro("Erro ao carregar seus eventos como organizador.");
 
       notifyError(
-        "Não foi possível carregar seus eventos. Tente novamente ou acione o suporte se o problema continuar."
+        "Não foi possível carregar seus eventos. Tente novamente ou acione o suporte se o problema continuar.",
       );
 
       setLive("Falha ao carregar eventos do organizador.");
@@ -682,7 +690,7 @@ export default function Avaliacaoorganizador() {
       try {
         if (typeof api?.avaliacao?.porTurma !== "function") {
           throw new Error(
-            "Facade api.avaliacao.porTurma não encontrada em frontend/src/services/api.js."
+            "Facade api.avaliacao.porTurma não encontrada em frontend/src/services/api.js.",
           );
         }
 
@@ -700,16 +708,16 @@ export default function Avaliacaoorganizador() {
                     ...item,
                     __turmaId: turma.id,
                     __turmaNome: turma.nome,
-                  }))
+                  })),
                 );
               }
             } catch (error) {
               console.warn(
                 `[Avaliacaoorganizador] falha ao buscar turma ${turma.id}:`,
-                error
+                error,
               );
             }
-          })
+          }),
         );
 
         const payload = {
@@ -726,12 +734,15 @@ export default function Avaliacaoorganizador() {
 
         return payload;
       } catch (error) {
-        console.error("[Avaliacaoorganizador] erro ao carregar avaliações:", error);
+        console.error(
+          "[Avaliacaoorganizador] erro ao carregar avaliações:",
+          error,
+        );
 
         setErro("Erro ao carregar avaliações do evento.");
 
         notifyError(
-          "Não foi possível carregar as avaliações. Tente novamente ou acione o suporte se o problema continuar."
+          "Não foi possível carregar as avaliações. Tente novamente ou acione o suporte se o problema continuar.",
         );
 
         setLive("Falha ao carregar avaliações do evento.");
@@ -744,7 +755,7 @@ export default function Avaliacaoorganizador() {
         setCarregando(false);
       }
     },
-    [eventos]
+    [eventos],
   );
 
   useEffect(() => {
@@ -753,7 +764,9 @@ export default function Avaliacaoorganizador() {
   }, [carregarEventos]);
 
   useEffect(() => {
-    if (!eventoId) return;
+    if (!eventoId) {
+      return;
+    }
 
     if (cacheAvaliacoes[String(eventoId)]) {
       return;
@@ -767,7 +780,9 @@ export default function Avaliacaoorganizador() {
       const tag = document.activeElement?.tagName?.toLowerCase();
       const editando = ["input", "textarea", "select"].includes(tag);
 
-      if (editando) return;
+      if (editando) {
+        return;
+      }
 
       if (event.key === "r" || event.key === "R") {
         event.preventDefault();
@@ -820,7 +835,7 @@ export default function Avaliacaoorganizador() {
     const periodo =
       eventoAtual.data_inicio || eventoAtual.data_fim
         ? `${formatDateBr(eventoAtual.data_inicio)} — ${formatDateBr(
-            eventoAtual.data_fim
+            eventoAtual.data_fim,
           )}`
         : "—";
 
@@ -830,7 +845,7 @@ export default function Avaliacaoorganizador() {
         limparCSV(eventoAtual.titulo),
         limparCSV(periodo),
         agregados?.total ?? 0,
-      ].join(";")
+      ].join(";"),
     );
 
     linhas.push("");
@@ -844,7 +859,7 @@ export default function Avaliacaoorganizador() {
         "Regular",
         "Ruim",
         "Péssimo",
-      ].join(";")
+      ].join(";"),
     );
 
     for (const campo of CAMPOS_OBJETIVOS) {
@@ -861,7 +876,7 @@ export default function Avaliacaoorganizador() {
           dist["Regular"] || 0,
           dist["Ruim"] || 0,
           dist["Péssimo"] || 0,
-        ].join(";")
+        ].join(";"),
       );
     }
 
@@ -898,7 +913,7 @@ export default function Avaliacaoorganizador() {
 
       for (const resposta of respostas) {
         linhas.push(
-          colunas.map((coluna) => limparCSV(resposta[coluna] ?? "")).join(";")
+          colunas.map((coluna) => limparCSV(resposta[coluna] ?? "")).join(";"),
         );
       }
     }
@@ -908,7 +923,7 @@ export default function Avaliacaoorganizador() {
     baixarArquivo(
       `avaliacao_evento_${eventoAtual.id}.csv`,
       csv,
-      "text/csv;charset=utf-8"
+      "text/csv;charset=utf-8",
     );
 
     notifySuccess("CSV gerado com sucesso.");
@@ -917,10 +932,10 @@ export default function Avaliacaoorganizador() {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
       <HeaderHero
-  titulo="Avaliação do organizador"
-  subtitulo="Acompanhe desempenho, critérios, distribuição oficial de notas e comentários qualitativos das turmas vinculadas aos seus eventos."
-  icon={BarChart3}
-/>
+        titulo="Avaliação do organizador"
+        subtitulo="Acompanhe desempenho, critérios, distribuição oficial de notas e comentários qualitativos das turmas vinculadas aos seus eventos."
+        icon={BarChart3}
+      />
 
       {carregando ? (
         <div
@@ -943,41 +958,43 @@ export default function Avaliacaoorganizador() {
 
         <div className="mx-auto max-w-7xl px-3 py-6 sm:px-4">
           <section className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-    <KPI
-      titulo="Eventos"
-      valor={resumoHero.eventos}
-      descricao="Eventos vinculados ao organizador"
-      icon={CalendarRange}
-    />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <KPI
+                titulo="Eventos"
+                valor={resumoHero.eventos}
+                descricao="Eventos vinculados ao organizador"
+                icon={CalendarRange}
+              />
 
-    <KPI
-      titulo="Turmas"
-      valor={resumoHero.turmas}
-      descricao="Turmas consideradas na análise"
-      icon={School}
-    />
+              <KPI
+                titulo="Turmas"
+                valor={resumoHero.turmas}
+                descricao="Turmas consideradas na análise"
+                icon={School}
+              />
 
-    <KPI
-      titulo="Respostas"
-      valor={resumoHero.respostas}
-      descricao="Avaliações recebidas"
-      icon={ClipboardList}
-      destaque
-    />
-  </div>
+              <KPI
+                titulo="Respostas"
+                valor={resumoHero.respostas}
+                descricao="Avaliações recebidas"
+                icon={ClipboardList}
+                destaque
+              />
+            </div>
 
-  <button
-    type="button"
-    onClick={atualizarManual}
-    disabled={carregando}
-    className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
-    aria-label="Atualizar avaliações do organizador"
-  >
-    <RefreshCw className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`} />
-    {carregando ? "Atualizando..." : "Atualizar painel"}
-  </button>
-</section>
+            <button
+              type="button"
+              onClick={atualizarManual}
+              disabled={carregando}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-white dark:ring-zinc-800 dark:hover:bg-zinc-800"
+              aria-label="Atualizar avaliações do organizador"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`}
+              />
+              {carregando ? "Atualizando..." : "Atualizar painel"}
+            </button>
+          </section>
           <StickyControle
             eventos={eventos}
             eventoId={eventoId}
@@ -1037,7 +1054,7 @@ export default function Avaliacaoorganizador() {
                       : "—"
                   }
                   descricao={classificarMedia(
-                    avaliacaoAtual.agregados?.mediaorganizador
+                    avaliacaoAtual.agregados?.mediaorganizador,
                   )}
                   icon={Star}
                 />
@@ -1059,7 +1076,7 @@ export default function Avaliacaoorganizador() {
                   descricao={
                     eventoAtual.data_inicio || eventoAtual.data_fim
                       ? `${formatDateBr(
-                          eventoAtual.data_inicio
+                          eventoAtual.data_inicio,
                         )} — ${formatDateBr(eventoAtual.data_fim)}`
                       : "Período não informado"
                   }

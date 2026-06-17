@@ -38,7 +38,11 @@ const router = express.Router();
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-const PERFIS_USUARIO = Object.freeze(["administrador", "organizador", "usuario"]);
+const PERFIS_USUARIO = Object.freeze([
+  "administrador",
+  "organizador",
+  "usuario",
+]);
 const PERFIS_GESTAO = Object.freeze(["administrador", "organizador"]);
 const PERFIS_ADMIN = Object.freeze(["administrador"]);
 
@@ -49,14 +53,14 @@ const PERFIS_ADMIN = Object.freeze(["administrador"]);
 if (typeof authMiddleware !== "function") {
   console.error("[presencaRoute] authMiddleware inválido:", authMiddleware);
   throw new Error(
-    "authMiddleware deve ser exportado como função em backend/src/auth/authMiddleware.js."
+    "authMiddleware deve ser exportado como função em backend/src/auth/authMiddleware.js.",
   );
 }
 
 if (typeof authorize !== "function") {
   console.error("[presencaRoute] authorize inválido:", authorize);
   throw new Error(
-    "authorize deve ser exportado como função nomeada em backend/src/middlewares/authorize.js."
+    "authorize deve ser exportado como função nomeada em backend/src/middlewares/authorize.js.",
   );
 }
 
@@ -68,7 +72,9 @@ function requireControllerFunction(name) {
       available: Object.keys(presencaController || {}),
     });
 
-    throw new Error(`presencaController.${name} deve ser exportado como função.`);
+    throw new Error(
+      `presencaController.${name} deve ser exportado como função.`,
+    );
   }
 
   return fn;
@@ -82,27 +88,31 @@ const controller = Object.freeze({
 
   registrarPresenca: requireControllerFunction("registrarPresenca"),
   confirmarPresencaViaQR: requireControllerFunction("confirmarPresencaViaQR"),
-  confirmarPresencaViaToken: requireControllerFunction("confirmarPresencaViaToken"),
+  confirmarPresencaViaToken: requireControllerFunction(
+    "confirmarPresencaViaToken",
+  ),
 
   registrarPresencaManual: requireControllerFunction("registrarPresencaManual"),
   confirmarPresencaManualHoje: requireControllerFunction(
-    "confirmarPresencaManualHoje"
+    "confirmarPresencaManualHoje",
   ),
   validarPresencaManual: requireControllerFunction("validarPresencaManual"),
   confirmarPresencaorganizador: requireControllerFunction(
-    "confirmarPresencaorganizador"
+    "confirmarPresencaorganizador",
   ),
 
-  listarTurmasDoorganizador: requireControllerFunction("listarTurmasDoorganizador"),
+  listarTurmasDoorganizador: requireControllerFunction(
+    "listarTurmasDoorganizador",
+  ),
   obterDetalhesTurma: requireControllerFunction("obterDetalhesTurma"),
   listarFrequenciasPorTurma: requireControllerFunction(
-    "listarFrequenciasPorTurma"
+    "listarFrequenciasPorTurma",
   ),
   exportarPresencasPdfPorTurma: requireControllerFunction(
-    "exportarPresencasPdfPorTurma"
+    "exportarPresencasPdfPorTurma",
   ),
   listarTodasPresencasParaAdmin: requireControllerFunction(
-    "listarTodasPresencasParaAdmin"
+    "listarTodasPresencasParaAdmin",
   ),
 });
 
@@ -110,10 +120,8 @@ const controller = Object.freeze({
  * Helpers
  * ───────────────────────────────────────────────────────────── */
 
-const wrap =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const wrap = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function fail(res, status, message, details = undefined) {
   const payload = {
@@ -189,7 +197,9 @@ function getAuthenticatedUserId(req) {
 }
 
 function getAuthenticatedPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -222,7 +232,7 @@ router.get(
   noStore,
   ensureDateOnlyQuery("data_presenca"),
   routeTag("presencaRoute:GET /validar"),
-  wrap(controller.validarPresencaPublica)
+  wrap(controller.validarPresencaPublica),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -251,7 +261,7 @@ if (IS_DEV) {
         },
         message: "presencaRoute autenticado ativo.",
       });
-    }
+    },
   );
 }
 
@@ -268,7 +278,7 @@ router.get(
   "/minha",
   authorize(...PERFIS_USUARIO),
   routeTag("presencaRoute:GET /minha"),
-  wrap(controller.listarMinhasPresencas)
+  wrap(controller.listarMinhasPresencas),
 );
 
 /**
@@ -280,7 +290,7 @@ router.get(
   "/minha/resumo",
   authorize(...PERFIS_USUARIO),
   routeTag("presencaRoute:GET /minha/resumo"),
-  wrap(controller.obterMeuResumoPresencas)
+  wrap(controller.obterMeuResumoPresencas),
 );
 
 /**
@@ -295,7 +305,7 @@ router.post(
   "/",
   authorize(...PERFIS_USUARIO),
   routeTag("presencaRoute:POST /"),
-  wrap(controller.registrarPresenca)
+  wrap(controller.registrarPresenca),
 );
 
 /**
@@ -311,7 +321,7 @@ router.post(
   "/qr",
   authorize(...PERFIS_USUARIO),
   routeTag("presencaRoute:POST /qr"),
-  wrap(controller.confirmarPresencaViaQR)
+  wrap(controller.confirmarPresencaViaQR),
 );
 
 /**
@@ -325,7 +335,7 @@ router.post(
   "/token",
   authorize(...PERFIS_USUARIO),
   routeTag("presencaRoute:POST /token"),
-  wrap(controller.confirmarPresencaViaToken)
+  wrap(controller.confirmarPresencaViaToken),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -341,7 +351,7 @@ router.get(
   "/organizador/turma",
   authorize(...PERFIS_GESTAO),
   routeTag("presencaRoute:GET /organizador/turma"),
-  wrap(controller.listarTurmasDoorganizador)
+  wrap(controller.listarTurmasDoorganizador),
 );
 
 /**
@@ -354,7 +364,7 @@ router.get(
   authorize(...PERFIS_USUARIO),
   ensureNumericParam("turma_id"),
   routeTag("presencaRoute:GET /turma/:turma_id"),
-  wrap(controller.obterDetalhesTurma)
+  wrap(controller.obterDetalhesTurma),
 );
 
 /**
@@ -367,7 +377,7 @@ router.get(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("turma_id"),
   routeTag("presencaRoute:GET /turma/:turma_id/frequencia"),
-  wrap(controller.listarFrequenciasPorTurma)
+  wrap(controller.listarFrequenciasPorTurma),
 );
 
 /**
@@ -380,7 +390,7 @@ router.get(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("turma_id"),
   routeTag("presencaRoute:GET /turma/:turma_id/pdf"),
-  wrap(controller.exportarPresencasPdfPorTurma)
+  wrap(controller.exportarPresencasPdfPorTurma),
 );
 
 /**
@@ -397,7 +407,7 @@ router.post(
   "/manual",
   authorize(...PERFIS_GESTAO),
   routeTag("presencaRoute:POST /manual"),
-  wrap(controller.registrarPresencaManual)
+  wrap(controller.registrarPresencaManual),
 );
 
 /**
@@ -412,7 +422,7 @@ router.post(
   "/manual/hoje",
   authorize(...PERFIS_ADMIN),
   routeTag("presencaRoute:POST /manual/hoje"),
-  wrap(controller.confirmarPresencaManualHoje)
+  wrap(controller.confirmarPresencaManualHoje),
 );
 
 /**
@@ -429,7 +439,7 @@ router.put(
   "/manual/validar",
   authorize(...PERFIS_GESTAO),
   routeTag("presencaRoute:PUT /manual/validar"),
-  wrap(controller.validarPresencaManual)
+  wrap(controller.validarPresencaManual),
 );
 
 /**
@@ -445,7 +455,7 @@ router.post(
   "/organizador/confirmar",
   authorize(...PERFIS_GESTAO),
   routeTag("presencaRoute:POST /organizador/confirmar"),
-  wrap(controller.confirmarPresencaorganizador)
+  wrap(controller.confirmarPresencaorganizador),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -461,7 +471,7 @@ router.get(
   "/administrador",
   authorize(...PERFIS_ADMIN),
   routeTag("presencaRoute:GET /administrador"),
-  wrap(controller.listarTodasPresencasParaAdmin)
+  wrap(controller.listarTodasPresencasParaAdmin),
 );
 
 module.exports = router;

@@ -69,7 +69,7 @@ function log(rid, level, message, extra) {
   if (level === "error") {
     return console.error(
       `${prefix} ✖ ${message}`,
-      extra?.stack || extra?.message || extra
+      extra?.stack || extra?.message || extra,
     );
   }
 
@@ -97,7 +97,10 @@ function sleep(ms) {
 }
 
 function setNoStoreHeaders(res) {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
   res.set("Pragma", "no-cache");
   res.set("Expires", "0");
   res.set("Surrogate-Control", "no-store");
@@ -173,7 +176,7 @@ async function buscarUsuarioPorCpf(req, cpf) {
     WHERE u.cpf = $1
     LIMIT 1
     `,
-    [cpf]
+    [cpf],
   );
 
   return result.rows?.[0] || null;
@@ -259,7 +262,7 @@ async function loginUsuario(req, res) {
         id: usuario.id,
         perfil,
       },
-      "1d"
+      "1d",
     );
 
     const usuarioResponse = sanitizeUserForResponse(usuario, perfil);
@@ -271,7 +274,7 @@ async function loginUsuario(req, res) {
         rid,
         "warn",
         "Falha ao gerar notificações de avaliação; login preservado",
-        error?.message || error
+        error?.message || error,
       );
     }
 

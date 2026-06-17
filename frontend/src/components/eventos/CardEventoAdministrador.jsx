@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/components/eventos/CardEventoAdministrador.jsx — v2.0
 // Atualizado em: 14/05/2026
 // Plataforma Escola da Saúde
@@ -31,8 +30,6 @@ import {
   BarChart3,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   FileDown,
   Image as ImageIcon,
   ListChecks,
@@ -68,18 +65,22 @@ function isDateOnly(value) {
 }
 
 function ymd(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(
-      value.getDate()
+      value.getDate(),
     )}`;
   }
 
   if (typeof value === "string") {
     const raw = value.trim();
 
-    if (isDateOnly(raw)) return raw;
+    if (isDateOnly(raw)) {
+      return raw;
+    }
 
     const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
     return match ? match[1] : "";
@@ -91,7 +92,9 @@ function ymd(value) {
 function formatDateBr(value) {
   const date = ymd(value);
 
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   const [year, month, day] = date.split("-");
   return `${day}/${month}/${year}`;
@@ -100,11 +103,17 @@ function formatDateBr(value) {
 function idadePorDataNascimento(value) {
   const nascimento = ymd(value);
 
-  if (!nascimento) return null;
+  if (!nascimento) {
+    return null;
+  }
 
   const [year, month, day] = nascimento.split("-").map(Number);
 
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
     return null;
   }
 
@@ -130,9 +139,13 @@ function asArray(value) {
 }
 
 function formatarCPF(value) {
-  const digits = String(value ?? "").replace(/\D/g, "").slice(0, 11);
+  const digits = String(value ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 11);
 
-  if (!digits) return "—";
+  if (!digits) {
+    return "—";
+  }
 
   return digits
     .padStart(11, "0")
@@ -146,13 +159,19 @@ function getDatasTurmas(turmas = []) {
     const turmaInicio = ymd(turma?.data_inicio);
     const turmaFim = ymd(turma?.data_fim || turma?.data_inicio);
 
-    if (turmaInicio) datas.push(turmaInicio);
-    if (turmaFim) datas.push(turmaFim);
+    if (turmaInicio) {
+      datas.push(turmaInicio);
+    }
+    if (turmaFim) {
+      datas.push(turmaFim);
+    }
 
     if (Array.isArray(turma?.datas)) {
       for (const item of turma.datas) {
         const data = ymd(item?.data);
-        if (data) datas.push(data);
+        if (data) {
+          datas.push(data);
+        }
       }
     }
   }
@@ -161,7 +180,9 @@ function getDatasTurmas(turmas = []) {
 }
 
 function getPeriodoEvento(evento, turmas) {
-  const dataInicioEvento = ymd(evento?.data_inicio_geral || evento?.data_inicio);
+  const dataInicioEvento = ymd(
+    evento?.data_inicio_geral || evento?.data_inicio,
+  );
   const dataFimEvento = ymd(evento?.data_fim_geral || evento?.data_fim);
 
   if (dataInicioEvento && dataFimEvento) {
@@ -208,12 +229,18 @@ function getStatusEvento({ evento, turmas }) {
     }
   }
 
-  if (!dataInicio || !dataFim) return EVENTO_STATUS.SEM_DATAS;
+  if (!dataInicio || !dataFim) {
+    return EVENTO_STATUS.SEM_DATAS;
+  }
 
   const hoje = hojeIsoLocal();
 
-  if (hoje < dataInicio) return EVENTO_STATUS.PROGRAMADO;
-  if (hoje > dataFim) return EVENTO_STATUS.ENCERRADO;
+  if (hoje < dataInicio) {
+    return EVENTO_STATUS.PROGRAMADO;
+  }
+  if (hoje > dataFim) {
+    return EVENTO_STATUS.ENCERRADO;
+  }
 
   return EVENTO_STATUS.ANDAMENTO;
 }
@@ -239,7 +266,7 @@ function calcularFrequencia(usuario) {
   ) {
     return Math.max(
       0,
-      Math.min(100, Math.round((presentesOcorridos / totalOcorridos) * 100))
+      Math.min(100, Math.round((presentesOcorridos / totalOcorridos) * 100)),
     );
   }
 
@@ -253,7 +280,9 @@ function mapPresencasParaLista(presencasPorTurma, turmaId) {
     .map((usuario) => {
       const usuarioId = Number(usuario?.usuario_id);
 
-      if (!Number.isInteger(usuarioId) || usuarioId <= 0) return null;
+      if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+        return null;
+      }
 
       const frequenciaNum = calcularFrequencia(usuario);
 
@@ -280,15 +309,21 @@ function resolveAssinanteNome(turma) {
 
   const assinanteId = Number(turma?.organizador_assinante_id);
 
-  if (!Number.isFinite(assinanteId)) return null;
+  if (!Number.isFinite(assinanteId)) {
+    return null;
+  }
 
-  const organizadores = Array.isArray(turma?.organizadores) ? turma.organizadores : [];
+  const organizadores = Array.isArray(turma?.organizadores)
+    ? turma.organizadores
+    : [];
 
   for (const organizador of organizadores) {
     const id = Number(organizador?.id ?? organizador);
     const nome = typeof organizador === "object" ? organizador?.nome : null;
 
-    if (id === assinanteId) return nome || null;
+    if (id === assinanteId) {
+      return nome || null;
+    }
   }
 
   return null;
@@ -303,7 +338,9 @@ function resolverorganizadoresTurma(turma) {
   for (const item of raw) {
     const id = Number(item?.id ?? item);
 
-    if (!Number.isFinite(id) || seen.has(id)) continue;
+    if (!Number.isFinite(id) || seen.has(id)) {
+      continue;
+    }
 
     seen.add(id);
 
@@ -326,7 +363,9 @@ function resolverorganizadoresEvento(evento) {
     .map((item) => {
       const id = Number(item?.id ?? item);
 
-      if (!Number.isFinite(id)) return null;
+      if (!Number.isFinite(id)) {
+        return null;
+      }
 
       return {
         id,
@@ -380,8 +419,7 @@ function MetricCard({ icon: Icon, label, value, tone = "slate", hint }) {
       "border-slate-200 bg-slate-50/80 text-slate-900 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-100",
     emerald:
       "border-emerald-200 bg-emerald-50/80 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100",
-    sky:
-      "border-sky-200 bg-sky-50/80 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
+    sky: "border-sky-200 bg-sky-50/80 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
     amber:
       "border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100",
     violet:
@@ -470,7 +508,9 @@ function EmptyPoster({ hasUrl }) {
 }
 
 function InstructorChips({ organizadores }) {
-  if (!organizadores.length) return null;
+  if (!organizadores.length) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -517,7 +557,7 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
         {inscritos
           .slice()
           .sort((a, b) =>
-            String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR")
+            String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR"),
           )
           .map((inscrito) => {
             const usuarioId = Number(inscrito?.usuario_id);
@@ -533,7 +573,9 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
             const presencaAluno = presencas.find(
               (presenca) =>
                 Number(presenca.usuario_id) === usuarioId ||
-                (presenca.cpf && inscrito?.cpf && presenca.cpf === inscrito.cpf)
+                (presenca.cpf &&
+                  inscrito?.cpf &&
+                  presenca.cpf === inscrito.cpf),
             );
 
             const frequencia =
@@ -593,7 +635,6 @@ function InscritosTable({ inscritos, presencasPorTurma, turmaId }) {
 export default function CardEventoAdministrador({
   evento,
   expandido = false,
-  toggleExpandir,
   turmas = [],
   carregarInscritos,
   inscritosPorTurma = {},
@@ -606,8 +647,7 @@ export default function CardEventoAdministrador({
   classNomeEventoMultiLinha,
   classorganizadoresMultiLinha,
 }) {
-
-   const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const irParaGestaoEvento = () => {
     navigate(`/admin/evento/${evento.id}/gestao`);
@@ -628,7 +668,10 @@ export default function CardEventoAdministrador({
   const turmasId = `admin-evento-${evento?.id}-turmas`;
   const tituloId = `admin-evento-${evento?.id}-titulo`;
 
-  const periodo = useMemo(() => getPeriodoEvento(evento, turmas), [evento, turmas]);
+  const periodo = useMemo(
+    () => getPeriodoEvento(evento, turmas),
+    [evento, turmas],
+  );
 
   const nomeorganizador = useMemo(() => {
     const nomes = resolverorganizadoresEvento(evento)
@@ -656,8 +699,9 @@ export default function CardEventoAdministrador({
       const presencas = mapPresencasParaLista(presencasPorTurma, turma.id);
 
       totalInscritos += inscritos.length;
-      totalElegiveis += presencas.filter((presenca) => presenca?.elegivel === true)
-        .length;
+      totalElegiveis += presencas.filter(
+        (presenca) => presenca?.elegivel === true,
+      ).length;
     }
 
     const presencaMedia = totalInscritos
@@ -673,12 +717,20 @@ export default function CardEventoAdministrador({
   }, [inscritosPorTurma, presencasPorTurma, turmas]);
 
   useEffect(() => {
-    if (!expandido || !Array.isArray(turmas)) return;
+    if (!expandido || !Array.isArray(turmas)) {
+      return;
+    }
 
     for (const turma of turmas) {
-      if (!inscritosPorTurma?.[turma.id]) carregarInscritos?.(turma.id);
-      if (!presencasPorTurma?.[turma.id]) carregarPresencas?.(turma.id);
-      if (!avaliacaoPorTurma?.[turma.id]) carregarAvaliacao?.(turma.id);
+      if (!inscritosPorTurma?.[turma.id]) {
+        carregarInscritos?.(turma.id);
+      }
+      if (!presencasPorTurma?.[turma.id]) {
+        carregarPresencas?.(turma.id);
+      }
+      if (!avaliacaoPorTurma?.[turma.id]) {
+        carregarAvaliacao?.(turma.id);
+      }
     }
   }, [
     avaliacaoPorTurma,
@@ -748,7 +800,11 @@ export default function CardEventoAdministrador({
             </span>
           </div>
 
-          <h3 id={tituloId} className={`${nomeEventoClass} mt-3`} title={tituloEvento}>
+          <h3
+            id={tituloId}
+            className={`${nomeEventoClass} mt-3`}
+            title={tituloEvento}
+          >
             {tituloEvento}
           </h3>
 
@@ -803,18 +859,18 @@ export default function CardEventoAdministrador({
           </div>
 
           <button
-  type="button"
-  onClick={irParaGestaoEvento}
-  className={[
-    "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-sm transition",
-    "bg-gradient-to-br from-zinc-950 via-emerald-950 to-emerald-800 hover:brightness-[1.06]",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
-  ].join(" ")}
-  title="Abrir central de gestão deste evento"
->
-  Gerenciar evento
-  <Sparkles className="h-4 w-4" aria-hidden="true" />
-</button>
+            type="button"
+            onClick={irParaGestaoEvento}
+            className={[
+              "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-sm transition",
+              "bg-gradient-to-br from-zinc-950 via-emerald-950 to-emerald-800 hover:brightness-[1.06]",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
+            ].join(" ")}
+            title="Abrir central de gestão deste evento"
+          >
+            Gerenciar evento
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
       </div>
 
@@ -829,12 +885,16 @@ export default function CardEventoAdministrador({
                 Turmas e acompanhamento
               </h4>
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Controle de inscritos, presença, assinante e relatórios por turma.
+                Controle de inscritos, presença, assinante e relatórios por
+                turma.
               </p>
             </div>
 
             <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+              <CheckCircle2
+                className="h-4 w-4 text-emerald-600"
+                aria-hidden="true"
+              />
               Presença mínima: 75%
             </div>
           </div>
@@ -843,10 +903,13 @@ export default function CardEventoAdministrador({
             <div className="space-y-6">
               {turmas.map((turma) => {
                 const inscritos = asArray(inscritosPorTurma?.[turma.id]);
-                const presencas = mapPresencasParaLista(presencasPorTurma, turma.id);
+                const presencas = mapPresencasParaLista(
+                  presencasPorTurma,
+                  turma.id,
+                );
 
                 const elegiveis = presencas.filter(
-                  (presenca) => presenca?.elegivel === true
+                  (presenca) => presenca?.elegivel === true,
                 ).length;
 
                 const pctElegiveis = inscritos.length

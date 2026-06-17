@@ -48,7 +48,7 @@ function normalizeRegistro(value) {
 
 if (!pool?.connect || typeof query !== "function") {
   throw new Error(
-    "[eventoPublicoController] Contrato inválido: ../db deve exportar pool e query."
+    "[eventoPublicoController] Contrato inválido: ../db deve exportar pool e query.",
   );
 }
 
@@ -77,7 +77,7 @@ function log(rid, level, msg, extra) {
   if (level === "error") {
     return console.error(
       `${prefix} ✖ ${msg}`,
-      extra?.stack || extra?.message || extra
+      extra?.stack || extra?.message || extra,
     );
   }
 
@@ -116,7 +116,7 @@ function memSnapshot(rid, label, extra = {}) {
 
 function sendOk(
   res,
-  { status = 200, message = "Operação realizada.", data = null, meta = null }
+  { status = 200, message = "Operação realizada.", data = null, meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -135,7 +135,7 @@ function sendError(
     rid = null,
     adminHint = null,
     error = null,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -175,7 +175,7 @@ function uniqueInts(arr = []) {
     ...new Set(
       (arr || [])
         .map((n) => Number(n))
-        .filter((n) => Number.isInteger(n) && n > 0)
+        .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
 }
@@ -344,7 +344,7 @@ async function getUsuarioContextoRestricao(client, usuarioId) {
     WHERE id = $1
     LIMIT 1
     `,
-    [usuarioId]
+    [usuarioId],
   );
 
   const usuario = rows[0] || {};
@@ -387,7 +387,8 @@ function montarPublicoAlvoLabel(evento = {}) {
   }
 
   if (countRegs > 0) return "lista específica de servidores";
-  if (evento?.restrito_modo === MODO_TODOS) return "servidores com registro válido";
+  if (evento?.restrito_modo === MODO_TODOS)
+    return "servidores com registro válido";
 
   return "público específico";
 }
@@ -472,6 +473,47 @@ function avaliarElegibilidadeInscricaoComContexto({ usuario, evento }) {
   }
 
   if (evento.restrito_modo === MODO_CARGOS) {
+    if (
+      usuario.cargo_id &&
+      cargosIdsPermitidos.includes(Number(usuario.cargo_id))
+    ) {
+      return {
+        pode_se_inscrever: true,
+        motivo_bloqueio: "",
+        publico_alvo_label: montarPublicoAlvoLabel(evento),
+      };
+    }
+
+    return {
+      pode_se_inscrever: false,
+      motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
+        evento,
+      )}.`,
+      publico_alvo_label: montarPublicoAlvoLabel(evento),
+    };
+  }
+
+  if (evento.restrito_modo === MODO_UNIDADES) {
+    if (
+      usuario.unidade_id != null &&
+      unidadesIdsPermitidas.includes(Number(usuario.unidade_id))
+    ) {
+      return {
+        pode_se_inscrever: true,
+        motivo_bloqueio: "",
+        publico_alvo_label: montarPublicoAlvoLabel(evento),
+      };
+    }
+
+    return {
+      pode_se_inscrever: false,
+      motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
+        evento,
+      )}.`,
+      publico_alvo_label: montarPublicoAlvoLabel(evento),
+    };
+  }
+
   if (
     usuario.cargo_id &&
     cargosIdsPermitidos.includes(Number(usuario.cargo_id))
@@ -483,16 +525,6 @@ function avaliarElegibilidadeInscricaoComContexto({ usuario, evento }) {
     };
   }
 
-  return {
-    pode_se_inscrever: false,
-    motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
-      evento
-    )}.`,
-    publico_alvo_label: montarPublicoAlvoLabel(evento),
-  };
-}
-
-if (evento.restrito_modo === MODO_UNIDADES) {
   if (
     usuario.unidade_id != null &&
     unidadesIdsPermitidas.includes(Number(usuario.unidade_id))
@@ -507,35 +539,7 @@ if (evento.restrito_modo === MODO_UNIDADES) {
   return {
     pode_se_inscrever: false,
     motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
-      evento
-    )}.`,
-    publico_alvo_label: montarPublicoAlvoLabel(evento),
-  };
-}
-
-  if (usuario.cargo_id && cargosIdsPermitidos.includes(Number(usuario.cargo_id))) {
-    return {
-      pode_se_inscrever: true,
-      motivo_bloqueio: "",
-      publico_alvo_label: montarPublicoAlvoLabel(evento),
-    };
-  }
-
-  if (
-    usuario.unidade_id != null &&
-    unidadesIdsPermitidas.includes(Number(usuario.unidade_id))
-  ) {
-    return {
-      pode_se_inscrever: true,
-      motivo_bloqueio: "",
-      publico_alvo_label: montarPublicoAlvoLabel(evento),
-    };
-  }
-
-  return {
-    pode_se_inscrever: false,
-    motivo_bloqueio: `Inscrição disponível apenas para ${montarPublicoAlvoLabel(
-      evento
+      evento,
     )}.`,
     publico_alvo_label: montarPublicoAlvoLabel(evento),
   };
@@ -577,7 +581,7 @@ async function enriquecerEventosLista(client, usuarioId, eventosBase, rid) {
       WHERE evento_id = ANY($1::int[])
       ORDER BY evento_id, registro_norm
       `,
-      [eventoIds]
+      [eventoIds],
     ),
 
     client.query(
@@ -596,7 +600,7 @@ async function enriquecerEventosLista(client, usuarioId, eventosBase, rid) {
       GROUP BY t.evento_id, u.id, u.nome, u.email, u.perfil
       ORDER BY t.evento_id, u.nome
       `,
-      [eventoIds, PAPEL_ORGANIZADOR]
+      [eventoIds, PAPEL_ORGANIZADOR],
     ),
 
     client.query(
@@ -611,7 +615,7 @@ JOIN cargos c
 WHERE e.id = ANY($1::int[])
 ORDER BY e.id, c.nome
       `,
-      [eventoIds]
+      [eventoIds],
     ),
 
     client.query(
@@ -626,7 +630,7 @@ JOIN unidades u
 WHERE e.id = ANY($1::int[])
 ORDER BY e.id, u.nome
       `,
-      [eventoIds]
+      [eventoIds],
     ),
   ]);
 
@@ -711,7 +715,7 @@ async function podeVerEvento({ client, usuarioId, eventoId, req }) {
     FROM eventos
     WHERE id = $1
     `,
-    [eventoId]
+    [eventoId],
   );
 
   const evento = rows[0];
@@ -748,7 +752,10 @@ async function podeVerEvento({ client, usuarioId, eventoId, req }) {
    Query base de listagem
 ─────────────────────────────────────────────────────────────── */
 
-function montarSqlListaEventos({ somentePublicados, incluirEventosDoorganizador }) {
+function montarSqlListaEventos({
+  somentePublicados,
+  incluirEventosDoorganizador,
+}) {
   const filtro = somentePublicados
     ? incluirEventosDoorganizador
       ? `(e.publicado = TRUE OR e.id IN (SELECT evento_id FROM minhas_turmas))`
@@ -897,7 +904,12 @@ async function listarEventos(req, res) {
 
     const { rows } = await client.query(sql, [usuarioId || 0, usuarioId || 0]);
 
-    const eventos = await enriquecerEventosLista(client, usuarioId, rows || [], rid);
+    const eventos = await enriquecerEventosLista(
+      client,
+      usuarioId,
+      rows || [],
+      rid,
+    );
 
     memSnapshot(rid, "listarEventos:fim", {
       usuarioId,
@@ -959,7 +971,12 @@ async function listarEventosParaMim(req, res) {
 
     const { rows } = await client.query(sql, [usuarioId, usuarioId]);
 
-    const eventos = await enriquecerEventosLista(client, usuarioId, rows || [], rid);
+    const eventos = await enriquecerEventosLista(
+      client,
+      usuarioId,
+      rows || [],
+      rid,
+    );
 
     memSnapshot(rid, "listarEventosParaMim:fim", {
       usuarioId,
@@ -1015,7 +1032,7 @@ async function obterFolderDoEvento(req, res) {
       FROM eventos
       WHERE id = $1
       `,
-      [id]
+      [id],
     );
 
     if (!rows.length) {
@@ -1025,7 +1042,10 @@ async function obterFolderDoEvento(req, res) {
     const row = rows[0];
 
     if (!row.folder_blob) {
-      res.setHeader("Cache-Control", IS_DEV ? "no-store" : "public, max-age=300");
+      res.setHeader(
+        "Cache-Control",
+        IS_DEV ? "no-store" : "public, max-age=300",
+      );
       return res.status(204).end();
     }
 
@@ -1033,7 +1053,9 @@ async function obterFolderDoEvento(req, res) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader(
       "Cache-Control",
-      IS_DEV ? "no-store" : "public, max-age=3600, stale-while-revalidate=86400"
+      IS_DEV
+        ? "no-store"
+        : "public, max-age=3600, stale-while-revalidate=86400",
     );
 
     if (row.folder_size) {
@@ -1041,7 +1063,10 @@ async function obterFolderDoEvento(req, res) {
     }
 
     if (row.folder_updated_at) {
-      res.setHeader("Last-Modified", new Date(row.folder_updated_at).toUTCString());
+      res.setHeader(
+        "Last-Modified",
+        new Date(row.folder_updated_at).toUTCString(),
+      );
     }
 
     return res.status(200).send(row.folder_blob);
@@ -1075,7 +1100,7 @@ async function obterProgramacaoDoEvento(req, res) {
       FROM eventos
       WHERE id = $1
       `,
-      [id]
+      [id],
     );
 
     if (!rows.length) {
@@ -1085,18 +1110,28 @@ async function obterProgramacaoDoEvento(req, res) {
     const row = rows[0];
 
     if (!row.programacao_pdf_blob) {
-      res.setHeader("Cache-Control", IS_DEV ? "no-store" : "public, max-age=300");
+      res.setHeader(
+        "Cache-Control",
+        IS_DEV ? "no-store" : "public, max-age=300",
+      );
       return res.status(204).end();
     }
 
-    const filename = safeFilename(row.programacao_pdf_nome_original || "programacao.pdf");
+    const filename = safeFilename(
+      row.programacao_pdf_nome_original || "programacao.pdf",
+    );
 
-    res.setHeader("Content-Type", row.programacao_pdf_mime || "application/pdf");
+    res.setHeader(
+      "Content-Type",
+      row.programacao_pdf_mime || "application/pdf",
+    );
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
     res.setHeader(
       "Cache-Control",
-      IS_DEV ? "no-store" : "public, max-age=3600, stale-while-revalidate=86400"
+      IS_DEV
+        ? "no-store"
+        : "public, max-age=3600, stale-while-revalidate=86400",
     );
 
     if (row.programacao_pdf_size) {
@@ -1106,7 +1141,7 @@ async function obterProgramacaoDoEvento(req, res) {
     if (row.programacao_pdf_updated_at) {
       res.setHeader(
         "Last-Modified",
-        new Date(row.programacao_pdf_updated_at).toUTCString()
+        new Date(row.programacao_pdf_updated_at).toUTCString(),
       );
     }
 
@@ -1138,7 +1173,7 @@ async function carregarTurmasComDetalhes(client, eventoId) {
     WHERE evento_id = $1
     ORDER BY data_inicio NULLS LAST, id
     `,
-    [eventoId]
+    [eventoId],
   );
 
   const turmaIds = turmasResult.rows.map((turma) => Number(turma.id));
@@ -1163,7 +1198,7 @@ async function carregarTurmasComDetalhes(client, eventoId) {
       WHERE turma_id = ANY($1::int[])
       ORDER BY turma_id, data ASC
       `,
-      [turmaIds]
+      [turmaIds],
     ),
 
     client.query(
@@ -1180,7 +1215,7 @@ async function carregarTurmasComDetalhes(client, eventoId) {
         AND tr.papel = $2
       ORDER BY tr.turma_id, u.nome
       `,
-      [turmaIds, PAPEL_ORGANIZADOR]
+      [turmaIds, PAPEL_ORGANIZADOR],
     ),
 
     client.query(
@@ -1194,7 +1229,7 @@ async function carregarTurmasComDetalhes(client, eventoId) {
       WHERE turma_id = ANY($1::int[])
       ORDER BY turma_id, nome ASC, id ASC
       `,
-      [turmaIds]
+      [turmaIds],
     ),
 
     client.query(
@@ -1211,7 +1246,7 @@ async function carregarTurmasComDetalhes(client, eventoId) {
       WHERE tca.turma_id = ANY($1::int[])
       ORDER BY tca.turma_id, tca.ordem ASC
       `,
-      [turmaIds]
+      [turmaIds],
     ),
 
     client.query(
@@ -1221,7 +1256,7 @@ async function carregarTurmasComDetalhes(client, eventoId) {
       WHERE turma_id = ANY($1::int[])
       GROUP BY turma_id
       `,
-      [turmaIds]
+      [turmaIds],
     ),
   ]);
 
@@ -1368,7 +1403,7 @@ publicado,
       FROM eventos
       WHERE id = $1
       `,
-      [id]
+      [id],
     );
 
     if (!eventoResult.rowCount) {
@@ -1415,20 +1450,25 @@ publicado,
       }
     }
 
-    const [regsQ, cargosQ, unidadesQ, organizadoresEventoQ, questionarioResult] =
-      await Promise.all([
-        client.query(
-          `
+    const [
+      regsQ,
+      cargosQ,
+      unidadesQ,
+      organizadoresEventoQ,
+      questionarioResult,
+    ] = await Promise.all([
+      client.query(
+        `
           SELECT registro_norm
           FROM evento_registros
           WHERE evento_id = $1
           ORDER BY registro_norm
           `,
-          [id]
-        ),
+        [id],
+      ),
 
-        client.query(
-          `
+      client.query(
+        `
           SELECT c.id, c.nome, c.codigo
 FROM eventos e
 JOIN cargos c
@@ -1436,11 +1476,11 @@ JOIN cargos c
 WHERE e.id = $1
 ORDER BY c.nome
           `,
-          [id]
-        ),
+        [id],
+      ),
 
-        client.query(
-          `
+      client.query(
+        `
           SELECT u.id, u.nome
 FROM eventos e
 JOIN unidades u
@@ -1448,11 +1488,11 @@ JOIN unidades u
 WHERE e.id = $1
 ORDER BY u.nome
           `,
-          [id]
-        ),
+        [id],
+      ),
 
-        client.query(
-          `
+      client.query(
+        `
           SELECT DISTINCT u.id, u.nome, u.email, u.perfil
           FROM turmas t
           JOIN turma_responsavel tr ON tr.turma_id = t.id
@@ -1461,11 +1501,11 @@ ORDER BY u.nome
             AND tr.papel = $2
           ORDER BY u.nome
           `,
-          [id, PAPEL_ORGANIZADOR]
-        ),
+        [id, PAPEL_ORGANIZADOR],
+      ),
 
-        client.query(
-          `
+      client.query(
+        `
           SELECT
             id,
             status,
@@ -1478,9 +1518,9 @@ ORDER BY u.nome
           ORDER BY id DESC
           LIMIT 1
           `,
-          [id]
-        ),
-      ]);
+        [id],
+      ),
+    ]);
 
     const turmas = await carregarTurmasComDetalhes(client, id);
 
@@ -1496,7 +1536,7 @@ ORDER BY u.nome
             AND tr.papel = $3
         ) AS eh
         `,
-        [id, usuarioId || 0, PAPEL_ORGANIZADOR]
+        [id, usuarioId || 0, PAPEL_ORGANIZADOR],
       ),
 
       client.query(
@@ -1509,7 +1549,7 @@ ORDER BY u.nome
             AND i.usuario_id = $2
         ) AS eh
         `,
-        [id, usuarioId || 0]
+        [id, usuarioId || 0],
       ),
     ]);
 
@@ -1674,7 +1714,7 @@ async function getAgendaEventos(req, res) {
       LEFT JOIN ocorrencias o ON o.evento_id = e.id
       WHERE ${admin ? "TRUE" : "e.publicado = TRUE"}
       ORDER BY ad.data_fim DESC NULLS LAST, e.id DESC
-      `
+      `,
     );
 
     const agenda = (rows || []).map((row) => ({
@@ -1799,7 +1839,7 @@ async function listarEventosDoorganizador(req, res) {
         AND e.publicado = TRUE
       ORDER BY e.id DESC
       `,
-      [usuarioId, PAPEL_ORGANIZADOR]
+      [usuarioId, PAPEL_ORGANIZADOR],
     );
 
     const eventos = (eventosResult.rows || []).map((evento) => ({
@@ -1837,17 +1877,22 @@ async function listarEventosDoorganizador(req, res) {
       WHERE evento_id = ANY($1::int[])
       ORDER BY evento_id, data_inicio NULLS LAST, id
       `,
-      [eventoIds]
+      [eventoIds],
     );
 
     const turmas = turmasResult.rows || [];
     const turmaIds = turmas.map((turma) => Number(turma.id));
 
-    const [datasAll, organizadoresTurmaAll, palestrantesAll, assinantesAll, organizadoresEventoAll] =
-      turmaIds.length
-        ? await Promise.all([
-            client.query(
-              `
+    const [
+      datasAll,
+      organizadoresTurmaAll,
+      palestrantesAll,
+      assinantesAll,
+      organizadoresEventoAll,
+    ] = turmaIds.length
+      ? await Promise.all([
+          client.query(
+            `
               SELECT
                 turma_id,
                 to_char(data::date, 'YYYY-MM-DD') AS data,
@@ -1857,11 +1902,11 @@ async function listarEventosDoorganizador(req, res) {
               WHERE turma_id = ANY($1::int[])
               ORDER BY turma_id, data ASC
               `,
-              [turmaIds]
-            ),
+            [turmaIds],
+          ),
 
-            client.query(
-              `
+          client.query(
+            `
               SELECT
                 tr.turma_id,
                 u.id,
@@ -1874,11 +1919,11 @@ async function listarEventosDoorganizador(req, res) {
                 AND tr.papel = $2
               ORDER BY tr.turma_id, u.nome
               `,
-              [turmaIds, PAPEL_ORGANIZADOR]
-            ),
+            [turmaIds, PAPEL_ORGANIZADOR],
+          ),
 
-            client.query(
-              `
+          client.query(
+            `
               SELECT
                 id,
                 turma_id,
@@ -1888,11 +1933,11 @@ async function listarEventosDoorganizador(req, res) {
               WHERE turma_id = ANY($1::int[])
               ORDER BY turma_id, nome ASC, id ASC
               `,
-              [turmaIds]
-            ),
+            [turmaIds],
+          ),
 
-            client.query(
-              `
+          client.query(
+            `
               SELECT
                 tca.turma_id,
                 tca.usuario_id,
@@ -1905,11 +1950,11 @@ async function listarEventosDoorganizador(req, res) {
               WHERE tca.turma_id = ANY($1::int[])
               ORDER BY tca.turma_id, tca.ordem ASC
               `,
-              [turmaIds]
-            ),
+            [turmaIds],
+          ),
 
-            client.query(
-              `
+          client.query(
+            `
               SELECT
                 t.evento_id,
                 u.id,
@@ -1924,10 +1969,10 @@ async function listarEventosDoorganizador(req, res) {
               GROUP BY t.evento_id, u.id, u.nome, u.email, u.perfil
               ORDER BY t.evento_id, u.nome
               `,
-              [eventoIds, PAPEL_ORGANIZADOR]
-            ),
-          ])
-        : [{ rows: [] }, { rows: [] }, { rows: [] }, { rows: [] }, { rows: [] }];
+            [eventoIds, PAPEL_ORGANIZADOR],
+          ),
+        ])
+      : [{ rows: [] }, { rows: [] }, { rows: [] }, { rows: [] }, { rows: [] }];
 
     const datasByTurma = new Map();
     const organizadoresTurmaMap = new Map();
@@ -2080,7 +2125,7 @@ async function listarTurmasDoEvento(req, res) {
         ${admin ? "" : "AND publicado = TRUE"}
       LIMIT 1
       `,
-      [eventoId]
+      [eventoId],
     );
 
     if (!evento.rowCount) {
@@ -2178,7 +2223,7 @@ async function listarDatasDaTurma(req, res) {
         WHERE dt.turma_id = $1
         ORDER BY dt.data ASC
         `,
-        [turmaId]
+        [turmaId],
       );
 
       return sendOk(res, {
@@ -2202,7 +2247,7 @@ async function listarDatasDaTurma(req, res) {
         WHERE p.turma_id = $1
         ORDER BY data ASC
         `,
-        [turmaId]
+        [turmaId],
       );
 
       return sendOk(res, {
@@ -2233,7 +2278,7 @@ async function listarDatasDaTurma(req, res) {
       generate_series(t.data_inicio, t.data_fim, interval '1 day') AS gs
       ORDER BY data ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     return sendOk(res, {

@@ -57,13 +57,7 @@ function gerarRequestId(prefix = "informacoes") {
 
 function sucesso(
   res,
-  {
-    status = 200,
-    data = null,
-    message = "OK",
-    code = "OK",
-    meta = null,
-  } = {}
+  { status = 200, data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(status).json({
     ok: true,
@@ -83,7 +77,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -203,7 +197,9 @@ function validarConteudoHtml(conteudoHtml) {
   }
 
   if (html.length > 20000) {
-    const error = new Error("Conteúdo muito grande. Reduza o texto da publicação.");
+    const error = new Error(
+      "Conteúdo muito grande. Reduza o texto da publicação.",
+    );
     error.status = 400;
     error.code = "CONTEUDO_MUITO_GRANDE";
     throw error;
@@ -229,7 +225,9 @@ function validarTitulo(titulo) {
 function validarImagemUpload(file) {
   if (!file) return null;
 
-  const mime = String(file.mimetype || "").trim().toLowerCase();
+  const mime = String(file.mimetype || "")
+    .trim()
+    .toLowerCase();
   const size = Number(file.size || 0);
 
   const mimesPermitidos = new Set([
@@ -247,7 +245,9 @@ function validarImagemUpload(file) {
   }
 
   if (!Buffer.isBuffer(file.buffer)) {
-    const error = new Error("Upload inválido. A imagem deve ser processada em memória.");
+    const error = new Error(
+      "Upload inválido. A imagem deve ser processada em memória.",
+    );
     error.status = 400;
     error.code = "IMAGEM_BUFFER_AUSENTE";
     throw error;
@@ -402,14 +402,19 @@ function buildPayloadFromRequest(req, { modo = "criar", atual = null } = {}) {
     resumo: resumoFinal,
     conteudo_html: conteudoSanitizado,
     tipo_exibicao: cleanText(body.tipo_exibicao, { max: 80 }),
-    ativo: cleanBoolean(body.ativo, modo === "criar" ? true : Boolean(atual?.ativo)),
+    ativo: cleanBoolean(
+      body.ativo,
+      modo === "criar" ? true : Boolean(atual?.ativo),
+    ),
     ordem: cleanInteger(body.ordem, Number(atual?.ordem || 0)),
     data_inicio_exibicao: dataInicio,
     data_fim_exibicao: dataFim,
     ...imagemPayload,
   };
 
-  return modo === "editar" ? manterImagemAtualSeNaoHouverNova(payload, atual) : payload;
+  return modo === "editar"
+    ? manterImagemAtualSeNaoHouverNova(payload, atual)
+    : payload;
 }
 
 async function buscarInformacaoObrigatoria(id) {
@@ -483,7 +488,7 @@ async function getInformacoesPublicadas(req, res) {
       res,
       requestId,
       error,
-      "Erro ao listar informações publicadas"
+      "Erro ao listar informações publicadas",
     );
   }
 }
@@ -513,7 +518,7 @@ async function getInformacoesAdmin(req, res) {
       res,
       requestId,
       error,
-      "Erro ao listar informações admin"
+      "Erro ao listar informações admin",
     );
   }
 }
@@ -549,7 +554,7 @@ async function getInformacaoById(req, res) {
       res,
       requestId,
       error,
-      "Erro ao buscar informação por ID"
+      "Erro ao buscar informação por ID",
     );
   }
 }
@@ -607,7 +612,7 @@ async function postInformacao(req, res) {
       res,
       requestId,
       error,
-      "Erro ao criar informação"
+      "Erro ao criar informação",
     );
   }
 }
@@ -682,7 +687,7 @@ async function putInformacao(req, res) {
       res,
       requestId,
       error,
-      "Erro ao atualizar informação"
+      "Erro ao atualizar informação",
     );
   }
 }
@@ -758,7 +763,7 @@ async function patchAtivoInformacao(req, res) {
       res,
       requestId,
       error,
-      "Erro ao alterar status da informação"
+      "Erro ao alterar status da informação",
     );
   }
 }
@@ -813,7 +818,7 @@ async function deleteInformacao(req, res) {
       res,
       requestId,
       error,
-      "Erro ao excluir informação"
+      "Erro ao excluir informação",
     );
   }
 }

@@ -109,7 +109,9 @@ function normNome(value) {
 }
 
 function normEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function onlyDigits(value) {
@@ -156,7 +158,7 @@ function validarYmdReal(value) {
   const hojeUTC = Date.UTC(
     hoje.getUTCFullYear(),
     hoje.getUTCMonth(),
-    hoje.getUTCDate()
+    hoje.getUTCDate(),
   );
 
   const dataUTC = Date.UTC(ano, mes - 1, dia);
@@ -307,7 +309,7 @@ function camposFaltantes(usuario = {}) {
     (campo) =>
       usuario[campo] === null ||
       usuario[campo] === undefined ||
-      usuario[campo] === ""
+      usuario[campo] === "",
   );
 }
 
@@ -427,7 +429,7 @@ async function assertExists(table, id, field = "id") {
 
   const result = await db.query(
     `SELECT 1 FROM ${tableName} WHERE id = $1 LIMIT 1`,
-    [id]
+    [id],
   );
 
   return result.rowCount > 0;
@@ -438,7 +440,11 @@ async function validarReferenciasPerfil(payload) {
     ["unidades", "unidade_id", payload.unidade_id],
     ["cargos", "cargo_id", payload.cargo_id],
     ["generos", "genero_id", payload.genero_id],
-    ["orientacoes_sexuais", "orientacao_sexual_id", payload.orientacao_sexual_id],
+    [
+      "orientacoes_sexuais",
+      "orientacao_sexual_id",
+      payload.orientacao_sexual_id,
+    ],
     ["cores_racas", "cor_raca_id", payload.cor_raca_id],
     ["escolaridades", "escolaridade_id", payload.escolaridade_id],
     ["deficiencias", "deficiencia_id", payload.deficiencia_id],
@@ -644,7 +650,7 @@ async function listar(req, res) {
 
     if (busca) {
       where.push(
-        `(u.nome ILIKE $${index} OR u.email ILIKE $${index} OR u.cpf ILIKE $${index} OR u.celular ILIKE $${index} OR u.registro ILIKE $${index})`
+        `(u.nome ILIKE $${index} OR u.email ILIKE $${index} OR u.cpf ILIKE $${index} OR u.celular ILIKE $${index} OR u.registro ILIKE $${index})`,
       );
       params.push(`%${busca}%`);
       index++;
@@ -669,7 +675,7 @@ async function listar(req, res) {
           400,
           "USUARIO-400-PERFIL-FILTRO-INVALIDO",
           "Perfil de filtro inválido.",
-          { permitidos: PERFIS_VALIDOS }
+          { permitidos: PERFIS_VALIDOS },
         );
       }
 
@@ -685,7 +691,7 @@ async function listar(req, res) {
       FROM usuarios u
       ${whereSql}
       `,
-      params
+      params,
     );
 
     const total = Number(totalQ.rows?.[0]?.total || 0);
@@ -700,7 +706,7 @@ async function listar(req, res) {
       ORDER BY u.nome ASC
       LIMIT $${index++} OFFSET $${index++}
       `,
-      [...params, pageSize, offset]
+      [...params, pageSize, offset],
     );
 
     const data = (rowsQ.rows || []).map(sanitizeUsuario);
@@ -723,7 +729,7 @@ async function listar(req, res) {
       res,
       500,
       "USUARIO-500-LISTAR",
-      "Erro ao listar usuários."
+      "Erro ao listar usuários.",
     );
   }
 }
@@ -745,7 +751,7 @@ async function obterPorId(req, res) {
       res,
       403,
       "USUARIO-403-SEM-PERMISSAO",
-      "Sem permissão para acessar este usuário."
+      "Sem permissão para acessar este usuário.",
     );
   }
 
@@ -757,7 +763,7 @@ async function obterPorId(req, res) {
       ${JOIN_USUARIO_COMPLETO}
       WHERE u.id = $1
       `,
-      [id]
+      [id],
     );
 
     if (!rows.length) {
@@ -765,7 +771,7 @@ async function obterPorId(req, res) {
         res,
         404,
         "USUARIO-404-NAO-ENCONTRADO",
-        "Usuário não encontrado."
+        "Usuário não encontrado.",
       );
     }
 
@@ -784,7 +790,7 @@ async function obterPorId(req, res) {
       res,
       500,
       "USUARIO-500-OBTER",
-      "Erro ao buscar usuário."
+      "Erro ao buscar usuário.",
     );
   }
 }
@@ -802,7 +808,7 @@ async function buscar(req, res) {
       400,
       "USUARIO-400-BUSCA-CURTA",
       "Envie ao menos 3 caracteres para busca.",
-      { fieldErrors: { q: "Mínimo de 3 caracteres." } }
+      { fieldErrors: { q: "Mínimo de 3 caracteres." } },
     );
   }
 
@@ -815,14 +821,16 @@ async function buscar(req, res) {
       400,
       "USUARIO-400-PERFIL-BUSCA-INVALIDO",
       "Perfil inválido.",
-      { permitidos: PERFIS_VALIDOS }
+      { permitidos: PERFIS_VALIDOS },
     );
   }
 
   try {
     const like = `%${busca}%`;
     const params = [like];
-    const where = ["(u.nome ILIKE $1 OR u.email ILIKE $1 OR u.celular ILIKE $1)"];
+    const where = [
+      "(u.nome ILIKE $1 OR u.email ILIKE $1 OR u.celular ILIKE $1)",
+    ];
     let index = 2;
 
     const unidadeId = positiveIntOrNull(req.query.unidade_id);
@@ -851,7 +859,7 @@ async function buscar(req, res) {
       ORDER BY u.nome ASC
       LIMIT 20
       `,
-      params
+      params,
     );
 
     return res.status(200).json({
@@ -868,7 +876,7 @@ async function buscar(req, res) {
       res,
       500,
       "USUARIO-500-BUSCAR",
-      "Erro ao buscar usuários."
+      "Erro ao buscar usuários.",
     );
   }
 }
@@ -890,15 +898,17 @@ async function atualizarBasico(req, res) {
       res,
       403,
       "USUARIO-403-SEM-PERMISSAO",
-      "Sem permissão para alterar este usuário."
+      "Sem permissão para alterar este usuário.",
     );
   }
 
-  const nome = req.body?.nome !== undefined ? normNome(req.body.nome) : undefined;
+  const nome =
+    req.body?.nome !== undefined ? normNome(req.body.nome) : undefined;
   const email =
     req.body?.email !== undefined ? normEmail(req.body.email) : undefined;
   const celular = validarCelularOpcional(req.body?.celular);
-  const senha = req.body?.senha !== undefined ? String(req.body.senha) : undefined;
+  const senha =
+    req.body?.senha !== undefined ? String(req.body.senha) : undefined;
 
   const fieldErrors = {};
 
@@ -925,7 +935,7 @@ async function atualizarBasico(req, res) {
       422,
       "USUARIO-422-BASICO-VALIDACAO",
       "Erros de validação.",
-      { fieldErrors }
+      { fieldErrors },
     );
   }
 
@@ -939,7 +949,7 @@ async function atualizarBasico(req, res) {
           AND id <> $2
         LIMIT 1
         `,
-        [email, id]
+        [email, id],
       );
 
       if (dupQ.rows?.length) {
@@ -948,7 +958,7 @@ async function atualizarBasico(req, res) {
           409,
           "USUARIO-409-EMAIL-DUPLICADO",
           "E-mail já cadastrado.",
-          { fieldErrors: { email: "Este e-mail já está em uso." } }
+          { fieldErrors: { email: "Este e-mail já está em uso." } },
         );
       }
     }
@@ -983,35 +993,35 @@ async function atualizarBasico(req, res) {
         res,
         422,
         "USUARIO-422-NENHUM-CAMPO",
-        "Nenhum campo válido para atualizar."
+        "Nenhum campo válido para atualizar.",
       );
     }
 
     valores.push(id);
 
-   await db.query(
-  `
+    await db.query(
+      `
   UPDATE usuarios
      SET ${campos.join(", ")}
    WHERE id = $${index}
   `,
-  valores
-);
+      valores,
+    );
 
-// ✅ v2.1 — limpa imediatamente o cache do diagnóstico de cadastro incompleto.
-// Sem isso, o middleware pode continuar devolvendo X-Perfil-Incompleto: 1
-// por alguns segundos mesmo depois do cadastro salvo no banco.
-forcarAtualizacaoCadastro.clearCache(id);
+    // ✅ v2.1 — limpa imediatamente o cache do diagnóstico de cadastro incompleto.
+    // Sem isso, o middleware pode continuar devolvendo X-Perfil-Incompleto: 1
+    // por alguns segundos mesmo depois do cadastro salvo no banco.
+    forcarAtualizacaoCadastro.clearCache(id);
 
-const { rows } = await db.query(
-  `
+    const { rows } = await db.query(
+      `
   SELECT ${SELECT_USUARIO_COMPLETO}
   FROM usuarios u
   ${JOIN_USUARIO_COMPLETO}
   WHERE u.id = $1
   `,
-  [id]
-);
+      [id],
+    );
 
     const usuario = sanitizeUsuario(rows[0] || {});
 
@@ -1043,7 +1053,7 @@ async function atualizarDadosAdministrativos(req, res) {
       res,
       403,
       "USUARIO-403-ADMINISTRADOR-NECESSARIO",
-      "Acesso negado."
+      "Acesso negado.",
     );
   }
 
@@ -1138,7 +1148,7 @@ async function atualizarDadosAdministrativos(req, res) {
       422,
       "USUARIO-422-ADMIN-VALIDACAO",
       "Erros de validação.",
-      { fieldErrors }
+      { fieldErrors },
     );
   }
 
@@ -1150,7 +1160,7 @@ async function atualizarDadosAdministrativos(req, res) {
       422,
       "USUARIO-422-REFERENCIA",
       "Revise os campos destacados.",
-      { fieldErrors: refErrors }
+      { fieldErrors: refErrors },
     );
   }
 
@@ -1159,7 +1169,7 @@ async function atualizarDadosAdministrativos(req, res) {
       res,
       422,
       "USUARIO-422-NENHUM-CAMPO",
-      "Nenhum campo válido para atualizar."
+      "Nenhum campo válido para atualizar.",
     );
   }
 
@@ -1174,7 +1184,7 @@ async function atualizarDadosAdministrativos(req, res) {
           AND id <> $2
         LIMIT 1
         `,
-        [email, id]
+        [email, id],
       );
 
       if (dupQ.rows?.length) {
@@ -1183,7 +1193,7 @@ async function atualizarDadosAdministrativos(req, res) {
           409,
           "USUARIO-409-EMAIL-DUPLICADO",
           "E-mail já cadastrado.",
-          { fieldErrors: { email: "Este e-mail já está em uso." } }
+          { fieldErrors: { email: "Este e-mail já está em uso." } },
         );
       }
     }
@@ -1196,7 +1206,7 @@ async function atualizarDadosAdministrativos(req, res) {
          SET ${campos.join(", ")}
        WHERE id = $${index}
       `,
-      valores
+      valores,
     );
 
     logAuditoriaPlaceholder(req, "USUARIO_DADOS_ADMINISTRATIVOS_ATUALIZADOS", {
@@ -1211,7 +1221,7 @@ async function atualizarDadosAdministrativos(req, res) {
       ${JOIN_USUARIO_COMPLETO}
       WHERE u.id = $1
       `,
-      [id]
+      [id],
     );
 
     return res.status(200).json({
@@ -1221,7 +1231,10 @@ async function atualizarDadosAdministrativos(req, res) {
       data: sanitizeUsuario(rows[0] || {}),
     });
   } catch (err) {
-    console.error("[usuarioController.atualizarDadosAdministrativos] ERRO", err);
+    console.error(
+      "[usuarioController.atualizarDadosAdministrativos] ERRO",
+      err,
+    );
 
     const translated = traduzPgError(err);
     return res.status(translated.status).json(translated.payload);
@@ -1245,7 +1258,7 @@ async function atualizarPerfilInstitucional(req, res) {
       res,
       403,
       "USUARIO-403-SEM-PERMISSAO",
-      "Sem permissão para alterar este usuário."
+      "Sem permissão para alterar este usuário.",
     );
   }
 
@@ -1258,7 +1271,7 @@ async function atualizarPerfilInstitucional(req, res) {
       422,
       "USUARIO-422-PERFIL-INSTITUCIONAL-VALIDACAO",
       "Erros de validação no perfil institucional.",
-      { fieldErrors: validacao.fieldErrors }
+      { fieldErrors: validacao.fieldErrors },
     );
   }
 
@@ -1291,28 +1304,28 @@ async function atualizarPerfilInstitucional(req, res) {
 
   try {
     await db.query(
-  `
+      `
   UPDATE usuarios
      SET ${campos.join(", ")}
    WHERE id = $${index}
   `,
-  valores
-);
+      valores,
+    );
 
-// ✅ v2.1 — limpa imediatamente o cache do diagnóstico de cadastro incompleto.
-// Sem isso, o middleware pode continuar devolvendo X-Perfil-Incompleto: 1
-// depois do perfil institucional ser salvo.
-forcarAtualizacaoCadastro.clearCache(id);
+    // ✅ v2.1 — limpa imediatamente o cache do diagnóstico de cadastro incompleto.
+    // Sem isso, o middleware pode continuar devolvendo X-Perfil-Incompleto: 1
+    // depois do perfil institucional ser salvo.
+    forcarAtualizacaoCadastro.clearCache(id);
 
-const { rows } = await db.query(
-  `
+    const { rows } = await db.query(
+      `
   SELECT ${SELECT_USUARIO_COMPLETO}
   FROM usuarios u
   ${JOIN_USUARIO_COMPLETO}
   WHERE u.id = $1
   `,
-  [id]
-);
+      [id],
+    );
 
     const usuario = sanitizeUsuario(rows[0] || {});
 
@@ -1345,7 +1358,7 @@ async function atualizarPerfil(req, res) {
       res,
       403,
       "USUARIO-403-ADMINISTRADOR-NECESSARIO",
-      "Acesso negado."
+      "Acesso negado.",
     );
   }
 
@@ -1364,7 +1377,7 @@ async function atualizarPerfil(req, res) {
       {
         recebido: req.body?.perfil ?? null,
         permitidos: PERFIS_VALIDOS,
-      }
+      },
     );
   }
 
@@ -1373,7 +1386,7 @@ async function atualizarPerfil(req, res) {
       res,
       422,
       "USUARIO-422-AUTO-REMOCAO-ADMINISTRADOR",
-      "Você não pode remover o próprio perfil de administrador por esta tela."
+      "Você não pode remover o próprio perfil de administrador por esta tela.",
     );
   }
 
@@ -1385,7 +1398,7 @@ async function atualizarPerfil(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     if (!atualQ.rows?.length) {
@@ -1393,7 +1406,7 @@ async function atualizarPerfil(req, res) {
         res,
         404,
         "USUARIO-404-NAO-ENCONTRADO",
-        "Usuário não encontrado."
+        "Usuário não encontrado.",
       );
     }
 
@@ -1419,7 +1432,7 @@ async function atualizarPerfil(req, res) {
        WHERE id = $2
        RETURNING id, nome, email, celular, perfil
       `,
-      [perfilNovo, id]
+      [perfilNovo, id],
     );
 
     logAuditoriaPlaceholder(req, "USUARIO_PERFIL_ATUALIZADO", {
@@ -1537,7 +1550,7 @@ async function listarorganizador(_req, res) {
       LEFT JOIN assinaturas_agg aa ON aa.usuario_id = b.id
       ORDER BY b.nome ASC
       `,
-      [PAPEL_ORGANIZADOR]
+      [PAPEL_ORGANIZADOR],
     );
 
     return res.status(200).json({
@@ -1563,7 +1576,7 @@ async function listarorganizador(_req, res) {
       res,
       500,
       "USUARIO-500-LISTAR-ORGANIZADOR",
-      "Erro ao listar organizadores."
+      "Erro ao listar organizadores.",
     );
   }
 }
@@ -1575,13 +1588,16 @@ async function listarorganizador(_req, res) {
 async function listarAvaliador(req, res) {
   const perfilFiltro = normStr(req.query.perfil);
 
-  if (perfilFiltro && !["organizador", "administrador"].includes(perfilFiltro)) {
+  if (
+    perfilFiltro &&
+    !["organizador", "administrador"].includes(perfilFiltro)
+  ) {
     return respostaErro(
       res,
       400,
       "USUARIO-400-PERFIL-AVALIADOR-INVALIDO",
       "Perfil inválido para avaliador.",
-      { permitidos: ["organizador", "administrador"] }
+      { permitidos: ["organizador", "administrador"] },
     );
   }
 
@@ -1601,7 +1617,7 @@ async function listarAvaliador(req, res) {
       ${whereSql}
       ORDER BY u.nome ASC
       `,
-      params
+      params,
     );
 
     return res.status(200).json({
@@ -1618,7 +1634,7 @@ async function listarAvaliador(req, res) {
       res,
       500,
       "USUARIO-500-LISTAR-AVALIADOR",
-      "Erro ao listar avaliadores."
+      "Erro ao listar avaliadores.",
     );
   }
 }
@@ -1711,7 +1727,7 @@ async function obterResumo(req, res) {
       res,
       500,
       "USUARIO-500-RESUMO",
-      "Erro ao obter resumo do usuário."
+      "Erro ao obter resumo do usuário.",
     );
   }
 }

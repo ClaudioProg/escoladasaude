@@ -10,6 +10,7 @@
 // - configurar ToastContainer;
 // - proteger a árvore com ErrorBoundary;
 // - montar o App.
+/* eslint-disable react-refresh/only-export-components */
 //
 // Não usar:
 // - chaves legadas de tema;
@@ -41,7 +42,9 @@ import {
 ───────────────────────────────────────── */
 
 const IS_DEV = Boolean(import.meta.env.DEV);
-const GOOGLE_CLIENT_ID = String(import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+const GOOGLE_CLIENT_ID = String(
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || "",
+).trim();
 
 /* ─────────────────────────────────────────
    Recuperação automática de chunk antigo
@@ -58,7 +61,7 @@ function redirectToUpdatePage(reason) {
     window.location.replace(url.toString());
   } catch {
     window.location.replace(
-      `${UPDATE_PAGE_URL}?motivo=${reason || "chunk"}&ts=${Date.now()}`
+      `${UPDATE_PAGE_URL}?motivo=${reason || "chunk"}&ts=${Date.now()}`,
     );
   }
 }
@@ -84,7 +87,7 @@ window.addEventListener(
       redirectToUpdatePage("module");
     }
   },
-  true
+  true,
 );
 
 window.addEventListener("unhandledrejection", (event) => {
@@ -107,7 +110,7 @@ window.addEventListener("unhandledrejection", (event) => {
 
 function logDev(...args) {
   if (IS_DEV) {
-    console.log(...args);
+    console.warn(...args);
   }
 }
 
@@ -168,7 +171,7 @@ function installThemeDiagnosticsDev() {
   const logTheme = () => {
     const isDark = root.classList.contains("dark");
 
-    console.log("[TEMA]", {
+    warnDev("[TEMA]", {
       html: isDark ? "dark" : "light",
       dataTheme: root.getAttribute("data-theme"),
       storageKey: ESCOLA_THEME_KEY,
@@ -205,14 +208,11 @@ function installGoogleDiagnosticsDev() {
     return () => {};
   }
 
-  console.groupCollapsed(
-    "%c[GSI:init]",
-    "color:#14532d;font-weight:800",
-    "Diagnóstico do Google Sign-In"
-  );
-console.log("origin:", window.location.origin);
-console.log("clientId:", GOOGLE_CLIENT_ID);
-console.groupEnd();
+  warnDev("[GSI:init]", {
+    origin: window.location.origin,
+    clientId: maskValue(GOOGLE_CLIENT_ID),
+    message: "Diagnóstico do Google Sign-In",
+  });
 
   const onError = (event) => {
     const source = event?.filename || "";
@@ -322,7 +322,7 @@ class ErrorBoundary extends React.Component {
           info: this.state.info,
         },
         null,
-        2
+        2,
       );
 
       await navigator.clipboard.writeText(payload);
@@ -345,9 +345,7 @@ class ErrorBoundary extends React.Component {
           aria-live="assertive"
           className="w-full max-w-lg rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-6 text-center shadow-[var(--app-shadow-lg)]"
         >
-          <h1 className="text-xl font-extrabold">
-            Ocorreu um erro inesperado
-          </h1>
+          <h1 className="text-xl font-extrabold">Ocorreu um erro inesperado</h1>
 
           <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
             Tente recarregar a página. Se o erro persistir, copie os detalhes e
@@ -447,7 +445,7 @@ function AppProviders() {
 
         try {
           toast.warn(
-            "Falha ao carregar login Google. Você ainda pode usar login por e-mail e senha."
+            "Falha ao carregar login Google. Você ainda pode usar login por e-mail e senha.",
           );
         } catch {
           // noop
@@ -470,16 +468,17 @@ function renderBootError(error) {
     return;
   }
 
-  const message = String(error?.message || error || "Erro desconhecido")
-    .replace(/[<>&]/g, (char) => {
-      const map = {
-        "<": "&lt;",
-        ">": "&gt;",
-        "&": "&amp;",
-      };
+  const message = String(
+    error?.message || error || "Erro desconhecido",
+  ).replace(/[<>&]/g, (char) => {
+    const map = {
+      "<": "&lt;",
+      ">": "&gt;",
+      "&": "&amp;",
+    };
 
-      return map[char] || char;
-    });
+    return map[char] || char;
+  });
 
   container.innerHTML = `
     <div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:Arial,sans-serif;background:#f8fafc;color:#111827;">
@@ -509,7 +508,7 @@ function startApp() {
       <ErrorBoundary>
         <AppProviders />
       </ErrorBoundary>
-    </React.StrictMode>
+    </React.StrictMode>,
   );
 }
 

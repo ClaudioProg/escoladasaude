@@ -1,29 +1,28 @@
-// ✅ frontend/src/components/charts/DoughnutChart.jsx — v2.1
-/* eslint-disable no-console */
-/**
- * Plataforma Escola da Saúde
- *
- * Gráfico genérico oficial de rosca/doughnut.
- *
- * Contrato oficial:
- * - data: Array<{ label: string, value: number }>
- *
- * Função:
- * - Exibir distribuição por categoria.
- * - Agrupar fatias pequenas em "Outros".
- * - Exibir total central.
- * - Exportar CSV e PNG.
- * - Oferecer tabela acessível para leitores de tela.
- *
- * Padrão:
- * - Sem aliases.
- * - Sem name.
- * - Sem total.
- * - Sem fallback de contrato.
- * - Mobile-first.
- * - Acessível.
- * - Dark mode.
- */
+// ✅ frontend/src/components/charts/DoughnutChart.jsx — v2.2
+// Atualizado em: 16/06/2026
+//
+// Plataforma Escola da Saúde
+//
+// Gráfico genérico oficial de rosca/doughnut.
+//
+// Contrato oficial:
+// - data: Array<{ label: string, value: number }>
+//
+// Função:
+// - Exibir distribuição por categoria.
+// - Agrupar fatias pequenas em "Outros".
+// - Exibir total central.
+// - Exportar CSV e PNG.
+// - Oferecer tabela acessível para leitores de tela.
+//
+// Padrão:
+// - Sem aliases.
+// - Sem name.
+// - Sem total.
+// - Sem fallback de contrato.
+// - Mobile-first.
+// - Acessível.
+// - Dark mode.
 
 import { useCallback, useId, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
@@ -84,7 +83,9 @@ function colorFor(label, palette = DEFAULT_COLORS) {
 }
 
 function sanitizeData(data) {
-  if (!Array.isArray(data)) return [];
+  if (!Array.isArray(data)) {
+    return [];
+  }
 
   return data
     .map((item) => {
@@ -111,10 +112,12 @@ function aggregateSmallSlices(items, maxSlices, othersLabel) {
 
   const othersValue = tail.reduce(
     (acc, item) => acc + Number(item.value || 0),
-    0
+    0,
   );
 
-  if (othersValue <= 0) return head;
+  if (othersValue <= 0) {
+    return head;
+  }
 
   return [
     ...head,
@@ -141,7 +144,9 @@ function enrichData(items, total, colors) {
 function formatNumber(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return "0";
+  if (!Number.isFinite(number)) {
+    return "0";
+  }
 
   return new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 2,
@@ -151,7 +156,9 @@ function formatNumber(value) {
 function formatPercent(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return "0,0%";
+  if (!Number.isFinite(number)) {
+    return "0,0%";
+  }
 
   return `${number.toFixed(1).replace(".", ",")}%`;
 }
@@ -164,7 +171,9 @@ function formatValue(value, unit = "") {
 function truncateText(value, maxLength = 22) {
   const text = String(value || "");
 
-  if (text.length <= maxLength) return text;
+  if (text.length <= maxLength) {
+    return text;
+  }
 
   return `${text.slice(0, maxLength - 1)}…`;
 }
@@ -222,7 +231,7 @@ function ChartButton({ children, onClick, disabled = false, title, icon }) {
         "border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+        "dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900",
       )}
     >
       {icon}
@@ -241,7 +250,7 @@ function ChartState({ title, message, variant = "empty", className = "" }) {
         isError
           ? "border-rose-200 text-rose-800 dark:border-rose-900/60 dark:text-rose-200"
           : "border-slate-200 text-slate-600 dark:border-slate-800 dark:text-slate-300",
-        className
+        className,
       )}
       role={isError ? "alert" : "status"}
       aria-live={isError ? "assertive" : "polite"}
@@ -251,7 +260,7 @@ function ChartState({ title, message, variant = "empty", className = "" }) {
           "mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border",
           isError
             ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200"
-            : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+            : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300",
         )}
         aria-hidden="true"
       >
@@ -276,7 +285,7 @@ function ChartLoading({ title, className = "" }) {
     <section
       className={cx(
         "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900",
-        className
+        className,
       )}
       role="status"
       aria-live="polite"
@@ -336,7 +345,9 @@ function renderSliceLabelFactory({ showLabels, minPctForLabel, showPercent }) {
   }) {
     const percentValue = Number(percent || 0) * 100;
 
-    if (!showLabels || percentValue < minPctForLabel) return null;
+    if (!showLabels || percentValue < minPctForLabel) {
+      return null;
+    }
 
     const radians = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -393,17 +404,19 @@ export default function DoughnutChart({
 
   const totalRaw = useMemo(
     () => sanitized.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [sanitized]
+    [sanitized],
   );
 
   const ranked = useMemo(() => {
-    if (totalRaw <= 0) return [];
+    if (totalRaw <= 0) {
+      return [];
+    }
 
     const sorted = [...sanitized].sort((a, b) => b.value - a.value);
     const aggregated = aggregateSmallSlices(sorted, maxSlices, othersLabel);
     const aggregatedTotal = aggregated.reduce(
       (acc, item) => acc + Number(item.value || 0),
-      0
+      0,
     );
 
     return enrichData(aggregated, aggregatedTotal, colors);
@@ -411,7 +424,7 @@ export default function DoughnutChart({
 
   const total = useMemo(
     () => ranked.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [ranked]
+    [ranked],
   );
 
   const hasData = total > 0 && !loading && !error;
@@ -424,7 +437,7 @@ export default function DoughnutChart({
         type: "circle",
         color: item.color,
       })),
-    [maxLegend, ranked]
+    [maxLegend, ranked],
   );
 
   const renderSliceLabel = useMemo(
@@ -434,7 +447,7 @@ export default function DoughnutChart({
         minPctForLabel,
         showPercent,
       }),
-    [minPctForLabel, showLabels, showPercent]
+    [minPctForLabel, showLabels, showPercent],
   );
 
   const centerText = useMemo(() => {
@@ -446,7 +459,9 @@ export default function DoughnutChart({
   }, [centerFormatter, total, unit]);
 
   const handleExportCsv = useCallback(() => {
-    if (!ranked.length) return;
+    if (!ranked.length) {
+      return;
+    }
 
     const csv = csvFromRows(ranked, unit);
     const blob = new Blob([csv], {
@@ -459,11 +474,15 @@ export default function DoughnutChart({
   const handleExportPng = useCallback(async () => {
     const host = chartWrapRef.current;
 
-    if (!host) return;
+    if (!host) {
+      return;
+    }
 
     const svg = host.querySelector("svg");
 
-    if (!svg) return;
+    if (!svg) {
+      return;
+    }
 
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svg);
@@ -490,7 +509,9 @@ export default function DoughnutChart({
 
       const context = canvas.getContext("2d");
 
-      if (!context) return;
+      if (!context) {
+        return;
+      }
 
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, width, canvasHeight);
@@ -536,9 +557,8 @@ export default function DoughnutChart({
     <section
       className={cx(
         "relative flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5",
-        className
+        className,
       )}
-      role="region"
       aria-labelledby={`${regionId}-title`}
       aria-describedby={ariaDescription ? `${regionId}-desc` : undefined}
     >
@@ -715,9 +735,11 @@ CustomTooltip.propTypes = {
 DoughnutChart.propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
-      label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    })
+      label: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+        .isRequired,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+        .isRequired,
+    }),
   ),
   title: PropTypes.string,
   ariaDescription: PropTypes.string,

@@ -69,7 +69,7 @@ const {
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[calendarioAnualEPSRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[calendarioAnualEPSRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
@@ -85,7 +85,7 @@ for (const [nome, handler] of Object.entries({
 })) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[calendarioAnualEPSRoute] Controller inválido. Função ausente: ${nome}.`
+      `[calendarioAnualEPSRoute] Controller inválido. Função ausente: ${nome}.`,
     );
   }
 }
@@ -144,7 +144,8 @@ function validarResumoMensalQuery(req, res, next) {
       data: null,
       message: "Informe um ano válido para o resumo mensal.",
       code: "ANO_INVALIDO",
-      adminHint: "O parâmetro ano deve ser um número inteiro entre 2000 e 2100.",
+      adminHint:
+        "O parâmetro ano deve ser um número inteiro entre 2000 e 2100.",
       details: {
         param: "ano",
         value: req.query.ano,
@@ -181,7 +182,8 @@ function validarResumoAnualQuery(req, res, next) {
       data: null,
       message: "Informe um ano válido para o resumo anual.",
       code: "ANO_INVALIDO",
-      adminHint: "O parâmetro ano deve ser um número inteiro entre 2000 e 2100.",
+      adminHint:
+        "O parâmetro ano deve ser um número inteiro entre 2000 e 2100.",
       details: {
         param: "ano",
         value: req.query.ano,
@@ -244,11 +246,7 @@ router.get("/tipos", wrap(listarTipos));
  * Exemplo:
  * - /api/calendario-eps/resumo-mensal?ano=2026&mes=5
  */
-router.get(
-  "/resumo-mensal",
-  validarResumoMensalQuery,
-  wrap(resumoMensal)
-);
+router.get("/resumo-mensal", validarResumoMensalQuery, wrap(resumoMensal));
 
 /**
  * Gera resumo anual por departamento.
@@ -256,11 +254,7 @@ router.get(
  * Exemplo:
  * - /api/calendario-eps/resumo-anual?ano=2026
  */
-router.get(
-  "/resumo-anual",
-  validarResumoAnualQuery,
-  wrap(resumoAnual)
-);
+router.get("/resumo-anual", validarResumoAnualQuery, wrap(resumoAnual));
 
 /**
  * Cria nova programação de EPS.

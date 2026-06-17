@@ -1,5 +1,5 @@
-// 📁 src/components/agendaSalas/ModalSolicitarReserva.jsx
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/components/agendaSalas/ModalSolicitarReserva.jsx — v2.1
+// Atualizado em: 16/06/2026
 //
 // Plataforma Escola da Saúde — v2.0
 //
@@ -32,7 +32,14 @@
 // - mobile-first;
 // - acessível.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import { motion } from "framer-motion";
 import {
@@ -90,18 +97,24 @@ function isYMD(value) {
 function brDate(value) {
   const iso = String(value || "").slice(0, 10);
 
-  if (!isYMD(iso)) return iso || "—";
+  if (!isYMD(iso)) {
+    return iso || "—";
+  }
 
   const [year, month, day] = iso.split("-");
   return `${day}/${month}/${year}`;
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return String(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
 
   return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()} às ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
@@ -115,8 +128,12 @@ function capacidadePorSala(sala) {
 }
 
 function salaLabel(value) {
-  if (value === "auditorio") return "Auditório";
-  if (value === "sala_reuniao") return "Sala de Reunião";
+  if (value === "auditorio") {
+    return "Auditório";
+  }
+  if (value === "sala_reuniao") {
+    return "Sala de Reunião";
+  }
   return "Sala";
 }
 
@@ -142,22 +159,32 @@ function normalizarPeriodo(value) {
 }
 
 function dataUrlFromBase64(rawBase64, mime = "image/png") {
-  if (!rawBase64) return null;
+  if (!rawBase64) {
+    return null;
+  }
 
   const raw = String(rawBase64).trim();
 
-  if (!raw) return null;
-  if (raw.startsWith("data:")) return raw;
+  if (!raw) {
+    return null;
+  }
+  if (raw.startsWith("data:")) {
+    return raw;
+  }
 
   return `data:${mime};base64,${raw}`;
 }
 
 function extractBase64Only(dataUrl) {
-  if (!dataUrl) return null;
+  if (!dataUrl) {
+    return null;
+  }
 
   const raw = String(dataUrl).trim();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const parts = raw.split(",");
   return parts.length > 1 ? parts[1] : raw;
@@ -178,7 +205,9 @@ function unwrapAssinatura(response) {
       ? response.data.data
       : response?.data || response || null;
 
-  if (!payload) return null;
+  if (!payload) {
+    return null;
+  }
 
   return (
     payload.assinatura ||
@@ -190,7 +219,9 @@ function unwrapAssinatura(response) {
 }
 
 function assinaturaToPreview(assinatura) {
-  if (!assinatura) return null;
+  if (!assinatura) {
+    return null;
+  }
 
   if (typeof assinatura === "string") {
     return dataUrlFromBase64(assinatura, "image/png");
@@ -215,13 +246,17 @@ function assinaturaToPreview(assinatura) {
 }
 
 function assinaturaId(assinatura) {
-  if (!assinatura || typeof assinatura === "string") return null;
+  if (!assinatura || typeof assinatura === "string") {
+    return null;
+  }
 
   return assinatura.id || assinatura.assinatura_id || null;
 }
 
 function getNomeAssinante(assinatura) {
-  if (!assinatura || typeof assinatura === "string") return "";
+  if (!assinatura || typeof assinatura === "string") {
+    return "";
+  }
 
   return (
     assinatura.nome_usuario ||
@@ -234,7 +269,9 @@ function getNomeAssinante(assinatura) {
 }
 
 function getDataAssinatura(assinatura) {
-  if (!assinatura || typeof assinatura === "string") return "";
+  if (!assinatura || typeof assinatura === "string") {
+    return "";
+  }
 
   return (
     assinatura.assinado_em ||
@@ -337,7 +374,9 @@ function MiniInfo({ icon: Icon, label, value }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
         <Icon className="h-4 w-4 text-sky-600 dark:text-sky-300" />
-        <span className="text-xs font-black uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-black uppercase tracking-wide">
+          {label}
+        </span>
       </div>
       <p className="mt-2 break-words text-sm font-black text-slate-900 dark:text-white">
         {value}
@@ -360,14 +399,17 @@ function SignatureCanvas({ onChange, disabled = false }) {
     const canvas = canvasRef.current;
     const wrapper = wrapperRef.current;
 
-    if (!canvas || !wrapper) return;
+    if (!canvas || !wrapper) {
+      return;
+    }
 
     const rect = wrapper.getBoundingClientRect();
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const width = Math.max(280, Math.floor(rect.width));
     const height = 180;
 
-    const previousData = canvas.width && canvas.height ? canvas.toDataURL("image/png") : null;
+    const previousData =
+      canvas.width && canvas.height ? canvas.toDataURL("image/png") : null;
 
     canvas.width = width * ratio;
     canvas.height = height * ratio;
@@ -410,7 +452,9 @@ function SignatureCanvas({ onChange, disabled = false }) {
   function getPoint(clientX, clientY) {
     const canvas = canvasRef.current;
 
-    if (!canvas) return null;
+    if (!canvas) {
+      return null;
+    }
 
     const rect = canvas.getBoundingClientRect();
 
@@ -421,24 +465,32 @@ function SignatureCanvas({ onChange, disabled = false }) {
   }
 
   function start(clientX, clientY) {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     drawingRef.current = true;
     lastPointRef.current = getPoint(clientX, clientY);
   }
 
   function move(clientX, clientY) {
-    if (disabled || !drawingRef.current) return;
+    if (disabled || !drawingRef.current) {
+      return;
+    }
 
     const canvas = canvasRef.current;
 
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
     const next = getPoint(clientX, clientY);
     const last = lastPointRef.current;
 
-    if (!next || !last) return;
+    if (!next || !last) {
+      return;
+    }
 
     ctx.beginPath();
     ctx.moveTo(last.x, last.y);
@@ -457,7 +509,9 @@ function SignatureCanvas({ onChange, disabled = false }) {
   function clearCanvas() {
     const canvas = canvasRef.current;
 
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
@@ -477,19 +531,26 @@ function SignatureCanvas({ onChange, disabled = false }) {
       >
         <canvas
           ref={canvasRef}
-          className={cx("block w-full touch-none", disabled ? "opacity-70" : "")}
+          className={cx(
+            "block w-full touch-none",
+            disabled ? "opacity-70" : "",
+          )}
           onMouseDown={(event) => start(event.clientX, event.clientY)}
           onMouseMove={(event) => move(event.clientX, event.clientY)}
           onMouseUp={end}
           onMouseLeave={end}
           onTouchStart={(event) => {
             const touch = event.touches[0];
-            if (!touch) return;
+            if (!touch) {
+              return;
+            }
             start(touch.clientX, touch.clientY);
           }}
           onTouchMove={(event) => {
             const touch = event.touches[0];
-            if (!touch) return;
+            if (!touch) {
+              return;
+            }
             move(touch.clientX, touch.clientY);
           }}
           onTouchEnd={end}
@@ -532,7 +593,9 @@ function ModalTermoUso({
   onAssinarTermo,
   loading = false,
 }) {
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <Modal
@@ -552,7 +615,10 @@ function ModalTermoUso({
               <ShieldCheck className="h-5 w-5 text-sky-300" />
               Termo de Uso das Salas
             </h2>
-            <p id="descricao-termo-uso-salas" className="mt-1 text-sm text-white/85">
+            <p
+              id="descricao-termo-uso-salas"
+              className="mt-1 text-sm text-white/85"
+            >
               Escola da Saúde / Secretaria Municipal de Saúde de Santos
             </p>
           </div>
@@ -625,106 +691,122 @@ function ModalTermoUso({
                 2. Responsabilidades do responsável pelo evento
               </h4>
               <ul className="mt-2 list-disc space-y-2 pl-5">
-                <li>Chegar 30 minutos antes para preparar a sala e organizar o espaço.</li>
                 <li>
-                  O notebook deve ser acessado com o SSHD do responsável. Em caso de visitante, utilizar o SSHD do servidor solicitante.
+                  Chegar 30 minutos antes para preparar a sala e organizar o
+                  espaço.
                 </li>
                 <li>
-                  Coffee break será autorizado somente se informado na reserva, devendo ser montado apenas na sacada externa. Alimentos, descartáveis e limpeza são de responsabilidade do solicitante.
+                  O notebook deve ser acessado com o SSHD do responsável. Em
+                  caso de visitante, utilizar o SSHD do servidor solicitante.
                 </li>
-                <li>Não é permitido o consumo de alimentos no interior da sala.</li>
                 <li>
-                  Ao final do evento, devolver a sala às condições originais, recolocar mesas e cadeiras, desligar equipamentos e avisar a equipe da Escola.
+                  Coffee break será autorizado somente se informado na reserva,
+                  devendo ser montado apenas na sacada externa. Alimentos,
+                  descartáveis e limpeza são de responsabilidade do solicitante.
                 </li>
-                <li>A Escola dispõe de bebedouro, não disponibilizando copos descartáveis.</li>
+                <li>
+                  Não é permitido o consumo de alimentos no interior da sala.
+                </li>
+                <li>
+                  Ao final do evento, devolver a sala às condições originais,
+                  recolocar mesas e cadeiras, desligar equipamentos e avisar a
+                  equipe da Escola.
+                </li>
+                <li>
+                  A Escola dispõe de bebedouro, não disponibilizando copos
+                  descartáveis.
+                </li>
                 <li>Horário de funcionamento: 8h às 17h.</li>
               </ul>
             </section>
 
-<section>
-  <h4 className="text-base font-black text-slate-900 dark:text-white">
-    3. Confirmação obrigatória de uso
-  </h4>
-  <p className="mt-2">
-    O responsável declara estar ciente de que deverá confirmar, pela
-    plataforma da Escola da Saúde, se de fato utilizará o espaço reservado
-    no período compreendido entre <strong>7 dias e 48 horas antes</strong>{" "}
-    da data agendada.
-  </p>
-  <p className="mt-2">
-    Caso a confirmação não seja realizada dentro desse prazo, o agendamento
-    poderá ser cancelado pela Escola da Saúde, com liberação do espaço para
-    outras atividades institucionais.
-  </p>
-</section>
+            <section>
+              <h4 className="text-base font-black text-slate-900 dark:text-white">
+                3. Confirmação obrigatória de uso
+              </h4>
+              <p className="mt-2">
+                O responsável declara estar ciente de que deverá confirmar, pela
+                plataforma da Escola da Saúde, se de fato utilizará o espaço
+                reservado no período compreendido entre{" "}
+                <strong>7 dias e 48 horas antes</strong> da data agendada.
+              </p>
+              <p className="mt-2">
+                Caso a confirmação não seja realizada dentro desse prazo, o
+                agendamento poderá ser cancelado pela Escola da Saúde, com
+                liberação do espaço para outras atividades institucionais.
+              </p>
+            </section>
 
-<section>
-  <h4 className="text-base font-black text-slate-900 dark:text-white">
-    4. Disposições finais
-  </h4>
-  <p className="mt-2">
-    Ao assinar este termo, o responsável declara estar ciente das normas
-    acima e compromete-se a cumpri-las integralmente.
-  </p>
-</section>
+            <section>
+              <h4 className="text-base font-black text-slate-900 dark:text-white">
+                4. Disposições finais
+              </h4>
+              <p className="mt-2">
+                Ao assinar este termo, o responsável declara estar ciente das
+                normas acima e compromete-se a cumpri-las integralmente.
+              </p>
+            </section>
           </div>
 
           {assinaturaDisponivel ? (
-  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/15">
-    <div className="flex items-start gap-3">
-      <FileSignature className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" />
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/15">
+              <div className="flex items-start gap-3">
+                <FileSignature className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" />
 
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-emerald-900 dark:text-emerald-100">
-          Assinatura cadastrada encontrada
-        </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-emerald-900 dark:text-emerald-100">
+                    Assinatura cadastrada encontrada
+                  </p>
 
-        <p className="mt-1 text-xs text-emerald-800/90 dark:text-emerald-100/85">
-          Esta assinatura real será utilizada para o aceite digital do termo.
-        </p>
+                  <p className="mt-1 text-xs text-emerald-800/90 dark:text-emerald-100/85">
+                    Esta assinatura real será utilizada para o aceite digital do
+                    termo.
+                  </p>
 
-        {assinaturaPreview ? (
-          <div className="mt-3 inline-block rounded-xl border border-emerald-200 bg-white p-3">
-            <img
-              src={assinaturaPreview}
-              alt="Pré-visualização da assinatura digital cadastrada"
-              className="h-20 w-auto object-contain"
-            />
-          </div>
-        ) : null}
+                  {assinaturaPreview ? (
+                    <div className="mt-3 inline-block rounded-xl border border-emerald-200 bg-white p-3">
+                      <img
+                        src={assinaturaPreview}
+                        alt="Pré-visualização da assinatura digital cadastrada"
+                        className="h-20 w-auto object-contain"
+                      />
+                    </div>
+                  ) : null}
 
-        <p className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-emerald-950 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-50 dark:ring-emerald-800/60">
-          {textoDocumentoAssinado(assinaturaNome, assinaturaEm)}
-        </p>
-      </div>
-    </div>
-  </div>
-) : (
-  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/15">
-    <div className="flex items-start gap-3">
-      <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-300" />
+                  <p className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-emerald-950 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-50 dark:ring-emerald-800/60">
+                    {textoDocumentoAssinado(assinaturaNome, assinaturaEm)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/15">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-300" />
 
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-amber-950 dark:text-amber-100">
-          Nenhuma assinatura cadastrada
-        </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-amber-950 dark:text-amber-100">
+                    Nenhuma assinatura cadastrada
+                  </p>
 
-        <p className="mt-1 text-xs leading-5 text-amber-900 dark:text-amber-100/85">
-          Para assinar este termo, é necessário cadastrar uma assinatura digital
-          real. O sistema não criará assinatura automática com nome e sobrenome.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+                  <p className="mt-1 text-xs leading-5 text-amber-900 dark:text-amber-100/85">
+                    Para assinar este termo, é necessário cadastrar uma
+                    assinatura digital real. O sistema não criará assinatura
+                    automática com nome e sobrenome.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </article>
       </div>
 
       <footer className="sticky bottom-0 flex flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-zinc-950/90 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
           <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" />
           <span>
-            O envio da solicitação só será liberado após a concordância e assinatura do termo.
+            O envio da solicitação só será liberado após a concordância e
+            assinatura do termo.
           </span>
         </div>
 
@@ -739,26 +821,26 @@ function ModalTermoUso({
           </button>
 
           <button
-  type="button"
-  onClick={onAssinarTermo}
-  disabled={loading}
-  className={cx(
-    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-black text-white transition disabled:opacity-60",
-    assinaturaDisponivel
-      ? "bg-sky-600 hover:bg-sky-700"
-      : "bg-amber-600 hover:bg-amber-700"
-  )}
->
-  {loading ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : assinaturaDisponivel ? (
-    <FileSignature className="h-4 w-4" />
-  ) : (
-    <PenTool className="h-4 w-4" />
-  )}
+            type="button"
+            onClick={onAssinarTermo}
+            disabled={loading}
+            className={cx(
+              "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-black text-white transition disabled:opacity-60",
+              assinaturaDisponivel
+                ? "bg-sky-600 hover:bg-sky-700"
+                : "bg-amber-600 hover:bg-amber-700",
+            )}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : assinaturaDisponivel ? (
+              <FileSignature className="h-4 w-4" />
+            ) : (
+              <PenTool className="h-4 w-4" />
+            )}
 
-  {assinaturaDisponivel ? "Concordar e assinar" : "Criar assinatura"}
-</button>
+            {assinaturaDisponivel ? "Concordar e assinar" : "Criar assinatura"}
+          </button>
         </div>
       </footer>
     </Modal>
@@ -782,15 +864,25 @@ ModalTermoUso.propTypes = {
    Modal de criação de assinatura
 =========================================================================== */
 
-function ModalCriarAssinatura({ open, onClose, onSalvar, loading = false, onMessage }) {
+function ModalCriarAssinatura({
+  open,
+  onClose,
+  onSalvar,
+  loading = false,
+  onMessage,
+}) {
   const [assinaturaDataUrl, setAssinaturaDataUrl] = useState("");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     setAssinaturaDataUrl("");
   }, [open]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   async function salvar() {
     const base64 = extractBase64Only(assinaturaDataUrl);
@@ -825,7 +917,10 @@ function ModalCriarAssinatura({ open, onClose, onSalvar, loading = false, onMess
               <PenTool className="h-5 w-5 text-pink-300" />
               Criar assinatura digital
             </h2>
-            <p id="descricao-criar-assinatura" className="mt-1 text-sm text-white/85">
+            <p
+              id="descricao-criar-assinatura"
+              className="mt-1 text-sm text-white/85"
+            >
               Desenhe sua assinatura para utilizar nos termos de uso.
             </p>
           </div>
@@ -845,7 +940,8 @@ function ModalCriarAssinatura({ open, onClose, onSalvar, loading = false, onMess
       <div className="space-y-4 bg-white px-4 py-5 dark:bg-zinc-950 sm:px-6">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
           <p className="text-sm text-slate-700 dark:text-slate-300">
-            Assine no quadro abaixo. Essa assinatura será salva e utilizada para formalizar o termo de uso das salas.
+            Assine no quadro abaixo. Essa assinatura será salva e utilizada para
+            formalizar o termo de uso das salas.
           </p>
         </div>
 
@@ -868,7 +964,11 @@ function ModalCriarAssinatura({ open, onClose, onSalvar, loading = false, onMess
           disabled={loading}
           className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 font-black text-white transition hover:bg-violet-700 disabled:opacity-60"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           {loading ? "Salvando..." : "Salvar assinatura"}
         </button>
       </footer>
@@ -897,15 +997,19 @@ export default function ModalSolicitarReserva({
   modo = "criar",
   reservaAtual = null,
 }) {
+  const uid = useId();
+
   const isEdicao = modo === "editar";
 
   const salaInicial = normalizarSala(
-    (isEdicao ? reservaAtual?.sala : sala) || slot?.sala || "sala_reuniao"
+    (isEdicao ? reservaAtual?.sala : sala) || slot?.sala || "sala_reuniao",
   );
   const dataInicial =
-    (isEdicao ? String(reservaAtual?.data || "").slice(0, 10) : slot?.dataISO) || "";
+    (isEdicao
+      ? String(reservaAtual?.data || "").slice(0, 10)
+      : slot?.dataISO) || "";
   const periodoInicial = normalizarPeriodo(
-    (isEdicao ? reservaAtual?.periodo : slot?.periodo) || "manha"
+    (isEdicao ? reservaAtual?.periodo : slot?.periodo) || "manha",
   );
 
   const [salaSelecionada, setSalaSelecionada] = useState(salaInicial);
@@ -913,13 +1017,13 @@ export default function ModalSolicitarReserva({
   const [periodo, setPeriodo] = useState(periodoInicial);
 
   const [qtdPessoas, setQtdPessoas] = useState(
-    isEdicao ? String(reservaAtual?.qtd_pessoas ?? "") : ""
+    isEdicao ? String(reservaAtual?.qtd_pessoas ?? "") : "",
   );
   const [coffeeBreak, setCoffeeBreak] = useState(
-    isEdicao ? Boolean(reservaAtual?.coffee_break) : false
+    isEdicao ? Boolean(reservaAtual?.coffee_break) : false,
   );
   const [finalidade, setFinalidade] = useState(
-    isEdicao ? String(reservaAtual?.finalidade ?? "") : ""
+    isEdicao ? String(reservaAtual?.finalidade ?? "") : "",
   );
   const [observacao, setObservacao] = useState("");
 
@@ -939,7 +1043,9 @@ export default function ModalSolicitarReserva({
   const firstFocusRef = useRef(null);
 
   const cap = useMemo(() => {
-    if (salaSelecionada === sala && capacidadeSala) return capacidadeSala;
+    if (salaSelecionada === sala && capacidadeSala) {
+      return capacidadeSala;
+    }
     return capacidadePorSala(salaSelecionada);
   }, [salaSelecionada, sala, capacidadeSala]);
 
@@ -987,17 +1093,12 @@ export default function ModalSolicitarReserva({
     const timer = window.setTimeout(() => firstFocusRef.current?.focus?.(), 60);
 
     return () => window.clearTimeout(timer);
-  }, [
-    modo,
-    reservaAtual,
-    isEdicao,
-    salaInicial,
-    dataInicial,
-    periodoInicial,
-  ]);
+  }, [modo, reservaAtual, isEdicao, salaInicial, dataInicial, periodoInicial]);
 
   const carregarAssinaturaExistente = useCallback(async () => {
-    if (isEdicao) return null;
+    if (isEdicao) {
+      return null;
+    }
 
     setLoadingAssinatura(true);
 
@@ -1015,7 +1116,7 @@ export default function ModalSolicitarReserva({
       setAssinaturaSalva(null);
       setAssinaturaPreview(null);
       return null;
-    } catch (error) {
+    } catch (_error) {
       setAssinaturaSalva(null);
       setAssinaturaPreview(null);
 
@@ -1033,7 +1134,9 @@ export default function ModalSolicitarReserva({
   }, [isEdicao]);
 
   useEffect(() => {
-    if (isEdicao) return;
+    if (isEdicao) {
+      return;
+    }
     carregarAssinaturaExistente();
   }, [isEdicao, carregarAssinaturaExistente]);
 
@@ -1050,7 +1153,7 @@ export default function ModalSolicitarReserva({
       periodo: periodoLabel(periodo),
       cap: `${cap.conforto} conf. / ${cap.max} máx.`,
     }),
-    [salaSelecionada, dataISO, periodo, cap.conforto, cap.max]
+    [salaSelecionada, dataISO, periodo, cap.conforto, cap.max],
   );
 
   function podeFechar() {
@@ -1077,31 +1180,34 @@ export default function ModalSolicitarReserva({
       });
 
       const assinaturaAtual = unwrapAssinatura(response) || {
-  imagem_base64: dataUrl,
-  criado_em: new Date().toISOString(),
-};
+        imagem_base64: dataUrl,
+        criado_em: new Date().toISOString(),
+      };
 
-const preview = assinaturaToPreview(assinaturaAtual) || dataUrl;
+      const preview = assinaturaToPreview(assinaturaAtual) || dataUrl;
 
-setAssinaturaSalva(assinaturaAtual);
-setAssinaturaPreview(preview);
-setAssinaturaModalOpen(false);
+      setAssinaturaSalva(assinaturaAtual);
+      setAssinaturaPreview(preview);
+      setAssinaturaModalOpen(false);
 
-const agora = new Date().toISOString();
-setTermoAceito(true);
-setTermoAssinadoEm(agora);
+      const agora = new Date().toISOString();
+      setTermoAceito(true);
+      setTermoAssinadoEm(agora);
 
-showMessage({
-  type: "success",
-  title: "Assinatura cadastrada",
-  message:
-    "Assinatura salva com sucesso. O termo foi assinado digitalmente com a assinatura cadastrada.",
-});
+      showMessage({
+        type: "success",
+        title: "Assinatura cadastrada",
+        message:
+          "Assinatura salva com sucesso. O termo foi assinado digitalmente com a assinatura cadastrada.",
+      });
     } catch (error) {
       showMessage({
         type: "error",
         title: "Erro ao salvar assinatura",
-        message: getErrorMessage(error, "Não foi possível salvar sua assinatura."),
+        message: getErrorMessage(
+          error,
+          "Não foi possível salvar sua assinatura.",
+        ),
       });
     } finally {
       setLoadingAssinatura(false);
@@ -1109,36 +1215,38 @@ showMessage({
   }
 
   async function handleAssinarTermo() {
-  if (loading || loadingAssinatura) return;
+    if (loading || loadingAssinatura) {
+      return;
+    }
 
-  if (!assinaturaSalva || !assinaturaPreview) {
-    setTermoAceito(false);
-setTermoAssinadoEm("");
-setTermoModalOpen(false);
-setAssinaturaModalOpen(true);
+    if (!assinaturaSalva || !assinaturaPreview) {
+      setTermoAceito(false);
+      setTermoAssinadoEm("");
+      setTermoModalOpen(false);
+      setAssinaturaModalOpen(true);
+
+      showMessage({
+        type: "warning",
+        title: "Assinatura necessária",
+        message:
+          "Cadastre sua assinatura digital real antes de concordar com o termo. O sistema não criará assinatura automática.",
+      });
+
+      return;
+    }
+
+    const agora = new Date().toISOString();
+
+    setTermoAceito(true);
+    setTermoAssinadoEm(agora);
+    setTermoModalOpen(false);
 
     showMessage({
-      type: "warning",
-      title: "Assinatura necessária",
-      message:
-        "Cadastre sua assinatura digital real antes de concordar com o termo. O sistema não criará assinatura automática.",
+      type: "success",
+      title: "Termo assinado",
+      message: "Termo assinado digitalmente com a assinatura cadastrada.",
     });
-
-    return;
   }
-
-  const agora = new Date().toISOString();
-
-  setTermoAceito(true);
-  setTermoAssinadoEm(agora);
-  setTermoModalOpen(false);
-
-  showMessage({
-    type: "success",
-    title: "Termo assinado",
-    message: "Termo assinado digitalmente com a assinatura cadastrada.",
-  });
-}
 
   function validarFormulario() {
     const qtd = Number(qtdPessoas);
@@ -1175,7 +1283,9 @@ setAssinaturaModalOpen(true);
   }
 
   async function enviar() {
-    if (loading || loadingAssinatura) return;
+    if (loading || loadingAssinatura) {
+      return;
+    }
 
     setMensagem(null);
     setLoading(true);
@@ -1241,12 +1351,14 @@ setAssinaturaModalOpen(true);
     } catch (error) {
       showMessage({
         type: "error",
-        title: isEdicao ? "Erro ao atualizar solicitação" : "Erro ao enviar solicitação",
+        title: isEdicao
+          ? "Erro ao atualizar solicitação"
+          : "Erro ao enviar solicitação",
         message: getErrorMessage(
           error,
           isEdicao
             ? "Erro ao atualizar solicitação."
-            : "Erro ao enviar solicitação."
+            : "Erro ao enviar solicitação.",
         ),
       });
     } finally {
@@ -1278,7 +1390,10 @@ setAssinaturaModalOpen(true);
                 {titulo}
               </h2>
 
-              <p id="descricao-solicitar-reserva" className="mt-1 text-sm text-white/85">
+              <p
+                id="descricao-solicitar-reserva"
+                className="mt-1 text-sm text-white/85"
+              >
                 {subtitulo}
               </p>
             </div>
@@ -1331,10 +1446,14 @@ setAssinaturaModalOpen(true);
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor={`${uid}-sala`}
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Sala
                 </label>
                 <input
+                  id={`${uid}-sala`}
                   ref={firstFocusRef}
                   type="text"
                   value={salaLabel(salaSelecionada)}
@@ -1344,10 +1463,14 @@ setAssinaturaModalOpen(true);
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor={`${uid}-data`}
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Data
                 </label>
                 <input
+                  id={`${uid}-data`}
                   type="text"
                   value={brDate(dataISO)}
                   disabled
@@ -1356,10 +1479,14 @@ setAssinaturaModalOpen(true);
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor={`${uid}-periodo`}
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Período
                 </label>
                 <input
+                  id={`${uid}-periodo`}
                   type="text"
                   value={periodoLabel(periodo)}
                   disabled
@@ -1368,10 +1495,14 @@ setAssinaturaModalOpen(true);
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor={`${uid}-qtd`}
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Quantidade de pessoas
                 </label>
                 <input
+                  id={`${uid}-qtd`}
                   type="number"
                   min={1}
                   max={cap.max}
@@ -1387,11 +1518,15 @@ setAssinaturaModalOpen(true);
                 </p>
               </div>
 
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <label
+                htmlFor={`${uid}-coffee`}
+                className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
+              >
                 <Coffee className="h-4 w-4 text-slate-500" />
                 <input
+                  id={`${uid}-coffee`}
                   type="checkbox"
-                  className="rounded border-slate-300"
+                  className="rounded border-slate-300 cursor-pointer"
                   checked={coffeeBreak}
                   onChange={(event) => setCoffeeBreak(event.target.checked)}
                   disabled={loading}
@@ -1400,10 +1535,14 @@ setAssinaturaModalOpen(true);
               </label>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor={`${uid}-finalidade`}
+                  className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
                   Finalidade / evento <span className="text-rose-500">*</span>
                 </label>
                 <textarea
+                  id={`${uid}-finalidade`}
                   rows={3}
                   value={finalidade}
                   onChange={(event) => setFinalidade(event.target.value)}
@@ -1415,10 +1554,14 @@ setAssinaturaModalOpen(true);
 
               {!isEdicao ? (
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <label
+                    htmlFor={`${uid}-observacao`}
+                    className="block text-xs font-bold text-slate-600 dark:text-slate-300"
+                  >
                     Observações adicionais
                   </label>
                   <textarea
+                    id={`${uid}-observacao`}
                     rows={2}
                     value={observacao}
                     onChange={(event) => setObservacao(event.target.value)}
@@ -1440,7 +1583,11 @@ setAssinaturaModalOpen(true);
                     Termo de compromisso para utilização da sala
                   </p>
                   <p className="mt-1 text-xs text-sky-900/80 dark:text-sky-100/80 sm:text-sm">
-Para concluir esta solicitação, você precisa ler, concordar e assinar digitalmente o termo de uso das salas, incluindo a ciência sobre a confirmação obrigatória entre 7 dias e 48 horas antes da reserva.                  </p>
+                    Para concluir esta solicitação, você precisa ler, concordar
+                    e assinar digitalmente o termo de uso das salas, incluindo a
+                    ciência sobre a confirmação obrigatória entre 7 dias e 48
+                    horas antes da reserva.
+                  </p>
                 </div>
               </div>
 
@@ -1466,10 +1613,13 @@ Para concluir esta solicitação, você precisa ler, concordar e assinar digital
                     </div>
 
                     {termoAceito && termoAssinadoEm ? (
-  <p className="mt-2 text-xs font-black uppercase tracking-wide text-slate-600 dark:text-slate-400">
-    {textoDocumentoAssinado(getNomeAssinante(assinaturaSalva), termoAssinadoEm)}
-  </p>
-) : null}
+                      <p className="mt-2 text-xs font-black uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                        {textoDocumentoAssinado(
+                          getNomeAssinante(assinaturaSalva),
+                          termoAssinadoEm,
+                        )}
+                      </p>
+                    ) : null}
                   </div>
 
                   <button
@@ -1484,24 +1634,27 @@ Para concluir esta solicitação, você precisa ler, concordar e assinar digital
                 </div>
 
                 {assinaturaPreview ? (
-  <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
-    <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-      Assinatura vinculada
-    </p>
+                  <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Assinatura vinculada
+                    </p>
 
-    <img
-      src={assinaturaPreview}
-      alt="Assinatura digital cadastrada"
-      className="h-20 w-auto object-contain"
-    />
+                    <img
+                      src={assinaturaPreview}
+                      alt="Assinatura digital cadastrada"
+                      className="h-20 w-auto object-contain"
+                    />
 
-    {termoAceito && termoAssinadoEm ? (
-      <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700">
-        {textoDocumentoAssinado(getNomeAssinante(assinaturaSalva), termoAssinadoEm)}
-      </p>
-    ) : null}
-  </div>
-) : null}
+                    {termoAceito && termoAssinadoEm ? (
+                      <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700">
+                        {textoDocumentoAssinado(
+                          getNomeAssinante(assinaturaSalva),
+                          termoAssinadoEm,
+                        )}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -1529,7 +1682,9 @@ Para concluir esta solicitação, você precisa ler, concordar e assinar digital
           <button
             type="button"
             onClick={enviar}
-            disabled={loading || loadingAssinatura || (!isEdicao && !termoAceito)}
+            disabled={
+              loading || loadingAssinatura || (!isEdicao && !termoAceito)
+            }
             className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
             aria-busy={loading ? "true" : "false"}
           >
@@ -1546,22 +1701,26 @@ Para concluir esta solicitação, você precisa ler, concordar e assinar digital
       </Modal>
 
       <ModalTermoUso
-  open={termoModalOpen}
-  onClose={() => setTermoModalOpen(false)}
-  finalidade={finalidade}
-  dataISO={dataISO}
-  assinaturaDisponivel={Boolean(assinaturaPreview)}
-  assinaturaPreview={assinaturaPreview}
-  assinaturaNome={getNomeAssinante(assinaturaSalva) || getNomeUsuarioLocal()}
-  assinaturaEm={termoAssinadoEm || getDataAssinatura(assinaturaSalva)}
-  onAssinarTermo={handleAssinarTermo}
-  loading={loading || loadingAssinatura}
-/>
+        open={termoModalOpen}
+        onClose={() => setTermoModalOpen(false)}
+        finalidade={finalidade}
+        dataISO={dataISO}
+        assinaturaDisponivel={Boolean(assinaturaPreview)}
+        assinaturaPreview={assinaturaPreview}
+        assinaturaNome={
+          getNomeAssinante(assinaturaSalva) || getNomeUsuarioLocal()
+        }
+        assinaturaEm={termoAssinadoEm || getDataAssinatura(assinaturaSalva)}
+        onAssinarTermo={handleAssinarTermo}
+        loading={loading || loadingAssinatura}
+      />
 
       <ModalCriarAssinatura
         open={assinaturaModalOpen}
         onClose={() => {
-          if (loadingAssinatura) return;
+          if (loadingAssinatura) {
+            return;
+          }
           setAssinaturaModalOpen(false);
         }}
         onSalvar={handleSalvarAssinatura}

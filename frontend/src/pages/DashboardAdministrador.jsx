@@ -1,5 +1,4 @@
 // ✅ frontend/src/pages/DashboardAdministrador.jsx — v2.2
-/* eslint-disable no-console */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -44,9 +43,15 @@ function unwrap(response) {
 
 function toArrayPayload(response, key) {
   const payload = unwrap(response);
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (key && Array.isArray(payload?.[key])) return payload[key];
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (key && Array.isArray(payload?.[key])) {
+    return payload[key];
+  }
   return [];
 }
 
@@ -60,17 +65,21 @@ function pad2(value) {
 }
 
 function ymd(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(
-      value.getDate()
+      value.getDate(),
     )}`;
   }
 
   if (typeof value === "string") {
     const raw = value.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return raw;
+    }
     const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
     return match ? match[1] : "";
   }
@@ -80,7 +89,9 @@ function ymd(value) {
 
 function formatarDataBR(value) {
   const data = ymd(value);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return "—";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return "—";
+  }
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
 }
@@ -112,20 +123,28 @@ function getDatasTurma(turma) {
   const inicio = ymd(turma?.data_inicio);
   const fim = ymd(turma?.data_fim || turma?.data_inicio);
 
-  if (inicio) datas.push(inicio);
-  if (fim) datas.push(fim);
+  if (inicio) {
+    datas.push(inicio);
+  }
+  if (fim) {
+    datas.push(fim);
+  }
 
   if (Array.isArray(turma?.datas)) {
     for (const item of turma.datas) {
       const data = ymd(item?.data || item);
-      if (data) datas.push(data);
+      if (data) {
+        datas.push(data);
+      }
     }
   }
 
   if (Array.isArray(turma?.ocorrencias)) {
     for (const item of turma.ocorrencias) {
       const data = ymd(item?.data || item?.data_presenca || item);
-      if (data) datas.push(data);
+      if (data) {
+        datas.push(data);
+      }
     }
   }
 
@@ -139,18 +158,22 @@ function getDatasEvento(evento, turmas = []) {
     evento?.data_inicio_geral ||
       evento?.data_inicio ||
       evento?.primeira_data ||
-      evento?.inicio
+      evento?.inicio,
   );
 
   const eventoFim = ymd(
     evento?.data_fim_geral ||
       evento?.data_fim ||
       evento?.ultima_data ||
-      eventoInicio
+      eventoInicio,
   );
 
-  if (eventoInicio) datas.push(eventoInicio);
-  if (eventoFim) datas.push(eventoFim);
+  if (eventoInicio) {
+    datas.push(eventoInicio);
+  }
+  if (eventoFim) {
+    datas.push(eventoFim);
+  }
 
   for (const turma of turmas) {
     datas.push(...getDatasTurma(turma));
@@ -174,7 +197,9 @@ function eventoTemAulaNoMes(evento, turmas, ano, mesIndex) {
   const di = datas[0];
   const df = datas.at(-1);
 
-  if (!di && !df) return false;
+  if (!di && !df) {
+    return false;
+  }
 
   return di <= fim && df >= inicio;
 }
@@ -182,7 +207,9 @@ function eventoTemAulaNoMes(evento, turmas, ano, mesIndex) {
 function getPeriodoEvento(evento, turmas = []) {
   const datas = getDatasEvento(evento, turmas);
 
-  if (!datas.length) return "Período não informado";
+  if (!datas.length) {
+    return "Período não informado";
+  }
 
   const inicio = datas[0];
   const fim = datas.at(-1);
@@ -208,13 +235,19 @@ function statusEvento(evento, turmas = []) {
   const hoje = ymd(new Date());
   const datas = getDatasEvento(evento, turmas);
 
-  if (!datas.length) return "sem_datas";
+  if (!datas.length) {
+    return "sem_datas";
+  }
 
   const inicio = datas[0];
   const fim = datas.at(-1);
 
-  if (hoje < inicio) return "programado";
-  if (hoje > fim) return "encerrado";
+  if (hoje < inicio) {
+    return "programado";
+  }
+  if (hoje > fim) {
+    return "encerrado";
+  }
 
   return "andamento";
 }
@@ -223,8 +256,7 @@ function statusUi(status) {
   if (status === "andamento") {
     return {
       label: "Em andamento",
-      chip:
-        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200",
+      chip: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200",
       dot: "bg-amber-500",
     };
   }
@@ -232,8 +264,7 @@ function statusUi(status) {
   if (status === "encerrado") {
     return {
       label: "Encerrado",
-      chip:
-        "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200",
+      chip: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200",
       dot: "bg-rose-500",
     };
   }
@@ -241,21 +272,25 @@ function statusUi(status) {
   if (status === "sem_datas") {
     return {
       label: "Sem datas completas",
-      chip:
-        "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200",
+      chip: "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200",
       dot: "bg-zinc-400",
     };
   }
 
   return {
     label: "Programado",
-    chip:
-      "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200",
+    chip: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200",
     dot: "bg-emerald-500",
   };
 }
 
-function GhostButton({ children, icon: Icon, onClick, disabled = false, loading = false }) {
+function GhostButton({
+  children,
+  icon: Icon,
+  onClick,
+  disabled = false,
+  loading = false,
+}) {
   return (
     <button
       type="button"
@@ -284,7 +319,12 @@ function StatCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
 
   return (
     <article className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900">
-      <div className={cx("h-1.5 bg-gradient-to-r", toneMap[tone] || toneMap.emerald)} />
+      <div
+        className={cx(
+          "h-1.5 bg-gradient-to-r",
+          toneMap[tone] || toneMap.emerald,
+        )}
+      />
 
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -313,7 +353,14 @@ function StatCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
   );
 }
 
-function MonthNavigator({ ano, mesIndex, onAnterior, onProximo, onHoje, onAnoChange }) {
+function MonthNavigator({
+  ano,
+  mesIndex,
+  onAnterior,
+  onProximo,
+  onHoje,
+  onAnoChange,
+}) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -437,34 +484,6 @@ function EmptyState({ mesIndex, ano }) {
   );
 }
 
-function FolderPreview({ evento, titulo }) {
-  const folderUrl = getEventoFolderUrl(evento);
-
-  return (
-    <div className="relative mx-auto w-full max-w-[190px] overflow-hidden rounded-[1.65rem] border border-slate-200 bg-slate-100 shadow-sm dark:border-white/10 dark:bg-zinc-950 lg:mx-0">
-      <div className="aspect-[3/4] w-full">
-        {folderUrl ? (
-          <img
-  src={folderUrl}
-  alt={`Folder do evento ${titulo}`}
-  className="h-full w-full object-cover"
-  loading="lazy"
-  decoding="async"
-  referrerPolicy="no-referrer"
-/>
-        ) : (
-          <div className="grid h-full place-items-center p-4 text-center text-slate-500 dark:text-zinc-400">
-            <div>
-              <CalendarDays className="mx-auto h-8 w-8" aria-hidden="true" />
-              <p className="mt-2 text-xs font-black">Sem folder</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function QuickAction({
   children,
   onClick,
@@ -499,7 +518,7 @@ function QuickAction({
       disabled={disabled || loading}
       className={cx(
         "flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[1.75rem] border px-3 py-4 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60",
-        tones[tone] || tones.evento
+        tones[tone] || tones.evento,
       )}
     >
       {Icon ? (
@@ -511,6 +530,94 @@ function QuickAction({
 
       <span>{children}</span>
     </button>
+  );
+}
+
+function ConfirmExcluirEventoModal({
+  open,
+  evento,
+  loading = false,
+  onClose,
+  onConfirm,
+}) {
+  if (!open || !evento) {
+    return null;
+  }
+
+  const titulo = getTituloEvento(evento);
+
+  return (
+    <div className="fixed inset-0 z-[9999]">
+      <div
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div className="absolute inset-0 grid place-items-center p-4">
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-excluir-evento-titulo"
+          className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-950"
+        >
+          <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-rose-600 dark:text-rose-300">
+                Exclusão de evento
+              </p>
+
+              <h2
+                id="modal-excluir-evento-titulo"
+                className="mt-1 text-xl font-black text-slate-950 dark:text-white"
+              >
+                Excluir evento?
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-100 disabled:opacity-60 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5"
+              aria-label="Fechar confirmação"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </header>
+
+          <div className="px-5 py-5">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200">
+              <p className="text-sm">
+                <strong>Evento:</strong> {titulo}
+              </p>
+
+              <p className="mt-2 text-sm">Esta ação não poderá ser desfeita.</p>
+            </div>
+          </div>
+
+          <footer className="flex flex-col gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="inline-flex justify-center rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={loading}
+              className="inline-flex justify-center rounded-2xl bg-rose-600 px-4 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60"
+            >
+              {loading ? "Excluindo..." : "Excluir evento"}
+            </button>
+          </footer>
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -528,8 +635,8 @@ function EventCard({
   const dataInicio = getDataInicioEvento(evento, turmas);
   const folderUrl = getEventoFolderUrl(evento);
   const publicado = isEventoPublicado(evento);
-const publicando = acaoEventoId === `${evento.id}:publicar`;
-const excluindo = acaoEventoId === `${evento.id}:excluir`;
+  const publicando = acaoEventoId === `${evento.id}:publicar`;
+  const excluindo = acaoEventoId === `${evento.id}:excluir`;
 
   const totalTurmas = Array.isArray(turmas) ? turmas.length : 0;
   const totalDatas = Array.isArray(turmas)
@@ -548,13 +655,13 @@ const excluindo = acaoEventoId === `${evento.id}:excluir`;
           <div className="aspect-[3/4] h-full w-full">
             {folderUrl ? (
               <img
-  src={folderUrl}
-  alt={`Folder do evento ${titulo}`}
-  className="h-full w-full object-cover"
-  loading="lazy"
-  decoding="async"
-  referrerPolicy="no-referrer"
-/>
+                src={folderUrl}
+                alt={`Folder do evento ${titulo}`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
             ) : (
               <div className="grid h-full min-h-[280px] place-items-center p-5 text-center text-slate-500 dark:text-zinc-400">
                 <div>
@@ -571,7 +678,7 @@ const excluindo = acaoEventoId === `${evento.id}:excluir`;
             <span
               className={cx(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black",
-                status.chip
+                status.chip,
               )}
             >
               <span className={cx("h-2 w-2 rounded-full", status.dot)} />
@@ -583,14 +690,14 @@ const excluindo = acaoEventoId === `${evento.id}:excluir`;
             </span>
 
             {publicado ? (
-  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-    Publicado
-  </span>
-) : (
-  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
-    Rascunho
-  </span>
-)}
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                Publicado
+              </span>
+            ) : (
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
+                Rascunho
+              </span>
+            )}
           </div>
 
           <h3 className="mt-4 break-words text-2xl font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-3xl">
@@ -598,7 +705,8 @@ const excluindo = acaoEventoId === `${evento.id}:excluir`;
           </h3>
 
           <p className="mt-2 text-sm font-medium text-slate-600 dark:text-zinc-300">
-            {evento?.descricao || "Evento cadastrado na Plataforma da Escola da Saúde."}
+            {evento?.descricao ||
+              "Evento cadastrado na Plataforma da Escola da Saúde."}
           </p>
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -639,81 +747,81 @@ const excluindo = acaoEventoId === `${evento.id}:excluir`;
             </div>
           </div>
 
-<div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-  <QuickAction
-    tone="evento"
-    onClick={() => onAcao(evento.id, "evento")}
-    icon={LayoutDashboard}
-    disabled={publicando || excluindo}
-  >
-    Evento
-  </QuickAction>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <QuickAction
+              tone="evento"
+              onClick={() => onAcao(evento.id, "evento")}
+              icon={LayoutDashboard}
+              disabled={publicando || excluindo}
+            >
+              Evento
+            </QuickAction>
 
-  <QuickAction
-    tone="inscricao"
-    onClick={() => onAcao(evento.id, "inscricao")}
-    icon={ClipboardList}
-    disabled={publicando || excluindo}
-  >
-    Inscrição
-  </QuickAction>
+            <QuickAction
+              tone="inscricao"
+              onClick={() => onAcao(evento.id, "inscricao")}
+              icon={ClipboardList}
+              disabled={publicando || excluindo}
+            >
+              Inscrição
+            </QuickAction>
 
-  <QuickAction
-    tone="qrcode"
-    onClick={() => onAcao(evento.id, "qrcode")}
-    icon={Search}
-    disabled={publicando || excluindo}
-  >
-    QR Code
-  </QuickAction>
+            <QuickAction
+              tone="qrcode"
+              onClick={() => onAcao(evento.id, "qrcode")}
+              icon={Search}
+              disabled={publicando || excluindo}
+            >
+              QR Code
+            </QuickAction>
 
-  <QuickAction
-    tone="presenca"
-    onClick={() => onAcao(evento.id, "presenca")}
-    icon={GraduationCap}
-    disabled={publicando || excluindo}
-  >
-    Presença
-  </QuickAction>
+            <QuickAction
+              tone="presenca"
+              onClick={() => onAcao(evento.id, "presenca")}
+              icon={GraduationCap}
+              disabled={publicando || excluindo}
+            >
+              Presença
+            </QuickAction>
 
-  <QuickAction
-    tone="avaliacao"
-    onClick={() => onAcao(evento.id, "avaliacao")}
-    icon={Sparkles}
-    disabled={publicando || excluindo}
-  >
-    Avaliação
-  </QuickAction>
+            <QuickAction
+              tone="avaliacao"
+              onClick={() => onAcao(evento.id, "avaliacao")}
+              icon={Sparkles}
+              disabled={publicando || excluindo}
+            >
+              Avaliação
+            </QuickAction>
 
-  <QuickAction
-    tone="certificado"
-    onClick={() => onAcao(evento.id, "certificado")}
-    icon={ShieldCheck}
-    disabled={publicando || excluindo}
-  >
-    Certificado
-  </QuickAction>
+            <QuickAction
+              tone="certificado"
+              onClick={() => onAcao(evento.id, "certificado")}
+              icon={ShieldCheck}
+              disabled={publicando || excluindo}
+            >
+              Certificado
+            </QuickAction>
 
-  <QuickAction
-    tone="publicar"
-    onClick={() => onPublicar(evento.id)}
-    icon={CheckCircle2}
-    disabled={publicado || publicando || excluindo}
-    loading={publicando}
-  >
-    {publicado ? "Publicado" : "Publicar"}
-  </QuickAction>
+            <QuickAction
+              tone="publicar"
+              onClick={() => onPublicar(evento.id)}
+              icon={CheckCircle2}
+              disabled={publicado || publicando || excluindo}
+              loading={publicando}
+            >
+              {publicado ? "Publicado" : "Publicar"}
+            </QuickAction>
 
-  <QuickAction
-    tone="excluir"
-    onClick={() => onExcluir(evento)}
-    icon={Trash2}
-    disabled={publicando || excluindo}
-    loading={excluindo}
-  >
-    Excluir
-  </QuickAction>
-</div>
+            <QuickAction
+              tone="excluir"
+              onClick={() => onExcluir(evento)}
+              icon={Trash2}
+              disabled={publicando || excluindo}
+              loading={excluindo}
+            >
+              Excluir
+            </QuickAction>
+          </div>
         </div>
       </div>
     </motion.article>
@@ -739,6 +847,7 @@ export default function DashboardAdministrador() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [acaoEventoId, setAcaoEventoId] = useState(null);
+  const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
 
   const liveRef = useRef(null);
   const erroRef = useRef(null);
@@ -782,7 +891,9 @@ export default function DashboardAdministrador() {
 
       const lista = toArrayPayload(response, "eventos");
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setEventos(lista);
 
@@ -797,15 +908,19 @@ export default function DashboardAdministrador() {
           } catch {
             return [evento.id, []];
           }
-        })
+        }),
       );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setTurmasPorEvento(Object.fromEntries(pares));
       setLive("Eventos do painel do gestor atualizados.");
     } catch (error) {
-      if (error?.name === "AbortError") return;
+      if (error?.name === "AbortError") {
+        return;
+      }
 
       console.error("[PainelGestor] erro ao carregar eventos", {
         message: error?.message,
@@ -837,14 +952,16 @@ export default function DashboardAdministrador() {
           evento,
           turmasPorEvento?.[evento.id] || [],
           ano,
-          mesIndex
-        )
+          mesIndex,
+        ),
       )
       .sort((a, b) => {
         const dataA = getDataInicioEvento(a, turmasPorEvento?.[a.id] || []);
         const dataB = getDataInicioEvento(b, turmasPorEvento?.[b.id] || []);
 
-        if (dataA !== dataB) return dataA.localeCompare(dataB);
+        if (dataA !== dataB) {
+          return dataA.localeCompare(dataB);
+        }
 
         return getTituloEvento(a).localeCompare(getTituloEvento(b), "pt-BR");
       });
@@ -853,7 +970,9 @@ export default function DashboardAdministrador() {
   const buscaNormalizada = useMemo(() => normalizarBusca(busca), [busca]);
 
   const eventosFiltrados = useMemo(() => {
-    if (!buscaNormalizada) return eventosDoMes;
+    if (!buscaNormalizada) {
+      return eventosDoMes;
+    }
 
     return eventosDoMes.filter((evento) => {
       const texto = normalizarBusca(
@@ -863,7 +982,7 @@ export default function DashboardAdministrador() {
           evento?.tipo,
           evento?.publico_alvo,
           evento?.descricao,
-        ].join(" ")
+        ].join(" "),
       );
 
       return texto.includes(buscaNormalizada);
@@ -880,9 +999,15 @@ export default function DashboardAdministrador() {
       const listaTurmas = turmasPorEvento?.[evento.id] || [];
       const status = statusEvento(evento, listaTurmas);
 
-      if (status === "programado") programados += 1;
-      if (status === "andamento") andamento += 1;
-      if (status === "encerrado") encerrados += 1;
+      if (status === "programado") {
+        programados += 1;
+      }
+      if (status === "andamento") {
+        andamento += 1;
+      }
+      if (status === "encerrado") {
+        encerrados += 1;
+      }
 
       turmas += listaTurmas.length;
     }
@@ -898,7 +1023,9 @@ export default function DashboardAdministrador() {
 
   const mesAnterior = useCallback(() => {
     setMesIndex((current) => {
-      if (current > 0) return current - 1;
+      if (current > 0) {
+        return current - 1;
+      }
 
       setAno((anoAtual) => anoAtual - 1);
       return 11;
@@ -907,7 +1034,9 @@ export default function DashboardAdministrador() {
 
   const mesProximo = useCallback(() => {
     setMesIndex((current) => {
-      if (current < 11) return current + 1;
+      if (current < 11) {
+        return current + 1;
+      }
 
       setAno((anoAtual) => anoAtual + 1);
       return 0;
@@ -921,85 +1050,87 @@ export default function DashboardAdministrador() {
     setMesIndex(agora.getMonth());
   }, []);
 
-const irParaAcaoEvento = useCallback(
-  (eventoId, acao) => {
-    const id = Number(eventoId);
+  const irParaAcaoEvento = useCallback(
+    (eventoId, acao) => {
+      const id = Number(eventoId);
 
-    if (!Number.isInteger(id) || id <= 0) {
-      console.warn("[PainelGestor] evento_id inválido para navegação", {
-        eventoId,
-        acao,
-      });
-      return;
-    }
-
-    const rotas = {
-      evento: `/gestao/evento?editar=${id}`,
-      inscricao: `/gestao/cancelamento-inscricao?evento_id=${id}`,
-      qrcode: `/gestao/qrcode?evento_id=${id}`,
-      presenca: `/gestao/presenca?evento_id=${id}`,
-      avaliacao: `/gestao/avaliacao?evento_id=${id}`,
-      certificado: `/gestao/certificado?evento_id=${id}`,
-    };
-
-    navigate(rotas[acao] || rotas.evento);
-  },
-  [navigate]
-);
-
-const publicarEvento = useCallback(
-  async (eventoId) => {
-    const id = Number(eventoId);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      console.warn("[PainelGestor] evento_id inválido para publicação", {
-        eventoId,
-      });
-      return;
-    }
-
-    try {
-      setAcaoEventoId(`${id}:publicar`);
-      setLive("Publicando evento...");
-
-      await apiEventoPublicar(id);
-
-      if (!mountedRef.current) return;
-
-      setEventos((listaAtual) =>
-        listaAtual.map((evento) =>
-          Number(evento.id) === id
-            ? {
-                ...evento,
-                publicado: true,
-              }
-            : evento
-        )
-      );
-
-      setLive("Evento publicado com sucesso.");
-    } catch (error) {
-      console.error("[PainelGestor] erro ao publicar evento", {
-        eventoId: id,
-        message: error?.message,
-      });
-
-      const message = getErrorMessage(error, "Erro ao publicar evento.");
-      setLive(message);
-      window.alert(message);
-    } finally {
-      if (mountedRef.current) {
-        setAcaoEventoId(null);
+      if (!Number.isInteger(id) || id <= 0) {
+        console.warn("[PainelGestor] evento_id inválido para navegação", {
+          eventoId,
+          acao,
+        });
+        return;
       }
-    }
-  },
-  [setLive]
-);
 
-const excluirEvento = useCallback(
-  async (evento) => {
+      const rotas = {
+        evento: `/gestao/evento?editar=${id}`,
+        inscricao: `/gestao/cancelamento-inscricao?evento_id=${id}`,
+        qrcode: `/gestao/qrcode?evento_id=${id}`,
+        presenca: `/gestao/presenca?evento_id=${id}`,
+        avaliacao: `/gestao/avaliacao?evento_id=${id}`,
+        certificado: `/gestao/certificado?evento_id=${id}`,
+      };
+
+      navigate(rotas[acao] || rotas.evento);
+    },
+    [navigate],
+  );
+
+  const publicarEvento = useCallback(
+    async (eventoId) => {
+      const id = Number(eventoId);
+
+      if (!Number.isInteger(id) || id <= 0) {
+        console.warn("[PainelGestor] evento_id inválido para publicação", {
+          eventoId,
+        });
+        return;
+      }
+
+      try {
+        setAcaoEventoId(`${id}:publicar`);
+        setLive("Publicando evento...");
+
+        await apiEventoPublicar(id);
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        setEventos((listaAtual) =>
+          listaAtual.map((evento) =>
+            Number(evento.id) === id
+              ? {
+                  ...evento,
+                  publicado: true,
+                }
+              : evento,
+          ),
+        );
+
+        setLive("Evento publicado com sucesso.");
+      } catch (error) {
+        console.error("[PainelGestor] erro ao publicar evento", {
+          eventoId: id,
+          message: error?.message,
+        });
+
+        const message = getErrorMessage(error, "Erro ao publicar evento.");
+        setErro(message);
+        setLive(message);
+
+        window.setTimeout(() => erroRef.current?.focus?.(), 0);
+      } finally {
+        if (mountedRef.current) {
+          setAcaoEventoId(null);
+        }
+      }
+    },
+    [setLive],
+  );
+
+  const solicitarExcluirEvento = useCallback((evento) => {
     const id = Number(evento?.id);
-    const titulo = getTituloEvento(evento);
 
     if (!Number.isInteger(id) || id <= 0) {
       console.warn("[PainelGestor] evento_id inválido para exclusão", {
@@ -1008,11 +1139,17 @@ const excluirEvento = useCallback(
       return;
     }
 
-    const confirmou = window.confirm(
-      `Tem certeza que deseja excluir o evento "${titulo}"?\n\nEssa ação não poderá ser desfeita.`
-    );
+    setEventoParaExcluir(evento);
+  }, []);
 
-    if (!confirmou) return;
+  const confirmarExcluirEvento = useCallback(async () => {
+    const evento = eventoParaExcluir;
+    const id = Number(evento?.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      setEventoParaExcluir(null);
+      return;
+    }
 
     try {
       setAcaoEventoId(`${id}:excluir`);
@@ -1020,10 +1157,12 @@ const excluirEvento = useCallback(
 
       await apiEventoExcluir(id);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setEventos((listaAtual) =>
-        listaAtual.filter((item) => Number(item.id) !== id)
+        listaAtual.filter((item) => Number(item.id) !== id),
       );
 
       setTurmasPorEvento((atual) => {
@@ -1032,6 +1171,7 @@ const excluirEvento = useCallback(
         return proximo;
       });
 
+      setEventoParaExcluir(null);
       setLive("Evento excluído com sucesso.");
     } catch (error) {
       console.error("[PainelGestor] erro ao excluir evento", {
@@ -1040,16 +1180,16 @@ const excluirEvento = useCallback(
       });
 
       const message = getErrorMessage(error, "Erro ao excluir evento.");
+      setErro(message);
       setLive(message);
-      window.alert(message);
+
+      window.setTimeout(() => erroRef.current?.focus?.(), 0);
     } finally {
       if (mountedRef.current) {
         setAcaoEventoId(null);
       }
     }
-  },
-  [setLive]
-);
+  }, [eventoParaExcluir, setLive]);
 
   return (
     <>
@@ -1098,7 +1238,7 @@ const excluirEvento = useCallback(
             <div
               className={cx(
                 "h-full w-1/3 rounded-full bg-emerald-600",
-                reduceMotion ? "" : "animate-pulse"
+                reduceMotion ? "" : "animate-pulse",
               )}
             />
           </div>
@@ -1174,7 +1314,9 @@ const excluirEvento = useCallback(
                 <AlertTriangle className="mt-0.5 h-5 w-5" aria-hidden="true" />
 
                 <div>
-                  <p className="font-black">Não foi possível carregar o painel.</p>
+                  <p className="font-black">
+                    Não foi possível carregar o painel.
+                  </p>
                   <p className="mt-1 text-sm">{erro}</p>
 
                   <button
@@ -1205,14 +1347,14 @@ const excluirEvento = useCallback(
             {!carregando &&
               eventosFiltrados.map((evento) => (
                 <EventCard
-  key={evento.id}
-  evento={evento}
-  turmas={turmasPorEvento?.[evento.id] || []}
-  onAcao={irParaAcaoEvento}
-  onPublicar={publicarEvento}
-  onExcluir={excluirEvento}
-  acaoEventoId={acaoEventoId}
-/>
+                  key={evento.id}
+                  evento={evento}
+                  turmas={turmasPorEvento?.[evento.id] || []}
+                  onAcao={irParaAcaoEvento}
+                  onPublicar={publicarEvento}
+                  onExcluir={solicitarExcluirEvento}
+                  acaoEventoId={acaoEventoId}
+                />
               ))}
 
             {!carregando && eventosFiltrados.length === 0 ? (
@@ -1221,6 +1363,18 @@ const excluirEvento = useCallback(
           </section>
         </div>
       </main>
+
+      <ConfirmExcluirEventoModal
+        open={Boolean(eventoParaExcluir)}
+        evento={eventoParaExcluir}
+        loading={acaoEventoId === `${eventoParaExcluir?.id}:excluir`}
+        onClose={() => {
+          if (!acaoEventoId) {
+            setEventoParaExcluir(null);
+          }
+        }}
+        onConfirm={confirmarExcluirEvento}
+      />
 
       <Footer />
     </>

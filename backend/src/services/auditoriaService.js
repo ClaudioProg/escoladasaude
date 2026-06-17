@@ -31,7 +31,13 @@ const pool = require("../db");
 
 const PERFIS_OFICIAIS = new Set(["usuario", "organizador", "administrador"]);
 
-const SEVERIDADES_OFICIAIS = new Set(["debug", "info", "aviso", "erro", "critico"]);
+const SEVERIDADES_OFICIAIS = new Set([
+  "debug",
+  "info",
+  "aviso",
+  "erro",
+  "critico",
+]);
 
 const METODOS_HTTP_OFICIAIS = new Set([
   "GET",
@@ -177,7 +183,7 @@ function extrairPerfilUsuario(req, perfil_usuario) {
 
   if (Array.isArray(perfilReq)) {
     const primeiroPerfilValido = perfilReq.find((perfil) =>
-      PERFIS_OFICIAIS.has(String(perfil).trim())
+      PERFIS_OFICIAIS.has(String(perfil).trim()),
     );
 
     return primeiroPerfilValido || null;
@@ -265,12 +271,15 @@ async function registrarAuditoria(params = {}) {
       throw erro;
     }
 
-    console.error("[auditoriaService] Auditoria ignorada por contrato inválido:", {
-      code: validacao.code,
-      message: validacao.message,
-      acao,
-      modulo,
-    });
+    console.error(
+      "[auditoriaService] Auditoria ignorada por contrato inválido:",
+      {
+        code: validacao.code,
+        message: validacao.message,
+        acao,
+        modulo,
+      },
+    );
 
     return {
       ok: false,
@@ -366,7 +375,7 @@ async function registrarAuditoria(params = {}) {
         auditoria.rota,
         auditoria.mensagem,
         auditoria.admin_hint,
-      ]
+      ],
     );
 
     return {
@@ -510,7 +519,7 @@ async function listarAuditoria(filtros = {}) {
       LIMIT ${limiteParam}
       OFFSET ${offsetParam}
     `,
-    values
+    values,
   );
 
   const countValues = values.slice(0, values.length - 2);
@@ -521,7 +530,7 @@ async function listarAuditoria(filtros = {}) {
       FROM auditoria_eventos
       ${whereSql}
     `,
-    countValues
+    countValues,
   );
 
   const total = totalResult.rows[0]?.total || 0;
@@ -579,7 +588,7 @@ async function obterAuditoriaPorId(id) {
       WHERE id = $1
       LIMIT 1
     `,
-    [auditoriaId]
+    [auditoriaId],
   );
 
   if (!rows[0]) {
@@ -636,7 +645,7 @@ async function resumoAuditoria(filtros = {}) {
       FROM auditoria_eventos
       ${whereSql}
     `,
-    values
+    values,
   );
 
   const porModulo = await pool.query(
@@ -650,7 +659,7 @@ async function resumoAuditoria(filtros = {}) {
       ORDER BY total DESC, modulo ASC
       LIMIT 20
     `,
-    values
+    values,
   );
 
   const porAcao = await pool.query(
@@ -664,7 +673,7 @@ async function resumoAuditoria(filtros = {}) {
       ORDER BY total DESC, acao ASC
       LIMIT 20
     `,
-    values
+    values,
   );
 
   return {

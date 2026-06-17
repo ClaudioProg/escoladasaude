@@ -57,7 +57,7 @@ const query =
 
 if (typeof query !== "function") {
   throw new Error(
-    "[uploadController] DB inválido. O export oficial de ../db deve expor query."
+    "[uploadController] DB inválido. O export oficial de ../db deve expor query.",
   );
 }
 
@@ -87,13 +87,7 @@ function gerarRequestId(prefix = "upload") {
 
 function sucesso(
   res,
-  {
-    status = 200,
-    data = null,
-    message = "OK",
-    code = "OK",
-    meta = null,
-  } = {}
+  { status = 200, data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(status).json({
     ok: true,
@@ -113,7 +107,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -186,7 +180,11 @@ function isPptFilename(name = "") {
 }
 
 function isPptMime(mime = "") {
-  return PPT_MIMES_OFICIAIS.has(String(mime || "").toLowerCase().trim());
+  return PPT_MIMES_OFICIAIS.has(
+    String(mime || "")
+      .toLowerCase()
+      .trim(),
+  );
 }
 
 function validarArquivoModelo(file) {
@@ -221,10 +219,14 @@ function validarArquivoModelo(file) {
   }
 
   const originalname = String(file.originalname || "").trim();
-  const mimetype = String(file.mimetype || "").trim().toLowerCase();
+  const mimetype = String(file.mimetype || "")
+    .trim()
+    .toLowerCase();
 
   if (!isPptFilename(originalname)) {
-    const error = new Error("Formato inválido. Envie um arquivo .ppt ou .pptx.");
+    const error = new Error(
+      "Formato inválido. Envie um arquivo .ppt ou .pptx.",
+    );
     error.status = 400;
     error.code = "EXTENSAO_INVALIDA";
     throw error;
@@ -296,7 +298,7 @@ async function baixarModeloBanner(req, res) {
         FROM trabalhos_modelos
         WHERE tipo = 'banner'
         LIMIT 1
-      `
+      `,
     );
 
     const row = result.rows?.[0] || null;
@@ -332,14 +334,14 @@ async function baixarModeloBanner(req, res) {
     const tsSafe = Number.isNaN(ts.getTime()) ? new Date() : ts;
 
     const etag = `"pptx-${size.toString(16)}-${Number(
-      tsSafe.getTime()
+      tsSafe.getTime(),
     ).toString(36)}-${digest}"`;
 
     res.setHeader("ETag", etag);
     res.setHeader("Last-Modified", tsSafe.toUTCString());
     res.setHeader(
       "Cache-Control",
-      "public, max-age=60, stale-while-revalidate=300"
+      "public, max-age=60, stale-while-revalidate=300",
     );
 
     if (req.headers["if-none-match"] === etag) {
@@ -353,8 +355,8 @@ async function baixarModeloBanner(req, res) {
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(
-        filename
-      )}`
+        filename,
+      )}`,
     );
 
     logInfo(requestId, "baixarModeloBanner:ok", {
@@ -370,7 +372,7 @@ async function baixarModeloBanner(req, res) {
       res,
       requestId,
       error,
-      "Erro ao baixar modelo de banner"
+      "Erro ao baixar modelo de banner",
     );
   }
 }
@@ -399,7 +401,7 @@ async function subirModeloBanner(req, res) {
     const fileInfo = validarArquivoModelo(req.file);
 
     const nomeFinal = ensurePptxName(
-      req.body?.nome || fileInfo.originalname || "modelo-banner"
+      req.body?.nome || fileInfo.originalname || "modelo-banner",
     );
 
     const nomeBase = baseNameSemExt(nomeFinal);
@@ -440,7 +442,7 @@ async function subirModeloBanner(req, res) {
           atualizado_por = EXCLUDED.atualizado_por,
           atualizado_em = NOW()
       `,
-      [nomeBase, mimeFinal, size, req.file.buffer, actorId]
+      [nomeBase, mimeFinal, size, req.file.buffer, actorId],
     );
 
     logInfo(requestId, "subirModeloBanner:ok", {
@@ -469,7 +471,7 @@ async function subirModeloBanner(req, res) {
       res,
       requestId,
       error,
-      "Erro ao subir modelo de banner"
+      "Erro ao subir modelo de banner",
     );
   }
 }

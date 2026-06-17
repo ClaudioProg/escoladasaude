@@ -1,5 +1,5 @@
 // ✅ frontend/src/pages/Dashboardorganizador.jsx — v2.0
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -37,12 +37,9 @@ import {
   AlertTriangle,
   BarChart3,
   CalendarDays,
-  CheckCircle2,
-  GraduationCap,
   LineChart,
   Presentation,
   RefreshCw,
-  Sparkles,
   Star,
   TrendingUp,
   Users,
@@ -77,7 +74,7 @@ ChartJS.register(
   Tooltip,
   Legend,
   PointElement,
-  LineElement
+  LineElement,
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -107,7 +104,9 @@ function toNumber(value, fallback = 0) {
 function clamp(value, min, max) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return min;
+  if (!Number.isFinite(number)) {
+    return min;
+  }
 
   return Math.max(min, Math.min(max, number));
 }
@@ -121,7 +120,7 @@ function todayYmd() {
   const pad = (item) => String(item).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
@@ -134,14 +133,16 @@ function addDaysYmd(baseYmd, days) {
   const pad = (item) => String(item).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
 function formatDateShort(value) {
   const date = ymd(value);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "—";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return "—";
+  }
 
   const [, month, day] = date.split("-");
 
@@ -155,7 +156,9 @@ function isHoje(value) {
 function isProximosDias(value, dias = 7) {
   const date = ymd(value);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return false;
+  }
 
   const hoje = todayYmd();
 
@@ -165,10 +168,18 @@ function isProximosDias(value, dias = 7) {
 function normalizeTurmaList(response) {
   const payload = unwrap(response);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.turma)) return payload.turma;
-  if (Array.isArray(payload?.turmas)) return payload.turmas;
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (Array.isArray(payload?.turma)) {
+    return payload.turma;
+  }
+  if (Array.isArray(payload?.turmas)) {
+    return payload.turmas;
+  }
 
   return [];
 }
@@ -176,20 +187,32 @@ function normalizeTurmaList(response) {
 function normalizeEventoAvaliacaoList(response) {
   const payload = unwrap(response);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.evento)) return payload.evento;
-  if (Array.isArray(payload?.eventos)) return payload.eventos;
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (Array.isArray(payload?.evento)) {
+    return payload.evento;
+  }
+  if (Array.isArray(payload?.eventos)) {
+    return payload.eventos;
+  }
 
   return [];
 }
 
 function getTurmaNome(turma) {
-  return String(turma?.nome || turma?.turma_nome || `Turma ${turma?.id || ""}`).trim();
+  return String(
+    turma?.nome || turma?.turma_nome || `Turma ${turma?.id || ""}`,
+  ).trim();
 }
 
 function getEventoTitulo(evento) {
-  return String(evento?.titulo || evento?.evento || evento?.evento_titulo || "Evento").trim();
+  return String(
+    evento?.titulo || evento?.evento || evento?.evento_titulo || "Evento",
+  ).trim();
 }
 
 function getNotaEvento(evento) {
@@ -214,7 +237,11 @@ function getNotaEvento(evento) {
       .filter(Number.isFinite);
 
     if (notas.length) {
-      return clamp(notas.reduce((sum, item) => sum + item, 0) / notas.length, 0, 10);
+      return clamp(
+        notas.reduce((sum, item) => sum + item, 0) / notas.length,
+        0,
+        10,
+      );
     }
   }
 
@@ -233,8 +260,12 @@ function getDatasTurma(turma) {
   const inicio = ymd(turma?.data_inicio);
   const fim = ymd(turma?.data_fim);
 
-  if (inicio && fim && inicio === fim) return [inicio];
-  if (inicio && !fim) return [inicio];
+  if (inicio && fim && inicio === fim) {
+    return [inicio];
+  }
+  if (inicio && !fim) {
+    return [inicio];
+  }
 
   return [];
 }
@@ -275,7 +306,7 @@ async function calcularPresencaTurma(turmaId, signal) {
       presencas.map((presenca) => [
         ymd(presenca?.data_presenca || presenca?.data),
         presenca?.presente === true,
-      ])
+      ]),
     );
 
     for (const data of encontrosPassados) {
@@ -344,7 +375,13 @@ function SectionShell({
   );
 }
 
-function GhostAction({ icon: Icon, children, onClick, loading = false, disabled = false }) {
+function GhostAction({
+  icon: Icon,
+  children,
+  onClick,
+  loading = false,
+  disabled = false,
+}) {
   return (
     <button
       type="button"
@@ -377,8 +414,8 @@ function InfoRibbon() {
           </p>
 
           <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
-            Acompanhe turmas vinculadas, aulas próximas, presença média dos alunos
-            e avaliações recebidas nos eventos.
+            Acompanhe turmas vinculadas, aulas próximas, presença média dos
+            alunos e avaliações recebidas nos eventos.
           </p>
         </div>
       </div>
@@ -386,13 +423,7 @@ function InfoRibbon() {
   );
 }
 
-function MiniStat({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone = "emerald",
-}) {
+function MiniStat({ icon: Icon, label, value, hint, tone = "emerald" }) {
   const toneMap = {
     emerald: {
       soft: "bg-emerald-600/10 text-emerald-700 dark:text-emerald-200 dark:bg-emerald-400/10",
@@ -590,30 +621,32 @@ export default function Dashboardorganizador() {
   }, []);
 
   const carregar = useCallback(async () => {
+    let controller = null;
+
     try {
       abortRef.current?.abort?.("nova-requisicao");
 
-      const controller = new AbortController();
+      controller = new AbortController();
       abortRef.current = controller;
 
       setCarregando(true);
       setErro("");
       setLive("Carregando painel do organizador...");
 
-const [turmaResponse, avaliacaoResponse] = await Promise.all([
-  apiorganizadorMinhasTurmas(
-    {},
-    {
-      on403: "silent",
-      signal: controller.signal,
-    }
-  ),
+      const [turmaResponse, avaliacaoResponse] = await Promise.all([
+        apiorganizadorMinhasTurmas(
+          {},
+          {
+            on403: "silent",
+            signal: controller.signal,
+          },
+        ),
 
-  apiDashboardAvaliacaoRecenteorganizador({
-    on403: "silent",
-    signal: controller.signal,
-  }),
-]);
+        apiDashboardAvaliacaoRecenteorganizador({
+          on403: "silent",
+          signal: controller.signal,
+        }),
+      ]);
 
       const turmas = normalizeTurmaList(turmaResponse);
       const eventosAvaliacao = normalizeEventoAvaliacaoList(avaliacaoResponse);
@@ -621,8 +654,8 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
       const turmasOrdenadas = [...turmas]
         .sort((a, b) =>
           String(ymd(b?.data_inicio || b?.data_fim)).localeCompare(
-            String(ymd(a?.data_inicio || a?.data_fim))
-          )
+            String(ymd(a?.data_inicio || a?.data_fim)),
+          ),
         )
         .slice(0, 6);
 
@@ -633,8 +666,8 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
 
         const result = await Promise.allSettled(
           grupo.map((turma) =>
-            calcularPresencaTurma(Number(turma.id), controller.signal)
-          )
+            calcularPresencaTurma(Number(turma.id), controller.signal),
+          ),
         );
 
         for (const item of result) {
@@ -644,7 +677,9 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
         }
       }
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const aulaHoje = turmas.reduce((total, turma) => {
         const datas = getDatasTurma(turma);
@@ -663,10 +698,10 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
           ? Math.round(
               (presencaPorTurma.reduce(
                 (sum, item) => sum + toNumber(item.percentual, 0),
-                0
+                0,
               ) /
                 presencaPorTurma.length) *
-                10
+                10,
             ) / 10
           : 0;
 
@@ -677,7 +712,7 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
       const notaMedia =
         notas.length > 0
           ? Math.round(
-              (notas.reduce((sum, item) => sum + item, 0) / notas.length) * 10
+              (notas.reduce((sum, item) => sum + item, 0) / notas.length) * 10,
             ) / 10
           : 0;
 
@@ -691,7 +726,10 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
       });
 
       const presencaMap = new Map(
-        presencaPorTurma.map((item) => [Number(item.turma_id), item.percentual])
+        presencaPorTurma.map((item) => [
+          Number(item.turma_id),
+          item.percentual,
+        ]),
       );
 
       setSeriePresencaTurma({
@@ -700,7 +738,7 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
           {
             label: "% presença média",
             data: turmasOrdenadas.map((turma) =>
-              toNumber(presencaMap.get(Number(turma.id)), 0)
+              toNumber(presencaMap.get(Number(turma.id)), 0),
             ),
           },
         ],
@@ -711,7 +749,9 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
         datasets: [
           {
             label: "Nota média",
-            data: eventosAvaliacao.map((evento) => toNumber(getNotaEvento(evento), 0)),
+            data: eventosAvaliacao.map((evento) =>
+              toNumber(getNotaEvento(evento), 0),
+            ),
           },
         ],
       });
@@ -748,45 +788,47 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
 
       setLive("Painel do organizador atualizado.");
     } catch (error) {
-  const abortado =
-    error?.name === "AbortError" ||
-    error === "nova-requisicao" ||
-    error === "unmount" ||
-    controller.signal.aborted;
+      const abortado =
+        error?.name === "AbortError" ||
+        error?.name === "CanceledError" ||
+        error?.code === "ERR_CANCELED" ||
+        error === "nova-requisicao" ||
+        error === "unmount" ||
+        controller?.signal?.aborted;
 
-  if (abortado) {
-    return;
-  }
+      if (abortado) {
+        return;
+      }
 
-  console.error("[Dashboardorganizador] erro ao carregar painel", {
-    message: error?.message,
-    data: error?.data,
-    status: error?.status,
-    code: error?.code,
-    stack: error?.stack,
-    error,
-  });
+      console.error("[Dashboardorganizador] erro ao carregar painel", {
+        message: error?.message,
+        data: error?.data,
+        status: error?.status,
+        code: error?.code,
+        stack: error?.stack,
+        error,
+      });
 
-  const message = getErrorMessage(
-    error,
-    "Não foi possível carregar o painel do organizador."
-  );
+      const message = getErrorMessage(
+        error,
+        "Não foi possível carregar o painel do organizador.",
+      );
 
-  setErro(message);
-  toast.error(message);
+      setErro(message);
+      toast.error(message);
 
-  setKpi({
-    total_turma: 0,
-    aula_hoje: 0,
-    aula_proxima: 0,
-    presenca_media: 0,
-    nota_media: 0,
-    evento_avaliado: 0,
-  });
+      setKpi({
+        total_turma: 0,
+        aula_hoje: 0,
+        aula_proxima: 0,
+        presenca_media: 0,
+        nota_media: 0,
+        evento_avaliado: 0,
+      });
 
-  resetarGraficos();
-  setLive("Falha ao carregar painel do organizador.");
-} finally {
+      resetarGraficos();
+      setLive("Falha ao carregar painel do organizador.");
+    } finally {
       if (mountedRef.current) {
         setCarregando(false);
       }
@@ -819,7 +861,7 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
       },
       maintainAspectRatio: false,
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   const barNotaOptions = useMemo(
@@ -836,7 +878,7 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
       },
       maintainAspectRatio: false,
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   const lineOptions = useMemo(
@@ -852,7 +894,7 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
       },
       maintainAspectRatio: false,
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   return (
@@ -880,7 +922,7 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
             <div
               className={cx(
                 "h-full w-1/3 bg-emerald-700",
-                reduceMotion ? "" : "animate-pulse"
+                reduceMotion ? "" : "animate-pulse",
               )}
             />
           </div>
@@ -896,7 +938,11 @@ const [turmaResponse, avaliacaoResponse] = await Promise.all([
           icon={TrendingUp}
           gradient="from-emerald-600 via-teal-500 to-cyan-600"
           action={
-            <GhostAction icon={RefreshCw} onClick={carregar} loading={carregando}>
+            <GhostAction
+              icon={RefreshCw}
+              onClick={carregar}
+              loading={carregando}
+            >
               {carregando ? "Atualizando…" : "Atualizar"}
             </GhostAction>
           }

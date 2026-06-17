@@ -58,7 +58,7 @@ if (typeof authMiddleware !== "function") {
   console.error("[organizadorRoute] authMiddleware inválido:", authMiddleware);
 
   throw new Error(
-    "Contrato inválido: backend/src/auth/authMiddleware.js deve exportar uma função."
+    "Contrato inválido: backend/src/auth/authMiddleware.js deve exportar uma função.",
   );
 }
 
@@ -66,16 +66,19 @@ if (typeof authorize !== "function") {
   console.error("[organizadorRoute] authorize inválido:", authorize);
 
   throw new Error(
-    "Contrato inválido: backend/src/middlewares/authorize.js deve expor { authorize } como função."
+    "Contrato inválido: backend/src/middlewares/authorize.js deve expor { authorize } como função.",
   );
 }
 
 function assertControllerFn(name, fn) {
   if (typeof fn !== "function") {
-    console.error(`[organizadorRoute] organizadorController.${name} inválido:`, fn);
+    console.error(
+      `[organizadorRoute] organizadorController.${name} inválido:`,
+      fn,
+    );
 
     throw new Error(
-      `Contrato inválido: organizadorController.${name} deve ser uma função.`
+      `Contrato inválido: organizadorController.${name} deve ser uma função.`,
     );
   }
 }
@@ -83,11 +86,11 @@ function assertControllerFn(name, fn) {
 assertControllerFn("listarorganizador", listarorganizador);
 assertControllerFn(
   "getEventosAvaliacaoPororganizador",
-  getEventosAvaliacaoPororganizador
+  getEventosAvaliacaoPororganizador,
 );
 assertControllerFn(
   "getTurmasComEventoPororganizador",
-  getTurmasComEventoPororganizador
+  getTurmasComEventoPororganizador,
 );
 assertControllerFn("getMinhasTurmasorganizador", getMinhasTurmasorganizador);
 
@@ -106,7 +109,7 @@ function responderErro(
   code,
   adminHint,
   details = null,
-  req = null
+  req = null,
 ) {
   return res.status(statusCode).json({
     ok: false,
@@ -146,7 +149,7 @@ function ensureAuthenticatedContext(req, res, next) {
       "ORGANIZADOR_USUARIO_NAO_AUTENTICADO",
       "req.user.id não foi encontrado após authMiddleware.",
       null,
-      req
+      req,
     );
   }
 
@@ -168,7 +171,7 @@ function ensureNumericParam(paramName) {
           parametro: paramName,
           valor_recebido: req.params?.[paramName] ?? null,
         },
-        req
+        req,
       );
     }
 
@@ -202,7 +205,7 @@ router.use(ensureAuthenticatedContext);
 router.get(
   "/minhas/turmas",
   authorize("organizador", "administrador"),
-  asyncHandler(getMinhasTurmasorganizador)
+  asyncHandler(getMinhasTurmasorganizador),
 );
 
 /* ─────────────────────────────────────────────
@@ -215,11 +218,7 @@ router.get(
  * Função:
  * - Lista todos os organizadores.
  */
-router.get(
-  "/",
-  authorize("administrador"),
-  asyncHandler(listarorganizador)
-);
+router.get("/", authorize("administrador"), asyncHandler(listarorganizador));
 
 /**
  * GET /api/organizador/:id/eventos-avaliacao
@@ -231,7 +230,7 @@ router.get(
   "/:id/eventos-avaliacao",
   authorize("administrador"),
   ensureNumericParam("id"),
-  asyncHandler(getEventosAvaliacaoPororganizador)
+  asyncHandler(getEventosAvaliacaoPororganizador),
 );
 
 /**
@@ -244,7 +243,7 @@ router.get(
   "/:id/turmas",
   authorize("administrador"),
   ensureNumericParam("id"),
-  asyncHandler(getTurmasComEventoPororganizador)
+  asyncHandler(getTurmasComEventoPororganizador),
 );
 
 module.exports = router;

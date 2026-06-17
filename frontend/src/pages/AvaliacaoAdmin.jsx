@@ -53,9 +53,12 @@ import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifyInfo, notifySuccess } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
-import { formatDateBr } from "../utils/dateTime";
 
 /* ─────────────────────────────────────────────
  * Contrato oficial de avaliação
@@ -74,12 +77,10 @@ const NOTA_PONTUACAO = {
 const NOTA_STYLE = {
   Ótimo:
     "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60",
-  Bom:
-    "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
+  Bom: "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
   Regular:
     "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60",
-  Ruim:
-    "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
+  Ruim: "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
   Péssimo:
     "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-800/60",
 };
@@ -257,7 +258,10 @@ function normalizarAgregados(agregados, respostas) {
   for (const campo of CAMPOS_OBJETIVOS) {
     const distOriginal = agregados?.dist?.[campo];
 
-    if (distOriginal && NOTA_ENUM_OFICIAL.some((nota) => nota in distOriginal)) {
+    if (
+      distOriginal &&
+      NOTA_ENUM_OFICIAL.some((nota) => nota in distOriginal)
+    ) {
       dist[campo] = {
         Ótimo: Number(distOriginal["Ótimo"] || 0),
         Bom: Number(distOriginal.Bom || 0),
@@ -289,7 +293,9 @@ function normalizarAgregados(agregados, respostas) {
     const textosBackend = agregados?.textos?.[campo];
 
     textos[campo] = Array.isArray(textosBackend)
-      ? textosBackend.filter((texto) => typeof texto === "string" && texto.trim())
+      ? textosBackend.filter(
+          (texto) => typeof texto === "string" && texto.trim(),
+        )
       : respostas
           .map((resposta) => resposta?.[campo])
           .filter((texto) => typeof texto === "string" && texto.trim())
@@ -297,7 +303,8 @@ function normalizarAgregados(agregados, respostas) {
   }
 
   const mediaOficial =
-    agregados?.mediaOficial != null && Number.isFinite(Number(agregados.mediaOficial))
+    agregados?.mediaOficial != null &&
+    Number.isFinite(Number(agregados.mediaOficial))
       ? Number(agregados.mediaOficial)
       : calcularMediaOficial(medias);
 
@@ -351,20 +358,34 @@ function agregarRespostas(respostas) {
 
 function calcularMediaOficial(medias) {
   const valores = CAMPOS_OFICIAIS_MEDIA.map((campo) => medias?.[campo]).filter(
-    (value) => Number.isFinite(value)
+    (value) => Number.isFinite(value),
   );
 
   return valores.length
-    ? Number((valores.reduce((acc, value) => acc + value, 0) / valores.length).toFixed(2))
+    ? Number(
+        (
+          valores.reduce((acc, value) => acc + value, 0) / valores.length
+        ).toFixed(2),
+      )
     : null;
 }
 
 function classificarMedia(media) {
-  if (media == null) return "Sem dados";
-  if (media >= 9) return "Excelente";
-  if (media >= 8) return "Muito bom";
-  if (media >= 6) return "Regular";
-  if (media >= 4) return "Atenção";
+  if (media == null) {
+    return "Sem dados";
+  }
+  if (media >= 9) {
+    return "Excelente";
+  }
+  if (media >= 8) {
+    return "Muito bom";
+  }
+  if (media >= 6) {
+    return "Regular";
+  }
+  if (media >= 4) {
+    return "Atenção";
+  }
   return "Crítico";
 }
 
@@ -376,9 +397,15 @@ function ordenarCampos(campos, medias, ordem) {
       media: medias?.[campo] ?? null,
     }))
     .sort((a, b) => {
-      if (a.media == null && b.media == null) return 0;
-      if (a.media == null) return 1;
-      if (b.media == null) return -1;
+      if (a.media == null && b.media == null) {
+        return 0;
+      }
+      if (a.media == null) {
+        return 1;
+      }
+      if (b.media == null) {
+        return -1;
+      }
 
       return ordem === "desc" ? b.media - a.media : a.media - b.media;
     });
@@ -392,7 +419,9 @@ function obterTopCriterios(campos, medias, modo = "melhores") {
       media: medias?.[campo] ?? null,
     }))
     .filter((item) => item.media != null)
-    .sort((a, b) => (modo === "melhores" ? b.media - a.media : a.media - b.media))
+    .sort((a, b) =>
+      modo === "melhores" ? b.media - a.media : a.media - b.media,
+    )
     .slice(0, 4);
 }
 
@@ -432,7 +461,7 @@ function ActionButton({
       disabled={disabled}
       className={classNames(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-60",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       {children}
@@ -445,7 +474,7 @@ function Pill({ children, className = "" }) {
     <span
       className={classNames(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
-        className
+        className,
       )}
     >
       {children}
@@ -463,8 +492,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "violet" }) {
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
+    sky: "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-100",
     slate:
       "border-slate-200 bg-white text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100",
   };
@@ -476,7 +504,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "violet" }) {
           <span
             className={classNames(
               "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
-              tones[tone] || tones.violet
+              tones[tone] || tones.violet,
             )}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
@@ -517,8 +545,8 @@ function ContextoAusente({ onVoltar }) {
           </h2>
 
           <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
-            O endereço precisa conter um <strong>evento_id</strong> válido para
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor. O
+            endereço precisa conter um <strong>evento_id</strong> válido para
             carregar as avaliações do evento específico.
           </p>
 
@@ -554,7 +582,8 @@ function ControlePainel({
           </p>
 
           <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-            Ajuste a visualização dos critérios avaliativos e exporte os dados consolidados.
+            Ajuste a visualização dos critérios avaliativos e exporte os dados
+            consolidados.
           </p>
         </div>
 
@@ -565,7 +594,9 @@ function ControlePainel({
           </ActionButton>
 
           <ActionButton
-            onClick={() => setOrdenar((value) => (value === "desc" ? "asc" : "desc"))}
+            onClick={() =>
+              setOrdenar((value) => (value === "desc" ? "asc" : "desc"))
+            }
           >
             {ordenar === "desc" ? (
               <ArrowDown01 className="h-4 w-4" aria-hidden="true" />
@@ -575,7 +606,11 @@ function ControlePainel({
             {ordenar === "desc" ? "Maiores médias" : "Menores médias"}
           </ActionButton>
 
-          <ActionButton onClick={onExportar} disabled={exportDisabled} tone="slate">
+          <ActionButton
+            onClick={onExportar}
+            disabled={exportDisabled}
+            tone="slate"
+          >
             <Download className="h-4 w-4" aria-hidden="true" />
             Exportar CSV
           </ActionButton>
@@ -703,7 +738,10 @@ function QuadroComentarios({ titulo, itens }) {
     <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
-          <MessageSquare className="h-4 w-4 text-violet-600" aria-hidden="true" />
+          <MessageSquare
+            className="h-4 w-4 text-violet-600"
+            aria-hidden="true"
+          />
           {titulo}
         </h3>
 
@@ -744,12 +782,11 @@ export default function AvaliacaoAdmin() {
 
   const eventoIdParam = useMemo(
     () => toPositiveInt(searchParams.get("evento_id")),
-    [searchParams]
+    [searchParams],
   );
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
-  const [eventos, setEventos] = useState([]);
   const [eventoAtual, setEventoAtual] = useState(null);
   const [payload, setPayload] = useState(null);
   const [somenteOficiais, setSomenteOficiais] = useState(true);
@@ -765,11 +802,19 @@ export default function AvaliacaoAdmin() {
   }, [payload, camposVisiveis, ordenar]);
 
   const melhoresCriterios = useMemo(() => {
-    return obterTopCriterios(camposVisiveis, payload?.agregados?.medias, "melhores");
+    return obterTopCriterios(
+      camposVisiveis,
+      payload?.agregados?.medias,
+      "melhores",
+    );
   }, [camposVisiveis, payload]);
 
   const pontosAtencao = useMemo(() => {
-    return obterTopCriterios(camposVisiveis, payload?.agregados?.medias, "piores");
+    return obterTopCriterios(
+      camposVisiveis,
+      payload?.agregados?.medias,
+      "piores",
+    );
   }, [camposVisiveis, payload]);
 
   const textosFiltrados = useMemo(() => {
@@ -778,7 +823,9 @@ export default function AvaliacaoAdmin() {
     const filtrar = (campo) => {
       const lista = payload?.agregados?.textos?.[campo] || [];
 
-      if (!filtro) return lista;
+      if (!filtro) {
+        return lista;
+      }
 
       return lista.filter((texto) => texto.toLowerCase().includes(filtro));
     };
@@ -822,26 +869,28 @@ export default function AvaliacaoAdmin() {
     try {
       if (typeof api?.avaliacao?.adminEventos !== "function") {
         throw new Error(
-          "Facade api.avaliacao.adminEventos não encontrada em frontend/src/services/api.js."
+          "Facade api.avaliacao.adminEventos não encontrada em frontend/src/services/api.js.",
         );
       }
 
       if (typeof api?.avaliacao?.adminEvento !== "function") {
         throw new Error(
-          "Facade api.avaliacao.adminEvento não encontrada em frontend/src/services/api.js."
+          "Facade api.avaliacao.adminEvento não encontrada em frontend/src/services/api.js.",
         );
       }
 
       const eventosResponse = await api.avaliacao.adminEventos();
-      const lista = normalizarEventos(extrairData(eventosResponse)).filter(Boolean);
-
-      setEventos(lista);
+      const lista = normalizarEventos(extrairData(eventosResponse)).filter(
+        Boolean,
+      );
 
       const eventoEncontrado =
         lista.find((evento) => Number(evento.id) === eventoIdParam) || null;
 
       if (!eventoEncontrado) {
-        setErro("O evento informado no link não foi encontrado entre os eventos com avaliação.");
+        setErro(
+          "O evento informado no link não foi encontrado entre os eventos com avaliação.",
+        );
         setLive("Evento não encontrado entre os eventos avaliados.");
         return;
       }
@@ -858,7 +907,7 @@ export default function AvaliacaoAdmin() {
 
       const message = getErrorMessage(
         error,
-        "Erro ao carregar avaliações do evento."
+        "Erro ao carregar avaliações do evento.",
       );
 
       setErro(message);
@@ -866,7 +915,7 @@ export default function AvaliacaoAdmin() {
       setEventoAtual(null);
 
       notifyError(
-        "Não foi possível carregar as avaliações do evento. Tente novamente ou acione o suporte se o problema continuar."
+        "Não foi possível carregar as avaliações do evento. Tente novamente ou acione o suporte se o problema continuar.",
       );
 
       setLive("Falha ao carregar avaliações do evento.");
@@ -895,7 +944,7 @@ export default function AvaliacaoAdmin() {
           limparCSV(eventoAtual?.titulo || "Evento"),
           payload?.agregados?.total ?? 0,
           payload?.agregados?.mediaOficial ?? "",
-        ].join(";")
+        ].join(";"),
       );
 
       linhas.push("");
@@ -908,11 +957,12 @@ export default function AvaliacaoAdmin() {
           "Regular",
           "Ruim",
           "Péssimo",
-        ].join(";")
+        ].join(";"),
       );
 
       for (const campo of camposVisiveis) {
-        const dist = payload?.agregados?.dist?.[campo] || criarDistribuicaoNotas();
+        const dist =
+          payload?.agregados?.dist?.[campo] || criarDistribuicaoNotas();
         const media = payload?.agregados?.medias?.[campo];
 
         linhas.push(
@@ -924,7 +974,7 @@ export default function AvaliacaoAdmin() {
             dist.Regular || 0,
             dist.Ruim || 0,
             dist["Péssimo"] || 0,
-          ].join(";")
+          ].join(";"),
         );
       }
 
@@ -936,20 +986,22 @@ export default function AvaliacaoAdmin() {
 
       linhas.push("");
       linhas.push(["Comentários — Sugestões de melhoria"].join(";"));
-      for (const texto of payload?.agregados?.textos?.sugestoes_melhoria || []) {
+      for (const texto of payload?.agregados?.textos?.sugestoes_melhoria ||
+        []) {
         linhas.push([limparCSV(texto)].join(";"));
       }
 
       linhas.push("");
       linhas.push(["Comentários — Comentários finais"].join(";"));
-      for (const texto of payload?.agregados?.textos?.comentarios_finais || []) {
+      for (const texto of payload?.agregados?.textos?.comentarios_finais ||
+        []) {
         linhas.push([limparCSV(texto)].join(";"));
       }
 
       baixarArquivo(
         `avaliacao_${sanitizeFileName(eventoAtual?.titulo || "evento")}.csv`,
         linhas.join("\r\n"),
-        "text/csv;charset=utf-8"
+        "text/csv;charset=utf-8",
       );
 
       notifySuccess("CSV gerado com sucesso.");
@@ -1022,7 +1074,10 @@ export default function AvaliacaoAdmin() {
                 tone="violet"
               >
                 <RefreshCw
-                  className={classNames("h-4 w-4", carregando && "animate-spin")}
+                  className={classNames(
+                    "h-4 w-4",
+                    carregando && "animate-spin",
+                  )}
                   aria-hidden="true"
                 />
                 Atualizar dados
@@ -1042,7 +1097,7 @@ export default function AvaliacaoAdmin() {
             <div
               className={classNames(
                 "h-full w-1/3 rounded-full bg-violet-700 dark:bg-violet-400",
-                reduceMotion ? "" : "animate-pulse"
+                reduceMotion ? "" : "animate-pulse",
               )}
             />
           </div>
@@ -1075,7 +1130,13 @@ export default function AvaliacaoAdmin() {
               <MetricCard
                 icon={Users}
                 label="Turmas"
-                value={carregando ? "…" : Array.isArray(payload?.turmas) ? payload.turmas.length : 0}
+                value={
+                  carregando
+                    ? "…"
+                    : Array.isArray(payload?.turmas)
+                      ? payload.turmas.length
+                      : 0
+                }
                 hint="Turmas com respostas"
                 tone="sky"
               />
@@ -1182,7 +1243,10 @@ export default function AvaliacaoAdmin() {
                 {Array.isArray(payload.turmas) && payload.turmas.length ? (
                   <section aria-label="Turmas do evento">
                     <div className="mb-3 flex items-center gap-2">
-                      <Users className="h-4 w-4 text-violet-600" aria-hidden="true" />
+                      <Users
+                        className="h-4 w-4 text-violet-600"
+                        aria-hidden="true"
+                      />
                       <h2 className="text-sm font-black text-slate-950 dark:text-white">
                         Turmas com respostas
                       </h2>
@@ -1252,7 +1316,10 @@ export default function AvaliacaoAdmin() {
                   </div>
                 </section>
 
-                <section className="space-y-4" aria-labelledby="comentarios-titulo">
+                <section
+                  className="space-y-4"
+                  aria-labelledby="comentarios-titulo"
+                >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <h2
@@ -1276,7 +1343,9 @@ export default function AvaliacaoAdmin() {
                       <input
                         type="search"
                         value={buscaComentario}
-                        onChange={(event) => setBuscaComentario(event.target.value)}
+                        onChange={(event) =>
+                          setBuscaComentario(event.target.value)
+                        }
                         className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-9 pr-3 text-sm font-medium text-slate-950 outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-violet-950"
                         placeholder="Buscar nos comentários..."
                         aria-label="Buscar nos comentários"
@@ -1334,7 +1403,14 @@ MetricCard.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   hint: PropTypes.string,
-  tone: PropTypes.oneOf(["violet", "fuchsia", "emerald", "amber", "sky", "slate"]),
+  tone: PropTypes.oneOf([
+    "violet",
+    "fuchsia",
+    "emerald",
+    "amber",
+    "sky",
+    "slate",
+  ]),
 };
 
 ContextoAusente.propTypes = {
@@ -1357,7 +1433,7 @@ RankingCriterios.propTypes = {
       campo: PropTypes.string.isRequired,
       nome: PropTypes.string.isRequired,
       media: PropTypes.number.isRequired,
-    })
+    }),
   ),
   icon: PropTypes.elementType,
 };

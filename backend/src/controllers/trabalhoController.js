@@ -94,10 +94,7 @@ const {
 
 const ZONA = "America/Sao_Paulo";
 
-const STATUS_AUTOR = Object.freeze([
-  "rascunho",
-  "submetida",
-]);
+const STATUS_AUTOR = Object.freeze(["rascunho", "submetida"]);
 
 const STATUS_BLOQUEADOS_EDICAO_AUTOR = Object.freeze([
   "em_avaliacao",
@@ -181,7 +178,7 @@ function logWarn(req, message, extra = null) {
 function logError(req, message, error) {
   console.error(
     `[${requestId(req)}] ✖ ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -272,7 +269,8 @@ function getUsuarioId(req) {
 
   assert(Number.isInteger(id) && id > 0, "Usuário não autenticado.", 401, {
     code: "AUTH_OBRIGATORIA",
-    adminHint: "req.user.id não foi encontrado após o middleware de autenticação.",
+    adminHint:
+      "req.user.id não foi encontrado após o middleware de autenticação.",
   });
 
   return id;
@@ -282,7 +280,9 @@ function perfilArray(req) {
   const perfil = req.user?.perfil;
 
   if (Array.isArray(perfil)) {
-    return perfil.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
+    return perfil
+      .map((item) => String(item).trim().toLowerCase())
+      .filter(Boolean);
   }
 
   if (typeof perfil === "string") {
@@ -307,10 +307,15 @@ function textoObrigatorio(value, max, fieldName) {
     details: { field: fieldName },
   });
 
-  assert(text.length <= max, `${fieldName} deve ter até ${max} caracteres.`, 400, {
-    code: "CAMPO_TAMANHO_INVALIDO",
-    details: { field: fieldName, max },
-  });
+  assert(
+    text.length <= max,
+    `${fieldName} deve ter até ${max} caracteres.`,
+    400,
+    {
+      code: "CAMPO_TAMANHO_INVALIDO",
+      details: { field: fieldName, max },
+    },
+  );
 
   return text;
 }
@@ -320,10 +325,15 @@ function textoOpcional(value, max, fieldName) {
 
   const text = String(value).trim();
 
-  assert(text.length <= max, `${fieldName} deve ter até ${max} caracteres.`, 400, {
-    code: "CAMPO_TAMANHO_INVALIDO",
-    details: { field: fieldName, max },
-  });
+  assert(
+    text.length <= max,
+    `${fieldName} deve ter até ${max} caracteres.`,
+    400,
+    {
+      code: "CAMPO_TAMANHO_INVALIDO",
+      details: { field: fieldName, max },
+    },
+  );
 
   return text;
 }
@@ -335,16 +345,23 @@ function isYYYYMM(value) {
 function normalizarPeriodoExperiencia(value) {
   const periodo = String(value || "").trim();
 
-  assert(isYYYYMM(periodo), "Início da experiência deve estar no formato YYYY-MM.", 400, {
-    code: "PERIODO_EXPERIENCIA_INVALIDO",
-    details: { expected: "YYYY-MM" },
-  });
+  assert(
+    isYYYYMM(periodo),
+    "Início da experiência deve estar no formato YYYY-MM.",
+    400,
+    {
+      code: "PERIODO_EXPERIENCIA_INVALIDO",
+      details: { expected: "YYYY-MM" },
+    },
+  );
 
   return periodo;
 }
 
 function normalizarStatusAutor(value) {
-  const status = String(value || "submetida").trim().toLowerCase();
+  const status = String(value || "submetida")
+    .trim()
+    .toLowerCase();
 
   assert(STATUS_AUTOR.includes(status), "Status de trabalho inválido.", 400, {
     code: "STATUS_TRABALHO_INVALIDO",
@@ -357,9 +374,14 @@ function normalizarStatusAutor(value) {
 function normalizarCoautores(value, maxCoautores) {
   const coautores = value == null ? [] : value;
 
-  assert(Array.isArray(coautores), "Coautores devem ser enviados como lista.", 400, {
-    code: "COAUTORES_INVALIDOS",
-  });
+  assert(
+    Array.isArray(coautores),
+    "Coautores devem ser enviados como lista.",
+    400,
+    {
+      code: "COAUTORES_INVALIDOS",
+    },
+  );
 
   assert(
     coautores.length <= maxCoautores,
@@ -371,7 +393,7 @@ function normalizarCoautores(value, maxCoautores) {
         max_coautores: maxCoautores,
         total_enviado: coautores.length,
       },
-    }
+    },
   );
 
   return coautores
@@ -381,19 +403,28 @@ function normalizarCoautores(value, maxCoautores) {
       return {
         nome: textoObrigatorio(coautor.nome, 200, `coautores[${index}].nome`),
         email: textoOpcional(coautor.email, 255, `coautores[${index}].email`),
-        unidade: textoOpcional(coautor.unidade, 255, `coautores[${index}].unidade`),
+        unidade: textoOpcional(
+          coautor.unidade,
+          255,
+          `coautores[${index}].unidade`,
+        ),
         papel: textoOpcional(coautor.papel, 255, `coautores[${index}].papel`),
         cpf: textoOpcional(coautor.cpf, 30, `coautores[${index}].cpf`),
-        vinculo: textoOpcional(coautor.vinculo, 255, `coautores[${index}].vinculo`),
+        vinculo: textoOpcional(
+          coautor.vinculo,
+          255,
+          `coautores[${index}].vinculo`,
+        ),
       };
     })
     .filter(Boolean);
 }
 
 function limiteDaChamada(chamada, campo, fallback) {
-  const limites = chamada?.limites && typeof chamada.limites === "object"
-    ? chamada.limites
-    : {};
+  const limites =
+    chamada?.limites && typeof chamada.limites === "object"
+      ? chamada.limites
+      : {};
 
   const valor = Number(limites[campo]);
 
@@ -416,7 +447,7 @@ async function obterChamadaParaSubmissao(req, chamadaId) {
     FROM trabalhos_chamadas c
     WHERE c.id = $1
     `,
-    [chamadaId, ZONA]
+    [chamadaId, ZONA],
   );
 }
 
@@ -438,7 +469,7 @@ async function obterTrabalhoComChamada(req, trabalhoId) {
     JOIN trabalhos_chamadas c ON c.id = s.chamada_id
     WHERE s.id = $1
     `,
-    [trabalhoId, ZONA]
+    [trabalhoId, ZONA],
   );
 }
 
@@ -461,9 +492,14 @@ function validarPermissaoAutorOuAdmin(req, trabalho, acao = "acessar") {
 function validarEdicaoPermitida(trabalho, ehAdmin = false) {
   if (ehAdmin) return;
 
-  assert(Boolean(trabalho.dentro_prazo), "Prazo encerrado para alterações.", 409, {
-    code: "PRAZO_ENCERRADO",
-  });
+  assert(
+    Boolean(trabalho.dentro_prazo),
+    "Prazo encerrado para alterações.",
+    409,
+    {
+      code: "PRAZO_ENCERRADO",
+    },
+  );
 
   const status = String(trabalho.status || "").toLowerCase();
 
@@ -474,7 +510,7 @@ function validarEdicaoPermitida(trabalho, ehAdmin = false) {
     {
       code: "TRABALHO_EDICAO_BLOQUEADA",
       details: { status },
-    }
+    },
   );
 }
 
@@ -487,7 +523,7 @@ async function validarLinhaTematica(req, chamadaId, linhaTematicaId) {
     WHERE id = $1
       AND chamada_id = $2
     `,
-    [linhaTematicaId, chamadaId]
+    [linhaTematicaId, chamadaId],
   );
 
   assert(linha, "Linha temática inválida para esta chamada.", 400, {
@@ -511,9 +547,21 @@ function normalizarPayloadTrabalho(body, chamada, status) {
     linha_tematica_id: toId(body.linha_tematica_id, "linha_tematica_id"),
     introducao: textoOpcional(body.introducao, limIntroducao, "Introdução"),
     objetivos: textoOpcional(body.objetivos, limObjetivos, "Objetivos"),
-    metodo: textoOpcional(body.metodo, limMetodo, "Método/descrição da prática"),
-    resultados: textoOpcional(body.resultados, limResultados, "Resultados/impactos"),
-    consideracao: textoOpcional(body.consideracao, limConsideracao, "Considerações finais"),
+    metodo: textoOpcional(
+      body.metodo,
+      limMetodo,
+      "Método/descrição da prática",
+    ),
+    resultados: textoOpcional(
+      body.resultados,
+      limResultados,
+      "Resultados/impactos",
+    ),
+    consideracao: textoOpcional(
+      body.consideracao,
+      limConsideracao,
+      "Considerações finais",
+    ),
     bibliografia: textoOpcional(body.bibliografia, 8000, "Bibliografia"),
   };
 
@@ -529,17 +577,33 @@ function normalizarPayloadTrabalho(body, chamada, status) {
           periodo_experiencia_inicio: chamada.periodo_experiencia_inicio,
           periodo_experiencia_fim: chamada.periodo_experiencia_fim,
         },
-      }
+      },
     );
 
-    payload.introducao = textoObrigatorio(body.introducao, limIntroducao, "Introdução");
-    payload.objetivos = textoObrigatorio(body.objetivos, limObjetivos, "Objetivos");
-    payload.metodo = textoObrigatorio(body.metodo, limMetodo, "Método/descrição da prática");
-    payload.resultados = textoObrigatorio(body.resultados, limResultados, "Resultados/impactos");
+    payload.introducao = textoObrigatorio(
+      body.introducao,
+      limIntroducao,
+      "Introdução",
+    );
+    payload.objetivos = textoObrigatorio(
+      body.objetivos,
+      limObjetivos,
+      "Objetivos",
+    );
+    payload.metodo = textoObrigatorio(
+      body.metodo,
+      limMetodo,
+      "Método/descrição da prática",
+    );
+    payload.resultados = textoObrigatorio(
+      body.resultados,
+      limResultados,
+      "Resultados/impactos",
+    );
     payload.consideracao = textoObrigatorio(
       body.consideracao,
       limConsideracao,
-      "Considerações finais"
+      "Considerações finais",
     );
   }
 
@@ -575,14 +639,26 @@ exports.criar = async (req, res, next) => {
       code: "CHAMADA_NAO_PUBLICADA",
     });
 
-    assert(Boolean(chamada.dentro_prazo), "O prazo de submissão encerrou.", 409, {
-      code: "PRAZO_ENCERRADO",
-    });
+    assert(
+      Boolean(chamada.dentro_prazo),
+      "O prazo de submissão encerrou.",
+      409,
+      {
+        code: "PRAZO_ENCERRADO",
+      },
+    );
 
     const status = normalizarStatusAutor(req.body?.status);
     const payload = normalizarPayloadTrabalho(req.body || {}, chamada, status);
-    const linha = await validarLinhaTematica(req, chamadaId, payload.linha_tematica_id);
-    const coautores = normalizarCoautores(req.body?.coautores, Number(chamada.max_coautores || 0));
+    const linha = await validarLinhaTematica(
+      req,
+      chamadaId,
+      payload.linha_tematica_id,
+    );
+    const coautores = normalizarCoautores(
+      req.body?.coautores,
+      Number(chamada.max_coautores || 0),
+    );
 
     const novo = await transaction(req, async (tx) => {
       const trabalho = await tx.one(
@@ -623,7 +699,7 @@ exports.criar = async (req, res, next) => {
           payload.consideracao,
           payload.bibliografia,
           status,
-        ]
+        ],
       );
 
       for (const coautor of coautores) {
@@ -650,7 +726,7 @@ exports.criar = async (req, res, next) => {
             coautor.papel,
             coautor.cpf,
             coautor.vinculo,
-          ]
+          ],
         );
       }
 
@@ -666,7 +742,7 @@ exports.criar = async (req, res, next) => {
         trabalho_titulo: novo.titulo,
         submissao_id: novo.id,
       },
-      "submissão criada"
+      "submissão criada",
     );
 
     if (status === "submetida") {
@@ -679,7 +755,7 @@ exports.criar = async (req, res, next) => {
           trabalho_titulo: novo.titulo,
           status: "submetida",
         },
-        "status submetida"
+        "status submetida",
       );
     }
 
@@ -709,7 +785,7 @@ exports.atualizar = async (req, res, next) => {
     const { usuarioId, ehAdmin } = validarPermissaoAutorOuAdmin(
       req,
       trabalhoAtual,
-      "editar"
+      "editar",
     );
 
     validarEdicaoPermitida(trabalhoAtual, ehAdmin);
@@ -719,16 +795,18 @@ exports.atualizar = async (req, res, next) => {
       id: trabalhoAtual.chamada_id,
     };
 
-    const status = normalizarStatusAutor(req.body?.status || trabalhoAtual.status);
+    const status = normalizarStatusAutor(
+      req.body?.status || trabalhoAtual.status,
+    );
     const payload = normalizarPayloadTrabalho(req.body || {}, chamada, status);
     const linha = await validarLinhaTematica(
       req,
       trabalhoAtual.chamada_id,
-      payload.linha_tematica_id
+      payload.linha_tematica_id,
     );
     const coautores = normalizarCoautores(
       req.body?.coautores,
-      Number(trabalhoAtual.max_coautores || 0)
+      Number(trabalhoAtual.max_coautores || 0),
     );
 
     const atualizado = await transaction(req, async (tx) => {
@@ -763,7 +841,7 @@ exports.atualizar = async (req, res, next) => {
           payload.bibliografia,
           status,
           trabalhoId,
-        ]
+        ],
       );
 
       await tx.none(`DELETE FROM trabalhos_coautores WHERE submissao_id = $1`, [
@@ -794,7 +872,7 @@ exports.atualizar = async (req, res, next) => {
             coautor.papel,
             coautor.cpf,
             coautor.vinculo,
-          ]
+          ],
         );
       }
 
@@ -811,7 +889,7 @@ exports.atualizar = async (req, res, next) => {
           trabalho_titulo: atualizado.titulo,
           status: "submetida",
         },
-        "status submetida"
+        "status submetida",
       );
     }
 
@@ -854,7 +932,7 @@ exports.obter = async (req, res, next) => {
       WHERE submissao_id = $1
       ORDER BY id ASC
       `,
-      [trabalhoId]
+      [trabalhoId],
     );
 
     const banner = await queryOne(
@@ -868,7 +946,7 @@ exports.obter = async (req, res, next) => {
       FROM trabalhos_arquivos a
       WHERE a.id = $1
       `,
-      [trabalho.poster_arquivo_id]
+      [trabalho.poster_arquivo_id],
     );
 
     return responder(res, {
@@ -898,13 +976,15 @@ exports.remover = async (req, res, next) => {
       validarEdicaoPermitida(trabalho, false);
 
       assert(
-        ["rascunho", "submetida"].includes(String(trabalho.status || "").toLowerCase()),
+        ["rascunho", "submetida"].includes(
+          String(trabalho.status || "").toLowerCase(),
+        ),
         "Somente trabalho em rascunho ou submetido pode ser removido pelo autor.",
         409,
         {
           code: "TRABALHO_REMOCAO_BLOQUEADA",
           details: { status: trabalho.status },
-        }
+        },
       );
     }
 
@@ -977,20 +1057,24 @@ function validarArquivoBanner(file) {
   const mime = file.mimetype || guessMimeByExt(originalName);
   const size = Number(file.size || 0);
 
-  assert(EXT_BANNER_ACEITAS.includes(ext), "Formato inválido para banner.", 400, {
-    code: "BANNER_EXTENSAO_INVALIDA",
-    details: { extensoes_aceitas: EXT_BANNER_ACEITAS },
-  });
+  assert(
+    EXT_BANNER_ACEITAS.includes(ext),
+    "Formato inválido para banner.",
+    400,
+    {
+      code: "BANNER_EXTENSAO_INVALIDA",
+      details: { extensoes_aceitas: EXT_BANNER_ACEITAS },
+    },
+  );
 
   assert(
-    MIME_BANNER_ACEITOS.includes(mime) ||
-      mime.startsWith("image/"),
+    MIME_BANNER_ACEITOS.includes(mime) || mime.startsWith("image/"),
     "MIME inválido para banner.",
     400,
     {
       code: "BANNER_MIME_INVALIDO",
       details: { mime },
-    }
+    },
   );
 
   assert(
@@ -1003,7 +1087,7 @@ function validarArquivoBanner(file) {
         max_bytes: TAMANHO_MAXIMO_BANNER_BYTES,
         recebido_bytes: size,
       },
-    }
+    },
   );
 
   return {
@@ -1023,8 +1107,7 @@ function caminhoDentroUploads(absPath) {
   const resolved = path.resolve(absPath);
 
   return (
-    resolved === uploadsRoot ||
-    resolved.startsWith(`${uploadsRoot}${path.sep}`)
+    resolved === uploadsRoot || resolved.startsWith(`${uploadsRoot}${path.sep}`)
   );
 }
 
@@ -1033,14 +1116,19 @@ async function moverArquivoParaStorage(file, trabalhoId, ext) {
   await ensureDir(dir);
 
   const finalName = `${crypto.randomBytes(8).toString("hex")}__${safeFilename(
-    file.originalname || `banner${ext}`
+    file.originalname || `banner${ext}`,
   )}`;
 
   const finalPath = path.join(dir, finalName);
 
-  assert(caminhoDentroUploads(finalPath), "Caminho de armazenamento inválido.", 500, {
-    code: "STORAGE_PATH_INVALIDO",
-  });
+  assert(
+    caminhoDentroUploads(finalPath),
+    "Caminho de armazenamento inválido.",
+    500,
+    {
+      code: "STORAGE_PATH_INVALIDO",
+    },
+  );
 
   await fsp.rename(file.path, finalPath);
 
@@ -1094,7 +1182,7 @@ exports.atualizarBanner = async (req, res, next) => {
     const { usuarioId, ehAdmin } = validarPermissaoAutorOuAdmin(
       req,
       trabalho,
-      "enviar banner"
+      "enviar banner",
     );
 
     validarEdicaoPermitida(trabalho, ehAdmin);
@@ -1115,7 +1203,7 @@ exports.atualizarBanner = async (req, res, next) => {
             FROM trabalhos_arquivos
             WHERE id = $1
             `,
-            [trabalho.poster_arquivo_id]
+            [trabalho.poster_arquivo_id],
           )
         : null;
 
@@ -1150,7 +1238,7 @@ exports.atualizarBanner = async (req, res, next) => {
           info.mime,
           info.size,
           sha256,
-        ]
+        ],
       );
 
       await tx.none(
@@ -1160,7 +1248,7 @@ exports.atualizarBanner = async (req, res, next) => {
                atualizado_em = NOW()
          WHERE id = $1
         `,
-        [trabalhoId, arquivo.id]
+        [trabalhoId, arquivo.id],
       );
 
       return {
@@ -1182,7 +1270,7 @@ exports.atualizarBanner = async (req, res, next) => {
         trabalho_titulo: trabalho.titulo,
         arquivo_nome: info.originalName,
       },
-      "banner atualizado"
+      "banner atualizado",
     );
 
     logInfo(req, "Banner do trabalho atualizado.", {
@@ -1286,12 +1374,14 @@ LEFT JOIN trabalhos_arquivos a ON a.id = s.poster_arquivo_id
 WHERE COALESCE(NULLIF(s.status, ''), 'submetida') NOT IN ('rascunho', 'cancelada')
 ORDER BY c.titulo ASC, tcl.nome ASC NULLS LAST, s.titulo ASC, s.id ASC
       `,
-      params
+      params,
     );
 
     const data = rows.map((row) => ({
       ...row,
-      banner_url: row.poster_arquivo_id ? `/api/submissao/${row.id}/poster` : null,
+      banner_url: row.poster_arquivo_id
+        ? `/api/submissao/${row.id}/poster`
+        : null,
     }));
 
     return responder(res, data, {

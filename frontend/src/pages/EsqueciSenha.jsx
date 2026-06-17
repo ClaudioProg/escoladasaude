@@ -39,7 +39,9 @@ function cx(...classes) {
 }
 
 function normalizarEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function emailValido(value) {
@@ -65,7 +67,7 @@ const BotaoLocal = forwardRef(function BotaoLocal(
     disabled = false,
     ...props
   },
-  ref
+  ref,
 ) {
   const base =
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold transition focus:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-60";
@@ -105,7 +107,7 @@ function HeaderHero({ isDark }) {
           "shadow-[0_30px_120px_-40px_rgba(15,23,42,.85)]",
           isDark
             ? "border-white/10 bg-white/[0.03]"
-            : "border-white/70 bg-white/20"
+            : "border-white/70 bg-white/20",
         )}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#10b981_0%,#0f766e_45%,#0369a1_100%)]" />
@@ -176,7 +178,7 @@ function InfoCard({ isDark }) {
         "overflow-hidden rounded-3xl border transition-all",
         isDark
           ? "border-white/10 bg-white/[0.04] backdrop-blur-xl"
-          : "border-white/80 bg-white/85 shadow-[0_12px_40px_-24px_rgba(15,23,42,.16)] backdrop-blur"
+          : "border-white/80 bg-white/85 shadow-[0_12px_40px_-24px_rgba(15,23,42,.16)] backdrop-blur",
       )}
     >
       <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500/45 via-teal-500/20 to-transparent" />
@@ -186,14 +188,14 @@ function InfoCard({ isDark }) {
           <BadgeCheck
             className={cx(
               "h-5 w-5",
-              isDark ? "text-emerald-300" : "text-emerald-700"
+              isDark ? "text-emerald-300" : "text-emerald-700",
             )}
             aria-hidden="true"
           />
           <h2
             className={cx(
               "text-base font-extrabold",
-              isDark ? "text-zinc-100" : "text-slate-900"
+              isDark ? "text-zinc-100" : "text-slate-900",
             )}
           >
             Como funciona
@@ -203,7 +205,7 @@ function InfoCard({ isDark }) {
         <ul
           className={cx(
             "space-y-2 text-sm leading-6",
-            isDark ? "text-zinc-300" : "text-slate-700"
+            isDark ? "text-zinc-300" : "text-slate-700",
           )}
         >
           <li>• Informe o e-mail usado no cadastro.</li>
@@ -219,7 +221,7 @@ function InfoCard({ isDark }) {
             "mt-4 flex gap-2 rounded-2xl border p-3 text-xs",
             isDark
               ? "border-white/10 bg-white/5 text-zinc-200"
-              : "border-slate-200 bg-slate-50 text-slate-700"
+              : "border-slate-200 bg-slate-50 text-slate-700",
           )}
         >
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -244,14 +246,37 @@ function ModalNaoRecebiEmail({
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     const timer = setTimeout(() => firstRef.current?.focus?.(), 80);
 
     return () => clearTimeout(timer);
   }, [open]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose?.();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  if (!open) {
+    return null;
+  }
 
   return (
     <div
@@ -260,9 +285,6 @@ function ModalNaoRecebiEmail({
       aria-modal="true"
       aria-labelledby="titulo-nao-recebi"
       aria-describedby="desc-nao-recebi"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose();
-      }}
     >
       <button
         type="button"
@@ -276,7 +298,7 @@ function ModalNaoRecebiEmail({
           "relative w-full max-w-md rounded-3xl border p-6 shadow-2xl backdrop-blur-xl",
           isDark
             ? "border-white/10 bg-zinc-950/92 text-zinc-100"
-            : "border-white/80 bg-white/95 text-slate-900"
+            : "border-white/80 bg-white/95 text-slate-900",
         )}
       >
         <h3
@@ -290,7 +312,7 @@ function ModalNaoRecebiEmail({
           id="desc-nao-recebi"
           className={cx(
             "mb-4 text-center text-sm",
-            isDark ? "text-zinc-300" : "text-slate-600"
+            isDark ? "text-zinc-300" : "text-slate-600",
           )}
         >
           Antes de reenviar, confira:
@@ -299,7 +321,7 @@ function ModalNaoRecebiEmail({
         <ul
           className={cx(
             "space-y-2 text-sm",
-            isDark ? "text-zinc-300" : "text-slate-700"
+            isDark ? "text-zinc-300" : "text-slate-700",
           )}
         >
           <li>• Verifique Spam e Lixeira.</li>
@@ -355,7 +377,7 @@ export default function EsqueciSenha() {
       animate: reduceMotion ? {} : { opacity: 1, y: 0 },
       transition: { duration: 0.35 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   const inputCls = useCallback(
@@ -366,23 +388,22 @@ export default function EsqueciSenha() {
         isDark
           ? "border-white/10 bg-black/30 text-zinc-100 placeholder:text-zinc-500"
           : "border-slate-300 bg-white/90 text-slate-900 shadow-sm placeholder:text-slate-400",
-        hasError ? "border-red-500/60 ring-2 ring-red-500/60" : ""
+        hasError ? "border-red-500/60 ring-2 ring-red-500/60" : "",
       ),
-    [isDark]
+    [isDark],
   );
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message || "";
+    if (liveRef.current) {
+      liveRef.current.textContent = message || "";
+    }
   }, []);
 
   const startCooldown = useCallback((seconds) => {
     setCooldown(seconds);
 
     try {
-      sessionStorage.setItem(
-        COOLDOWN_KEY,
-        String(Date.now() + seconds * 1000)
-      );
+      sessionStorage.setItem(COOLDOWN_KEY, String(Date.now() + seconds * 1000));
     } catch {
       // Sem persistência de cooldown quando sessionStorage estiver indisponível.
     }
@@ -396,12 +417,14 @@ export default function EsqueciSenha() {
       toast.warning(message);
       inputRef.current?.focus?.();
     },
-    [setLive]
+    [setLive],
   );
 
   const enviarSolicitacao = useCallback(
     async ({ closeModal = false } = {}) => {
-      if (loading || cooldown > 0) return;
+      if (loading || cooldown > 0) {
+        return;
+      }
 
       const emailTrim = normalizarEmail(email);
 
@@ -415,7 +438,9 @@ export default function EsqueciSenha() {
         return;
       }
 
-      if (closeModal) setAbrirNaoRecebi(false);
+      if (closeModal) {
+        setAbrirNaoRecebi(false);
+      }
 
       setLoading(true);
       setErro("");
@@ -442,7 +467,7 @@ export default function EsqueciSenha() {
         setLoading(false);
       }
     },
-    [cooldown, email, fail, loading, setLive, startCooldown]
+    [cooldown, email, fail, loading, setLive, startCooldown],
   );
 
   useEffect(() => {
@@ -458,14 +483,18 @@ export default function EsqueciSenha() {
       const until = Number(sessionStorage.getItem(COOLDOWN_KEY) || 0);
       const diff = Math.ceil((until - Date.now()) / 1000);
 
-      if (diff > 0) setCooldown(diff);
+      if (diff > 0) {
+        setCooldown(diff);
+      }
     } catch {
       // noop
     }
   }, []);
 
   useEffect(() => {
-    if (!cooldown) return undefined;
+    if (!cooldown) {
+      return undefined;
+    }
 
     const timer = setInterval(() => {
       setCooldown((current) => Math.max(0, current - 1));
@@ -483,14 +512,14 @@ export default function EsqueciSenha() {
     <main
       className={cx(
         "relative flex min-h-screen flex-col overflow-hidden transition-colors",
-        isDark ? "bg-[#030712] text-zinc-100" : "bg-[#f6f8fb] text-slate-900"
+        isDark ? "bg-[#030712] text-zinc-100" : "bg-[#f6f8fb] text-slate-900",
       )}
     >
       <div
         aria-hidden="true"
         className={cx(
           "pointer-events-none absolute inset-0 overflow-hidden",
-          isDark ? "opacity-100" : "opacity-70"
+          isDark ? "opacity-100" : "opacity-70",
         )}
       >
         <div className="absolute left-[-10%] top-[-10%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/15 blur-3xl" />
@@ -504,7 +533,7 @@ export default function EsqueciSenha() {
           "pointer-events-none absolute inset-0",
           isDark
             ? "bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)]"
-            : "bg-[linear-gradient(rgba(15,23,42,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,.025)_1px,transparent_1px)]"
+            : "bg-[linear-gradient(rgba(15,23,42,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,.025)_1px,transparent_1px)]",
         )}
         style={{ backgroundSize: "36px 36px" }}
       />
@@ -530,7 +559,7 @@ export default function EsqueciSenha() {
                     "rounded-3xl border p-6 transition-colors md:p-8",
                     isDark
                       ? "border-white/10 bg-white/[0.04] shadow-[0_20px_80px_-40px_rgba(0,0,0,.85)] backdrop-blur-xl"
-                      : "border-white/80 bg-white/85 shadow-[0_20px_60px_-30px_rgba(15,23,42,.18)] backdrop-blur-xl"
+                      : "border-white/80 bg-white/85 shadow-[0_20px_60px_-30px_rgba(15,23,42,.18)] backdrop-blur-xl",
                   )}
                 >
                   <div className="flex flex-col items-center gap-3 text-center">
@@ -540,14 +569,14 @@ export default function EsqueciSenha() {
                           "flex h-12 w-12 items-center justify-center rounded-2xl border",
                           isDark
                             ? "border-white/10 bg-emerald-500/10"
-                            : "border-emerald-100 bg-emerald-50"
+                            : "border-emerald-100 bg-emerald-50",
                         )}
                         aria-hidden="true"
                       >
                         <Mail
                           className={cx(
                             "h-6 w-6",
-                            isDark ? "text-emerald-300" : "text-emerald-700"
+                            isDark ? "text-emerald-300" : "text-emerald-700",
                           )}
                         />
                       </div>
@@ -559,7 +588,7 @@ export default function EsqueciSenha() {
                         <p
                           className={cx(
                             "text-xs",
-                            isDark ? "text-zinc-300" : "text-slate-500"
+                            isDark ? "text-zinc-300" : "text-slate-500",
                           )}
                         >
                           A resposta é neutra para proteger os dados dos
@@ -584,7 +613,7 @@ export default function EsqueciSenha() {
                               "rounded-2xl border px-4 py-3 text-center text-sm font-semibold",
                               isDark
                                 ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-emerald-200 bg-emerald-50 text-emerald-700",
                             )}
                             role="status"
                           >
@@ -598,7 +627,7 @@ export default function EsqueciSenha() {
                               "rounded-2xl border px-4 py-3 text-center text-sm font-semibold",
                               isDark
                                 ? "border-red-500/20 bg-red-500/10 text-red-300"
-                                : "border-red-200 bg-red-50 text-red-600"
+                                : "border-red-200 bg-red-50 text-red-600",
                             )}
                             role="alert"
                           >
@@ -624,7 +653,9 @@ export default function EsqueciSenha() {
                         value={email}
                         onChange={(event) => {
                           setEmail(event.target.value);
-                          if (erro) setErro("");
+                          if (erro) {
+                            setErro("");
+                          }
                         }}
                         onPaste={(event) => {
                           const pasted = (
@@ -649,7 +680,7 @@ export default function EsqueciSenha() {
                           id="erro-email"
                           className={cx(
                             "mt-1 text-xs",
-                            isDark ? "text-red-300" : "text-red-600"
+                            isDark ? "text-red-300" : "text-red-600",
                           )}
                         >
                           {erro}
@@ -659,7 +690,7 @@ export default function EsqueciSenha() {
                           id="dica-email"
                           className={cx(
                             "mt-1 text-[11px]",
-                            isDark ? "text-zinc-400" : "text-slate-500"
+                            isDark ? "text-zinc-400" : "text-slate-500",
                           )}
                         >
                           Ex.: nome.sobrenome@santos.sp.gov.br
@@ -672,7 +703,7 @@ export default function EsqueciSenha() {
                         "flex gap-2 rounded-2xl border p-3 text-xs",
                         isDark
                           ? "border-white/10 bg-white/5 text-zinc-200"
-                          : "border-slate-200 bg-slate-50 text-slate-700"
+                          : "border-slate-200 bg-slate-50 text-slate-700",
                       )}
                     >
                       <Clock
@@ -708,7 +739,7 @@ export default function EsqueciSenha() {
                         "block w-full rounded-xl px-3 py-2 text-center text-xs font-semibold underline underline-offset-2 transition focus:outline-none focus:ring-2 focus:ring-emerald-500/70",
                         isDark
                           ? "text-emerald-300 hover:bg-white/5"
-                          : "text-emerald-700 hover:bg-emerald-50"
+                          : "text-emerald-700 hover:bg-emerald-50",
                       )}
                     >
                       Não recebi o e-mail
@@ -730,7 +761,7 @@ export default function EsqueciSenha() {
                         "mt-1 flex gap-2 rounded-2xl border p-3 text-xs",
                         isDark
                           ? "border-white/10 bg-white/5 text-zinc-200"
-                          : "border-slate-200 bg-slate-50 text-slate-700"
+                          : "border-slate-200 bg-slate-50 text-slate-700",
                       )}
                     >
                       <AlertTriangle

@@ -29,7 +29,11 @@ import Botao from "../components/ui/Botao";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifyInfo, notifySuccess } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 import { formatDateTimeBr } from "../utils/dateTime";
 
@@ -92,7 +96,9 @@ function obterMensagemErro(error, fallback) {
 }
 
 function unwrapData(response) {
-  if (!response || typeof response !== "object") return response ?? null;
+  if (!response || typeof response !== "object") {
+    return response ?? null;
+  }
 
   if (
     response.data &&
@@ -129,13 +135,18 @@ function extrairPayload(response) {
 }
 
 function getCertificado(payload) {
-  if (!payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
 
   if (payload.certificado && typeof payload.certificado === "object") {
     return payload.certificado;
   }
 
-  if (payload.data?.certificado && typeof payload.data.certificado === "object") {
+  if (
+    payload.data?.certificado &&
+    typeof payload.data.certificado === "object"
+  ) {
     return payload.data.certificado;
   }
 
@@ -176,13 +187,21 @@ function getCodigoFromPayload(payload, certificado) {
 }
 
 function getStatusCertificado(certificado) {
-  return String(certificado?.status || "").trim().toLowerCase();
+  return String(certificado?.status || "")
+    .trim()
+    .toLowerCase();
 }
 
 function certificadoEstaValido(certificado, payload) {
-  if (payload?.valido === true) return true;
-  if (payload?.validado === true) return true;
-  if (payload?.autentico === true) return true;
+  if (payload?.valido === true) {
+    return true;
+  }
+  if (payload?.validado === true) {
+    return true;
+  }
+  if (payload?.autentico === true) {
+    return true;
+  }
 
   const status = getStatusCertificado(certificado);
 
@@ -190,7 +209,9 @@ function certificadoEstaValido(certificado, payload) {
 }
 
 function formatarCarga(value) {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
 
   const number = Number(value);
 
@@ -202,13 +223,19 @@ function formatarCarga(value) {
 }
 
 function formatarDataPossivel(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const text = String(value).trim();
 
-  if (!text) return "—";
+  if (!text) {
+    return "—";
+  }
 
-  if (/^\d{2}\/\d{2}\/\d{4}/.test(text)) return text;
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(text)) {
+    return text;
+  }
 
   try {
     return formatDateTimeBr(value);
@@ -220,7 +247,9 @@ function formatarDataPossivel(value) {
 function getPeriodo(certificado) {
   const periodo = getCampo(certificado, "periodo");
 
-  if (periodo) return periodo;
+  if (periodo) {
+    return periodo;
+  }
 
   const inicio = getCampo(certificado, "data_inicio", "inicio");
   const fim = getCampo(certificado, "data_fim", "fim");
@@ -229,18 +258,24 @@ function getPeriodo(certificado) {
     return `${safeText(inicio)} a ${safeText(fim)}`;
   }
 
-  if (inicio) return String(inicio);
+  if (inicio) {
+    return String(inicio);
+  }
 
   return "—";
 }
 
 function criarLinkValidacao(codigo) {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") {
+    return "";
+  }
 
-  if (!codigo) return window.location.href;
+  if (!codigo) {
+    return window.location.href;
+  }
 
   return `${window.location.origin}/validar-certificado/${encodeURIComponent(
-    codigo
+    codigo,
   )}`;
 }
 
@@ -337,12 +372,15 @@ function toneByEstado(estado) {
       panel:
         "bg-emerald-50 ring-emerald-100 dark:bg-emerald-950/30 dark:ring-emerald-800/60",
       bar: "from-emerald-700 via-emerald-500 to-cyan-500",
-      soft:
-        "bg-emerald-50 text-emerald-950 ring-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-100 dark:ring-emerald-900/60",
+      soft: "bg-emerald-50 text-emerald-950 ring-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-100 dark:ring-emerald-900/60",
     };
   }
 
-  if (estado === "cancelado" || estado === "anulado" || estado === "substituido") {
+  if (
+    estado === "cancelado" ||
+    estado === "anulado" ||
+    estado === "substituido"
+  ) {
     return {
       icon: AlertTriangle,
       text: "text-amber-700 dark:text-amber-300",
@@ -353,8 +391,7 @@ function toneByEstado(estado) {
       panel:
         "bg-amber-50 ring-amber-100 dark:bg-amber-950/30 dark:ring-amber-800/60",
       bar: "from-amber-700 via-orange-500 to-rose-500",
-      soft:
-        "bg-amber-50 text-amber-950 ring-amber-100 dark:bg-amber-950/20 dark:text-amber-100 dark:ring-amber-900/60",
+      soft: "bg-amber-50 text-amber-950 ring-amber-100 dark:bg-amber-950/20 dark:text-amber-100 dark:ring-amber-900/60",
     };
   }
 
@@ -365,11 +402,9 @@ function toneByEstado(estado) {
       "bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-800/60",
     badge:
       "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
-    panel:
-      "bg-rose-50 ring-rose-100 dark:bg-rose-950/30 dark:ring-rose-800/60",
+    panel: "bg-rose-50 ring-rose-100 dark:bg-rose-950/30 dark:ring-rose-800/60",
     bar: "from-rose-800 via-rose-600 to-orange-500",
-    soft:
-      "bg-rose-50 text-rose-950 ring-rose-100 dark:bg-rose-950/20 dark:text-rose-100 dark:ring-rose-900/60",
+    soft: "bg-rose-50 text-rose-950 ring-rose-100 dark:bg-rose-950/20 dark:text-rose-100 dark:ring-rose-900/60",
   };
 }
 
@@ -382,7 +417,7 @@ function Badge({ tone, children }) {
     <span
       className={cx(
         "inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black ring-1",
-        tone
+        tone,
       )}
     >
       {children}
@@ -391,13 +426,15 @@ function Badge({ tone, children }) {
 }
 
 function InfoItem({ icon: Icon, label, value, mono = false, full = false }) {
-  if (!value || value === "—") return null;
+  if (!value || value === "—") {
+    return null;
+  }
 
   return (
     <div
       className={cx(
         "rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200 dark:bg-zinc-950 dark:ring-zinc-800 print:bg-white print:ring-slate-300",
-        full && "sm:col-span-2"
+        full && "sm:col-span-2",
       )}
     >
       <dt className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-zinc-400">
@@ -408,7 +445,7 @@ function InfoItem({ icon: Icon, label, value, mono = false, full = false }) {
       <dd
         className={cx(
           "mt-1.5 break-words text-sm font-bold leading-relaxed text-slate-900 dark:text-zinc-100",
-          mono && "font-mono text-xs"
+          mono && "font-mono text-xs",
         )}
       >
         {value}
@@ -447,7 +484,8 @@ function HeroValidacao({ codigo }) {
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85 sm:text-base print:text-slate-700">
               Consulte a autenticidade de certificados eletrônicos emitidos pela
-              Escola Municipal de Saúde Pública da Secretaria Municipal de Saúde.
+              Escola Municipal de Saúde Pública da Secretaria Municipal de
+              Saúde.
             </p>
           </div>
 
@@ -479,14 +517,14 @@ function SeloDocumental({ statusInfo, codigoValidacao, numero }) {
     <aside
       className={cx(
         "rounded-3xl p-4 ring-1 print:bg-white print:ring-slate-300",
-        visual.soft
+        visual.soft,
       )}
     >
       <div className="flex items-start gap-3">
         <div
           className={cx(
             "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1",
-            visual.iconBox
+            visual.iconBox,
           )}
         >
           <Icon className="h-5 w-5" aria-hidden="true" />
@@ -540,7 +578,7 @@ function ResultadoValidacao({
     "nome",
     "participante",
     "participante_nome",
-    "usuario_nome"
+    "usuario_nome",
   );
 
   const identificador = getCampo(
@@ -548,7 +586,7 @@ function ResultadoValidacao({
     "identificador_mascarado",
     "cpf_mascarado",
     "documento_mascarado",
-    "cpf"
+    "cpf",
   );
 
   const evento = getCampo(
@@ -557,7 +595,7 @@ function ResultadoValidacao({
     "evento",
     "curso",
     "titulo",
-    "nome_evento"
+    "nome_evento",
   );
 
   const turma = getCampo(certificado, "turma_nome", "nome_turma", "turma");
@@ -570,7 +608,7 @@ function ResultadoValidacao({
     "emitido_em",
     "gerado_em",
     "data_emissao",
-    "criado_em"
+    "criado_em",
   );
 
   const enviadoEm = getCampo(certificado, "enviado_em");
@@ -590,7 +628,10 @@ function ResultadoValidacao({
       aria-live="polite"
       aria-atomic="true"
     >
-      <div className={cx("h-2 bg-gradient-to-r", visual.bar)} aria-hidden="true" />
+      <div
+        className={cx("h-2 bg-gradient-to-r", visual.bar)}
+        aria-hidden="true"
+      />
 
       <div className="p-5 sm:p-7">
         <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-start">
@@ -704,11 +745,7 @@ function ResultadoValidacao({
                 full
               />
 
-              <InfoItem
-                label="Algoritmo de hash"
-                value={algoritmoHash}
-                mono
-              />
+              <InfoItem label="Algoritmo de hash" value={algoritmoHash} mono />
 
               <InfoItem label="Hash do PDF" value={hashPdf} mono full />
               <InfoItem label="Hash dos dados" value={hashDados} mono full />
@@ -855,7 +892,7 @@ export default function ValidarCertificado() {
 
   const codigo = useMemo(() => {
     return normalizarCodigo(
-      params?.codigo_validacao || searchParams.get("codigo_validacao") || ""
+      params?.codigo_validacao || searchParams.get("codigo_validacao") || "",
     );
   }, [params?.codigo_validacao, searchParams]);
 
@@ -901,7 +938,7 @@ export default function ValidarCertificado() {
     try {
       validarFacade(
         "api.certificado.validarPublico",
-        api?.certificado?.validarPublico
+        api?.certificado?.validarPublico,
       );
 
       setStatus("loading");
@@ -913,7 +950,9 @@ export default function ValidarCertificado() {
       const response = await api.certificado.validarPublico(codigo);
       const data = extrairPayload(response);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setPayload(data);
       setStatus("done");
@@ -921,11 +960,13 @@ export default function ValidarCertificado() {
     } catch (error) {
       console.error("[ValidarCertificado] erro:", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = obterMensagemErro(
         error,
-        "Não foi possível validar o certificado. Confira o código e tente novamente."
+        "Não foi possível validar o certificado. Confira o código e tente novamente.",
       );
 
       setErro(message);
@@ -981,7 +1022,7 @@ export default function ValidarCertificado() {
           <div
             className={cx(
               "h-full w-1/3 bg-emerald-700",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -994,7 +1035,11 @@ export default function ValidarCertificado() {
         {loading ? (
           <EstadoCarregando reduceMotion={reduceMotion} />
         ) : status === "erro" ? (
-          <EstadoErro erro={erro} codigo={codigo} onRetry={validarCertificado} />
+          <EstadoErro
+            erro={erro}
+            codigo={codigo}
+            onRetry={validarCertificado}
+          />
         ) : (
           <ResultadoValidacao
             statusInfo={statusInfo}

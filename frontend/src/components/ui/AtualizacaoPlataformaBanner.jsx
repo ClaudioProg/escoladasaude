@@ -9,11 +9,15 @@ import { useState } from "react";
 import { usePlatformVersionCheck } from "../../hooks/usePlatformVersionCheck";
 
 function formatarBuildAt(buildAt) {
-  if (!buildAt) return null;
+  if (!buildAt) {
+    return null;
+  }
 
   const data = new Date(buildAt);
 
-  if (Number.isNaN(data.getTime())) return null;
+  if (Number.isNaN(data.getTime())) {
+    return null;
+  }
 
   return data.toLocaleString("pt-BR", {
     dateStyle: "short",
@@ -28,12 +32,16 @@ export default function AtualizacaoPlataformaBanner() {
   const [oculto, setOculto] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
 
-  if (!novaVersaoDisponivel || oculto) return null;
+  if (!novaVersaoDisponivel || oculto) {
+    return null;
+  }
 
   const buildFormatado = formatarBuildAt(versaoNova?.buildAt);
 
   const handleAtualizar = async () => {
-    if (atualizando) return;
+    if (atualizando) {
+      return;
+    }
 
     setAtualizando(true);
     await atualizarPlataforma();
@@ -52,8 +60,7 @@ export default function AtualizacaoPlataformaBanner() {
           </p>
 
           <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-            Atualize para carregar os arquivos mais recentes da Escola da
-            Saúde.
+            Atualize para carregar os arquivos mais recentes da Escola da Saúde.
             {buildFormatado ? (
               <>
                 {" "}

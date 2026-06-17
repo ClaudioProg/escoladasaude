@@ -35,7 +35,7 @@ const router = express.Router();
 
 if (typeof loginController.loginUsuario !== "function") {
   throw new Error(
-    "[loginRoute] Handler obrigatório ausente: loginController.loginUsuario"
+    "[loginRoute] Handler obrigatório ausente: loginController.loginUsuario",
   );
 }
 
@@ -43,10 +43,8 @@ if (typeof loginController.loginUsuario !== "function") {
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -81,7 +79,7 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: rateLimitMessage(
     "LOGIN-429-LIMITE",
-    "Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente."
+    "Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.",
   ),
 });
 
@@ -97,17 +95,14 @@ router.post(
   loginLimiter,
   noStore,
   routeTag("loginRoute:v2.0:POST /"),
-  asyncHandler(loginController.loginUsuario)
+  asyncHandler(loginController.loginUsuario),
 );
 
 /**
  * HEAD /api/login
  */
-router.head(
-  "/",
-  noStore,
-  routeTag("loginRoute:v2.0:HEAD /"),
-  (_req, res) => res.sendStatus(204)
+router.head("/", noStore, routeTag("loginRoute:v2.0:HEAD /"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 module.exports = router;

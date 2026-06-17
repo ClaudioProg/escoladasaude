@@ -40,8 +40,7 @@ const VARIANT_CLASSES = {
     "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-100",
   success:
     "border-emerald-800/40 bg-emerald-950 text-white dark:border-emerald-700/50",
-  accent:
-    "border-white/10 bg-gradient-to-br text-white",
+  accent: "border-white/10 bg-gradient-to-br text-white",
 };
 
 const ELEVATION_CLASSES = {
@@ -77,26 +76,39 @@ function classNames(...classes) {
 }
 
 function getRel({ rel, target }) {
-  if (rel) return rel;
+  if (rel) {
+    return rel;
+  }
   return target === "_blank" ? "noopener noreferrer" : undefined;
 }
 
 function resolveTag({ as, href, onClick }) {
-  if (href) return "a";
-  if (onClick) return "button";
+  if (href) {
+    return "a";
+  }
+  if (onClick) {
+    return "button";
+  }
   return as || "article";
 }
 
 function SkeletonContent({ variant }) {
-  const shimmer = variant === "accent" || variant === "success"
-    ? "bg-white/15"
-    : "bg-slate-200/80 dark:bg-white/10";
+  const shimmer =
+    variant === "accent" || variant === "success"
+      ? "bg-white/15"
+      : "bg-slate-200/80 dark:bg-white/10";
 
   return (
     <div className="space-y-4" aria-hidden="true">
-      <div className={classNames("h-5 w-2/5 animate-pulse rounded-xl", shimmer)} />
-      <div className={classNames("h-4 w-3/5 animate-pulse rounded-xl", shimmer)} />
-      <div className={classNames("h-32 w-full animate-pulse rounded-2xl", shimmer)} />
+      <div
+        className={classNames("h-5 w-2/5 animate-pulse rounded-xl", shimmer)}
+      />
+      <div
+        className={classNames("h-4 w-3/5 animate-pulse rounded-xl", shimmer)}
+      />
+      <div
+        className={classNames("h-32 w-full animate-pulse rounded-2xl", shimmer)}
+      />
     </div>
   );
 }
@@ -138,7 +150,7 @@ const Card = forwardRef(function Card(
     as,
     ...props
   },
-  ref
+  ref,
 ) {
   const interactive = Boolean(href || onClick);
   const Tag = resolveTag({ as, href, onClick });
@@ -182,7 +194,7 @@ const Card = forwardRef(function Card(
         interactive && focusClass,
         disabledClass,
         paddingClass,
-        className
+        className,
       )}
       {...(href
         ? {
@@ -226,7 +238,7 @@ const Card = forwardRef(function Card(
               "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm backdrop-blur",
               variant === "accent" || variant === "success"
                 ? "bg-white/15 text-white ring-1 ring-white/20"
-                : "bg-slate-950/80 text-white ring-1 ring-black/10 dark:bg-white/15 dark:ring-white/10"
+                : "bg-slate-950/80 text-white ring-1 ring-black/10 dark:bg-white/15 dark:ring-white/10",
             )}
           >
             {badge}
@@ -240,7 +252,7 @@ const Card = forwardRef(function Card(
             "overflow-hidden",
             padding !== "none" && "-mx-4 -mt-4 mb-4 sm:-mx-5 sm:-mt-5",
             padding === "lg" && "-mx-5 -mt-5 sm:-mx-6 sm:-mt-6",
-            shapeClass
+            shapeClass,
           )}
         >
           {headerMedia}
@@ -260,7 +272,7 @@ const Card = forwardRef(function Card(
                       "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl",
                       variant === "accent" || variant === "success"
                         ? "bg-white/15 text-white ring-1 ring-white/20"
-                        : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700"
+                        : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700",
                     )}
                     aria-hidden="true"
                   >
@@ -278,7 +290,7 @@ const Card = forwardRef(function Card(
                           "text-base font-black tracking-tight sm:text-lg",
                           variant === "accent" || variant === "success"
                             ? "text-white"
-                            : "text-slate-950 dark:text-white"
+                            : "text-slate-950 dark:text-white",
                         )}
                       >
                         {title}
@@ -291,7 +303,7 @@ const Card = forwardRef(function Card(
                           "mt-1 text-sm leading-relaxed",
                           variant === "accent" || variant === "success"
                             ? "text-white/85"
-                            : "text-slate-500 dark:text-slate-400"
+                            : "text-slate-500 dark:text-slate-400",
                         )}
                       >
                         {subtitle}
@@ -301,9 +313,7 @@ const Card = forwardRef(function Card(
                 )}
               </div>
 
-              {headerActions && (
-                <div className="shrink-0">{headerActions}</div>
-              )}
+              {headerActions && <div className="shrink-0">{headerActions}</div>}
             </header>
           )}
 
@@ -316,7 +326,7 @@ const Card = forwardRef(function Card(
                 divider &&
                   (variant === "accent" || variant === "success"
                     ? "border-t border-white/20"
-                    : "border-t border-slate-200 dark:border-slate-800")
+                    : "border-t border-slate-200 dark:border-slate-800"),
               )}
             >
               {footer}
@@ -336,7 +346,7 @@ const Card = forwardRef(function Card(
       className={classNames(
         "rounded-[calc(1.5rem+1px)] bg-gradient-to-br from-amber-400 via-rose-500 to-indigo-500 p-[1px]",
         shape === "pill" && "rounded-[calc(2rem+1px)]",
-        shape === "square" && "rounded-[calc(1rem+1px)]"
+        shape === "square" && "rounded-[calc(1rem+1px)]",
       )}
     >
       {content}
@@ -347,7 +357,13 @@ const Card = forwardRef(function Card(
 Card.propTypes = {
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
-  variant: PropTypes.oneOf(["default", "outlined", "muted", "success", "accent"]),
+  variant: PropTypes.oneOf([
+    "default",
+    "outlined",
+    "muted",
+    "success",
+    "accent",
+  ]),
   accent: PropTypes.oneOf([
     "emerald",
     "violet",

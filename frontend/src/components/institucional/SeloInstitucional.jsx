@@ -126,24 +126,20 @@ function SeloInstitucional({
   const glowClass = GLOW_CLASSES[glowStrength] || GLOW_CLASSES.md;
   const paddingY = compact ? "py-2" : "py-3";
 
-  const layoutClass =
-    align === "start"
-      ? "justify-start"
-      : "justify-between";
+  const layoutClass = align === "start" ? "justify-start" : "justify-between";
 
   return (
-    <Tag
-      className={classNames("w-full", className)}
-      aria-label={ariaLabel}
-    >
+    <Tag className={classNames("w-full", className)} aria-label={ariaLabel}>
       <div className="relative" aria-hidden="true">
-        <div className={classNames("h-[3px] w-full bg-gradient-to-r", theme.bar)} />
+        <div
+          className={classNames("h-[3px] w-full bg-gradient-to-r", theme.bar)}
+        />
 
         <div
           className={classNames(
             "pointer-events-none absolute inset-x-0 bg-gradient-to-r",
             glowClass,
-            theme.glow
+            theme.glow,
           )}
         />
 
@@ -155,7 +151,7 @@ function SeloInstitucional({
           className={classNames(
             "flex flex-wrap items-center gap-3",
             layoutClass,
-            paddingY
+            paddingY,
           )}
         >
           <div className="flex min-w-0 items-center gap-2">
@@ -163,7 +159,7 @@ function SeloInstitucional({
               className={classNames(
                 "h-2.5 w-2.5 shrink-0 rounded-full ring-4",
                 theme.dot,
-                theme.ring
+                theme.ring,
               )}
               aria-hidden="true"
             />
@@ -172,7 +168,7 @@ function SeloInstitucional({
               <span
                 className={classNames(
                   "truncate text-sm font-black tracking-tight",
-                  theme.title
+                  theme.title,
                 )}
               >
                 {appName}
@@ -182,7 +178,7 @@ function SeloInstitucional({
                 <span
                   className={classNames(
                     "hidden truncate text-xs font-medium sm:inline",
-                    theme.subtitle
+                    theme.subtitle,
                   )}
                 >
                   {subtitle}
@@ -195,7 +191,7 @@ function SeloInstitucional({
             <div
               className={classNames(
                 "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-black shadow-sm backdrop-blur",
-                theme.badge
+                theme.badge,
               )}
               aria-label={badgeText}
               title={badgeText}

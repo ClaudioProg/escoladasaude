@@ -51,7 +51,7 @@ const { listar, criar, atualizar, excluir } = calendarioController;
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[calendarioRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[calendarioRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
@@ -63,7 +63,7 @@ for (const [nome, handler] of Object.entries({
 })) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[calendarioRoute] Controller inválido. Função ausente: ${nome}.`
+      `[calendarioRoute] Controller inválido. Função ausente: ${nome}.`,
     );
   }
 }
@@ -96,7 +96,9 @@ function noStore(_req, res, next) {
 
 function requireAdministrador(req, res, next) {
   const requestId = gerarRequestId();
-  const perfil = String(req.user?.perfil || "").trim().toLowerCase();
+  const perfil = String(req.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 
   if (perfil !== "administrador") {
     return res.status(403).json({
@@ -155,10 +157,10 @@ const calendarioLimiter = rateLimit({
     return res.status(429).json({
       ok: false,
       data: null,
-      message: "Muitas requisições. Aguarde alguns instantes e tente novamente.",
+      message:
+        "Muitas requisições. Aguarde alguns instantes e tente novamente.",
       code: "RATE_LIMIT_CALENDARIO",
-      adminHint:
-        "Rate limit aplicado ao módulo de calendário institucional.",
+      adminHint: "Rate limit aplicado ao módulo de calendário institucional.",
       details: {
         usuario_id: req.user?.id || null,
       },

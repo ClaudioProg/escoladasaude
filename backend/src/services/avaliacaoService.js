@@ -122,7 +122,7 @@ function uniqueIntIds(values) {
     ...new Set(
       values
         .map((value) => Number(value))
-        .filter((value) => Number.isInteger(value) && value > 0)
+        .filter((value) => Number.isInteger(value) && value > 0),
     ),
   ];
 }
@@ -136,7 +136,7 @@ async function nowSP(conn = db) {
       'YYYY-MM-DD HH24:MI:SS'
     ) AS agora_sp
     `,
-    [TZ]
+    [TZ],
   );
 
   return result?.agora_sp || null;
@@ -177,7 +177,7 @@ async function carregarMapaQuestionariosPorEvento(conn = db, eventoIds = []) {
     FROM questionarios_evento q
     WHERE q.evento_id = ANY($1::int[])
     `,
-    [ids]
+    [ids],
   );
 
   const mapa = new Map();
@@ -193,7 +193,9 @@ async function carregarMapaQuestionariosPorEvento(conn = db, eventoIds = []) {
       id: toIntId(row.id),
       evento_id: eventoId,
       obrigatorio: row.obrigatorio === true,
-      status: String(row.status || "").trim().toLowerCase(),
+      status: String(row.status || "")
+        .trim()
+        .toLowerCase(),
       min_nota: row.min_nota != null ? toNumOrNull(row.min_nota) : null,
       tentativas_max:
         row.tentativas_max != null ? toNumOrNull(row.tentativas_max) : null,
@@ -227,7 +229,7 @@ async function carregarMapaTentativasAprovadas(
   conn = db,
   usuarioId,
   questionarioIds = [],
-  turmaIds = []
+  turmaIds = [],
 ) {
   const uid = toIntId(usuarioId);
   const qIds = uniqueIntIds(questionarioIds);
@@ -253,7 +255,7 @@ async function carregarMapaTentativasAprovadas(
       AND tq.turma_id = ANY($3::int[])
     ORDER BY tq.id DESC
     `,
-    [uid, qIds, tIds]
+    [uid, qIds, tIds],
   );
 
   const mapa = new Map();
@@ -273,7 +275,9 @@ async function carregarMapaTentativasAprovadas(
         id: toIntId(row.id),
         questionario_id: questionarioId,
         turma_id: turmaId,
-        status: String(row.status || "").trim().toLowerCase(),
+        status: String(row.status || "")
+          .trim()
+          .toLowerCase(),
         nota: row.nota != null ? toNumOrNull(row.nota) : null,
       });
     }
@@ -410,7 +414,7 @@ async function buscarAvaliacaoPendentes(usuarioId, opts = {}) {
         AND COALESCE(po.dias_presentes, 0) >= CEIL(0.75 * te.total)
       ORDER BY t.data_fim DESC, t.id DESC
       `,
-      [uid, TZ]
+      [uid, TZ],
     );
 
     if (!rows.length) {
@@ -428,20 +432,20 @@ async function buscarAvaliacaoPendentes(usuarioId, opts = {}) {
 
     const mapaQuestionarios = await carregarMapaQuestionariosPorEvento(
       conn,
-      eventoIds
+      eventoIds,
     );
 
     const questionarioIds = uniqueIntIds(
       Array.from(mapaQuestionarios.values()).map(
-        (questionario) => questionario.id
-      )
+        (questionario) => questionario.id,
+      ),
     );
 
     const mapaTentativas = await carregarMapaTentativasAprovadas(
       conn,
       uid,
       questionarioIds,
-      turmaIds
+      turmaIds,
     );
 
     const filtradas = linhasBase
@@ -465,7 +469,7 @@ async function buscarAvaliacaoPendentes(usuarioId, opts = {}) {
         }
 
         const tentativaKey = `${Number(questionario.id)}|${Number(
-          row.turma_id
+          row.turma_id,
         )}`;
 
         const tentativa = mapaTentativas.get(tentativaKey) || null;

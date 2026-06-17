@@ -163,7 +163,9 @@ function cx(...classes) {
 }
 
 function normalizarBusca(value) {
-  return String(value || "").trim().slice(0, 80);
+  return String(value || "")
+    .trim()
+    .slice(0, 80);
 }
 
 function normalizarTexto(value) {
@@ -177,8 +179,11 @@ function criarSearchUrl(pathname, search, q) {
   const params = new URLSearchParams(search || "");
   const termo = normalizarBusca(q);
 
-  if (termo) params.set("q", termo);
-  else params.delete("q");
+  if (termo) {
+    params.set("q", termo);
+  } else {
+    params.delete("q");
+  }
 
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;
@@ -189,7 +194,7 @@ function Card({ children, className = "" }) {
     <section
       className={cx(
         "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/70 sm:p-6",
-        className
+        className,
       )}
     >
       {children}
@@ -254,7 +259,7 @@ function ActionButton({ to, icon: Icon, children, variant = "primary" }) {
       to={to}
       className={cx(
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4",
-        variants[variant]
+        variants[variant],
       )}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
@@ -281,11 +286,13 @@ export default function Ajuda() {
   const perguntasFiltradas = useMemo(() => {
     const termo = normalizarTexto(termoBusca);
 
-    if (!termo) return FAQ_ITEMS;
+    if (!termo) {
+      return FAQ_ITEMS;
+    }
 
     return FAQ_ITEMS.filter((item) => {
       const conteudo = normalizarTexto(
-        `${item.pergunta} ${item.resposta} ${(item.tags || []).join(" ")}`
+        `${item.pergunta} ${item.resposta} ${(item.tags || []).join(" ")}`,
       );
 
       return conteudo.includes(termo);
@@ -300,7 +307,9 @@ export default function Ajuda() {
     const atual = `${location.pathname}${location.search || ""}`;
     const nova = criarSearchUrl(location.pathname, location.search, termoBusca);
 
-    if (nova !== atual) navigate(nova, { replace: true });
+    if (nova !== atual) {
+      navigate(nova, { replace: true });
+    }
   }, [termoBusca, navigate, location.pathname, location.search]);
 
   useEffect(() => {
@@ -319,7 +328,9 @@ export default function Ajuda() {
   }, []);
 
   useEffect(() => {
-    if (!liveRef.current) return;
+    if (!liveRef.current) {
+      return;
+    }
 
     if (!termoBusca) {
       liveRef.current.textContent = "Busca limpa.";
@@ -418,7 +429,7 @@ export default function Ajuda() {
                       "whitespace-nowrap rounded-full border px-3 py-2 text-xs font-black transition",
                       ativo
                         ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800",
                     )}
                   >
                     {chip}

@@ -64,7 +64,7 @@ const {
 
 if (typeof authMiddleware !== "function") {
   throw new Error(
-    "[salaRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função."
+    "[salaRoute] authMiddleware inválido. O export oficial de ../auth/authMiddleware deve ser uma função.",
   );
 }
 
@@ -86,7 +86,9 @@ for (const [nome, handler] of Object.entries({
   executarCancelamentoSemConfirmacaoSala,
 })) {
   if (typeof handler !== "function") {
-    throw new Error(`[salaRoute] Controller inválido. Função ausente: ${nome}.`);
+    throw new Error(
+      `[salaRoute] Controller inválido. Função ausente: ${nome}.`,
+    );
   }
 }
 
@@ -141,7 +143,9 @@ function validarIdParam(req, res, next) {
 
 function requireAdministrador(req, res, next) {
   const requestId = gerarRequestId();
-  const perfil = String(req.user?.perfil || "").trim().toLowerCase();
+  const perfil = String(req.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 
   if (perfil !== "administrador") {
     return res.status(403).json({
@@ -180,11 +184,7 @@ router.use(noStore);
  * - mes
  * - sala opcional: auditorio | sala_reuniao
  */
-router.get(
-  "/agenda-admin",
-  requireAdministrador,
-  wrap(listarAgendaAdmin)
-);
+router.get("/agenda-admin", requireAdministrador, wrap(listarAgendaAdmin));
 
 /**
  * Agenda do usuário.
@@ -194,10 +194,7 @@ router.get(
  * - mes
  * - sala opcional: auditorio | sala_reuniao
  */
-router.get(
-  "/agenda-usuario",
-  wrap(listarAgendaUsuario)
-);
+router.get("/agenda-usuario", wrap(listarAgendaUsuario));
 
 /* =========================================================================
    Usuário
@@ -206,10 +203,7 @@ router.get(
 /**
  * Solicitar nova reserva.
  */
-router.post(
-  "/solicitar",
-  wrap(solicitarReserva)
-);
+router.post("/solicitar", wrap(solicitarReserva));
 
 /**
  * Atualizar a própria solicitação.
@@ -218,11 +212,7 @@ router.post(
  * - somente solicitante;
  * - somente status pendente.
  */
-router.put(
-  "/minhas/:id",
-  validarIdParam,
-  wrap(atualizarReservaUsuario)
-);
+router.put("/minhas/:id", validarIdParam, wrap(atualizarReservaUsuario));
 
 /**
  * Cancelar a própria solicitação.
@@ -232,11 +222,7 @@ router.put(
  * - status = cancelado;
  * - sem DELETE real.
  */
-router.delete(
-  "/minhas/:id",
-  validarIdParam,
-  wrap(excluirReservaUsuario)
-);
+router.delete("/minhas/:id", validarIdParam, wrap(excluirReservaUsuario));
 
 /* =========================================================================
    Confirmação de uso da sala
@@ -255,7 +241,7 @@ router.delete(
 router.post(
   "/minhas/:id/confirmar-uso",
   validarIdParam,
-  wrap(confirmarUsoSalaUsuario)
+  wrap(confirmarUsoSalaUsuario),
 );
 
 /**
@@ -269,7 +255,7 @@ router.post(
 router.get(
   "/confirmacao-uso/diagnostico",
   requireAdministrador,
-  wrap(diagnosticarConfirmacaoUsoSala)
+  wrap(diagnosticarConfirmacaoUsoSala),
 );
 
 /**
@@ -282,7 +268,7 @@ router.get(
 router.post(
   "/confirmacao-uso/executar",
   requireAdministrador,
-  wrap(executarConfirmacaoUsoSala)
+  wrap(executarConfirmacaoUsoSala),
 );
 
 /**
@@ -296,7 +282,7 @@ router.post(
 router.get(
   "/confirmacao-uso/cancelamento/diagnostico",
   requireAdministrador,
-  wrap(diagnosticarCancelamentoSemConfirmacaoSala)
+  wrap(diagnosticarCancelamentoSemConfirmacaoSala),
 );
 
 /**
@@ -309,7 +295,7 @@ router.get(
 router.post(
   "/confirmacao-uso/cancelamento/executar",
   requireAdministrador,
-  wrap(executarCancelamentoSemConfirmacaoSala)
+  wrap(executarCancelamentoSemConfirmacaoSala),
 );
 
 /* =========================================================================
@@ -319,11 +305,7 @@ router.post(
 /**
  * Criar reserva administrativa.
  */
-router.post(
-  "/admin/reservas",
-  requireAdministrador,
-  wrap(criarReservaAdmin)
-);
+router.post("/admin/reservas", requireAdministrador, wrap(criarReservaAdmin));
 
 /**
  * Atualizar reserva administrativa.
@@ -332,7 +314,7 @@ router.put(
   "/admin/reservas/:id",
   requireAdministrador,
   validarIdParam,
-  wrap(atualizarReservaAdmin)
+  wrap(atualizarReservaAdmin),
 );
 
 /**
@@ -347,7 +329,7 @@ router.delete(
   "/admin/reservas/:id",
   requireAdministrador,
   validarIdParam,
-  wrap(excluirReservaAdmin)
+  wrap(excluirReservaAdmin),
 );
 
 /**
@@ -357,7 +339,7 @@ router.get(
   "/admin/reservas/:id/termo-pdf",
   requireAdministrador,
   validarIdParam,
-  wrap(visualizarTermoReservaAdmin)
+  wrap(visualizarTermoReservaAdmin),
 );
 
 module.exports = router;

@@ -1,4 +1,5 @@
-// 📁 src/utils/downloadArquivo.js — v2.0
+// 📁 src/utils/downloadArquivo.js — v2.1
+// Atualizado em: 16/06/2026
 
 /**
  * Utilitários genéricos para download de arquivos no frontend.
@@ -25,7 +26,7 @@ export function parseFilenameFromContentDisposition(contentDisposition = "") {
   if (filenameStar?.[1]) {
     try {
       return decodeURIComponent(
-        filenameStar[1].trim().replace(/^["']|["']$/g, "")
+        filenameStar[1].trim().replace(/^["']|["']$/g, ""),
       );
     } catch {
       // segue para filename simples
@@ -44,17 +45,37 @@ export function parseFilenameFromContentDisposition(contentDisposition = "") {
 export function inferExtFromContentType(contentType = "") {
   const value = String(contentType || "").toLowerCase();
 
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
-  if (value.includes("pdf")) return ".pdf";
-  if (value.includes("presentation") || value.includes("powerpoint")) return ".pptx";
-  if (value.includes("zip")) return ".zip";
-  if (value.includes("msword")) return ".doc";
-  if (value.includes("wordprocessingml")) return ".docx";
-  if (value.includes("spreadsheetml") || value.includes("excel")) return ".xlsx";
-  if (value.includes("image/png")) return ".png";
-  if (value.includes("image/jpeg")) return ".jpg";
-  if (value.includes("image/webp")) return ".webp";
+  if (value.includes("pdf")) {
+    return ".pdf";
+  }
+  if (value.includes("presentation") || value.includes("powerpoint")) {
+    return ".pptx";
+  }
+  if (value.includes("zip")) {
+    return ".zip";
+  }
+  if (value.includes("msword")) {
+    return ".doc";
+  }
+  if (value.includes("wordprocessingml")) {
+    return ".docx";
+  }
+  if (value.includes("spreadsheetml") || value.includes("excel")) {
+    return ".xlsx";
+  }
+  if (value.includes("image/png")) {
+    return ".png";
+  }
+  if (value.includes("image/jpeg")) {
+    return ".jpg";
+  }
+  if (value.includes("image/webp")) {
+    return ".webp";
+  }
 
   return "";
 }
@@ -89,7 +110,7 @@ export function downloadBlob(filename, blob) {
 
   const safeFilename = ensureFilenameExtension(
     sanitizeFilename(filename, "arquivo"),
-    blob.type
+    blob.type,
   );
 
   const url = window.URL.createObjectURL(blob);

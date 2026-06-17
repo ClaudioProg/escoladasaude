@@ -74,16 +74,18 @@ export default function ThemeTogglePills({
 
   const selectTheme = useCallback(
     (nextTheme) => {
-      if (!VALID_THEMES.has(nextTheme)) return;
+      if (!VALID_THEMES.has(nextTheme)) {
+        return;
+      }
       setTheme(nextTheme);
     },
-    [setTheme]
+    [setTheme],
   );
 
   const handleKeyDown = useCallback(
     (event) => {
       const currentIndex = THEME_OPTIONS.findIndex(
-        (option) => option.key === safeTheme
+        (option) => option.key === safeTheme,
       );
 
       const safeIndex = currentIndex >= 0 ? currentIndex : 2;
@@ -116,7 +118,7 @@ export default function ThemeTogglePills({
         selectTheme(THEME_OPTIONS[THEME_OPTIONS.length - 1].key);
       }
     },
-    [safeTheme, selectTheme]
+    [safeTheme, selectTheme],
   );
 
   const shellClass = isGlass
@@ -133,9 +135,10 @@ export default function ThemeTogglePills({
         "relative inline-grid grid-cols-3 items-stretch rounded-2xl p-1",
         "select-none",
         shellClass,
-        className
+        className,
       )}
       role="radiogroup"
+      tabIndex={0}
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
       data-theme-current={safeTheme}
@@ -146,7 +149,7 @@ export default function ThemeTogglePills({
         className={classNames(
           "pointer-events-none absolute bottom-1 left-1 top-1 rounded-xl",
           "transition-transform duration-200 ease-out motion-reduce:transition-none",
-          thumbClass
+          thumbClass,
         )}
         style={{
           width: "calc((100% - 0.5rem) / 3)",
@@ -160,11 +163,11 @@ export default function ThemeTogglePills({
         const itemClass = isGlass
           ? classNames(
               "text-white/90",
-              active ? "text-white" : "hover:bg-white/10 hover:text-white"
+              active ? "text-white" : "hover:bg-white/10 hover:text-white",
             )
           : classNames(
               active ? "text-white" : "text-slate-700 dark:text-slate-200",
-              !active && "hover:bg-slate-100 dark:hover:bg-white/10"
+              !active && "hover:bg-slate-100 dark:hover:bg-white/10",
             );
 
         const title =
@@ -186,7 +189,7 @@ export default function ThemeTogglePills({
               "text-xs font-black transition",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
               "active:scale-[0.99] motion-reduce:active:scale-100",
-              itemClass
+              itemClass,
             )}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

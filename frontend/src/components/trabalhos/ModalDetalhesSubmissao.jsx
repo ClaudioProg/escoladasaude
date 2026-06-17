@@ -24,7 +24,14 @@
 // - acessível;
 // - anti-fuso sem new Date("YYYY-MM-DD").
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -57,7 +64,12 @@ function cx(...classes) {
 }
 
 function unwrap(response, fallback = null) {
-  if (response && typeof response === "object" && "ok" in response && "data" in response) {
+  if (
+    response &&
+    typeof response === "object" &&
+    "ok" in response &&
+    "data" in response
+  ) {
     return response.data ?? fallback;
   }
 
@@ -88,16 +100,21 @@ function fmt(value, fallback = "—") {
 
 function fmtNum(value, digits = 2) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) {
+    return "—";
+  }
   return n.toFixed(digits);
 }
 
 function fmtDateTimeBR(input) {
   const text = String(input || "").trim();
 
-  if (!text) return "—";
+  if (!text) {
+    return "—";
+  }
 
-  const dateTime = /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::\d{2})?/.exec(text);
+  const dateTime =
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::\d{2})?/.exec(text);
 
   if (dateTime) {
     return `${dateTime[3]}/${dateTime[2]}/${dateTime[1]} ${dateTime[4]}:${dateTime[5]}`;
@@ -115,14 +132,30 @@ function fmtDateTimeBR(input) {
 function normalizarStatus(status) {
   const value = String(status || "").toLowerCase();
 
-  if (value === "rascunho") return "rascunho";
-  if (value === "submetida") return "submetida";
-  if (value === "em_avaliacao") return "em_avaliacao";
-  if (value === "aprovada_exposicao") return "aprovada_exposicao";
-  if (value === "aprovada_oral") return "aprovada_oral";
-  if (value === "aprovada") return "aprovada";
-  if (value === "reprovada") return "reprovada";
-  if (value === "cancelada") return "cancelada";
+  if (value === "rascunho") {
+    return "rascunho";
+  }
+  if (value === "submetida") {
+    return "submetida";
+  }
+  if (value === "em_avaliacao") {
+    return "em_avaliacao";
+  }
+  if (value === "aprovada_exposicao") {
+    return "aprovada_exposicao";
+  }
+  if (value === "aprovada_oral") {
+    return "aprovada_oral";
+  }
+  if (value === "aprovada") {
+    return "aprovada";
+  }
+  if (value === "reprovada") {
+    return "reprovada";
+  }
+  if (value === "cancelada") {
+    return "cancelada";
+  }
 
   return value || "indefinido";
 }
@@ -147,14 +180,14 @@ function statusLabel(status) {
 
 function hasArquivo(row) {
   return Boolean(
-      row?.poster_arquivo_id ||
-      row?.poster_nome ||
-      row?.arquivo_nome ||
-      row?.nome_original ||
-      row?._hasAnexo ||
-      row?.has_anexo ||
-      row?.tem_anexo ||
-      row?.possui_anexo
+    row?.poster_arquivo_id ||
+    row?.poster_nome ||
+    row?.arquivo_nome ||
+    row?.nome_original ||
+    row?._hasAnexo ||
+    row?.has_anexo ||
+    row?.tem_anexo ||
+    row?.possui_anexo,
   );
 }
 
@@ -250,14 +283,12 @@ function Badge({ children, tone = "slate", icon: Icon }) {
   const tones = {
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
   };
@@ -266,7 +297,7 @@ function Badge({ children, tone = "slate", icon: Icon }) {
     <span
       className={cx(
         "inline-flex items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -303,7 +334,7 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
         "focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -356,7 +387,7 @@ function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
     <div
       className={cx(
         "rounded-3xl border bg-white p-4 shadow-sm dark:bg-slate-900/70",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       <div className="flex items-center gap-3">
@@ -389,7 +420,12 @@ function Section({ title, icon: Icon, children, tone = "violet" }) {
 
   return (
     <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 sm:p-5">
-      <h4 className={cx("mb-4 flex items-center gap-2 text-lg font-black", colors[tone])}>
+      <h4
+        className={cx(
+          "mb-4 flex items-center gap-2 text-lg font-black",
+          colors[tone],
+        )}
+      >
         <Icon className="h-5 w-5" aria-hidden="true" />
         {title}
       </h4>
@@ -400,7 +436,9 @@ function Section({ title, icon: Icon, children, tone = "violet" }) {
 }
 
 function TextBlock({ label, value }) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
@@ -443,7 +481,7 @@ export default function ModalDetalhesSubmissao({
       ...(submissao || {}),
       ...(full || {}),
     }),
-    [submissao, full]
+    [submissao, full],
   );
 
   const avaliacaoItens = useMemo(() => {
@@ -453,16 +491,17 @@ export default function ModalDetalhesSubmissao({
 
   const avaliadoresAgrupados = useMemo(
     () => agruparAvaliacao(avaliacaoItens),
-    [avaliacaoItens]
+    [avaliacaoItens],
   );
 
   const notaVisivel = Boolean(
-    avaliacaoPayload?.nota_visivel ??
-      data?.nota_visivel ??
-      false
+    avaliacaoPayload?.nota_visivel ?? data?.nota_visivel ?? false,
   );
 
-  const totais = avaliacaoPayload?.totais || {};
+  const totais = useMemo(
+    () => avaliacaoPayload?.totais || {},
+    [avaliacaoPayload?.totais],
+  );
 
   const notaFinal = useMemo(() => {
     const candidatos = [
@@ -471,8 +510,10 @@ export default function ModalDetalhesSubmissao({
       totais?.nota_final,
       totais?.nota_media,
       avaliadoresAgrupados.length > 0
-        ? avaliadoresAgrupados.reduce((sum, item) => sum + Number(item.media || 0), 0) /
-          avaliadoresAgrupados.length
+        ? avaliadoresAgrupados.reduce(
+            (sum, item) => sum + Number(item.media || 0),
+            0,
+          ) / avaliadoresAgrupados.length
         : null,
     ];
 
@@ -491,7 +532,9 @@ export default function ModalDetalhesSubmissao({
     null;
 
   const carregar = useCallback(async () => {
-    if (!open || !submissao?.id) return;
+    if (!open || !submissao?.id) {
+      return;
+    }
 
     setLoading(true);
     setErro("");
@@ -520,7 +563,12 @@ export default function ModalDetalhesSubmissao({
         setAvaliacaoPayload(null);
       }
     } catch (error) {
-      setErro(getMessage(error, "Não foi possível carregar os detalhes da submissão."));
+      setErro(
+        getMessage(
+          error,
+          "Não foi possível carregar os detalhes da submissão.",
+        ),
+      );
       setFull(null);
       setAvaliacaoPayload(null);
     } finally {
@@ -533,7 +581,9 @@ export default function ModalDetalhesSubmissao({
   }, [carregar]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape") {
@@ -555,25 +605,36 @@ export default function ModalDetalhesSubmissao({
   }, [open, onClose]);
 
   async function baixarArquivoPrincipal() {
-    if (!data?.id) return;
+    if (!data?.id) {
+      return;
+    }
 
     setBaixandoArquivo(true);
     setErro("");
     setMensagem("");
 
     try {
-      const { blob, filename } = await apiGetFile(`/submissao/${data.id}/poster`);
-      downloadBlob(filename || arquivoNome || `arquivo-submissao-${data.id}`, blob);
+      const { blob, filename } = await apiGetFile(
+        `/submissao/${data.id}/poster`,
+      );
+      downloadBlob(
+        filename || arquivoNome || `arquivo-submissao-${data.id}`,
+        blob,
+      );
       setMensagem("Arquivo baixado com sucesso.");
     } catch (error) {
-      setErro(getMessage(error, "Não foi possível baixar o arquivo principal."));
+      setErro(
+        getMessage(error, "Não foi possível baixar o arquivo principal."),
+      );
     } finally {
       setBaixandoArquivo(false);
     }
   }
 
   async function toggleNotaVisivel() {
-    if (!data?.id) return;
+    if (!data?.id) {
+      return;
+    }
 
     setTogglingNota(true);
     setErro("");
@@ -599,16 +660,20 @@ export default function ModalDetalhesSubmissao({
       setMensagem(
         novo
           ? "Nota liberada para visualização do autor."
-          : "Nota ocultada da visualização do autor."
+          : "Nota ocultada da visualização do autor.",
       );
     } catch (error) {
-      setErro(getMessage(error, "Não foi possível alterar a visibilidade da nota."));
+      setErro(
+        getMessage(error, "Não foi possível alterar a visibilidade da nota."),
+      );
     } finally {
       setTogglingNota(false);
     }
   }
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return createPortal(
     <AnimatePresence>
@@ -616,7 +681,9 @@ export default function ModalDetalhesSubmissao({
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
         role="presentation"
         onMouseDown={(event) => {
-          if (event.target === event.currentTarget) onClose?.();
+          if (event.target === event.currentTarget) {
+            onClose?.();
+          }
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -663,7 +730,8 @@ export default function ModalDetalhesSubmissao({
                   id={descId}
                   className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75"
                 >
-                  ID #{fmt(data?.id)} · {fmt(data?.chamada_titulo || data?.chamada)} · Atualizado em{" "}
+                  ID #{fmt(data?.id)} ·{" "}
+                  {fmt(data?.chamada_titulo || data?.chamada)} · Atualizado em{" "}
                   {fmtDateTimeBR(atualizadoEm)}
                 </p>
               </div>
@@ -681,7 +749,11 @@ export default function ModalDetalhesSubmissao({
           </header>
 
           <div aria-live="polite" className="sr-only">
-            {loading ? "Carregando detalhes." : erro ? erro : "Detalhes carregados."}
+            {loading
+              ? "Carregando detalhes."
+              : erro
+                ? erro
+                : "Detalhes carregados."}
           </div>
 
           {loading ? (
@@ -724,7 +796,9 @@ export default function ModalDetalhesSubmissao({
                   <MiniStat
                     icon={Star}
                     label="Nota final"
-                    value={notaFinal == null ? "—" : `${fmtNum(notaFinal, 1)} / 10`}
+                    value={
+                      notaFinal == null ? "—" : `${fmtNum(notaFinal, 1)} / 10`
+                    }
                     tone="amber"
                   />
                   <MiniStat
@@ -743,7 +817,11 @@ export default function ModalDetalhesSubmissao({
 
                 <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
                   <main className="space-y-5">
-                    <Section title="Texto do trabalho" icon={FileText} tone="violet">
+                    <Section
+                      title="Texto do trabalho"
+                      icon={FileText}
+                      tone="violet"
+                    >
                       {[
                         ["Introdução", data?.introducao],
                         ["Objetivos", data?.objetivos],
@@ -753,12 +831,30 @@ export default function ModalDetalhesSubmissao({
                         ["Bibliografia", data?.bibliografia],
                       ].some(([, value]) => Boolean(value)) ? (
                         <div className="space-y-3">
-                          <TextBlock label="Introdução" value={data?.introducao} />
-                          <TextBlock label="Objetivos" value={data?.objetivos} />
-                          <TextBlock label="Método / descrição da prática" value={data?.metodo} />
-                          <TextBlock label="Resultados / impactos" value={data?.resultados} />
-                          <TextBlock label="Considerações finais" value={data?.consideracao} />
-                          <TextBlock label="Bibliografia" value={data?.bibliografia} />
+                          <TextBlock
+                            label="Introdução"
+                            value={data?.introducao}
+                          />
+                          <TextBlock
+                            label="Objetivos"
+                            value={data?.objetivos}
+                          />
+                          <TextBlock
+                            label="Método / descrição da prática"
+                            value={data?.metodo}
+                          />
+                          <TextBlock
+                            label="Resultados / impactos"
+                            value={data?.resultados}
+                          />
+                          <TextBlock
+                            label="Considerações finais"
+                            value={data?.consideracao}
+                          />
+                          <TextBlock
+                            label="Bibliografia"
+                            value={data?.bibliografia}
+                          />
                         </div>
                       ) : (
                         <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -785,11 +881,22 @@ export default function ModalDetalhesSubmissao({
                                     {grupo.avaliador_nome}
                                   </h5>
                                   <div className="mt-2 flex flex-wrap gap-2">
-                                    <Badge tone={grupo.tipo === "oral" ? "amber" : "violet"}>
-                                      {grupo.tipo === "oral" ? "Avaliação oral" : "Avaliação escrita"}
+                                    <Badge
+                                      tone={
+                                        grupo.tipo === "oral"
+                                          ? "amber"
+                                          : "violet"
+                                      }
+                                    >
+                                      {grupo.tipo === "oral"
+                                        ? "Avaliação oral"
+                                        : "Avaliação escrita"}
                                     </Badge>
                                     <Badge tone="slate">
-                                      Média {grupo.media == null ? "—" : fmtNum(grupo.media, 2)}
+                                      Média{" "}
+                                      {grupo.media == null
+                                        ? "—"
+                                        : fmtNum(grupo.media, 2)}
                                     </Badge>
                                     <Badge tone="slate">
                                       Total {fmtNum(grupo.total, 2)}
@@ -801,13 +908,17 @@ export default function ModalDetalhesSubmissao({
                               <div className="mt-4 grid gap-2">
                                 {grupo.itens.map((item) => (
                                   <div
-                                    key={item.id || `${grupo.key}-${item.criterio_id}`}
+                                    key={
+                                      item.id ||
+                                      `${grupo.key}-${item.criterio_id}`
+                                    }
                                     className="rounded-2xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
                                   >
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                       <div>
                                         <p className="font-bold text-slate-800 dark:text-slate-100">
-                                          {item.criterio_titulo || `Critério #${item.criterio_id}`}
+                                          {item.criterio_titulo ||
+                                            `Critério #${item.criterio_id}`}
                                         </p>
                                         {item.comentarios ? (
                                           <p className="mt-1 whitespace-pre-wrap text-sm text-slate-500 dark:text-slate-400">
@@ -836,7 +947,11 @@ export default function ModalDetalhesSubmissao({
                   </main>
 
                   <aside className="space-y-4">
-                    <Section title="Arquivo principal" icon={Paperclip} tone="emerald">
+                    <Section
+                      title="Arquivo principal"
+                      icon={Paperclip}
+                      tone="emerald"
+                    >
                       {temArquivo ? (
                         <div className="space-y-3">
                           <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
@@ -860,12 +975,17 @@ export default function ModalDetalhesSubmissao({
                         </div>
                       ) : (
                         <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                          Nenhum arquivo principal detectado para esta submissão.
+                          Nenhum arquivo principal detectado para esta
+                          submissão.
                         </div>
                       )}
                     </Section>
 
-                    <Section title="Visibilidade da nota" icon={Eye} tone="blue">
+                    <Section
+                      title="Visibilidade da nota"
+                      icon={Eye}
+                      tone="blue"
+                    >
                       {avaliadoresAgrupados.length > 0 ? (
                         <div className="space-y-3">
                           <div
@@ -873,7 +993,7 @@ export default function ModalDetalhesSubmissao({
                               "rounded-3xl border p-4 text-sm",
                               notaVisivel
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-                                : "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200"
+                                : "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
                             )}
                           >
                             <div className="flex items-start gap-2">
@@ -897,12 +1017,15 @@ export default function ModalDetalhesSubmissao({
                             onClick={toggleNotaVisivel}
                             className="w-full"
                           >
-                            {notaVisivel ? "Ocultar do autor" : "Liberar ao autor"}
+                            {notaVisivel
+                              ? "Ocultar do autor"
+                              : "Liberar ao autor"}
                           </Button>
                         </div>
                       ) : (
                         <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                          A liberação da nota ficará disponível após registro de avaliação.
+                          A liberação da nota ficará disponível após registro de
+                          avaliação.
                         </p>
                       )}
                     </Section>
@@ -910,11 +1033,26 @@ export default function ModalDetalhesSubmissao({
                     <Section title="Resumo" icon={Layers3} tone="slate">
                       <dl className="space-y-3 text-sm">
                         <InfoRow label="ID" value={`#${fmt(data?.id)}`} />
-                        <InfoRow label="Chamada" value={fmt(data?.chamada_titulo || data?.chamada)} />
-                        <InfoRow label="Linha" value={fmt(data?.linha_tematica_nome || data?.linha_tematica_codigo)} />
+                        <InfoRow
+                          label="Chamada"
+                          value={fmt(data?.chamada_titulo || data?.chamada)}
+                        />
+                        <InfoRow
+                          label="Linha"
+                          value={fmt(
+                            data?.linha_tematica_nome ||
+                              data?.linha_tematica_codigo,
+                          )}
+                        />
                         <InfoRow label="Autor" value={fmt(data?.autor_nome)} />
-                        <InfoRow label="E-mail" value={fmt(data?.autor_email)} />
-                        <InfoRow label="Atualizado em" value={fmtDateTimeBR(atualizadoEm)} />
+                        <InfoRow
+                          label="E-mail"
+                          value={fmt(data?.autor_email)}
+                        />
+                        <InfoRow
+                          label="Atualizado em"
+                          value={fmtDateTimeBR(atualizadoEm)}
+                        />
                       </dl>
                     </Section>
                   </aside>
@@ -952,16 +1090,17 @@ export default function ModalDetalhesSubmissao({
           )}
         </motion.div>
       </motion.div>
-    </AnimatePresence>
-  ,
-    document.body
+    </AnimatePresence>,
+    document.body,
   );
 }
 
 function InfoRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0 dark:border-slate-800">
-      <dt className="font-semibold text-slate-500 dark:text-slate-400">{label}</dt>
+      <dt className="font-semibold text-slate-500 dark:text-slate-400">
+        {label}
+      </dt>
       <dd className="text-right font-bold text-slate-800 dark:text-slate-100">
         {value || "—"}
       </dd>

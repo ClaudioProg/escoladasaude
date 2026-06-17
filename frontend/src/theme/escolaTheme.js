@@ -15,7 +15,9 @@ export const ESCOLA_THEME_EVENT = "escola-theme-change";
 const THEME_VALIDO = new Set(["light", "dark", "system"]);
 
 function normalizeTheme(value) {
-  const theme = String(value || "").trim().toLowerCase();
+  const theme = String(value || "")
+    .trim()
+    .toLowerCase();
 
   return THEME_VALIDO.has(theme) ? theme : "system";
 }
@@ -256,7 +258,7 @@ export function emitThemeChange({ theme, effective, source = "engine" } = {}) {
           source,
           ts: Date.now(),
         },
-      })
+      }),
     );
   } catch {
     // noop

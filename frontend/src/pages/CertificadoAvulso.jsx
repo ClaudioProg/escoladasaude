@@ -5,11 +5,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  AlertTriangle,
   Award,
-  CalendarDays,
   CheckCircle2,
-  Download,
   FileText,
   Filter,
   Loader2,
@@ -31,7 +28,12 @@ import Botao from "../components/ui/Botao";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifyInfo, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 import { downloadBlob } from "../utils/downloadArquivo";
 import { formatDateBr, extractYmd } from "../utils/dateTime";
@@ -136,17 +138,15 @@ function validarFacade(nome, fn) {
 }
 
 function safeText(value, max = 5000) {
-  const text = String(value || "").replace(/\s+/g, " ").trim();
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
   return text.length > max ? text.slice(0, max) : text;
 }
 
 function inputText(value, max = 5000) {
   const text = String(value || "").replace(/\s{2,}/g, " ");
   return text.length > max ? text.slice(0, max) : text;
-}
-
-function onlyDigits(value = "") {
-  return String(value || "").replace(/\D+/g, "");
 }
 
 function validarEmail(value) {
@@ -167,12 +167,16 @@ function formatarPeriodo(item) {
   const inicio = item?.data_inicio || "";
   const fim = item?.data_fim || inicio;
 
-  if (!inicio && !fim) return "—";
+  if (!inicio && !fim) {
+    return "—";
+  }
 
   const di = dataBR(inicio);
   const df = dataBR(fim);
 
-  if (di === df) return di;
+  if (di === df) {
+    return di;
+  }
 
   return `${di} a ${df}`;
 }
@@ -215,20 +219,40 @@ function nomeArquivoSeguro(value) {
 }
 
 function statusTone(status) {
-  if (status === "emitido" || status === "enviado") return "emerald";
-  if (status === "cancelado" || status === "anulado") return "rose";
-  if (status === "substituido") return "violet";
-  if (status === "erro_emissao") return "amber";
+  if (status === "emitido" || status === "enviado") {
+    return "emerald";
+  }
+  if (status === "cancelado" || status === "anulado") {
+    return "rose";
+  }
+  if (status === "substituido") {
+    return "violet";
+  }
+  if (status === "erro_emissao") {
+    return "amber";
+  }
   return "slate";
 }
 
 function statusLabel(status) {
-  if (status === "emitido") return "Emitido";
-  if (status === "enviado") return "Enviado";
-  if (status === "cancelado") return "Cancelado";
-  if (status === "anulado") return "Anulado";
-  if (status === "substituido") return "Substituído";
-  if (status === "erro_emissao") return "Erro de emissão";
+  if (status === "emitido") {
+    return "Emitido";
+  }
+  if (status === "enviado") {
+    return "Enviado";
+  }
+  if (status === "cancelado") {
+    return "Cancelado";
+  }
+  if (status === "anulado") {
+    return "Anulado";
+  }
+  if (status === "substituido") {
+    return "Substituído";
+  }
+  if (status === "erro_emissao") {
+    return "Erro de emissão";
+  }
   return "Sem status";
 }
 
@@ -268,10 +292,8 @@ function Badge({ tone = "slate", children }) {
       "bg-emerald-50 text-emerald-800 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/60",
     amber:
       "bg-amber-50 text-amber-800 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800/60",
-    rose:
-      "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
-    cyan:
-      "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
+    rose: "bg-rose-50 text-rose-800 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-800/60",
+    cyan: "bg-cyan-50 text-cyan-800 ring-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-100 dark:ring-cyan-800/60",
     violet:
       "bg-violet-50 text-violet-800 ring-violet-100 dark:bg-violet-950/40 dark:text-violet-100 dark:ring-violet-800/60",
   };
@@ -280,7 +302,7 @@ function Badge({ tone = "slate", children }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {children}
@@ -317,7 +339,12 @@ function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
   return (
     <div className={cx("rounded-3xl p-4 shadow-sm ring-1", t.card)}>
       <div className="flex items-center gap-3">
-        <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", t.icon)}>
+        <div
+          className={cx(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+            t.icon,
+          )}
+        >
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
 
@@ -332,15 +359,25 @@ function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
   );
 }
 
-function BarraAcoesPagina({ carregando, onRefresh, onCadastrar, onFocusBusca }) {
+function BarraAcoesPagina({
+  carregando,
+  onRefresh,
+  onCadastrar,
+  onFocusBusca,
+}) {
   useEffect(() => {
     const onKey = (event) => {
       const key = typeof event?.key === "string" ? event.key.toLowerCase() : "";
       const mac = /(Mac|iPhone|iPad)/i.test(navigator.userAgent);
 
-      if (!key) return;
+      if (!key) {
+        return;
+      }
 
-      if ((mac && event.metaKey && key === "k") || (!mac && event.ctrlKey && key === "k")) {
+      if (
+        (mac && event.metaKey && key === "k") ||
+        (!mac && event.ctrlKey && key === "k")
+      ) {
         event.preventDefault();
         onFocusBusca?.();
       }
@@ -363,7 +400,8 @@ function BarraAcoesPagina({ carregando, onRefresh, onCadastrar, onFocusBusca }) 
           </p>
 
           <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400">
-            Cadastre certificados fora do fluxo automático, consolide o PDF oficial e envie por e-mail quando necessário.
+            Cadastre certificados fora do fluxo automático, consolide o PDF
+            oficial e envie por e-mail quando necessário.
           </p>
         </div>
 
@@ -532,30 +570,30 @@ function FormularioCertificado({
   assinaturasCarregando,
   assinaturaAdicionalNome,
 }) {
- const modalidade = form.modalidade || "participante";
-const exigeTitulo = modalidadeExigeTitulo(modalidade);
-const semCarga = modalidadeSemCarga(modalidade);
-const exigeCargaHoraria = modalidadeExigeCargaHoraria(modalidade);
+  const modalidade = form.modalidade || "participante";
+  const exigeTitulo = modalidadeExigeTitulo(modalidade);
+  const semCarga = modalidadeSemCarga(modalidade);
+  const exigeCargaHoraria = modalidadeExigeCargaHoraria(modalidade);
 
   const handleChange = useCallback(
     (event) => {
       const { name, value } = event.target;
 
-     if (name === "identificador") {
-  setForm((prev) => ({
-    ...prev,
-    identificador: inputText(value, 80),
-  }));
-  return;
-}
+      if (name === "identificador") {
+        setForm((prev) => ({
+          ...prev,
+          identificador: inputText(value, 80),
+        }));
+        return;
+      }
 
-if (name === "email") {
-  setForm((prev) => ({
-    ...prev,
-    email: inputText(value, 160).trim().toLowerCase(),
-  }));
-  return;
-}
+      if (name === "email") {
+        setForm((prev) => ({
+          ...prev,
+          email: inputText(value, 160).trim().toLowerCase(),
+        }));
+        return;
+      }
 
       if (name === "carga_horaria") {
         setForm((prev) => ({
@@ -588,12 +626,12 @@ if (name === "email") {
         texto_personalizado: 5000,
       };
 
-setForm((prev) => ({
-  ...prev,
-  [name]: inputText(value, maxMap[name] || 300),
-}));
+      setForm((prev) => ({
+        ...prev,
+        [name]: inputText(value, maxMap[name] || 300),
+      }));
     },
-    [setForm]
+    [setForm],
   );
 
   return (
@@ -601,7 +639,10 @@ setForm((prev) => ({
       <header className="border-b border-slate-200 p-4 dark:border-zinc-800 sm:p-5">
         <div className="flex items-start gap-3">
           <div className="rounded-2xl bg-rose-50 p-2 ring-1 ring-rose-100 dark:bg-rose-950/30 dark:ring-rose-800/60">
-            <PenSquare className="h-5 w-5 text-rose-700 dark:text-rose-200" aria-hidden="true" />
+            <PenSquare
+              className="h-5 w-5 text-rose-700 dark:text-rose-200"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="min-w-0">
@@ -610,9 +651,9 @@ setForm((prev) => ({
             </h2>
 
             <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-  Cadastro manual com modalidade oficial, identificador seguro e
-  assinatura institucional obrigatória.
-</p>
+              Cadastro manual com modalidade oficial, identificador seguro e
+              assinatura institucional obrigatória.
+            </p>
           </div>
         </div>
       </header>
@@ -705,7 +746,11 @@ setForm((prev) => ({
         </Campo>
 
         {exigeTitulo ? (
-          <Campo label="Título do trabalho / oficina" htmlFor="titulo_trabalho" required>
+          <Campo
+            label="Título do trabalho / oficina"
+            htmlFor="titulo_trabalho"
+            required
+          >
             <input
               id="titulo_trabalho"
               name="titulo_trabalho"
@@ -721,32 +766,32 @@ setForm((prev) => ({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Campo
-  label="Carga horária"
-  htmlFor="carga_horaria"
-  required={exigeCargaHoraria}
-  hint={
-    semCarga
-      ? "Não se aplica à modalidade escolhida."
-      : "Obrigatória para a modalidade selecionada."
-  }
->
+            label="Carga horária"
+            htmlFor="carga_horaria"
+            required={exigeCargaHoraria}
+            hint={
+              semCarga
+                ? "Não se aplica à modalidade escolhida."
+                : "Obrigatória para a modalidade selecionada."
+            }
+          >
             <input
-  id="carga_horaria"
-  name="carga_horaria"
-  type="number"
-  min={1}
-  step={1}
-  value={form.carga_horaria}
-  onChange={handleChange}
-  required={exigeCargaHoraria}
-  disabled={salvando || semCarga}
-  className={cx(
-    "w-full rounded-2xl border bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950",
-    exigeCargaHoraria && !form.carga_horaria
-      ? "border-amber-300 dark:border-amber-700"
-      : "border-slate-300 dark:border-zinc-700"
-  )}
-/>
+              id="carga_horaria"
+              name="carga_horaria"
+              type="number"
+              min={1}
+              step={1}
+              value={form.carga_horaria}
+              onChange={handleChange}
+              required={exigeCargaHoraria}
+              disabled={salvando || semCarga}
+              className={cx(
+                "w-full rounded-2xl border bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950",
+                exigeCargaHoraria && !form.carga_horaria
+                  ? "border-amber-300 dark:border-amber-700"
+                  : "border-slate-300 dark:border-zinc-700",
+              )}
+            />
           </Campo>
 
           <Campo label="Data de início" htmlFor="data_inicio">
@@ -792,123 +837,133 @@ setForm((prev) => ({
         </Campo>
 
         <section className="rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200 dark:bg-zinc-950 dark:ring-zinc-800">
-  <div className="flex items-start gap-3">
-    <div className="rounded-2xl bg-emerald-50 p-2 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:ring-emerald-800/60">
-      <ShieldCheck
-        className="h-5 w-5 text-emerald-700 dark:text-emerald-200"
-        aria-hidden="true"
-      />
-    </div>
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl bg-emerald-50 p-2 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:ring-emerald-800/60">
+              <ShieldCheck
+                className="h-5 w-5 text-emerald-700 dark:text-emerald-200"
+                aria-hidden="true"
+              />
+            </div>
 
-    <div className="min-w-0 flex-1">
-      <h3 className="text-sm font-black text-slate-950 dark:text-white">
-        Assinaturas do certificado
-      </h3>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-black text-slate-950 dark:text-white">
+                Assinaturas do certificado
+              </h3>
 
-      <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
-        A assinatura institucional da Rafaella Pitol Corrêa é obrigatória e será
-        incluída automaticamente no PDF.
-      </p>
-    </div>
-  </div>
+              <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                A assinatura institucional da Rafaella Pitol Corrêa é
+                obrigatória e será incluída automaticamente no PDF.
+              </p>
+            </div>
+          </div>
 
-  <div className="mt-4 space-y-3">
-    <div className="rounded-2xl border border-emerald-200 bg-white p-3 dark:border-emerald-900/50 dark:bg-zinc-900">
-      <p className="text-sm font-black text-emerald-800 dark:text-emerald-100">
-        Rafaella Pitol Corrêa — assinatura obrigatória
-      </p>
+          <div className="mt-4 space-y-3">
+            <div className="rounded-2xl border border-emerald-200 bg-white p-3 dark:border-emerald-900/50 dark:bg-zinc-900">
+              <p className="text-sm font-black text-emerald-800 dark:text-emerald-100">
+                Rafaella Pitol Corrêa — assinatura obrigatória
+              </p>
 
-      <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
-        ID {RAFAELLA_PITOL_ID}. Será posicionada automaticamente como última
-        assinatura à direita, exceto quando houver assinatura do Secretário.
-      </p>
-    </div>
+              <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                ID {RAFAELLA_PITOL_ID}. Será posicionada automaticamente como
+                última assinatura à direita, exceto quando houver assinatura do
+                Secretário.
+              </p>
+            </div>
 
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-      <label className="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-bold text-slate-700 dark:text-zinc-200">
-        <input
-          type="checkbox"
-          className="h-4 w-4"
-          checked={usarAssinaturaAdicional}
-          onChange={(event) => {
-            setUsarAssinaturaAdicional(event.target.checked);
-            if (!event.target.checked) setAssinaturaAdicionalId("");
-          }}
-        />
-        Adicionar assinatura complementar
-      </label>
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+              <label className="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-bold text-slate-700 dark:text-zinc-200">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={usarAssinaturaAdicional}
+                  onChange={(event) => {
+                    setUsarAssinaturaAdicional(event.target.checked);
+                    if (!event.target.checked) {
+                      setAssinaturaAdicionalId("");
+                    }
+                  }}
+                />
+                Adicionar assinatura complementar
+              </label>
 
-      <div
-        className={cx(
-          "mt-3",
-          usarAssinaturaAdicional ? "" : "pointer-events-none opacity-50"
-        )}
-      >
-        <label
-          htmlFor="assinatura_adicional"
-          className="block text-sm font-black text-slate-700 dark:text-zinc-200"
-        >
-          Selecionar assinatura complementar
-        </label>
+              <div
+                className={cx(
+                  "mt-3",
+                  usarAssinaturaAdicional
+                    ? ""
+                    : "pointer-events-none opacity-50",
+                )}
+              >
+                <label
+                  htmlFor="assinatura_adicional"
+                  className="block text-sm font-black text-slate-700 dark:text-zinc-200"
+                >
+                  Selecionar assinatura complementar
+                </label>
 
-        <select
-          id="assinatura_adicional"
-          value={assinaturaAdicionalId}
-          onChange={(event) => setAssinaturaAdicionalId(event.target.value)}
-          disabled={
-            !usarAssinaturaAdicional ||
-            assinaturasCarregando ||
-            assinaturas.length === 0
-          }
-          className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950"
-        >
-          <option value="">
-            {assinaturasCarregando ? "Carregando..." : "— Selecione —"}
-          </option>
+                <select
+                  id="assinatura_adicional"
+                  value={assinaturaAdicionalId}
+                  onChange={(event) =>
+                    setAssinaturaAdicionalId(event.target.value)
+                  }
+                  disabled={
+                    !usarAssinaturaAdicional ||
+                    assinaturasCarregando ||
+                    assinaturas.length === 0
+                  }
+                  className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:ring-amber-950"
+                >
+                  <option value="">
+                    {assinaturasCarregando ? "Carregando..." : "— Selecione —"}
+                  </option>
 
-          {assinaturas
-            .filter((assinatura) => {
-              const id = Number(assinatura.id);
-              return id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID;
-            })
-            .map((assinatura) => (
-              <option key={assinatura.id} value={assinatura.id}>
-                {assinatura.nome}
-              </option>
-            ))}
-        </select>
+                  {assinaturas
+                    .filter((assinatura) => {
+                      const id = Number(assinatura.id);
+                      return id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID;
+                    })
+                    .map((assinatura) => (
+                      <option key={assinatura.id} value={assinatura.id}>
+                        {assinatura.nome}
+                      </option>
+                    ))}
+                </select>
 
-        <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
-          Esta assinatura, quando usada, aparece antes da assinatura
-          institucional obrigatória.
-        </p>
+                <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  Esta assinatura, quando usada, aparece antes da assinatura
+                  institucional obrigatória.
+                </p>
 
-        {usarAssinaturaAdicional && assinaturaAdicionalNome ? (
-          <p className="mt-2 text-xs font-black text-emerald-700 dark:text-emerald-200">
-            Selecionada: {assinaturaAdicionalNome}
-          </p>
-        ) : null}
-      </div>
-    </div>
+                {usarAssinaturaAdicional && assinaturaAdicionalNome ? (
+                  <p className="mt-2 text-xs font-black text-emerald-700 dark:text-emerald-200">
+                    Selecionada: {assinaturaAdicionalNome}
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-      <label className="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-bold text-slate-700 dark:text-zinc-200">
-        <input
-          type="checkbox"
-          className="h-4 w-4"
-          checked={usarAssinaturaSecretario}
-          onChange={(event) => setUsarAssinaturaSecretario(event.target.checked)}
-        />
-        Incluir assinatura do Secretário de Saúde
-      </label>
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+              <label className="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-bold text-slate-700 dark:text-zinc-200">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={usarAssinaturaSecretario}
+                  onChange={(event) =>
+                    setUsarAssinaturaSecretario(event.target.checked)
+                  }
+                />
+                Incluir assinatura do Secretário de Saúde
+              </label>
 
-      <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-zinc-400">
-        Fábio Lopez — ID {FABIO_LOPEZ_ID}. Quando selecionado, será a última
-        assinatura à direita, com Rafaella Pitol Corrêa imediatamente antes.
-      </p>
-    </div>
-  </div>
-</section>
+              <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                Fábio Lopez — ID {FABIO_LOPEZ_ID}. Quando selecionado, será a
+                última assinatura à direita, com Rafaella Pitol Corrêa
+                imediatamente antes.
+              </p>
+            </div>
+          </div>
+        </section>
 
         <div className="flex justify-end">
           <Botao type="submit" variant="mensal" disabled={salvando}>
@@ -936,7 +991,8 @@ function CertificadoAvulsoCard({
   assinaturaAdicionalId,
   usarAssinaturaSecretario,
 }) {
-  const isEmailLoading = acaoLoading.id === item.id && acaoLoading.tipo === "email";
+  const isEmailLoading =
+    acaoLoading.id === item.id && acaoLoading.tipo === "email";
   const isPdfLoading = acaoLoading.id === item.id && acaoLoading.tipo === "pdf";
   const mod = item?.modalidade || "participante";
   const status = item?.status || "emitido";
@@ -983,9 +1039,7 @@ function CertificadoAvulsoCard({
                   {item?.enviado ? "Enviado" : "Pendente de envio"}
                 </Badge>
 
-                <Badge tone={statusTone(status)}>
-                  {statusLabel(status)}
-                </Badge>
+                <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
 
                 <Badge tone={pdfConsolidado ? "emerald" : "cyan"}>
                   {pdfConsolidado ? "PDF consolidado" : "PDF pendente"}
@@ -1069,20 +1123,20 @@ function CertificadoAvulsoCard({
 
           {!podeGerar ? (
             <div className="rounded-2xl bg-rose-50 p-3 text-sm font-semibold text-rose-800 ring-1 ring-rose-100 dark:bg-rose-950/30 dark:text-rose-100 dark:ring-rose-800/60">
-              Este certificado não está disponível para download porque está
-              com status {statusLabel(status).toLowerCase()}.
+              Este certificado não está disponível para download porque está com
+              status {statusLabel(status).toLowerCase()}.
             </div>
           ) : null}
 
           {pdfConsolidado &&
-(usarAssinaturaSecretario ||
-  (usarAssinaturaAdicional && assinaturaAdicionalId)) ? (
-  <div className="rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800/60">
-    Este PDF já foi consolidado. Alterações nas assinaturas só valem antes da
-    primeira consolidação; depois disso, correções exigem substituição formal do
-    certificado.
-  </div>
-) : null}
+          (usarAssinaturaSecretario ||
+            (usarAssinaturaAdicional && assinaturaAdicionalId)) ? (
+            <div className="rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800/60">
+              Este PDF já foi consolidado. Alterações nas assinaturas só valem
+              antes da primeira consolidação; depois disso, correções exigem
+              substituição formal do certificado.
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1092,13 +1146,13 @@ function CertificadoAvulsoCard({
             onClick={() => onGerarPdf(item)}
             disabled={isPdfLoading || !podeGerar}
             title={
-  pdfConsolidado
-    ? "Baixar PDF oficial"
-    : usarAssinaturaSecretario ||
-        (usarAssinaturaAdicional && assinaturaAdicionalId)
-      ? "Consolidar PDF com assinaturas selecionadas"
-      : "Consolidar PDF oficial com assinatura institucional"
-}
+              pdfConsolidado
+                ? "Baixar PDF oficial"
+                : usarAssinaturaSecretario ||
+                    (usarAssinaturaAdicional && assinaturaAdicionalId)
+                  ? "Consolidar PDF com assinaturas selecionadas"
+                  : "Consolidar PDF oficial com assinatura institucional"
+            }
           >
             <span className="inline-flex items-center justify-center gap-2">
               {isPdfLoading ? (
@@ -1165,40 +1219,42 @@ export default function CertificadoAvulso() {
   });
 
   const [usarAssinaturaAdicional, setUsarAssinaturaAdicional] = useState(
-  () => localStorage.getItem(KEY_ASSINATURA_ADICIONAL_ENABLED) === "1"
-);
+    () => localStorage.getItem(KEY_ASSINATURA_ADICIONAL_ENABLED) === "1",
+  );
 
-const [assinaturaAdicionalId, setAssinaturaAdicionalId] = useState(
-  () => localStorage.getItem(KEY_ASSINATURA_ADICIONAL_ID) || ""
-);
+  const [assinaturaAdicionalId, setAssinaturaAdicionalId] = useState(
+    () => localStorage.getItem(KEY_ASSINATURA_ADICIONAL_ID) || "",
+  );
 
-const [usarAssinaturaSecretario, setUsarAssinaturaSecretario] = useState(
-  () => localStorage.getItem(KEY_ASSINATURA_SECRETARIO_ENABLED) === "1"
-);
+  const [usarAssinaturaSecretario, setUsarAssinaturaSecretario] = useState(
+    () => localStorage.getItem(KEY_ASSINATURA_SECRETARIO_ENABLED) === "1",
+  );
   const [assinaturas, setAssinaturas] = useState([]);
   const [assinaturasCarregando, setAssinaturasCarregando] = useState(true);
 
   const [lista, setLista] = useState([]);
   const [pagina, setPagina] = useState(1);
-const [paginacao, setPaginacao] = useState({
-  pagina: 1,
-  limite: 25,
-  total: 0,
-  total_paginas: 1,
-  tem_anterior: false,
-  tem_proxima: false,
-});
+  const [paginacao, setPaginacao] = useState({
+    pagina: 1,
+    limite: 25,
+    total: 0,
+    total_paginas: 1,
+    tem_anterior: false,
+    tem_proxima: false,
+  });
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
   const [filtroEnvio, setFiltroEnvio] = useState(
-    () => localStorage.getItem(KEY_FILTRO_ENVIO) || "todos"
+    () => localStorage.getItem(KEY_FILTRO_ENVIO) || "todos",
   );
   const [filtroStatus, setFiltroStatus] = useState(
-    () => localStorage.getItem(KEY_FILTRO_STATUS) || "todos"
+    () => localStorage.getItem(KEY_FILTRO_STATUS) || "todos",
   );
-  const [busca, setBusca] = useState(() => localStorage.getItem(KEY_BUSCA) || "");
+  const [busca, setBusca] = useState(
+    () => localStorage.getItem(KEY_BUSCA) || "",
+  );
   const [buscaDebounced, setBuscaDebounced] = useState(busca);
 
   const [acaoLoading, setAcaoLoading] = useState({ id: null, tipo: null });
@@ -1209,73 +1265,81 @@ const [paginacao, setPaginacao] = useState({
   const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message;
+    if (liveRef.current) {
+      liveRef.current.textContent = message;
+    }
   }, []);
 
-const carregarCertificados = useCallback(
-  async (paginaAlvo = pagina) => {
-    try {
-      validarFacade(
-        "api.certificadoAvulso.listar",
-        api?.certificadoAvulso?.listar
-      );
+  const carregarCertificados = useCallback(
+    async (paginaAlvo = pagina) => {
+      try {
+        validarFacade(
+          "api.certificadoAvulso.listar",
+          api?.certificadoAvulso?.listar,
+        );
 
-      setCarregando(true);
-      setErro("");
-      setLive("Carregando certificados avulsos.");
+        setCarregando(true);
+        setErro("");
+        setLive("Carregando certificados avulsos.");
 
-      const response = await api.certificadoAvulso.listar({
-        pagina: paginaAlvo,
-        limite: 25,
-      });
+        const response = await api.certificadoAvulso.listar({
+          pagina: paginaAlvo,
+          limite: 25,
+        });
 
-      const payload = extrairData(response);
+        const payload = extrairData(response);
 
-      const arr = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.lista)
-          ? payload.lista
-          : [];
+        const arr = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.lista)
+            ? payload.lista
+            : [];
 
-      const meta = payload?.paginacao || {
-        pagina: paginaAlvo,
-        limite: 25,
-        total: arr.length,
-        total_paginas: 1,
-        tem_anterior: false,
-        tem_proxima: false,
-      };
+        const meta = payload?.paginacao || {
+          pagina: paginaAlvo,
+          limite: 25,
+          total: arr.length,
+          total_paginas: 1,
+          tem_anterior: false,
+          tem_proxima: false,
+        };
 
-      if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
-      setLista(arr);
-      setPaginacao(meta);
+        setLista(arr);
+        setPaginacao(meta);
 
-      setLive(
-        arr.length
-          ? `${arr.length} certificado(s) avulso(s) carregado(s) na página ${meta.pagina}.`
-          : "Nenhum certificado avulso encontrado."
-      );
-    } catch (error) {
-      console.error("[CertificadoAvulso] erro ao carregar:", error);
+        setLive(
+          arr.length
+            ? `${arr.length} certificado(s) avulso(s) carregado(s) na página ${meta.pagina}.`
+            : "Nenhum certificado avulso encontrado.",
+        );
+      } catch (error) {
+        console.error("[CertificadoAvulso] erro ao carregar:", error);
 
-      if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
-      const message = obterMensagemErro(
-        error,
-        "Não foi possível carregar certificados avulsos."
-      );
+        const message = obterMensagemErro(
+          error,
+          "Não foi possível carregar certificados avulsos.",
+        );
 
-      setErro(message);
-      setLista([]);
-      notifyError(message);
-      setLive("Erro ao carregar certificados avulsos.");
-    } finally {
-      if (mountedRef.current) setCarregando(false);
-    }
-  },
-  [pagina, setLive]
-);
+        setErro(message);
+        setLista([]);
+        notifyError(message);
+        setLive("Erro ao carregar certificados avulsos.");
+      } finally {
+        if (mountedRef.current) {
+          setCarregando(false);
+        }
+      }
+    },
+    [pagina, setLive],
+  );
 
   const carregarAssinaturas = useCallback(async () => {
     try {
@@ -1296,10 +1360,10 @@ const carregarCertificados = useCallback(
         .filter((assinatura) => {
           return Boolean(
             assinatura?.tem_assinatura ??
-              assinatura?.possui_assinatura ??
-              assinatura?.imagem_base64 ??
-              assinatura?.assinatura ??
-              assinatura?.arquivo_assinatura
+            assinatura?.possui_assinatura ??
+            assinatura?.imagem_base64 ??
+            assinatura?.assinatura ??
+            assinatura?.arquivo_assinatura,
           );
         })
         .map((assinatura) => ({
@@ -1308,17 +1372,23 @@ const carregarCertificados = useCallback(
         }))
         .filter((assinatura) => assinatura.id && assinatura.nome);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setAssinaturas(filtradas);
     } catch (error) {
       console.error("[CertificadoAvulso] erro ao carregar assinaturas:", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setAssinaturas([]);
     } finally {
-      if (mountedRef.current) setAssinaturasCarregando(false);
+      if (mountedRef.current) {
+        setAssinaturasCarregando(false);
+      }
     }
   }, []);
 
@@ -1352,37 +1422,39 @@ const carregarCertificados = useCallback(
     return () => window.clearTimeout(timer);
   }, [busca]);
 
- useEffect(() => {
-  localStorage.setItem(
-    KEY_ASSINATURA_ADICIONAL_ENABLED,
-    usarAssinaturaAdicional ? "1" : "0"
-  );
-}, [usarAssinaturaAdicional]);
+  useEffect(() => {
+    localStorage.setItem(
+      KEY_ASSINATURA_ADICIONAL_ENABLED,
+      usarAssinaturaAdicional ? "1" : "0",
+    );
+  }, [usarAssinaturaAdicional]);
 
-useEffect(() => {
-  if (assinaturaAdicionalId) {
-    localStorage.setItem(KEY_ASSINATURA_ADICIONAL_ID, assinaturaAdicionalId);
-  } else {
-    localStorage.removeItem(KEY_ASSINATURA_ADICIONAL_ID);
-  }
-}, [assinaturaAdicionalId]);
+  useEffect(() => {
+    if (assinaturaAdicionalId) {
+      localStorage.setItem(KEY_ASSINATURA_ADICIONAL_ID, assinaturaAdicionalId);
+    } else {
+      localStorage.removeItem(KEY_ASSINATURA_ADICIONAL_ID);
+    }
+  }, [assinaturaAdicionalId]);
 
-useEffect(() => {
-  localStorage.setItem(
-    KEY_ASSINATURA_SECRETARIO_ENABLED,
-    usarAssinaturaSecretario ? "1" : "0"
-  );
-}, [usarAssinaturaSecretario]);
+  useEffect(() => {
+    localStorage.setItem(
+      KEY_ASSINATURA_SECRETARIO_ENABLED,
+      usarAssinaturaSecretario ? "1" : "0",
+    );
+  }, [usarAssinaturaSecretario]);
 
   useEffect(() => {
     const onKey = (event) => {
       const key = event.key;
       const mac = /(Mac|iPhone|iPad)/i.test(navigator.userAgent);
       const typing = ["input", "textarea", "select"].includes(
-        document.activeElement?.tagName?.toLowerCase()
+        document.activeElement?.tagName?.toLowerCase(),
       );
 
-      if (typing) return;
+      if (typing) {
+        return;
+      }
 
       const isSubmit =
         (mac && event.metaKey && key === "Enter") ||
@@ -1399,20 +1471,20 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-const assinaturaAdicionalNome = useMemo(() => {
-  const achada = assinaturas.find(
-    (assinatura) => String(assinatura.id) === String(assinaturaAdicionalId)
-  );
+  const assinaturaAdicionalNome = useMemo(() => {
+    const achada = assinaturas.find(
+      (assinatura) => String(assinatura.id) === String(assinaturaAdicionalId),
+    );
 
-  return achada?.nome || "";
-}, [assinaturas, assinaturaAdicionalId]);
+    return achada?.nome || "";
+  }, [assinaturas, assinaturaAdicionalId]);
 
   const kpis = useMemo(() => {
     const total = lista.length;
     const enviados = lista.filter((item) => item?.enviado === true).length;
     const pendentes = lista.filter((item) => item?.enviado !== true).length;
     const validos = lista.filter((item) =>
-      STATUS_VALIDOS_DOWNLOAD.includes(item?.status || "emitido")
+      STATUS_VALIDOS_DOWNLOAD.includes(item?.status || "emitido"),
     ).length;
 
     return {
@@ -1426,28 +1498,37 @@ const assinaturaAdicionalNome = useMemo(() => {
   const listaFiltrada = useMemo(() => {
     return lista
       .filter((item) => {
-        if (filtroEnvio === "enviados" && item?.enviado !== true) return false;
-        if (filtroEnvio === "nao_enviados" && item?.enviado === true) return false;
-
-        if (filtroStatus !== "todos" && (item?.status || "emitido") !== filtroStatus) {
+        if (filtroEnvio === "enviados" && item?.enviado !== true) {
+          return false;
+        }
+        if (filtroEnvio === "nao_enviados" && item?.enviado === true) {
           return false;
         }
 
-        if (!buscaDebounced) return true;
+        if (
+          filtroStatus !== "todos" &&
+          (item?.status || "emitido") !== filtroStatus
+        ) {
+          return false;
+        }
+
+        if (!buscaDebounced) {
+          return true;
+        }
 
         const texto = normalizarBusca(
-  [
-    item?.nome,
-    item?.email,
-    item?.curso,
-    item?.modalidade,
-    ROTULO_MODALIDADE[item?.modalidade],
-    item?.titulo_trabalho,
-    item?.numero_certificado,
-    item?.codigo_validacao,
-    item?.identificador_mascarado,
-  ].join(" ")
-);
+          [
+            item?.nome,
+            item?.email,
+            item?.curso,
+            item?.modalidade,
+            ROTULO_MODALIDADE[item?.modalidade],
+            item?.titulo_trabalho,
+            item?.numero_certificado,
+            item?.codigo_validacao,
+            item?.identificador_mascarado,
+          ].join(" "),
+        );
 
         return texto.includes(buscaDebounced);
       })
@@ -1469,7 +1550,9 @@ const assinaturaAdicionalNome = useMemo(() => {
     async (event) => {
       event.preventDefault();
 
-      if (salvando) return;
+      if (salvando) {
+        return;
+      }
 
       const modalidade = form.modalidade || "participante";
       const exigeTitulo = modalidadeExigeTitulo(modalidade);
@@ -1488,7 +1571,9 @@ const assinaturaAdicionalNome = useMemo(() => {
         data_inicio: form.data_inicio || null,
         data_fim: form.data_fim || form.data_inicio || null,
         modalidade,
-        titulo_trabalho: exigeTitulo ? safeText(form.titulo_trabalho, 500) : null,
+        titulo_trabalho: exigeTitulo
+          ? safeText(form.titulo_trabalho, 500)
+          : null,
         texto_personalizado: safeText(form.texto_personalizado, 5000),
       };
 
@@ -1511,18 +1596,21 @@ const assinaturaAdicionalNome = useMemo(() => {
       }
 
       if (!semCarga && payload.carga_horaria === null) {
-  notifyWarning("Informe a carga horária para a modalidade selecionada.");
-  setLive("Carga horária obrigatória ausente.");
-  return;
-}
+        notifyWarning("Informe a carga horária para a modalidade selecionada.");
+        setLive("Carga horária obrigatória ausente.");
+        return;
+      }
 
-if (!semCarga) {
-  if (!Number.isFinite(payload.carga_horaria) || payload.carga_horaria <= 0) {
-    notifyWarning("Informe uma carga horária válida.");
-    setLive("Carga horária inválida.");
-    return;
-  }
-}
+      if (!semCarga) {
+        if (
+          !Number.isFinite(payload.carga_horaria) ||
+          payload.carga_horaria <= 0
+        ) {
+          notifyWarning("Informe uma carga horária válida.");
+          setLive("Carga horária inválida.");
+          return;
+        }
+      }
 
       if (exigeTitulo && !payload.titulo_trabalho) {
         notifyWarning("Informe o título do trabalho/oficina.");
@@ -1542,22 +1630,31 @@ if (!semCarga) {
         return;
       }
 
-      if (payload.data_inicio && payload.data_fim && payload.data_fim < payload.data_inicio) {
-        notifyWarning("A data de término não pode ser anterior à data de início.");
+      if (
+        payload.data_inicio &&
+        payload.data_fim &&
+        payload.data_fim < payload.data_inicio
+      ) {
+        notifyWarning(
+          "A data de término não pode ser anterior à data de início.",
+        );
         setLive("Período inválido.");
         return;
       }
 
       try {
-        validarFacade("api.certificadoAvulso.criar", api?.certificadoAvulso?.criar);
+        validarFacade(
+          "api.certificadoAvulso.criar",
+          api?.certificadoAvulso?.criar,
+        );
 
         setSalvando(true);
         setLive("Cadastrando certificado avulso.");
 
-await api.certificadoAvulso.criar(payload);
+        await api.certificadoAvulso.criar(payload);
 
-      setPagina(1);
-await carregarCertificados(1);
+        setPagina(1);
+        await carregarCertificados(1);
         setFiltroEnvio("todos");
         setFiltroStatus("todos");
         setBusca("");
@@ -1581,133 +1678,144 @@ await carregarCertificados(1);
         console.error("[CertificadoAvulso] erro ao cadastrar:", error);
 
         notifyError(
-          obterMensagemErro(error, "Não foi possível cadastrar o certificado.")
+          obterMensagemErro(error, "Não foi possível cadastrar o certificado."),
         );
         setLive("Erro ao cadastrar certificado avulso.");
       } finally {
         setSalvando(false);
       }
     },
-    [form, salvando, setLive, carregarCertificados]
+    [form, salvando, setLive, carregarCertificados],
   );
 
-const getAssinaturaParams = useCallback(() => {
-  const assinantes = [];
+  const getAssinaturaParams = useCallback(() => {
+    const assinantes = [];
 
-  if (usarAssinaturaAdicional) {
-    if (!assinaturaAdicionalId) {
-      notifyInfo("Selecione a assinatura complementar antes de continuar.");
-      return false;
+    if (usarAssinaturaAdicional) {
+      if (!assinaturaAdicionalId) {
+        notifyInfo("Selecione a assinatura complementar antes de continuar.");
+        return false;
+      }
+
+      const adicionalId = Number(assinaturaAdicionalId);
+
+      if (
+        !Number.isInteger(adicionalId) ||
+        adicionalId <= 0 ||
+        adicionalId === RAFAELLA_PITOL_ID ||
+        adicionalId === FABIO_LOPEZ_ID
+      ) {
+        notifyWarning("Selecione uma assinatura complementar válida.");
+        return false;
+      }
+
+      assinantes.push(adicionalId);
     }
 
-    const adicionalId = Number(assinaturaAdicionalId);
-
-    if (
-      !Number.isInteger(adicionalId) ||
-      adicionalId <= 0 ||
-      adicionalId === RAFAELLA_PITOL_ID ||
-      adicionalId === FABIO_LOPEZ_ID
-    ) {
-      notifyWarning("Selecione uma assinatura complementar válida.");
-      return false;
+    if (usarAssinaturaSecretario) {
+      assinantes.push(FABIO_LOPEZ_ID);
     }
 
-    assinantes.push(adicionalId);
-  }
-
-  if (usarAssinaturaSecretario) {
-    assinantes.push(FABIO_LOPEZ_ID);
-  }
-
-  return {
-    assinantes_ids: assinantes.join(","),
-  };
-}, [
-  usarAssinaturaAdicional,
-  assinaturaAdicionalId,
-  usarAssinaturaSecretario,
-]);
+    return {
+      assinantes_ids: assinantes.join(","),
+    };
+  }, [
+    usarAssinaturaAdicional,
+    assinaturaAdicionalId,
+    usarAssinaturaSecretario,
+  ]);
 
   const gerarPdf = useCallback(
-  async (item) => {
-    if (acaoLoading.id) return;
+    async (item) => {
+      if (acaoLoading.id) {
+        return;
+      }
 
-    const id = Number(item?.id);
+      const id = Number(item?.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
-      notifyWarning("Certificado inválido para PDF.");
-      return;
-    }
+      if (!Number.isInteger(id) || id <= 0) {
+        notifyWarning("Certificado inválido para PDF.");
+        return;
+      }
 
-    const pdfConsolidado = certificadoPdfConsolidado(item);
-    const params = getAssinaturaParams();
+      const pdfConsolidado = certificadoPdfConsolidado(item);
+      const params = getAssinaturaParams();
 
-    if (params === false) return;
+      if (params === false) {
+        return;
+      }
 
-    try {
-      validarFacade("api.certificadoAvulso.pdf", api?.certificadoAvulso?.pdf);
+      try {
+        validarFacade("api.certificadoAvulso.pdf", api?.certificadoAvulso?.pdf);
 
-      setAcaoLoading({ id, tipo: "pdf" });
-      setLive(
-        pdfConsolidado
-          ? "Baixando PDF do certificado avulso."
-          : "Consolidando PDF do certificado avulso."
-      );
-
-      const result = await api.certificadoAvulso.pdf(id, params);
-      const blob = result?.blob || result?.data || result;
-
-      const filename =
-        result?.filename ||
-        `${nomeArquivoSeguro(item?.numero_certificado || `certificado_avulso_${id}`)}.pdf`;
-
-      downloadBlob(filename, blob);
-
-      notifySuccess(
-        pdfConsolidado
-          ? "Download iniciado."
-          : "PDF consolidado e download iniciado."
-      );
-
-      setLive(
-        pdfConsolidado
-          ? "Download do PDF iniciado."
-          : "PDF consolidado e download iniciado."
-      );
-
-      await carregarCertificados();
-    } catch (error) {
-      console.error("[CertificadoAvulso] erro ao consolidar/baixar PDF:", error);
-
-      notifyError(
-        obterMensagemErro(
-          error,
+        setAcaoLoading({ id, tipo: "pdf" });
+        setLive(
           pdfConsolidado
-            ? "Não foi possível baixar o PDF."
-            : "Não foi possível consolidar o PDF."
-        )
-      );
+            ? "Baixando PDF do certificado avulso."
+            : "Consolidando PDF do certificado avulso.",
+        );
 
-      setLive("Erro ao consolidar ou baixar PDF.");
-    } finally {
-      setAcaoLoading({ id: null, tipo: null });
-    }
-  },
-  [acaoLoading.id, getAssinaturaParams, carregarCertificados, setLive]
-);
+        const result = await api.certificadoAvulso.pdf(id, params);
+        const blob = result?.blob || result?.data || result;
+
+        const filename =
+          result?.filename ||
+          `${nomeArquivoSeguro(item?.numero_certificado || `certificado_avulso_${id}`)}.pdf`;
+
+        downloadBlob(filename, blob);
+
+        notifySuccess(
+          pdfConsolidado
+            ? "Download iniciado."
+            : "PDF consolidado e download iniciado.",
+        );
+
+        setLive(
+          pdfConsolidado
+            ? "Download do PDF iniciado."
+            : "PDF consolidado e download iniciado.",
+        );
+
+        await carregarCertificados();
+      } catch (error) {
+        console.error(
+          "[CertificadoAvulso] erro ao consolidar/baixar PDF:",
+          error,
+        );
+
+        notifyError(
+          obterMensagemErro(
+            error,
+            pdfConsolidado
+              ? "Não foi possível baixar o PDF."
+              : "Não foi possível consolidar o PDF.",
+          ),
+        );
+
+        setLive("Erro ao consolidar ou baixar PDF.");
+      } finally {
+        setAcaoLoading({ id: null, tipo: null });
+      }
+    },
+    [acaoLoading.id, getAssinaturaParams, carregarCertificados, setLive],
+  );
 
   const enviarPorEmail = useCallback(
     async (id) => {
-      if (acaoLoading.id) return;
+      if (acaoLoading.id) {
+        return;
+      }
 
       const params = getAssinaturaParams();
 
-      if (params === false) return;
+      if (params === false) {
+        return;
+      }
 
       try {
         validarFacade(
           "api.certificadoAvulso.enviar",
-          api?.certificadoAvulso?.enviar
+          api?.certificadoAvulso?.enviar,
         );
 
         setAcaoLoading({ id, tipo: "email" });
@@ -1725,8 +1833,8 @@ const getAssinaturaParams = useCallback(() => {
                   enviado: true,
                   status: atualizado?.status || "enviado",
                 }
-              : item
-          )
+              : item,
+          ),
         );
 
         notifySuccess("E-mail enviado com sucesso.");
@@ -1735,45 +1843,68 @@ const getAssinaturaParams = useCallback(() => {
         console.error("[CertificadoAvulso] erro ao enviar e-mail:", error);
 
         notifyError(
-          obterMensagemErro(error, "Não foi possível enviar o certificado por e-mail.")
+          obterMensagemErro(
+            error,
+            "Não foi possível enviar o certificado por e-mail.",
+          ),
         );
         setLive("Erro ao enviar e-mail.");
       } finally {
         setAcaoLoading({ id: null, tipo: null });
       }
     },
-    [acaoLoading.id, getAssinaturaParams, setLive]
+    [acaoLoading.id, getAssinaturaParams, setLive],
   );
 
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-950 dark:bg-zinc-950 dark:text-white">
       <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
-  <HeaderHero
-    titulo="Certificados avulsos"
-    subtitulo="Cadastre certificados fora do fluxo automático, consolide o PDF eletrônico oficial e envie por e-mail quando necessário."
-    icone={Award}
-    tamanho="md"
-    raio="xl"
-  />
-</div>
+        <HeaderHero
+          titulo="Certificados avulsos"
+          subtitulo="Cadastre certificados fora do fluxo automático, consolide o PDF eletrônico oficial e envie por e-mail quando necessário."
+          icone={Award}
+          tamanho="md"
+          raio="xl"
+        />
+      </div>
 
-<section className="mx-auto w-full max-w-7xl space-y-4 px-4 pt-6 sm:px-6">
-  <BarraAcoesPagina
-    carregando={carregando}
-    onRefresh={carregarCertificados}
-    onCadastrar={() => formRef.current?.requestSubmit?.()}
-    onFocusBusca={() => buscaRef.current?.focus()}
-  />
+      <section className="mx-auto w-full max-w-7xl space-y-4 px-4 pt-6 sm:px-6">
+        <BarraAcoesPagina
+          carregando={carregando}
+          onRefresh={carregarCertificados}
+          onCadastrar={() => formRef.current?.requestSubmit?.()}
+          onFocusBusca={() => buscaRef.current?.focus()}
+        />
 
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-    <MiniStat icon={Award} label="Total" value={paginacao.total} tone="cyan" />
-    <MiniStat icon={Mail} label="Enviados" value={kpis.enviados} tone="emerald" />
-    <MiniStat icon={Send} label="Pendentes" value={kpis.pendentes} tone="amber" />
-    <MiniStat icon={ShieldCheck} label="Válidos" value={kpis.validos} tone="rose" />
-  </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <MiniStat
+            icon={Award}
+            label="Total"
+            value={paginacao.total}
+            tone="cyan"
+          />
+          <MiniStat
+            icon={Mail}
+            label="Enviados"
+            value={kpis.enviados}
+            tone="emerald"
+          />
+          <MiniStat
+            icon={Send}
+            label="Pendentes"
+            value={kpis.pendentes}
+            tone="amber"
+          />
+          <MiniStat
+            icon={ShieldCheck}
+            label="Válidos"
+            value={kpis.validos}
+            tone="rose"
+          />
+        </div>
 
-  <AvisoIdentificadorSeguro />
-</section>
+        <AvisoIdentificadorSeguro />
+      </section>
 
       <p ref={liveRef} className="sr-only" aria-live="polite" />
 
@@ -1786,7 +1917,7 @@ const getAssinaturaParams = useCallback(() => {
           <div
             className={cx(
               "h-full w-1/3 bg-amber-600",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -1798,21 +1929,21 @@ const getAssinaturaParams = useCallback(() => {
       >
         <div>
           <FormularioCertificado
-  form={form}
-  setForm={setForm}
-  salvando={salvando}
-  onSubmit={cadastrarCertificado}
-  formRef={formRef}
-  usarAssinaturaAdicional={usarAssinaturaAdicional}
-  setUsarAssinaturaAdicional={setUsarAssinaturaAdicional}
-  assinaturaAdicionalId={assinaturaAdicionalId}
-  setAssinaturaAdicionalId={setAssinaturaAdicionalId}
-  usarAssinaturaSecretario={usarAssinaturaSecretario}
-  setUsarAssinaturaSecretario={setUsarAssinaturaSecretario}
-  assinaturas={assinaturas}
-  assinaturasCarregando={assinaturasCarregando}
-  assinaturaAdicionalNome={assinaturaAdicionalNome}
-/>
+            form={form}
+            setForm={setForm}
+            salvando={salvando}
+            onSubmit={cadastrarCertificado}
+            formRef={formRef}
+            usarAssinaturaAdicional={usarAssinaturaAdicional}
+            setUsarAssinaturaAdicional={setUsarAssinaturaAdicional}
+            assinaturaAdicionalId={assinaturaAdicionalId}
+            setAssinaturaAdicionalId={setAssinaturaAdicionalId}
+            usarAssinaturaSecretario={usarAssinaturaSecretario}
+            setUsarAssinaturaSecretario={setUsarAssinaturaSecretario}
+            assinaturas={assinaturas}
+            assinaturasCarregando={assinaturasCarregando}
+            assinaturaAdicionalNome={assinaturaAdicionalNome}
+          />
         </div>
 
         <section className="flex min-w-0 flex-col gap-4">
@@ -1828,7 +1959,10 @@ const getAssinaturaParams = useCallback(() => {
           />
 
           {carregando ? (
-            <section className="grid gap-4" aria-label="Carregando certificados">
+            <section
+              className="grid gap-4"
+              aria-label="Carregando certificados"
+            >
               <CarregandoSkeleton height={180} />
               <CarregandoSkeleton height={180} />
               <CarregandoSkeleton height={180} />
@@ -1857,7 +1991,8 @@ const getAssinaturaParams = useCallback(() => {
                   </h2>
 
                   <p className="text-sm text-slate-500 dark:text-zinc-400">
-                    Exibindo {listaFiltrada.length} de {paginacao.total} registro(s).
+                    Exibindo {listaFiltrada.length} de {paginacao.total}{" "}
+                    registro(s).
                   </p>
                 </div>
 
@@ -1866,48 +2001,47 @@ const getAssinaturaParams = useCallback(() => {
                   Certificado eletrônico v2.0
                 </Badge>
               </div>
-<div className="grid grid-cols-1 gap-4">
-  {listaFiltrada.map((item) => (
-    <CertificadoAvulsoCard
-      key={item.id}
-      item={item}
-      onGerarPdf={gerarPdf}
-      onEnviarEmail={enviarPorEmail}
-      acaoLoading={acaoLoading}
-      usarAssinaturaAdicional={usarAssinaturaAdicional}
-      assinaturaAdicionalId={assinaturaAdicionalId}
-      usarAssinaturaSecretario={usarAssinaturaSecretario}
-    />
-  ))}
-</div>
+              <div className="grid grid-cols-1 gap-4">
+                {listaFiltrada.map((item) => (
+                  <CertificadoAvulsoCard
+                    key={item.id}
+                    item={item}
+                    onGerarPdf={gerarPdf}
+                    onEnviarEmail={enviarPorEmail}
+                    acaoLoading={acaoLoading}
+                    usarAssinaturaAdicional={usarAssinaturaAdicional}
+                    assinaturaAdicionalId={assinaturaAdicionalId}
+                    usarAssinaturaSecretario={usarAssinaturaSecretario}
+                  />
+                ))}
+              </div>
 
-<div className="mt-4 flex flex-col gap-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 sm:flex-row sm:items-center sm:justify-between">
-  <p className="text-sm font-semibold text-slate-600 dark:text-zinc-300">
-    Página {paginacao.pagina} de {paginacao.total_paginas} —{" "}
-    {paginacao.total} certificado(s)
-  </p>
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-slate-600 dark:text-zinc-300">
+                  Página {paginacao.pagina} de {paginacao.total_paginas} —{" "}
+                  {paginacao.total} certificado(s)
+                </p>
 
-  <div className="flex items-center gap-2">
-    <Botao
-      type="button"
-      variant="contorno"
-      disabled={!paginacao.tem_anterior || carregando}
-      onClick={() => setPagina((prev) => Math.max(prev - 1, 1))}
-    >
-      Anterior
-    </Botao>
+                <div className="flex items-center gap-2">
+                  <Botao
+                    type="button"
+                    variant="contorno"
+                    disabled={!paginacao.tem_anterior || carregando}
+                    onClick={() => setPagina((prev) => Math.max(prev - 1, 1))}
+                  >
+                    Anterior
+                  </Botao>
 
-    <Botao
-      type="button"
-      variant="contorno"
-      disabled={!paginacao.tem_proxima || carregando}
-      onClick={() => setPagina((prev) => prev + 1)}
-    >
-      Próxima
-    </Botao>
-  </div>
-</div>
-
+                  <Botao
+                    type="button"
+                    variant="contorno"
+                    disabled={!paginacao.tem_proxima || carregando}
+                    onClick={() => setPagina((prev) => prev + 1)}
+                  >
+                    Próxima
+                  </Botao>
+                </div>
+              </div>
             </section>
           )}
         </section>

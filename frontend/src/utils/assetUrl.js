@@ -36,7 +36,7 @@ function isProtocolRelativeUrl(value = "") {
 
 function hasDangerousScheme(value = "") {
   return /^(javascript|data|vbscript|file|blob):/i.test(
-    String(value || "").trim()
+    String(value || "").trim(),
   );
 }
 
@@ -124,7 +124,7 @@ export function resolveAssetUrl(raw) {
   try {
     const finalUrl = new URL(
       value.startsWith("/") ? value : `/${value}`,
-      `${baseOrigin}/`
+      `${baseOrigin}/`,
     ).toString();
 
     return forceHttpsIfNeeded(finalUrl);

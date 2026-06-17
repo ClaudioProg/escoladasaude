@@ -143,11 +143,15 @@ export function calcularMediaAvaliacao(avaliacao = [], options = {}) {
   let somaNota10PonderadaTotal = 0;
   let somaPesoTotal = 0;
 
-  for (let avaliadorIndex = 0; avaliadorIndex < lista.length; avaliadorIndex += 1) {
+  for (
+    let avaliadorIndex = 0;
+    avaliadorIndex < lista.length;
+    avaliadorIndex += 1
+  ) {
     const notas = getNotasDoAvaliador(
       lista[avaliadorIndex],
       criterioTotal,
-      clamp
+      clamp,
     );
 
     const temNotaValida = notas.some((nota) => nota !== null);
@@ -169,7 +173,11 @@ export function calcularMediaAvaliacao(avaliacao = [], options = {}) {
     let somaPesoAvaliador = 0;
     let notasValidas = 0;
 
-    for (let criterioIndex = 0; criterioIndex < criterioTotal; criterioIndex += 1) {
+    for (
+      let criterioIndex = 0;
+      criterioIndex < criterioTotal;
+      criterioIndex += 1
+    ) {
       const nota = notas[criterioIndex];
 
       if (nota === null) {

@@ -68,7 +68,11 @@ function quebrarEmBlocosDeRegistro(digitsRun) {
     return out;
   }
 
-  for (let index = 0; index + TAMANHO_REGISTRO <= run.length; index += TAMANHO_REGISTRO) {
+  for (
+    let index = 0;
+    index + TAMANHO_REGISTRO <= run.length;
+    index += TAMANHO_REGISTRO
+  ) {
     out.push(run.slice(index, index + TAMANHO_REGISTRO));
   }
 
@@ -168,9 +172,10 @@ function normalizarListaRegistro(input, options = {}) {
     }
   }
 
-  return uniquePreserveOrder(
-    coletados.filter(isRegistroValido)
-  ).slice(0, maxItems);
+  return uniquePreserveOrder(coletados.filter(isRegistroValido)).slice(
+    0,
+    maxItems,
+  );
 }
 
 /**

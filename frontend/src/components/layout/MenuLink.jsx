@@ -24,17 +24,14 @@ import { NavLink } from "react-router-dom";
 
 const TOM_CLASSES = {
   escuro: {
-    base:
-      "text-white/88 hover:bg-white/10 hover:text-white focus-visible:ring-white/45",
+    base: "text-white/88 hover:bg-white/10 hover:text-white focus-visible:ring-white/45",
     ativo:
       "bg-white/14 text-white shadow-[0_12px_38px_-28px_rgba(0,0,0,0.8)] ring-1 ring-white/12",
     pendente: "opacity-80",
-    badge:
-      "bg-white/16 text-white ring-white/20",
+    badge: "bg-white/16 text-white ring-white/20",
   },
   claro: {
-    base:
-      "text-slate-700 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white",
+    base: "text-slate-700 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white",
     ativo:
       "bg-emerald-50 text-emerald-950 ring-1 ring-emerald-200 dark:bg-emerald-950/35 dark:text-emerald-100 dark:ring-emerald-900/60",
     pendente: "opacity-80",
@@ -42,13 +39,11 @@ const TOM_CLASSES = {
       "bg-emerald-100 text-emerald-950 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-100 dark:ring-emerald-900/60",
   },
   solido: {
-    base:
-      "bg-white/10 text-white hover:bg-white/16 hover:text-white ring-1 ring-white/10 focus-visible:ring-white/50",
+    base: "bg-white/10 text-white hover:bg-white/16 hover:text-white ring-1 ring-white/10 focus-visible:ring-white/50",
     ativo:
       "bg-white/18 text-white shadow-[0_14px_42px_-30px_rgba(0,0,0,0.85)] ring-1 ring-white/18",
     pendente: "opacity-80",
-    badge:
-      "bg-white/18 text-white ring-white/25",
+    badge: "bg-white/18 text-white ring-white/25",
   },
 };
 
@@ -85,12 +80,16 @@ function isExternalHref(rota) {
 }
 
 function resolveRel({ rel, novaAba }) {
-  if (rel) return rel;
+  if (rel) {
+    return rel;
+  }
   return novaAba ? "noopener noreferrer" : undefined;
 }
 
 function renderIcon(icone, className) {
-  if (!icone) return null;
+  if (!icone) {
+    return null;
+  }
 
   if (isValidElement(icone)) {
     return cloneElement(icone, {
@@ -124,14 +123,16 @@ function formatarBadge(valor) {
 function BadgeMenu({ valor, recolhido, label, className }) {
   const texto = formatarBadge(valor);
 
-  if (!texto) return null;
+  if (!texto) {
+    return null;
+  }
 
   if (recolhido) {
     return (
       <span
         className={classNames(
           "absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black leading-none text-white ring-2 ring-white dark:ring-slate-950",
-          className
+          className,
         )}
         aria-label={label}
         title={label}
@@ -145,7 +146,7 @@ function BadgeMenu({ valor, recolhido, label, className }) {
     <span
       className={classNames(
         "ml-auto inline-flex shrink-0 items-center justify-center rounded-full font-black ring-1",
-        className
+        className,
       )}
       aria-label={label}
       title={label}
@@ -178,7 +179,7 @@ const MenuLink = forwardRef(function MenuLink(
     "aria-label": ariaLabel,
     ...props
   },
-  ref
+  ref,
 ) {
   const externo = isExternalHref(rota);
   const theme = TOM_CLASSES[tom] || TOM_CLASSES.claro;
@@ -197,18 +198,13 @@ const MenuLink = forwardRef(function MenuLink(
       ? `${labelAcessivel}: ${badgeText} item(ns) relevante(s)`
       : undefined);
 
-  const iconeEsquerda = renderIcon(
-    icone,
-    classNames(size.icone, "shrink-0")
-  );
+  const iconeEsquerda = renderIcon(icone, classNames(size.icone, "shrink-0"));
 
-  const iconeFinal =
-    iconeDireita ||
-    (externo && novaAba ? ExternalLink : null);
+  const iconeFinal = iconeDireita || (externo && novaAba ? ExternalLink : null);
 
   const iconeDireitaRenderizado = renderIcon(
     iconeFinal,
-    classNames(size.icone, "ml-auto shrink-0 opacity-80")
+    classNames(size.icone, "ml-auto shrink-0 opacity-80"),
   );
 
   const baseClassName = classNames(
@@ -220,7 +216,7 @@ const MenuLink = forwardRef(function MenuLink(
     theme.base,
     recolhido && "justify-center px-2",
     desabilitado && "pointer-events-none cursor-not-allowed opacity-55",
-    className
+    className,
   );
 
   const content = (
@@ -228,25 +224,19 @@ const MenuLink = forwardRef(function MenuLink(
       <span
         className={classNames(
           "relative inline-flex shrink-0 items-center justify-center",
-          recolhido && "h-5 w-5"
+          recolhido && "h-5 w-5",
         )}
       >
         {iconeEsquerda}
 
         {recolhido && badgeText && (
-          <BadgeMenu
-            valor={badge}
-            recolhido
-            label={badgeAriaLabel}
-          />
+          <BadgeMenu valor={badge} recolhido label={badgeAriaLabel} />
         )}
       </span>
 
       {!recolhido && (
         <>
-          <span className="min-w-0 flex-1 truncate text-left">
-            {children}
-          </span>
+          <span className="min-w-0 flex-1 truncate text-left">{children}</span>
 
           <BadgeMenu
             valor={badge}
@@ -281,6 +271,7 @@ const MenuLink = forwardRef(function MenuLink(
 
   if (externo) {
     return (
+      // eslint-disable-next-line react/jsx-no-target-blank
       <a
         ref={ref}
         href={rota}
@@ -312,7 +303,7 @@ const MenuLink = forwardRef(function MenuLink(
         classNames(
           baseClassName,
           isActive && theme.ativo,
-          isPending && theme.pendente
+          isPending && theme.pendente,
         )
       }
       {...props}

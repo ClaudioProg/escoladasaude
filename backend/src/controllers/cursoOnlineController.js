@@ -107,7 +107,7 @@ const query = getQuery();
 
 if (typeof query !== "function") {
   throw new Error(
-    "DB inválido em cursoOnlineController.js: export oficial precisa expor query."
+    "DB inválido em cursoOnlineController.js: export oficial precisa expor query.",
   );
 }
 
@@ -119,7 +119,7 @@ function gerarRequestId() {
 
 function sucesso(
   res,
-  { status = 200, data = null, message = "OK", code = "OK", meta = null }
+  { status = 200, data = null, message = "OK", code = "OK", meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -139,7 +139,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -193,10 +193,14 @@ function getPerfis(req) {
   const perfil = req?.user?.perfil;
 
   if (Array.isArray(perfil)) {
-    return perfil.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
+    return perfil
+      .map((item) => String(item).trim().toLowerCase())
+      .filter(Boolean);
   }
 
-  const unico = String(perfil || "").trim().toLowerCase();
+  const unico = String(perfil || "")
+    .trim()
+    .toLowerCase();
   return unico ? [unico] : [];
 }
 
@@ -388,7 +392,10 @@ function validarPayloadAtualizacao(body = {}) {
     patch.ordem = toIntOrNull(body.ordem);
   }
 
-  if (patch.titulo !== undefined && (!patch.titulo || patch.titulo.length < 3)) {
+  if (
+    patch.titulo !== undefined &&
+    (!patch.titulo || patch.titulo.length < 3)
+  ) {
     return {
       ok: false,
       message: "Informe o título do curso online com pelo menos 3 caracteres.",
@@ -595,7 +602,7 @@ async function listarPublicados(req, res) {
           criado_em DESC,
           id DESC
       `,
-      params
+      params,
     );
 
     const data = (result.rows || []).map(decorarCurso);
@@ -685,7 +692,7 @@ async function obterPublicadoPorId(req, res) {
           AND status = 'publicado'
         LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     const curso = result.rows?.[0] ? decorarCurso(result.rows[0]) : null;
@@ -828,7 +835,7 @@ async function listarAdmin(req, res) {
           co.criado_em DESC,
           co.id DESC
       `,
-      params
+      params,
     );
 
     const data = (result.rows || []).map(decorarCurso);
@@ -931,7 +938,7 @@ async function criarAdmin(req, res) {
         payload.certificado_externo,
         payload.ordem,
         permissao.usuarioId,
-      ]
+      ],
     );
 
     const curso = decorarCurso(result.rows?.[0]);
@@ -1014,7 +1021,7 @@ async function atualizarAdmin(req, res) {
         WHERE id = $1
         LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     if (!atual.rows?.[0]) {
@@ -1060,7 +1067,7 @@ async function atualizarAdmin(req, res) {
          WHERE id = $${valores.length}
          RETURNING *
       `,
-      valores
+      valores,
     );
 
     const curso = decorarCurso(result.rows?.[0]);
@@ -1139,7 +1146,7 @@ async function alterarStatusAdmin(req, res) {
          WHERE id = $2
          RETURNING *
       `,
-      [status, id]
+      [status, id],
     );
 
     const curso = result.rows?.[0] ? decorarCurso(result.rows[0]) : null;
@@ -1200,7 +1207,7 @@ async function excluirAdmin(req, res) {
         WHERE id = $1
         RETURNING id, titulo
       `,
-      [id]
+      [id],
     );
 
     const removido = result.rows?.[0];

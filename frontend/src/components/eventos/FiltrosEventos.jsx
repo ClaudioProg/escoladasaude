@@ -96,17 +96,21 @@ export default function FiltrosEventos({
     (valor) => {
       const novoFiltro = normalizarFiltro(valor);
 
-      if (novoFiltro === valorSeguro) return;
+      if (novoFiltro === valorSeguro) {
+        return;
+      }
 
       if (typeof onFiltroChange === "function") {
         onFiltroChange(novoFiltro);
       }
     },
-    [onFiltroChange, valorSeguro]
+    [onFiltroChange, valorSeguro],
   );
 
   useEffect(() => {
-    if (!liveRef.current) return;
+    if (!liveRef.current) {
+      return;
+    }
 
     const labelAtual =
       opcoes.find((opcao) => opcao.valor === valorSeguro)?.rotulo || "Todos";
@@ -125,7 +129,12 @@ export default function FiltrosEventos({
         .join(" ")}
       aria-label={ariaLabel}
     >
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       <FiltroToggleGroup
         opcao={opcoes}

@@ -71,7 +71,7 @@ async function obterAssinatura(req, res) {
       res,
       401,
       "USUARIO-ASSINATURA-401-NAO-AUTENTICADO",
-      "Usuário não autenticado."
+      "Usuário não autenticado.",
     );
   }
 
@@ -84,7 +84,7 @@ async function obterAssinatura(req, res) {
       {
         adminHint:
           "Esta rota exige perfil oficial organizador ou administrador no token autenticado.",
-      }
+      },
     );
   }
 
@@ -97,7 +97,7 @@ async function obterAssinatura(req, res) {
       WHERE usuario_id = $1
       LIMIT 1
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     return res.status(200).json({
@@ -123,7 +123,7 @@ async function obterAssinatura(req, res) {
       res,
       500,
       "USUARIO-ASSINATURA-500-ERRO",
-      "Erro ao buscar assinatura."
+      "Erro ao buscar assinatura.",
     );
   }
 }

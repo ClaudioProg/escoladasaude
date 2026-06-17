@@ -89,7 +89,9 @@ function normNome(v) {
 }
 
 function normEmail(v) {
-  return String(v || "").trim().toLowerCase();
+  return String(v || "")
+    .trim()
+    .toLowerCase();
 }
 
 function safePreview(value, start = 6, end = 4) {
@@ -263,13 +265,13 @@ function validarDataNascimentoObrigatoria(value) {
   const hojeUTC = Date.UTC(
     now.getUTCFullYear(),
     now.getUTCMonth(),
-    now.getUTCDate()
+    now.getUTCDate(),
   );
 
   const dtUTC = Date.UTC(
     dt.getUTCFullYear(),
     dt.getUTCMonth(),
-    dt.getUTCDate()
+    dt.getUTCDate(),
   );
 
   if (Number.isNaN(dt.getTime())) {
@@ -319,7 +321,7 @@ async function assertExists(table, id, field = "id") {
 
   const result = await db.query(
     `SELECT 1 FROM ${tableName} WHERE id = $1 LIMIT 1`,
-    [id]
+    [id],
   );
 
   return result.rowCount > 0;
@@ -332,7 +334,11 @@ async function validarReferenciasPerfil(payload) {
     ["escolaridades", "escolaridade_id", payload.escolaridade_id],
     ["deficiencias", "deficiencia_id", payload.deficiencia_id],
     ["generos", "genero_id", payload.genero_id],
-    ["orientacoes_sexuais", "orientacao_sexual_id", payload.orientacao_sexual_id],
+    [
+      "orientacoes_sexuais",
+      "orientacao_sexual_id",
+      payload.orientacao_sexual_id,
+    ],
     ["cores_racas", "cor_raca_id", payload.cor_raca_id],
   ];
 
@@ -593,7 +599,7 @@ async function cadastrar(req, res) {
          OR LOWER(email) = LOWER($2)
       LIMIT 1
       `,
-      [payload.cpf, payload.email]
+      [payload.cpf, payload.email],
     );
 
     if (existente.rows.length > 0) {
@@ -675,7 +681,7 @@ async function cadastrar(req, res) {
         payload.orientacao_sexual_id,
         payload.cor_raca_id,
         payload.registro.value,
-      ]
+      ],
     );
 
     const usuario = result.rows[0];
@@ -835,7 +841,7 @@ async function recuperarSenha(req, res) {
       WHERE LOWER(email) = LOWER($1)
       LIMIT 1
       `,
-      [email]
+      [email],
     );
 
     if (result.rows.length === 0) {
@@ -843,7 +849,7 @@ async function recuperarSenha(req, res) {
         "[authUsuarioController.recuperarSenha] e-mail não encontrado; resposta idempotente",
         {
           emailPreview: safePreview(email),
-        }
+        },
       );
 
       return res.status(200).json(respostaIdempotente);
@@ -854,7 +860,7 @@ async function recuperarSenha(req, res) {
 
     if (!jwtSecret) {
       console.error(
-        "[authUsuarioController.recuperarSenha] JWT_SECRET ausente no ambiente"
+        "[authUsuarioController.recuperarSenha] JWT_SECRET ausente no ambiente",
       );
 
       return res.status(200).json(respostaIdempotente);
@@ -873,36 +879,39 @@ async function recuperarSenha(req, res) {
         typ: "pwd-reset",
       },
       jwtSecret,
-      signOpts
+      signOpts,
     );
 
-const link = buildPasswordResetLink(req, token);
+    const link = buildPasswordResetLink(req, token);
 
-try {
-  const emailRecuperacaoSenha = montarEmailRecuperacaoSenha({ link });
+    try {
+      const emailRecuperacaoSenha = montarEmailRecuperacaoSenha({ link });
 
-  await enviarEmail({
-    to: email,
-    subject: "Recuperação de senha — Escola da Saúde",
-    text: emailRecuperacaoSenha.text,
-    html: emailRecuperacaoSenha.html,
-  });
+      await enviarEmail({
+        to: email,
+        subject: "Recuperação de senha — Escola da Saúde",
+        text: emailRecuperacaoSenha.text,
+        html: emailRecuperacaoSenha.html,
+      });
 
-  console.log("[authUsuarioController.recuperarSenha] e-mail enviado", {
-    usuarioId,
-    emailPreview: safePreview(email),
-    frontendBase: getFrontendBaseFromRequest(req),
-  });
-} catch (mailErr) {
-  console.error("[authUsuarioController.recuperarSenha] erro ao enviar e-mail", {
-    message: mailErr?.message,
-    emailPreview: safePreview(email),
-    usuarioId,
-    frontendBase: getFrontendBaseFromRequest(req),
-  });
-}
+      console.log("[authUsuarioController.recuperarSenha] e-mail enviado", {
+        usuarioId,
+        emailPreview: safePreview(email),
+        frontendBase: getFrontendBaseFromRequest(req),
+      });
+    } catch (mailErr) {
+      console.error(
+        "[authUsuarioController.recuperarSenha] erro ao enviar e-mail",
+        {
+          message: mailErr?.message,
+          emailPreview: safePreview(email),
+          usuarioId,
+          frontendBase: getFrontendBaseFromRequest(req),
+        },
+      );
+    }
 
-return res.status(200).json(respostaIdempotente);
+    return res.status(200).json(respostaIdempotente);
   } catch (err) {
     console.error("[authUsuarioController.recuperarSenha] ERRO", {
       message: err?.message,
@@ -997,7 +1006,7 @@ async function redefinirSenha(req, res) {
        WHERE id = $2
        RETURNING id
       `,
-      [senhaCriptografada, usuarioId]
+      [senhaCriptografada, usuarioId],
     );
 
     if (!result.rows?.length) {
@@ -1005,7 +1014,7 @@ async function redefinirSenha(req, res) {
         "[authUsuarioController.redefinirSenha] usuário do token não encontrado",
         {
           usuarioId,
-        }
+        },
       );
 
       return res.status(400).json({

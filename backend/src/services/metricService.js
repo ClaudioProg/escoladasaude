@@ -33,10 +33,12 @@ const METRICA_ACESSO_APP = "acessos_app";
    Contrato obrigatório
 ───────────────────────────────────────── */
 
-if (!db || typeof db.none !== "function" || typeof db.oneOrNone !== "function") {
-  throw new Error(
-    "[metricService] db deve exportar none() e oneOrNone()."
-  );
+if (
+  !db ||
+  typeof db.none !== "function" ||
+  typeof db.oneOrNone !== "function"
+) {
+  throw new Error("[metricService] db deve exportar none() e oneOrNone().");
 }
 
 /* ─────────────────────────────────────────
@@ -51,26 +53,28 @@ function createMetricError(message, code, extra = {}) {
 }
 
 function normalizarChave(chave) {
-  const key = String(chave || "").trim().toLowerCase();
+  const key = String(chave || "")
+    .trim()
+    .toLowerCase();
 
   if (!key) {
     throw createMetricError(
       "Chave da métrica é obrigatória.",
-      "METRICA-400-CHAVE-OBRIGATORIA"
+      "METRICA-400-CHAVE-OBRIGATORIA",
     );
   }
 
   if (key.length > 120) {
     throw createMetricError(
       "Chave da métrica muito longa.",
-      "METRICA-400-CHAVE-LONGA"
+      "METRICA-400-CHAVE-LONGA",
     );
   }
 
   if (!/^[a-z0-9:_-]+$/.test(key)) {
     throw createMetricError(
       "Chave da métrica possui caracteres inválidos.",
-      "METRICA-400-CHAVE-INVALIDA"
+      "METRICA-400-CHAVE-INVALIDA",
     );
   }
 
@@ -89,7 +93,7 @@ function normalizarIncremento(value) {
   if (!Number.isFinite(number)) {
     throw createMetricError(
       "Incremento da métrica inválido.",
-      "METRICA-400-INCREMENTO-INVALIDO"
+      "METRICA-400-INCREMENTO-INVALIDO",
     );
   }
 
@@ -132,7 +136,7 @@ async function incrementarMetrica(chave, valor = 1, conn = db) {
           + EXCLUDED.valor_numeric,
         atualizado_em = now()
     `,
-    [key, incremento]
+    [key, incremento],
   );
 
   return true;
@@ -155,7 +159,7 @@ async function definirMetrica(chave, valor = 0, conn = db) {
         valor_numeric = EXCLUDED.valor_numeric,
         atualizado_em = now()
     `,
-    [key, numero]
+    [key, numero],
   );
 
   return true;
@@ -174,19 +178,21 @@ async function obterMetrica(chave, conn = db) {
       WHERE chave = $1
       LIMIT 1
     `,
-    [key]
+    [key],
   );
 
   return mapMetrica(row);
 }
 
 async function listarMetricas(prefixo = "", conn = db) {
-  const prefix = String(prefixo || "").trim().toLowerCase();
+  const prefix = String(prefixo || "")
+    .trim()
+    .toLowerCase();
 
   if (prefix && !/^[a-z0-9:_-]+$/.test(prefix)) {
     throw createMetricError(
       "Prefixo da métrica possui caracteres inválidos.",
-      "METRICA-400-PREFIXO-INVALIDO"
+      "METRICA-400-PREFIXO-INVALIDO",
     );
   }
 
@@ -208,7 +214,7 @@ async function listarMetricas(prefixo = "", conn = db) {
       ${whereSql}
       ORDER BY chave ASC
     `,
-    params
+    params,
   );
 
   return (rows || []).map(mapMetrica).filter(Boolean);
@@ -221,7 +227,7 @@ async function registrarTimingMetrica(chave, ms) {
   if (!Number.isFinite(valorMs) || valorMs < 0) {
     throw createMetricError(
       "Valor de timing inválido.",
-      "METRICA-400-TIMING-INVALIDO"
+      "METRICA-400-TIMING-INVALIDO",
     );
   }
 
@@ -245,11 +251,13 @@ async function registrarAcessoApp() {
 async function obterAcessosApp() {
   const metrica = await obterMetrica(METRICA_ACESSO_APP);
 
-  return metrica || {
-    chave: METRICA_ACESSO_APP,
-    valor_numeric: 0,
-    atualizado_em: null,
-  };
+  return (
+    metrica || {
+      chave: METRICA_ACESSO_APP,
+      valor_numeric: 0,
+      atualizado_em: null,
+    }
+  );
 }
 
 /* ─────────────────────────────────────────

@@ -111,11 +111,11 @@ const DEPARTAMENTOS_EPS = Object.freeze([
 ]);
 
 const DEPARTAMENTOS_OFICIAIS = new Set(
-  DEPARTAMENTOS_EPS.map((departamento) => departamento.value)
+  DEPARTAMENTOS_EPS.map((departamento) => departamento.value),
 );
 
 const DEPARTAMENTO_META = new Map(
-  DEPARTAMENTOS_EPS.map((departamento) => [departamento.value, departamento])
+  DEPARTAMENTOS_EPS.map((departamento) => [departamento.value, departamento]),
 );
 
 function gerarRequestId() {
@@ -153,13 +153,13 @@ const pool = getPool();
 
 if (typeof query !== "function") {
   throw new Error(
-    "DB inválido em calendarioAnualEPS.js: export oficial precisa expor query."
+    "DB inválido em calendarioAnualEPS.js: export oficial precisa expor query.",
   );
 }
 
 function sucesso(
   res,
-  { status = 200, data = null, message = "OK", code = "OK", meta = null }
+  { status = 200, data = null, message = "OK", code = "OK", meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -179,7 +179,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -206,7 +206,7 @@ function logErro(requestId, contexto, err) {
 async function abrirClient() {
   if (!pool) {
     throw new Error(
-      "DB inválido em calendarioAnualEPS.js: pool.connect ausente para transações."
+      "DB inválido em calendarioAnualEPS.js: pool.connect ausente para transações.",
     );
   }
 
@@ -222,10 +222,14 @@ function getPerfis(req) {
   const perfil = req?.user?.perfil;
 
   if (Array.isArray(perfil)) {
-    return perfil.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
+    return perfil
+      .map((item) => String(item).trim().toLowerCase())
+      .filter(Boolean);
   }
 
-  const unico = String(perfil || "").trim().toLowerCase();
+  const unico = String(perfil || "")
+    .trim()
+    .toLowerCase();
   return unico ? [unico] : [];
 }
 
@@ -319,7 +323,8 @@ function normalizarDatas(datas) {
 
     out.push({
       data,
-      horario_inicio: horario_inicio && isHHMM(horario_inicio) ? horario_inicio : null,
+      horario_inicio:
+        horario_inicio && isHHMM(horario_inicio) ? horario_inicio : null,
       horario_fim: horario_fim && isHHMM(horario_fim) ? horario_fim : null,
     });
   }
@@ -368,7 +373,7 @@ function normalizarPalestrantes(palestrantes) {
     }
 
     const palestrante_id = toIntOrNull(
-      item.palestrante_id ?? item.usuario_id ?? item.id
+      item.palestrante_id ?? item.usuario_id ?? item.id,
     );
     const nome_externo = cleanStr(item.nome_externo ?? item.nome);
 
@@ -395,9 +400,13 @@ function normalizarPalestrantes(palestrantes) {
   }
 
   unicos.sort((a, b) =>
-    String(a.nome_externo || "").localeCompare(String(b.nome_externo || ""), "pt-BR", {
-      sensitivity: "base",
-    })
+    String(a.nome_externo || "").localeCompare(
+      String(b.nome_externo || ""),
+      "pt-BR",
+      {
+        sensitivity: "base",
+      },
+    ),
   );
 
   return unicos;
@@ -568,11 +577,14 @@ function validarPayloadAtualizacao(body) {
 
   if (body.titulo !== undefined) patch.titulo = cleanStr(body.titulo);
   if (body.descricao !== undefined) patch.descricao = cleanStr(body.descricao);
-  if (body.publico_alvo !== undefined) patch.publico_alvo = cleanStr(body.publico_alvo);
+  if (body.publico_alvo !== undefined)
+    patch.publico_alvo = cleanStr(body.publico_alvo);
   if (body.local !== undefined) patch.local = cleanStr(body.local);
   if (body.tipo !== undefined) patch.tipo = cleanStr(body.tipo);
-  if (body.unidade_id !== undefined) patch.unidade_id = toIntOrNull(body.unidade_id);
-  if (body.modalidade !== undefined) patch.modalidade = cleanStr(body.modalidade);
+  if (body.unidade_id !== undefined)
+    patch.unidade_id = toIntOrNull(body.unidade_id);
+  if (body.modalidade !== undefined)
+    patch.modalidade = cleanStr(body.modalidade);
 
   if (body.departamento !== undefined) {
     patch.departamento = normalizarDepartamento(body.departamento);
@@ -596,7 +608,8 @@ function validarPayloadAtualizacao(body) {
     patch.status = normalizarStatus(body.status, null);
   }
 
-  const datas = body.datas !== undefined ? normalizarDatas(body.datas) : undefined;
+  const datas =
+    body.datas !== undefined ? normalizarDatas(body.datas) : undefined;
 
   const palestrantes =
     body.palestrantes !== undefined
@@ -614,7 +627,8 @@ function validarPayloadAtualizacao(body) {
   if (patch.departamento !== undefined && !patch.departamento) {
     return {
       ok: false,
-      message: "Departamento inválido. Selecione um departamento oficial da lista.",
+      message:
+        "Departamento inválido. Selecione um departamento oficial da lista.",
       code: "DEPARTAMENTO_INVALIDO",
       adminHint:
         "O campo departamento deve respeitar o contrato oficial: GAB-SMS, DESMEN, DEAPS, DEMAC, DEVIG, DEREG ou DEAFIN-SMS.",
@@ -689,13 +703,16 @@ async function obterProgramacaoBasica(client, programacaoId) {
         FROM ${TABELA_PROGRAMACAO}
        WHERE id = $1
     `,
-    [programacaoId]
+    [programacaoId],
   );
 
   return result.rows?.[0] || null;
 }
 
-async function assertPodeEditar(client, { programacaoId, usuarioId, administrador }) {
+async function assertPodeEditar(
+  client,
+  { programacaoId, usuarioId, administrador },
+) {
   const programacao = await obterProgramacaoBasica(client, programacaoId);
 
   if (!programacao) {
@@ -728,15 +745,16 @@ async function substituirDatas(client, programacaoId, datas) {
         VALUES
           ($1, $2::date, $3::time, $4::time)
       `,
-      [programacaoId, item.data, item.horario_inicio, item.horario_fim]
+      [programacaoId, item.data, item.horario_inicio, item.horario_fim],
     );
   }
 }
 
 async function substituirPalestrantes(client, programacaoId, palestrantes) {
-  await client.query(`DELETE FROM ${TABELA_PALESTRANTES} WHERE solicitacao_id = $1`, [
-    programacaoId,
-  ]);
+  await client.query(
+    `DELETE FROM ${TABELA_PALESTRANTES} WHERE solicitacao_id = $1`,
+    [programacaoId],
+  );
 
   for (const item of palestrantes) {
     await client.query(
@@ -746,7 +764,7 @@ async function substituirPalestrantes(client, programacaoId, palestrantes) {
         VALUES
           ($1, $2, $3)
       `,
-      [programacaoId, item.palestrante_id, item.nome_externo]
+      [programacaoId, item.palestrante_id, item.nome_externo],
     );
   }
 }
@@ -781,7 +799,8 @@ async function listarProgramacao(req, res) {
     if (req.query?.departamento !== undefined && !departamento) {
       return falha(res, {
         status: 400,
-        message: "Departamento inválido. Selecione um departamento oficial da lista.",
+        message:
+          "Departamento inválido. Selecione um departamento oficial da lista.",
         code: "DEPARTAMENTO_INVALIDO",
         adminHint:
           "Parâmetro departamento deve ser um dos valores oficiais: GAB-SMS, DESMEN, DEAPS, DEMAC, DEVIG, DEREG ou DEAFIN-SMS.",
@@ -902,14 +921,15 @@ async function listarProgramacao(req, res) {
         LEFT JOIN palestrantes p ON p.solicitacao_id = b.id
         ORDER BY d.primeira_data ASC NULLS LAST, b.criado_em DESC NULLS LAST, b.id DESC
       `,
-      params
+      params,
     );
 
     const data = (result.rows || []).map((row) =>
       decorarProgramacao({
         ...row,
-        pode_editar: administrador || Number(row.criador_id) === Number(usuarioId),
-      })
+        pode_editar:
+          administrador || Number(row.criador_id) === Number(usuarioId),
+      }),
     );
 
     return sucesso(res, {
@@ -923,7 +943,11 @@ async function listarProgramacao(req, res) {
       },
     });
   } catch (err) {
-    logErro(requestId, "Erro ao listar programações do Calendário Anual de EPS", err);
+    logErro(
+      requestId,
+      "Erro ao listar programações do Calendário Anual de EPS",
+      err,
+    );
 
     return falha(res, {
       status: 500,
@@ -956,7 +980,8 @@ async function listarDepartamentos(req, res) {
 
   return sucesso(res, {
     data: DEPARTAMENTOS_EPS,
-    message: "Departamentos oficiais do Calendário Anual de EPS listados com sucesso.",
+    message:
+      "Departamentos oficiais do Calendário Anual de EPS listados com sucesso.",
     code: "CALENDARIO_EPS_DEPARTAMENTOS_LISTADOS",
     meta: {
       total: DEPARTAMENTOS_EPS.length,
@@ -986,7 +1011,7 @@ async function listarTipos(req, res) {
          WHERE tipo IS NOT NULL
            AND trim(tipo) <> ''
          ORDER BY tipo ASC
-      `
+      `,
     );
 
     return sucesso(res, {
@@ -1086,7 +1111,7 @@ async function criarProgramacao(req, res) {
         payload.gera_certificado,
         payload.status,
         usuarioId,
-      ]
+      ],
     );
 
     const programacaoId = Number(insert.rows?.[0]?.id);
@@ -1221,7 +1246,7 @@ async function atualizarProgramacao(req, res) {
              SET ${campos.join(", ")}
            WHERE id = $${valores.length}
         `,
-        valores
+        valores,
       );
     } else {
       await client.query(
@@ -1230,7 +1255,7 @@ async function atualizarProgramacao(req, res) {
              SET atualizado_em = now()
            WHERE id = $1
         `,
-        [programacaoId]
+        [programacaoId],
       );
     }
 
@@ -1329,13 +1354,15 @@ async function excluirProgramacao(req, res) {
       administrador,
     });
 
-    await client.query(`DELETE FROM ${TABELA_PALESTRANTES} WHERE solicitacao_id = $1`, [
-      programacaoId,
-    ]);
+    await client.query(
+      `DELETE FROM ${TABELA_PALESTRANTES} WHERE solicitacao_id = $1`,
+      [programacaoId],
+    );
 
-    await client.query(`DELETE FROM ${TABELA_DATAS} WHERE solicitacao_id = $1`, [
-      programacaoId,
-    ]);
+    await client.query(
+      `DELETE FROM ${TABELA_DATAS} WHERE solicitacao_id = $1`,
+      [programacaoId],
+    );
 
     await client.query(`DELETE FROM ${TABELA_PROGRAMACAO} WHERE id = $1`, [
       programacaoId,
@@ -1442,7 +1469,7 @@ async function resumoMensal(req, res) {
         GROUP BY sc.departamento
         ORDER BY sc.departamento ASC
       `,
-      params
+      params,
     );
 
     const data = preencherResumo(result.rows);
@@ -1460,7 +1487,11 @@ async function resumoMensal(req, res) {
       },
     });
   } catch (err) {
-    logErro(requestId, "Erro ao gerar resumo mensal do Calendário Anual de EPS", err);
+    logErro(
+      requestId,
+      "Erro ao gerar resumo mensal do Calendário Anual de EPS",
+      err,
+    );
 
     return falha(res, {
       status: 500,
@@ -1531,7 +1562,7 @@ async function resumoAnual(req, res) {
         GROUP BY sc.departamento
         ORDER BY sc.departamento ASC
       `,
-      params
+      params,
     );
 
     const data = preencherResumo(result.rows);
@@ -1548,7 +1579,11 @@ async function resumoAnual(req, res) {
       },
     });
   } catch (err) {
-    logErro(requestId, "Erro ao gerar resumo anual do Calendário Anual de EPS", err);
+    logErro(
+      requestId,
+      "Erro ao gerar resumo anual do Calendário Anual de EPS",
+      err,
+    );
 
     return falha(res, {
       status: 500,

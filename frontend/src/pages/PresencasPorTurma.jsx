@@ -27,10 +27,8 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
-  CalendarDays,
   CheckCircle2,
   CheckSquare,
-  Clock3,
   Hourglass,
   Loader2,
   RefreshCw,
@@ -39,7 +37,6 @@ import {
   UserCheck,
   Users,
   UserX,
-  X,
   XCircle,
 } from "lucide-react";
 
@@ -48,10 +45,7 @@ import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import Footer from "../components/layout/Footer";
-import {
-  notifyError,
-  notifySuccess,
-} from "../components/ui/AppToast";
+import { notifyError, notifySuccess } from "../components/ui/AppToast";
 
 /* ─────────────────────────────────────────────────────────────
  * Helpers base
@@ -70,8 +64,12 @@ function toPositiveInt(value) {
 function ymd(value) {
   const safe = String(value || "").trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) return safe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) return safe.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) {
+    return safe.slice(0, 10);
+  }
 
   return "";
 }
@@ -79,8 +77,12 @@ function ymd(value) {
 function hhmm(value, fallback = "00:00") {
   const safe = String(value || "").trim();
 
-  if (/^\d{2}:\d{2}$/.test(safe)) return safe;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) return safe.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) {
+    return safe.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -89,7 +91,9 @@ function makeLocalDate(dateOnly, time = "00:00") {
   const data = ymd(dateOnly);
   const hora = hhmm(time, "00:00");
 
-  if (!data || !hora) return null;
+  if (!data || !hora) {
+    return null;
+  }
 
   const [year, month, day] = data.split("-").map(Number);
   const [hour, minute] = hora.split(":").map(Number);
@@ -100,7 +104,9 @@ function makeLocalDate(dateOnly, time = "00:00") {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [year, month, day] = data.split("-");
   return `${day}/${month}/${year}`;
@@ -182,23 +188,29 @@ function safeAtob(value) {
 function getValidToken() {
   const raw = getRawToken();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw;
   const parts = token.split(".");
 
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
 
   try {
-    const payloadStr = safeAtob(
-      parts[1].replace(/-/g, "+").replace(/_/g, "/")
-    );
+    const payloadStr = safeAtob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
 
     const payload = JSON.parse(payloadStr || "{}");
     const now = Date.now() / 1000;
 
-    if (payload?.nbf && now < payload.nbf) return null;
-    if (payload?.exp && now >= payload.exp) return null;
+    if (payload?.nbf && now < payload.nbf) {
+      return null;
+    }
+    if (payload?.exp && now >= payload.exp) {
+      return null;
+    }
 
     return token;
   } catch {
@@ -217,7 +229,9 @@ function normalizarLinhasPresenca(payload) {
     return [];
   }
 
-  const datas = Array.isArray(data?.datas) ? data.datas.map(ymd).filter(Boolean) : [];
+  const datas = Array.isArray(data?.datas)
+    ? data.datas.map(ymd).filter(Boolean)
+    : [];
   const usuarios = Array.isArray(data?.usuarios) ? data.usuarios : [];
 
   const linhas = [];
@@ -225,7 +239,9 @@ function normalizarLinhasPresenca(payload) {
   for (const usuario of usuarios) {
     const usuario_id = toPositiveInt(usuario?.usuario_id || usuario?.id);
 
-    if (!usuario_id) continue;
+    if (!usuario_id) {
+      continue;
+    }
 
     const mapaPresencas = new Map();
 
@@ -233,7 +249,9 @@ function normalizarLinhasPresenca(payload) {
       for (const item of usuario.presencas) {
         const dataPresenca = ymd(item?.data || item?.data_presenca);
 
-        if (!dataPresenca) continue;
+        if (!dataPresenca) {
+          continue;
+        }
 
         mapaPresencas.set(dataPresenca, {
           presente: item?.presente === true,
@@ -276,7 +294,8 @@ function getStatusFlags(registro, agora = new Date()) {
   const inicio = makeLocalDate(dataReferencia, horarioInicio);
   const fim = makeLocalDate(dataReferencia, horarioFim);
 
-  const presente = Boolean(registro?.data_presenca) || registro?.presente === true;
+  const presente =
+    Boolean(registro?.data_presenca) || registro?.presente === true;
 
   if (!inicio || !fim) {
     return {
@@ -310,7 +329,10 @@ function getStatusFlags(registro, agora = new Date()) {
 
 function HeaderHero({ turma_id, onRefresh, carregando }) {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-orange-800 to-rose-700" />
       <div
         aria-hidden="true"
@@ -359,13 +381,16 @@ function HeaderHero({ turma_id, onRefresh, carregando }) {
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
                   carregando
                     ? "cursor-not-allowed bg-white/20 opacity-70"
-                    : "bg-white/15 hover:bg-white/25"
+                    : "bg-white/15 hover:bg-white/25",
                 )}
                 aria-label="Atualizar lista de presenças"
                 aria-busy={carregando ? "true" : "false"}
               >
                 {carregando ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 )}
@@ -383,8 +408,8 @@ function HeaderHero({ turma_id, onRefresh, carregando }) {
               <div>
                 <p className="text-sm font-black">Regra operacional</p>
                 <p className="mt-1 text-xs leading-relaxed text-white/75">
-                  A confirmação manual segue validação de permissão, turma,
-                  data e prazo diretamente no backend.
+                  A confirmação manual segue validação de permissão, turma, data
+                  e prazo diretamente no backend.
                 </p>
               </div>
             </div>
@@ -410,7 +435,7 @@ function MiniStat({ icon: Icon, label, value, tone = "neutral" }) {
     <article
       className={classNames(
         "rounded-3xl border p-3 text-center shadow-sm sm:p-4",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       <div className="inline-flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wide opacity-80 sm:text-xs">
@@ -525,7 +550,10 @@ function StatusRegistro({ registro, loading, onConfirmar }) {
         >
           {loading ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="h-3.5 w-3.5 animate-spin"
+                aria-hidden="true"
+              />
               Confirmando...
             </>
           ) : (
@@ -631,19 +659,25 @@ export default function PresencasPorTurma() {
 
       const lista = normalizarLinhasPresenca(response);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setDados(lista);
       setLive(`Presenças carregadas. Total: ${lista.length}.`);
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
       const message = getErrorMessage(
         error,
-        "Erro ao carregar presenças da turma."
+        "Erro ao carregar presenças da turma.",
       );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setErro(message);
       setDados([]);
@@ -664,7 +698,9 @@ export default function PresencasPorTurma() {
     const q = normalizarTexto(busca);
     const qDigits = somenteDigitos(busca);
 
-    if (!q && !qDigits) return dados;
+    if (!q && !qDigits) {
+      return dados;
+    }
 
     return dados.filter((registro) => {
       const nome = normalizarTexto(registro?.nome);
@@ -742,21 +778,21 @@ export default function PresencasPorTurma() {
             }
 
             return item;
-          })
+          }),
         );
 
         notifySuccess("Presença confirmada com sucesso.");
         setLive("Presença confirmada.");
       } catch (error) {
         notifyError(
-          getErrorMessage(error, "Não foi possível confirmar presença.")
+          getErrorMessage(error, "Não foi possível confirmar presença."),
         );
         setLive("Falha ao confirmar presença.");
       } finally {
         setConfirmandoId(null);
       }
     },
-    [setLive, turmaIdSeguro]
+    [setLive, turmaIdSeguro],
   );
 
   const limparBusca = useCallback(() => {
@@ -772,7 +808,7 @@ export default function PresencasPorTurma() {
       exit: reduceMotion ? {} : { opacity: 0, y: 10 },
       transition: { duration: 0.18 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   return (
@@ -848,7 +884,10 @@ export default function PresencasPorTurma() {
           <AnimatePresence mode="wait">
             {carregando ? (
               <motion.div key="loading" {...motionConfig}>
-                <CarregandoSkeleton texto="Carregando presenças..." linhas={6} />
+                <CarregandoSkeleton
+                  texto="Carregando presenças..."
+                  linhas={6}
+                />
               </motion.div>
             ) : erro ? (
               <motion.section
@@ -921,7 +960,9 @@ export default function PresencasPorTurma() {
                             <p>
                               Data: {formatarDataBR(registro.data_referencia)}
                             </p>
-                            {registro.email ? <p>E-mail: {registro.email}</p> : null}
+                            {registro.email ? (
+                              <p>E-mail: {registro.email}</p>
+                            ) : null}
                           </div>
                         </div>
 
@@ -929,7 +970,9 @@ export default function PresencasPorTurma() {
                           <StatusRegistro
                             registro={registro}
                             loading={loading}
-                            onConfirmar={() => confirmarPresencaManual(registro)}
+                            onConfirmar={() =>
+                              confirmarPresencaManual(registro)
+                            }
                           />
                         </div>
                       </div>

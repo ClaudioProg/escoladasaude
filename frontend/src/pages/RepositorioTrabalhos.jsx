@@ -31,14 +31,12 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  FileText,
   Filter,
   Image as ImageIcon,
   Layers,
   Loader2,
   RefreshCcw,
   Search,
-  Sparkles,
   Tags,
   X,
 } from "lucide-react";
@@ -46,6 +44,7 @@ import {
 import api from "../services/api";
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
+import { notifyError } from "../components/ui/AppToast";
 
 /* =========================================================================
    Utils
@@ -64,9 +63,15 @@ function norm(value) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
@@ -82,23 +87,43 @@ function getErrorMessage(error, fallback) {
 function normalizarStatus(status) {
   const value = String(status || "").toLowerCase();
 
-  if (value === "aprovada_exposicao") return "aprovada_exposicao";
-  if (value === "aprovada_oral") return "aprovada_oral";
-  if (value === "aprovada") return "aprovada";
-  if (value === "reprovada") return "reprovada";
-  if (value === "em_avaliacao") return "em_avaliacao";
-  if (value === "submetida") return "submetida";
-  if (value === "rascunho") return "rascunho";
-  if (value === "cancelada") return "cancelada";
+  if (value === "aprovada_exposicao") {
+    return "aprovada_exposicao";
+  }
+  if (value === "aprovada_oral") {
+    return "aprovada_oral";
+  }
+  if (value === "aprovada") {
+    return "aprovada";
+  }
+  if (value === "reprovada") {
+    return "reprovada";
+  }
+  if (value === "em_avaliacao") {
+    return "em_avaliacao";
+  }
+  if (value === "submetida") {
+    return "submetida";
+  }
+  if (value === "rascunho") {
+    return "rascunho";
+  }
+  if (value === "cancelada") {
+    return "cancelada";
+  }
 
   return value || "indefinido";
 }
 
 function inicioExperienciaFormatado(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const [year, month] = String(value).split("-");
-  if (!year || !month) return value;
+  if (!year || !month) {
+    return value;
+  }
 
   return `${month}/${year}`;
 }
@@ -117,7 +142,9 @@ function normalizarApiBaseUrl() {
 }
 
 function abrirPosterSubmissao(id) {
-  if (!id) return;
+  if (!id) {
+    return;
+  }
 
   const baseUrl = normalizarApiBaseUrl();
   const token = localStorage.getItem("token") || "";
@@ -158,7 +185,7 @@ function abrirPosterSubmissao(id) {
 
       if (!opened) {
         throw new Error(
-          "O navegador bloqueou a abertura do arquivo. Permita pop-ups para a Plataforma da Escola da Saúde."
+          "O navegador bloqueou a abertura do arquivo. Permita pop-ups para a Plataforma da Escola da Saúde.",
         );
       }
 
@@ -171,7 +198,9 @@ function abrirPosterSubmissao(id) {
         id,
       });
 
-      alert(error?.message || "Não foi possível abrir o arquivo do trabalho.");
+      notifyError(
+        error?.message || "Não foi possível abrir o arquivo do trabalho.",
+      );
     });
 }
 
@@ -185,11 +214,15 @@ const CACHE_TTL = 3 * 60 * 1000;
 function readCache() {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
 
     const parsed = JSON.parse(raw);
 
-    if (!parsed?.ts || Date.now() - parsed.ts > CACHE_TTL) return null;
+    if (!parsed?.ts || Date.now() - parsed.ts > CACHE_TTL) {
+      return null;
+    }
 
     return Array.isArray(parsed.data) ? parsed.data : null;
   } catch {
@@ -231,7 +264,7 @@ function GlassCard({ children, className = "" }) {
       className={cx(
         "rounded-[1.75rem] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur-xl",
         "dark:border-white/10 dark:bg-slate-900/80 dark:shadow-black/20",
-        className
+        className,
       )}
     >
       {children}
@@ -243,8 +276,7 @@ function Badge({ children, tone = "slate", icon: Icon }) {
   const tones = {
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200",
+    sky: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200",
     indigo:
       "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200",
     fuchsia:
@@ -253,15 +285,14 @@ function Badge({ children, tone = "slate", icon: Icon }) {
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
   };
 
   return (
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -315,8 +346,12 @@ function StatusBadge({ status, statusEscrita, statusOral }) {
   const item = config[value] || config.indefinido;
 
   const tags = [];
-  if (String(statusEscrita || "").toLowerCase() === "aprovado") tags.push("Escrita");
-  if (String(statusOral || "").toLowerCase() === "aprovado") tags.push("Oral");
+  if (String(statusEscrita || "").toLowerCase() === "aprovado") {
+    tags.push("Escrita");
+  }
+  if (String(statusOral || "").toLowerCase() === "aprovado") {
+    tags.push("Oral");
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -330,7 +365,13 @@ function StatusBadge({ status, statusEscrita, statusOral }) {
    Estatísticas
 =========================================================================== */
 
-function MiniStats({ total, totalChamadas, totalLinhas, totalComBanner, filtrados }) {
+function MiniStats({
+  total,
+  totalChamadas,
+  totalLinhas,
+  totalComBanner,
+  filtrados,
+}) {
   const items = [
     {
       icon: Layers,
@@ -363,7 +404,10 @@ function MiniStats({ total, totalChamadas, totalLinhas, totalComBanner, filtrado
   ];
 
   return (
-    <section aria-label="Resumo do repositório" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <section
+      aria-label="Resumo do repositório"
+      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
       {items.map((item) => (
         <GlassCard key={item.label} className="p-4">
           <div className="flex items-start justify-between gap-3">
@@ -413,7 +457,8 @@ function FiltrosRepositorio({
             Filtrar trabalhos
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {totalFiltrados} trabalho{totalFiltrados === 1 ? "" : "s"} encontrado{totalFiltrados === 1 ? "" : "s"} com os filtros atuais.
+            {totalFiltrados} trabalho{totalFiltrados === 1 ? "" : "s"}{" "}
+            encontrado{totalFiltrados === 1 ? "" : "s"} com os filtros atuais.
           </p>
         </div>
 
@@ -493,7 +538,9 @@ function FiltrosRepositorio({
 
 function LinhaBadge({ codigo, nome }) {
   const texto = nome || codigo;
-  if (!texto) return null;
+  if (!texto) {
+    return null;
+  }
 
   return <Badge tone="sky">{texto}</Badge>;
 }
@@ -501,15 +548,18 @@ function LinhaBadge({ codigo, nome }) {
 function CardTrabalho({ trabalho, reduceMotion }) {
   const [aberto, setAberto] = useState(false);
 
-  const preview = trabalho.resultados || trabalho.consideracao || trabalho.objetivos || "";
+  const preview =
+    trabalho.resultados || trabalho.consideracao || trabalho.objetivos || "";
 
   const inicioFmt = useMemo(
     () => inicioExperienciaFormatado(trabalho.inicio_experiencia),
-    [trabalho.inicio_experiencia]
+    [trabalho.inicio_experiencia],
   );
 
   function secao(titulo, texto) {
-    if (!texto) return null;
+    if (!texto) {
+      return null;
+    }
 
     return (
       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
@@ -575,7 +625,9 @@ function CardTrabalho({ trabalho, reduceMotion }) {
               <ExternalLink className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <Badge tone="slate" icon={ImageIcon}>Sem arquivo</Badge>
+            <Badge tone="slate" icon={ImageIcon}>
+              Sem arquivo
+            </Badge>
           )}
         </div>
 
@@ -644,12 +696,14 @@ export default function RepositorioTrabalhos() {
   const [erro, setErro] = useState("");
 
   const [termo, setTermo] = useState(() => searchParams.get("q") || "");
-  const [termoDebounced, setTermoDebounced] = useState(() => searchParams.get("q") || "");
+  const [termoDebounced, setTermoDebounced] = useState(
+    () => searchParams.get("q") || "",
+  );
   const [chamadaSelecionada, setChamadaSelecionada] = useState(
-    () => searchParams.get("chamada") || ""
+    () => searchParams.get("chamada") || "",
   );
   const [linhaSelecionada, setLinhaSelecionada] = useState(
-    () => searchParams.get("linha") || ""
+    () => searchParams.get("linha") || "",
   );
 
   const carregar = useCallback(async () => {
@@ -673,17 +727,20 @@ export default function RepositorioTrabalhos() {
       const status = error?.status || error?.response?.status;
 
       if (status === 401) {
-        navigate(`/login?next=${encodeURIComponent("/repositorio-trabalhos")}`, {
-          replace: true,
-        });
+        navigate(
+          `/login?next=${encodeURIComponent("/repositorio-trabalhos")}`,
+          {
+            replace: true,
+          },
+        );
         return;
       }
 
       setErro(
         getErrorMessage(
           error,
-          "Não foi possível carregar o repositório no momento."
-        )
+          "Não foi possível carregar o repositório no momento.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -705,9 +762,15 @@ export default function RepositorioTrabalhos() {
   useEffect(() => {
     const query = new URLSearchParams();
 
-    if (termo) query.set("q", termo);
-    if (chamadaSelecionada) query.set("chamada", chamadaSelecionada);
-    if (linhaSelecionada) query.set("linha", linhaSelecionada);
+    if (termo) {
+      query.set("q", termo);
+    }
+    if (chamadaSelecionada) {
+      query.set("chamada", chamadaSelecionada);
+    }
+    if (linhaSelecionada) {
+      query.set("linha", linhaSelecionada);
+    }
 
     setSearchParams(query, { replace: true });
   }, [termo, chamadaSelecionada, linhaSelecionada, setSearchParams]);
@@ -716,11 +779,13 @@ export default function RepositorioTrabalhos() {
     const set = new Set();
 
     for (const item of dados) {
-      if (item?.chamada_titulo) set.add(item.chamada_titulo);
+      if (item?.chamada_titulo) {
+        set.add(item.chamada_titulo);
+      }
     }
 
     return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
     );
   }, [dados]);
 
@@ -729,11 +794,13 @@ export default function RepositorioTrabalhos() {
 
     for (const item of dados) {
       const nome = item?.linha_tematica_nome || item?.linha_tematica_codigo;
-      if (nome) set.add(nome);
+      if (nome) {
+        set.add(nome);
+      }
     }
 
     return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
     );
   }, [dados]);
 
@@ -748,7 +815,7 @@ export default function RepositorioTrabalhos() {
       arr = arr.filter(
         (item) =>
           item?.linha_tematica_nome === linhaSelecionada ||
-          item?.linha_tematica_codigo === linhaSelecionada
+          item?.linha_tematica_codigo === linhaSelecionada,
       );
     }
 
@@ -768,7 +835,7 @@ export default function RepositorioTrabalhos() {
           item?.linha_tematica_nome,
         ]
           .filter(Boolean)
-          .some((campo) => norm(campo).includes(termoNorm))
+          .some((campo) => norm(campo).includes(termoNorm)),
       );
     }
 
@@ -779,8 +846,10 @@ export default function RepositorioTrabalhos() {
   const totalChamadas = chamadas.length;
   const totalLinhas = linhas.length;
   const totalComBanner = useMemo(
-    () => dados.filter((item) => item?.banner_url || item?.poster_arquivo_id).length,
-    [dados]
+    () =>
+      dados.filter((item) => item?.banner_url || item?.poster_arquivo_id)
+        .length,
+    [dados],
   );
 
   function limparFiltros() {
@@ -793,50 +862,52 @@ export default function RepositorioTrabalhos() {
   return (
     <PageShell>
       <HeaderHero
-  icone={BookOpen}
-  etiqueta="Produção científica"
-  titulo="Repositório de Trabalhos"
-  subtitulo="Consulte produções, experiências, métodos e resultados publicados em chamadas institucionais da Escola da Saúde."
-/>
+        icone={BookOpen}
+        etiqueta="Produção científica"
+        titulo="Repositório de Trabalhos"
+        subtitulo="Consulte produções, experiências, métodos e resultados publicados em chamadas institucionais da Escola da Saúde."
+      />
 
-      <main id="conteudo" role="main" className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-  <section className="space-y-4">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 className="text-xl font-black text-slate-900 dark:text-white">
-          Biblioteca institucional de trabalhos
-        </h2>
-
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Explore experiências, pesquisas e práticas apresentadas em eventos e chamadas da Escola da Saúde.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={carregar}
-        disabled={loading}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-fuchsia-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 disabled:pointer-events-none disabled:opacity-60"
+      <main
+        id="conteudo"
+        role="main"
+        className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8"
       >
-        <RefreshCcw
-          className={cx(
-            "h-4 w-4",
-            loading && "animate-spin"
-          )}
-        />
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                Biblioteca institucional de trabalhos
+              </h2>
 
-        {loading ? "Atualizando..." : "Atualizar repositório"}
-      </button>
-    </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Explore experiências, pesquisas e práticas apresentadas em
+                eventos e chamadas da Escola da Saúde.
+              </p>
+            </div>
 
-    <MiniStats
-      total={total}
-      totalChamadas={totalChamadas}
-      totalLinhas={totalLinhas}
-      totalComBanner={totalComBanner}
-      filtrados={filtrados.length}
-    />
-  </section>
+            <button
+              type="button"
+              onClick={carregar}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-fuchsia-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 disabled:pointer-events-none disabled:opacity-60"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", loading && "animate-spin")}
+              />
+
+              {loading ? "Atualizando..." : "Atualizar repositório"}
+            </button>
+          </div>
+
+          <MiniStats
+            total={total}
+            totalChamadas={totalChamadas}
+            totalLinhas={totalLinhas}
+            totalComBanner={totalComBanner}
+            filtrados={filtrados.length}
+          />
+        </section>
 
         <FiltrosRepositorio
           chamadas={chamadas}
@@ -864,7 +935,9 @@ export default function RepositorioTrabalhos() {
               <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
                 <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
                 <div className="min-w-0">
-                  <p className="font-black">Não foi possível carregar os trabalhos.</p>
+                  <p className="font-black">
+                    Não foi possível carregar os trabalhos.
+                  </p>
                   <p className="mt-1 break-words text-xs">{erro}</p>
 
                   <button

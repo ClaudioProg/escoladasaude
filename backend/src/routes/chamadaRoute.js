@@ -57,13 +57,13 @@ const { authorize } = require("../middlewares/authorize");
 
 if (typeof requireAuth !== "function") {
   throw new Error(
-    "[chamadaRoute] authMiddleware oficial inválido. Esperado export direto como função."
+    "[chamadaRoute] authMiddleware oficial inválido. Esperado export direto como função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[chamadaRoute] authorize oficial inválido. Esperado export nomeado { authorize }."
+    "[chamadaRoute] authorize oficial inválido. Esperado export nomeado { authorize }.",
   );
 }
 
@@ -106,14 +106,13 @@ function noStore(_req, res, next) {
 }
 
 function getRateLimitKey(req) {
-  return String(req.user?.id || req.ip || req.headers["x-forwarded-for"] || "anon");
+  return String(
+    req.user?.id || req.ip || req.headers["x-forwarded-for"] || "anon",
+  );
 }
 
 const idParam = [
-  param("id")
-    .isInt({ min: 1 })
-    .withMessage("ID inválido.")
-    .toInt(),
+  param("id").isInt({ min: 1 }).withMessage("ID inválido.").toInt(),
 ];
 
 const adminUploadModeloLimiter = rateLimit({
@@ -125,7 +124,8 @@ const adminUploadModeloLimiter = rateLimit({
   message: {
     ok: false,
     data: null,
-    message: "Muitos envios em pouco tempo. Aguarde alguns minutos e tente novamente.",
+    message:
+      "Muitos envios em pouco tempo. Aguarde alguns minutos e tente novamente.",
     code: "RATE_LIMIT_UPLOAD_MODELO",
     adminHint:
       "Limite de upload de modelo de chamada excedido para o usuário/IP no intervalo configurado.",
@@ -150,7 +150,7 @@ router.use(injectDb);
  */
 router.get(
   "/modelo/banner-padrao.pptx",
-  asyncHandler(ctrl.exportarModeloBanner)
+  asyncHandler(ctrl.exportarModeloBanner),
 );
 
 /**
@@ -158,22 +158,14 @@ router.get(
  *
  * GET /api/chamada/ativa
  */
-router.get(
-  "/ativa",
-  asyncHandler(ctrl.listarAtivas)
-);
+router.get("/ativa", asyncHandler(ctrl.listarAtivas));
 
 /**
  * Detalhe público de uma chamada.
  *
  * GET /api/chamada/:id
  */
-router.get(
-  "/:id(\\d+)",
-  idParam,
-  validate,
-  asyncHandler(ctrl.obterChamada)
-);
+router.get("/:id(\\d+)", idParam, validate, asyncHandler(ctrl.obterChamada));
 
 /**
  * Download público do modelo de banner da chamada.
@@ -185,14 +177,14 @@ router.head(
   "/:id(\\d+)/modelo-banner",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloBanner)
+  asyncHandler(ctrl.baixarModeloBanner),
 );
 
 router.get(
   "/:id(\\d+)/modelo-banner",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloBanner)
+  asyncHandler(ctrl.baixarModeloBanner),
 );
 
 /**
@@ -205,14 +197,14 @@ router.head(
   "/:id(\\d+)/modelo-oral",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloOral)
+  asyncHandler(ctrl.baixarModeloOral),
 );
 
 router.get(
   "/:id(\\d+)/modelo-oral",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloOral)
+  asyncHandler(ctrl.baixarModeloOral),
 );
 
 /* =========================================================================
@@ -230,32 +222,21 @@ router.use("/admin", requireAuth, authorize("administrador"), noStore);
  *
  * GET /api/chamada/admin
  */
-router.get(
-  "/admin",
-  asyncHandler(ctrl.listarAdmin)
-);
+router.get("/admin", asyncHandler(ctrl.listarAdmin));
 
 /**
  * Cria chamada.
  *
  * POST /api/chamada/admin
  */
-router.post(
-  "/admin",
-  asyncHandler(ctrl.criar)
-);
+router.post("/admin", asyncHandler(ctrl.criar));
 
 /**
  * Atualiza chamada.
  *
  * PUT /api/chamada/admin/:id
  */
-router.put(
-  "/admin/:id(\\d+)",
-  idParam,
-  validate,
-  asyncHandler(ctrl.atualizar)
-);
+router.put("/admin/:id(\\d+)", idParam, validate, asyncHandler(ctrl.atualizar));
 
 /**
  * Publica/despublica chamada.
@@ -271,7 +252,7 @@ router.patch(
   "/admin/:id(\\d+)/publicacao",
   idParam,
   validate,
-  asyncHandler(ctrl.publicar)
+  asyncHandler(ctrl.publicar),
 );
 
 /**
@@ -283,7 +264,7 @@ router.delete(
   "/admin/:id(\\d+)",
   idParam,
   validate,
-  asyncHandler(ctrl.remover)
+  asyncHandler(ctrl.remover),
 );
 
 /* =========================================================================
@@ -299,7 +280,7 @@ router.get(
   "/admin/:id(\\d+)/modelo-banner/meta",
   idParam,
   validate,
-  asyncHandler(ctrl.modeloBannerMeta)
+  asyncHandler(ctrl.modeloBannerMeta),
 );
 
 /**
@@ -311,7 +292,7 @@ router.get(
   "/admin/:id(\\d+)/modelo-banner/download",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloBanner)
+  asyncHandler(ctrl.baixarModeloBanner),
 );
 
 /**
@@ -327,7 +308,7 @@ router.post(
   adminUploadModeloLimiter,
   idParam,
   validate,
-  ctrl.importarModeloBanner
+  ctrl.importarModeloBanner,
 );
 
 /**
@@ -339,7 +320,7 @@ router.get(
   "/admin/:id(\\d+)/modelo-oral/meta",
   idParam,
   validate,
-  asyncHandler(ctrl.modeloOralMeta)
+  asyncHandler(ctrl.modeloOralMeta),
 );
 
 /**
@@ -351,7 +332,7 @@ router.get(
   "/admin/:id(\\d+)/modelo-oral/download",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloOral)
+  asyncHandler(ctrl.baixarModeloOral),
 );
 
 /**
@@ -367,7 +348,7 @@ router.post(
   adminUploadModeloLimiter,
   idParam,
   validate,
-  ctrl.importarModeloOral
+  ctrl.importarModeloOral,
 );
 
 module.exports = router;

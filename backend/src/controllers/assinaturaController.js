@@ -117,7 +117,7 @@ function exigirUsuarioAutenticado(req, res) {
       res,
       401,
       "ASSINATURA-401-NAO-AUTENTICADO",
-      "Usuário autenticado não encontrado."
+      "Usuário autenticado não encontrado.",
     );
 
     return null;
@@ -138,7 +138,7 @@ function exigirPerfilListagem(req, res) {
       {
         adminHint:
           "A assinatura própria é liberada para qualquer usuário autenticado; a listagem geral permanece restrita.",
-      }
+      },
     );
     return false;
   }
@@ -262,7 +262,9 @@ function validarDataUrlAssinatura(assinatura) {
 ────────────────────────────────────────────────────────────── */
 
 function buildNameVariants(fullName = "") {
-  const clean = String(fullName || "").replace(/\s+/g, " ").trim();
+  const clean = String(fullName || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (!clean) {
     return { text: "Assinatura" };
@@ -497,7 +499,7 @@ async function obterAssinaturaPorUsuario(usuarioId) {
     WHERE usuario_id = $1
     LIMIT 1
     `,
-    [Number(usuarioId)]
+    [Number(usuarioId)],
   );
 
   return result.rows?.[0]?.imagem_base64 || null;
@@ -511,7 +513,7 @@ async function upsertAssinatura(usuarioId, imagemBase64) {
     ON CONFLICT (usuario_id)
     DO UPDATE SET imagem_base64 = EXCLUDED.imagem_base64
     `,
-    [Number(usuarioId), imagemBase64]
+    [Number(usuarioId), imagemBase64],
   );
 }
 
@@ -527,7 +529,7 @@ async function obterUsuarioParaAssinatura(usuarioId) {
     WHERE id = $1
     LIMIT 1
     `,
-    [Number(usuarioId)]
+    [Number(usuarioId)],
   );
 
   return result.rows?.[0] || null;
@@ -555,18 +557,20 @@ async function ensureAutoSignature(usuarioId) {
     return null;
   }
 
-const usuario = await obterUsuarioParaAssinatura(id);
+  const usuario = await obterUsuarioParaAssinatura(id);
 
-if (!usuario) {
-  logInfo("ensureAutoSignature", {
-    usuarioId: id,
-    status: "usuario_nao_encontrado",
-  });
+  if (!usuario) {
+    logInfo("ensureAutoSignature", {
+      usuarioId: id,
+      status: "usuario_nao_encontrado",
+    });
 
-  return null;
-}
+    return null;
+  }
 
-  const displayName = String(usuario.nome || usuario.email || `Usuario_${usuario.id}`)
+  const displayName = String(
+    usuario.nome || usuario.email || `Usuario_${usuario.id}`,
+  )
     .replace(/\s+/g, " ")
     .trim();
 
@@ -632,7 +636,7 @@ async function getAssinatura(req, res) {
         message: assinatura
           ? "Assinatura localizada."
           : "Nenhuma assinatura cadastrada.",
-      }
+      },
     );
   } catch (err) {
     logError("getAssinatura", err, { usuarioId });
@@ -641,7 +645,7 @@ async function getAssinatura(req, res) {
       res,
       500,
       "ASSINATURA-500-BUSCAR",
-      "Erro ao buscar assinatura."
+      "Erro ao buscar assinatura.",
     );
   }
 }
@@ -667,7 +671,7 @@ async function salvarAssinatura(req, res) {
         fieldErrors: {
           assinatura: validacao.message,
         },
-      }
+      },
     );
   }
 
@@ -688,7 +692,7 @@ async function salvarAssinatura(req, res) {
       },
       {
         message: "Assinatura salva com sucesso.",
-      }
+      },
     );
   } catch (err) {
     logError("salvarAssinatura", err, {
@@ -700,7 +704,7 @@ async function salvarAssinatura(req, res) {
       res,
       500,
       "ASSINATURA-500-SALVAR",
-      "Erro ao salvar assinatura."
+      "Erro ao salvar assinatura.",
     );
   }
 }
@@ -714,7 +718,7 @@ async function listarAssinaturas(req, res) {
 
   if (!usuarioId) return null;
 
-if (!exigirPerfilListagem(req, res)) return null;
+  if (!exigirPerfilListagem(req, res)) return null;
 
   try {
     const result = await db.query(
@@ -729,7 +733,7 @@ if (!exigirPerfilListagem(req, res)) return null;
       WHERE a.imagem_base64 IS NOT NULL
         AND a.imagem_base64 <> ''
       ORDER BY u.nome ASC
-      `
+      `,
     );
 
     const lista = (result.rows || []).map((row) => ({
@@ -754,7 +758,7 @@ if (!exigirPerfilListagem(req, res)) return null;
       },
       {
         message: "Assinaturas listadas com sucesso.",
-      }
+      },
     );
   } catch (err) {
     logError("listarAssinaturas", err, { usuarioId });
@@ -763,7 +767,7 @@ if (!exigirPerfilListagem(req, res)) return null;
       res,
       500,
       "ASSINATURA-500-LISTAR",
-      "Erro ao listar assinaturas."
+      "Erro ao listar assinaturas.",
     );
   }
 }

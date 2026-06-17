@@ -39,16 +39,11 @@ import {
   UserCheck,
   Users,
   UserX,
-  X,
   XCircle,
 } from "lucide-react";
 
 import { api } from "../services/api";
-import {
-  notifyError,
-  notifyInfo,
-  notifySuccess,
-} from "../components/ui/AppToast";
+import { notifyError, notifySuccess } from "../components/ui/AppToast";
 
 /* ─────────────────────────────────────────────────────────────
  * Helpers base
@@ -162,23 +157,29 @@ function safeAtob(value) {
 function getValidToken() {
   const raw = getRawToken();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw;
   const parts = token.split(".");
 
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
 
   try {
-    const payloadStr = safeAtob(
-      parts[1].replace(/-/g, "+").replace(/_/g, "/")
-    );
+    const payloadStr = safeAtob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
 
     const payload = JSON.parse(payloadStr || "{}");
     const now = Date.now() / 1000;
 
-    if (payload?.nbf && now < payload.nbf) return null;
-    if (payload?.exp && now >= payload.exp) return null;
+    if (payload?.nbf && now < payload.nbf) {
+      return null;
+    }
+    if (payload?.exp && now >= payload.exp) {
+      return null;
+    }
 
     return token;
   } catch {
@@ -187,8 +188,12 @@ function getValidToken() {
 }
 
 function inscritoEstaPresenteHoje(inscrito, hojeISO) {
-  if (inscrito?.presente_hoje === true) return true;
-  if (inscrito?.presente === true && inscrito?.data_presenca === hojeISO) return true;
+  if (inscrito?.presente_hoje === true) {
+    return true;
+  }
+  if (inscrito?.presente === true && inscrito?.data_presenca === hojeISO) {
+    return true;
+  }
 
   const datasDiretas = [
     inscrito?.data_presenca,
@@ -252,7 +257,7 @@ function MiniStat({ icon: Icon, label, value, tone = "neutral" }) {
     <article
       className={classNames(
         "rounded-3xl border p-3 text-center shadow-sm sm:p-4",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       <div className="inline-flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wide opacity-80 sm:text-xs">
@@ -271,7 +276,10 @@ function HeaderHero({ turma_id, hojeISO, onRefresh, carregando }) {
   const dataBR = useMemo(() => formatarDataBR(hojeISO), [hojeISO]);
 
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-orange-800 to-rose-700" />
       <div
         aria-hidden="true"
@@ -325,13 +333,16 @@ function HeaderHero({ turma_id, hojeISO, onRefresh, carregando }) {
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
                   carregando
                     ? "cursor-not-allowed bg-white/20 opacity-70"
-                    : "bg-white/15 hover:bg-white/25"
+                    : "bg-white/15 hover:bg-white/25",
                 )}
                 aria-label="Atualizar lista de inscritos"
                 aria-busy={carregando ? "true" : "false"}
               >
                 {carregando ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 )}
@@ -425,7 +436,13 @@ function ToolbarBusca({
   );
 }
 
-function EmptyState({ icon: Icon = ClipboardCheck, title, description, actionLabel, onAction }) {
+function EmptyState({
+  icon: Icon = ClipboardCheck,
+  title,
+  description,
+  actionLabel,
+  onAction,
+}) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-3xl bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
@@ -474,7 +491,7 @@ function ParticipanteCard({
                 "grid h-11 w-11 shrink-0 place-items-center rounded-2xl",
                 presenteHoje
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200"
-                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200",
               )}
             >
               {presenteHoje ? (
@@ -500,7 +517,7 @@ function ParticipanteCard({
                   "mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black",
                   presenteHoje
                     ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                    : "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200"
+                    : "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200",
                 )}
               >
                 {presenteHoje ? "Presente hoje" : "Ausente hoje"}
@@ -517,7 +534,7 @@ function ParticipanteCard({
             "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-70",
             presenteHoje
               ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              : "bg-amber-700 text-white hover:bg-amber-800"
+              : "bg-amber-700 text-white hover:bg-amber-800",
           )}
           aria-label={`Marcar presença para ${inscrito?.nome || "participante"}`}
         >
@@ -630,16 +647,22 @@ export default function PresencaManual() {
 
       const lista = unwrapArray(response);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setInscritos(lista);
       setLive(`Inscritos carregados. Total: ${lista.length}.`);
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
       const message = getErrorMessage(error, "Erro ao carregar inscritos.");
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setErro(message);
       setInscritos([]);
@@ -660,7 +683,9 @@ export default function PresencaManual() {
     const q = normalizarTexto(busca);
     const qDigits = somenteDigitos(busca);
 
-    if (!q && !qDigits) return inscritos;
+    if (!q && !qDigits) {
+      return inscritos;
+    }
 
     return inscritos.filter((inscrito) => {
       const nome = normalizarTexto(inscrito?.nome);
@@ -695,7 +720,9 @@ export default function PresencaManual() {
     async (usuario_id, nome) => {
       const usuarioIdSeguro = toPositiveInt(usuario_id);
 
-      if (!turmaValida || !usuarioIdSeguro) return;
+      if (!turmaValida || !usuarioIdSeguro) {
+        return;
+      }
 
       setMarcando(usuarioIdSeguro);
       setLive(`Registrando presença para ${nome || "participante"}.`);
@@ -726,21 +753,21 @@ export default function PresencaManual() {
                 ? datas
                 : [...datas, hojeISO],
             };
-          })
+          }),
         );
 
         notifySuccess("Presença registrada com sucesso.");
         setLive(`Presença registrada para ${nome || "participante"}.`);
       } catch (error) {
         notifyError(
-          getErrorMessage(error, "Não foi possível registrar presença.")
+          getErrorMessage(error, "Não foi possível registrar presença."),
         );
         setLive("Falha ao registrar presença.");
       } finally {
         setMarcando(null);
       }
     },
-    [hojeISO, setLive, turmaIdSeguro, turmaValida]
+    [hojeISO, setLive, turmaIdSeguro, turmaValida],
   );
 
   const limparBusca = useCallback(() => {
@@ -756,7 +783,7 @@ export default function PresencaManual() {
       exit: reduceMotion ? {} : { opacity: 0, y: 10 },
       transition: { duration: 0.18 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   return (
@@ -932,7 +959,7 @@ export default function PresencaManual() {
                   {filtrados.map((inscrito, index) => {
                     const presenteHoje = inscritoEstaPresenteHoje(
                       inscrito,
-                      hojeISO
+                      hojeISO,
                     );
 
                     return (

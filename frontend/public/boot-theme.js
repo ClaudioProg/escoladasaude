@@ -38,7 +38,11 @@
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-    const theme = hasValidStoredTheme ? storedTheme : prefersDark ? "dark" : "light";
+    const theme = hasValidStoredTheme
+      ? storedTheme
+      : prefersDark
+        ? "dark"
+        : "light";
 
     root.classList.toggle("dark", theme === "dark");
     root.setAttribute("data-theme", theme);

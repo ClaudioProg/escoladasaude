@@ -43,10 +43,7 @@ import HeaderHero from "../components/layout/HeaderHero";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
 
-import {
-  apiPesquisaObter,
-  apiPesquisaResponder,
-} from "../services/api";
+import { apiPesquisaObter, apiPesquisaResponder } from "../services/api";
 
 /* ─────────────────────────────────────────────────────────────
    Helpers
@@ -88,48 +85,47 @@ function normalizePerguntas(payload) {
           pergunta?.enunciado ||
           `Pergunta ${index + 1}`,
         tipo: normalizeTipoPergunta(
-  pergunta?.tipo || pergunta?.tipo_resposta || "texto"
-),
+          pergunta?.tipo || pergunta?.tipo_resposta || "texto",
+        ),
         obrigatoria: Boolean(
           pergunta?.obrigatoria ??
-            pergunta?.required ??
-            pergunta?.is_required ??
-            false
+          pergunta?.required ??
+          pergunta?.is_required ??
+          false,
         ),
-        opcoes: (
-  Array.isArray(pergunta?.opcoes)
-    ? pergunta.opcoes
-    : Array.isArray(pergunta?.alternativas)
-      ? pergunta.alternativas
-      : []
-).map((opcao, opcaoIndex) => {
-  if (typeof opcao === "string") {
-    return {
-      id: opcao,
-      texto: opcao,
-      ordem: opcaoIndex + 1,
-    };
-  }
+        opcoes: (Array.isArray(pergunta?.opcoes)
+          ? pergunta.opcoes
+          : Array.isArray(pergunta?.alternativas)
+            ? pergunta.alternativas
+            : []
+        ).map((opcao, opcaoIndex) => {
+          if (typeof opcao === "string") {
+            return {
+              id: opcao,
+              texto: opcao,
+              ordem: opcaoIndex + 1,
+            };
+          }
 
-  return {
-    ...opcao,
-    id:
-      opcao?.id ??
-      opcao?.alternativa_id ??
-      opcao?.opcao_id ??
-      opcao?.value ??
-      opcao?.valor ??
-      opcaoIndex + 1,
-    texto:
-      opcao?.texto ??
-      opcao?.label ??
-      opcao?.nome ??
-      opcao?.valor ??
-      opcao?.descricao ??
-      "",
-    ordem: opcao?.ordem ?? opcao?.display_order ?? opcaoIndex + 1,
-  };
-}),
+          return {
+            ...opcao,
+            id:
+              opcao?.id ??
+              opcao?.alternativa_id ??
+              opcao?.opcao_id ??
+              opcao?.value ??
+              opcao?.valor ??
+              opcaoIndex + 1,
+            texto:
+              opcao?.texto ??
+              opcao?.label ??
+              opcao?.nome ??
+              opcao?.valor ??
+              opcao?.descricao ??
+              "",
+            ordem: opcao?.ordem ?? opcao?.display_order ?? opcaoIndex + 1,
+          };
+        }),
       }))
       .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0)),
   };
@@ -150,7 +146,9 @@ function getOpcaoId(opcao, index) {
 }
 
 function getOpcaoTexto(opcao) {
-  return String(opcao?.texto || opcao?.label || opcao?.nome || opcao?.valor || "");
+  return String(
+    opcao?.texto || opcao?.label || opcao?.nome || opcao?.valor || "",
+  );
 }
 
 function removerAcentos(value) {
@@ -337,7 +335,7 @@ function ActionButton({
       disabled={disabled || loading}
       className={cx(
         "inline-flex min-h-[42px] items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-extrabold transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60",
-        variants[variant] || variants.primary
+        variants[variant] || variants.primary,
       )}
     >
       {loading ? (
@@ -354,7 +352,8 @@ function ActionButton({
 function StatusCard({ type = "info", title, message, action }) {
   const config = {
     info: {
-      border: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200",
+      border:
+        "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200",
       icon: Sparkles,
     },
     warning: {
@@ -451,7 +450,8 @@ function PerguntaCard({ pergunta, numero, value, onChange, disabled }) {
                   {opcoes.length > 0 ? (
                     opcoes.map((opcao, index) => {
                       const opcaoId = getOpcaoId(opcao, index);
-                      const checked = Array.isArray(value) && value.includes(opcaoId);
+                      const checked =
+                        Array.isArray(value) && value.includes(opcaoId);
 
                       return (
                         <label
@@ -460,7 +460,7 @@ function PerguntaCard({ pergunta, numero, value, onChange, disabled }) {
                             "flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition",
                             checked
                               ? "border-emerald-300 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-400/10"
-                              : "border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                              : "border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
                           )}
                         >
                           <input
@@ -501,7 +501,7 @@ function PerguntaCard({ pergunta, numero, value, onChange, disabled }) {
                             "flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition",
                             checked
                               ? "border-emerald-300 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-400/10"
-                              : "border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                              : "border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
                           )}
                         >
                           <input
@@ -532,7 +532,7 @@ function PerguntaCard({ pergunta, numero, value, onChange, disabled }) {
               {isScale(tipo) ? (
                 <div className="grid grid-cols-5 gap-2">
                   {Array.from({ length: 5 }).map((_, index) => {
-  const nota = index + 1;
+                    const nota = index + 1;
                     const selected = Number(value) === nota;
 
                     return (
@@ -545,7 +545,7 @@ function PerguntaCard({ pergunta, numero, value, onChange, disabled }) {
                           "min-h-[42px] rounded-2xl border text-sm font-extrabold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 disabled:cursor-not-allowed disabled:opacity-60",
                           selected
                             ? "border-emerald-700 bg-emerald-700 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10",
                         )}
                       >
                         {nota}
@@ -632,7 +632,9 @@ export default function ResponderPesquisa() {
       const respostasIniciais = {};
 
       normalized.perguntas.forEach((pergunta) => {
-        respostasIniciais[pergunta.id] = isMultipleChoice(pergunta.tipo) ? [] : "";
+        respostasIniciais[pergunta.id] = isMultipleChoice(pergunta.tipo)
+          ? []
+          : "";
       });
 
       setRespostas(respostasIniciais);
@@ -647,8 +649,8 @@ export default function ResponderPesquisa() {
       setErro(
         getErrorMessage(
           error,
-          "Não foi possível carregar a pesquisa solicitada."
-        )
+          "Não foi possível carregar a pesquisa solicitada.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -661,16 +663,17 @@ export default function ResponderPesquisa() {
 
   const totalObrigatorias = useMemo(
     () => perguntas.filter((pergunta) => pergunta.obrigatoria).length,
-    [perguntas]
+    [perguntas],
   );
 
   const totalObrigatoriasRespondidas = useMemo(
     () =>
       perguntas.filter(
         (pergunta) =>
-          pergunta.obrigatoria && !respostaVazia(pergunta, respostas[pergunta.id])
+          pergunta.obrigatoria &&
+          !respostaVazia(pergunta, respostas[pergunta.id]),
       ).length,
-    [perguntas, respostas]
+    [perguntas, respostas],
   );
 
   const atualizarResposta = useCallback((perguntaId, value) => {
@@ -683,11 +686,13 @@ export default function ResponderPesquisa() {
   const validarFormulario = useCallback(() => {
     const pendentes = perguntas.filter(
       (pergunta) =>
-        pergunta.obrigatoria && respostaVazia(pergunta, respostas[pergunta.id])
+        pergunta.obrigatoria && respostaVazia(pergunta, respostas[pergunta.id]),
     );
 
     if (pendentes.length > 0) {
-      toast.warning("Responda todas as perguntas obrigatórias antes de enviar.");
+      toast.warning(
+        "Responda todas as perguntas obrigatórias antes de enviar.",
+      );
       return false;
     }
 
@@ -698,28 +703,32 @@ export default function ResponderPesquisa() {
     async (event) => {
       event.preventDefault();
 
-      if (salvando || enviado) return;
+      if (salvando || enviado) {
+        return;
+      }
 
-      if (!validarFormulario()) return;
+      if (!validarFormulario()) {
+        return;
+      }
 
       try {
         setSalvando(true);
 
         const itens = perguntas.flatMap((pergunta) =>
-  normalizeRespostaParaPayload(pergunta, respostas[pergunta.id])
-);
+          normalizeRespostaParaPayload(pergunta, respostas[pergunta.id]),
+        );
 
-const payload = {
-  anonima: false,
-  itens,
-  metadata: {
-    origem: "web",
-  },
-};
+        const payload = {
+          anonima: false,
+          itens,
+          metadata: {
+            origem: "web",
+          },
+        };
 
-console.log("[ResponderPesquisa] payload envio", payload);
+        console.log("[ResponderPesquisa] payload envio", payload);
 
-await apiPesquisaResponder(id, payload);
+        await apiPesquisaResponder(id, payload);
 
         setEnviado(true);
         toast.success("Pesquisa enviada com sucesso.");
@@ -732,14 +741,14 @@ await apiPesquisaResponder(id, payload);
         toast.error(
           getErrorMessage(
             error,
-            "Não foi possível enviar suas respostas. Tente novamente."
-          )
+            "Não foi possível enviar suas respostas. Tente novamente.",
+          ),
         );
       } finally {
         setSalvando(false);
       }
     },
-    [enviado, id, perguntas, respostas, salvando, validarFormulario]
+    [enviado, id, perguntas, respostas, salvando, validarFormulario],
   );
 
   return (
@@ -860,7 +869,10 @@ await apiPesquisaResponder(id, payload);
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200">
-                      <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                      <ClipboardList
+                        className="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
                       Pesquisa aberta
                     </div>
 

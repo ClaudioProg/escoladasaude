@@ -139,11 +139,15 @@ let cacheCargos = null;
 ────────────────────────────────────────────────────────────── */
 
 function logDev(...args) {
-  if (IS_DEV) console.log("[GestaoEventos]", ...args);
+  if (IS_DEV) {
+    console.log("[GestaoEventos]", ...args);
+  }
 }
 
 function warnDev(...args) {
-  if (IS_DEV) console.warn("[GestaoEventos]", ...args);
+  if (IS_DEV) {
+    console.warn("[GestaoEventos]", ...args);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -151,20 +155,44 @@ function warnDev(...args) {
 ────────────────────────────────────────────────────────────── */
 
 function asArray(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
+  if (!value) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value;
+  }
 
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.rows)) return value.rows;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  if (Array.isArray(value?.unidades)) return value.unidades;
-  if (Array.isArray(value?.usuarios)) return value.usuarios;
-  if (Array.isArray(value?.cargos)) return value.cargos;
+  if (Array.isArray(value?.data)) {
+    return value.data;
+  }
+  if (Array.isArray(value?.rows)) {
+    return value.rows;
+  }
+  if (Array.isArray(value?.items)) {
+    return value.items;
+  }
+  if (Array.isArray(value?.results)) {
+    return value.results;
+  }
+  if (Array.isArray(value?.unidades)) {
+    return value.unidades;
+  }
+  if (Array.isArray(value?.usuarios)) {
+    return value.usuarios;
+  }
+  if (Array.isArray(value?.cargos)) {
+    return value.cargos;
+  }
 
-  if (Array.isArray(value?.data?.rows)) return value.data.rows;
-  if (Array.isArray(value?.data?.items)) return value.data.items;
-  if (Array.isArray(value?.data?.results)) return value.data.results;
+  if (Array.isArray(value?.data?.rows)) {
+    return value.data.rows;
+  }
+  if (Array.isArray(value?.data?.items)) {
+    return value.data.items;
+  }
+  if (Array.isArray(value?.data?.results)) {
+    return value.data.results;
+  }
 
   return [];
 }
@@ -188,7 +216,9 @@ function parseRegistrosBulk(value) {
     if (clean.length > 6) {
       for (let i = 0; i + 6 <= clean.length; i += 6) {
         const part = clean.slice(i, i + 6);
-        if (/^\d{6}$/.test(part)) registros.push(part);
+        if (/^\d{6}$/.test(part)) {
+          registros.push(part);
+        }
       }
     }
   }
@@ -199,7 +229,9 @@ function parseRegistrosBulk(value) {
 function formatDateBr(value) {
   const date = ymd(value);
 
-  if (!date) return "—";
+  if (!date) {
+    return "—";
+  }
 
   const [, mes, dia] = date.split("-");
   const ano = date.slice(0, 4);
@@ -233,18 +265,18 @@ function fileIsPdf(file) {
 function eventoTemFolder(evento) {
   return Boolean(
     evento?.folder_kind === "blob" ||
-      evento?.tem_folder ||
-      evento?.folder_size ||
-      evento?.folder_updated_at
+    evento?.tem_folder ||
+    evento?.folder_size ||
+    evento?.folder_updated_at,
   );
 }
 
 function eventoTemProgramacao(evento) {
   return Boolean(
     evento?.programacao_kind === "blob" ||
-      evento?.tem_programacao ||
-      evento?.programacao_pdf_size ||
-      evento?.programacao_pdf_updated_at
+    evento?.tem_programacao ||
+    evento?.programacao_pdf_size ||
+    evento?.programacao_pdf_updated_at,
   );
 }
 
@@ -261,7 +293,9 @@ const FABIO_LOPEZ_ID = 2474;
 const MAX_ASSINANTES_TURMA = 3;
 
 function normalizarPalestrantesTurma(value = []) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return value
     .map((item) => {
@@ -285,7 +319,7 @@ function normalizarAssinantesTurma(value = []) {
   const temFabio = ids.includes(FABIO_LOPEZ_ID);
 
   const extras = ids.filter(
-    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID
+    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID,
   );
 
   const base = extras.slice(0, temFabio ? 1 : 2);
@@ -299,7 +333,9 @@ function normalizarAssinantesTurma(value = []) {
 
 function normalizarTurmaParaEstado(turma = {}) {
   const datas = normalizeDatasTurma(turma);
-  const organizadores = extractIds(turma?.organizadores || turma?.organizador || []);
+  const organizadores = extractIds(
+    turma?.organizadores || turma?.organizador || [],
+  );
   const palestrantes = normalizarPalestrantesTurma(turma?.palestrantes || []);
   const assinantes = normalizarAssinantesTurma(turma?.assinantes || []);
 
@@ -326,8 +362,7 @@ function normalizarTurmaParaEstado(turma = {}) {
       datas[0]?.horario_inicio ||
       hhmm(turma?.horario_inicio || "08:00", "08:00"),
     horario_fim:
-      datas[0]?.horario_fim ||
-      hhmm(turma?.horario_fim || "17:00", "17:00"),
+      datas[0]?.horario_fim || hhmm(turma?.horario_fim || "17:00", "17:00"),
 
     organizadores,
     palestrantes,
@@ -365,7 +400,9 @@ function normalizarTurmasParaPayload(turmas = []) {
 ────────────────────────────────────────────────────────────── */
 
 function extractCargoIds(value) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return [
     ...new Set(
@@ -378,17 +415,21 @@ function extractCargoIds(value) {
           return item;
         })
         .map(Number)
-        .filter((n) => Number.isInteger(n) && n > 0)
+        .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
 }
 
 function cargoLabel(cargo) {
-  if (!cargo) return "";
-  if (typeof cargo === "string") return cargo;
+  if (!cargo) {
+    return "";
+  }
+  if (typeof cargo === "string") {
+    return cargo;
+  }
 
   return String(
-    cargo.nome || cargo.descricao || cargo.cargo || cargo.label || ""
+    cargo.nome || cargo.descricao || cargo.cargo || cargo.label || "",
   ).trim();
 }
 
@@ -397,10 +438,12 @@ function normalizarCargosParaEstado(evento = {}) {
     evento?.cargos_permitidos_ids ||
       evento?.cargos_permitidos ||
       evento?.cargos ||
-      []
+      [],
   );
 
-  if (ids.length) return ids;
+  if (ids.length) {
+    return ids;
+  }
 
   return extractCargoIds(evento?.cargos_permitidos || []);
 }
@@ -410,12 +453,14 @@ function normalizarUnidadesParaEstado(evento = {}) {
     evento?.unidades_permitidas_ids ||
       evento?.unidades_permitidas ||
       evento?.unidades ||
-      []
+      [],
   );
 }
 
 function inferirModoRestricaoUi(evento = {}) {
-  if (!evento?.restrito) return "";
+  if (!evento?.restrito) {
+    return "";
+  }
 
   if (evento?.restrito_modo === EVENTO_RESTRITO_MODO.TODOS_SERVIDORES) {
     return RESTRICAO_UI.TODOS_SERVIDORES;
@@ -426,10 +471,14 @@ function inferirModoRestricaoUi(evento = {}) {
   }
 
   const cargoIds = normalizarCargosParaEstado(evento);
-  if (cargoIds.length) return RESTRICAO_UI.CARGOS;
+  if (cargoIds.length) {
+    return RESTRICAO_UI.CARGOS;
+  }
 
   const unidadeIds = normalizarUnidadesParaEstado(evento);
-  if (unidadeIds.length) return RESTRICAO_UI.UNIDADES;
+  if (unidadeIds.length) {
+    return RESTRICAO_UI.UNIDADES;
+  }
 
   return RESTRICAO_UI.TODOS_SERVIDORES;
 }
@@ -440,18 +489,15 @@ function inferirModoRestricaoUi(evento = {}) {
 
 function Chip({ tone = "zinc", children, title }) {
   const map = {
-    zinc:
-      "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-200 dark:border-zinc-700",
+    zinc: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-200 dark:border-zinc-700",
     emerald:
       "bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-800",
     indigo:
       "bg-indigo-100 text-indigo-900 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800",
     amber:
       "bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800",
-    rose:
-      "bg-rose-100 text-rose-900 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-800",
-    sky:
-      "bg-sky-100 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-800",
+    rose: "bg-rose-100 text-rose-900 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-800",
+    sky: "bg-sky-100 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-800",
     violet:
       "bg-violet-100 text-violet-900 border-violet-200 dark:bg-violet-900/30 dark:text-violet-200 dark:border-violet-800",
   };
@@ -645,13 +691,15 @@ export default function GestaoEventos() {
   const eventoIdParam = toPositiveIntOrNull(
     searchParams.get("editar") ||
       searchParams.get("evento_id") ||
-      searchParams.get("id")
+      searchParams.get("id"),
   );
 
   const effectiveOpen = true;
 
   const [evento, setEvento] = useState(null);
-  const [carregandoEvento, setCarregandoEvento] = useState(Boolean(eventoIdParam));
+  const [carregandoEvento, setCarregandoEvento] = useState(
+    Boolean(eventoIdParam),
+  );
   const [erroEvento, setErroEvento] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -720,7 +768,9 @@ export default function GestaoEventos() {
 
   const handleSalvarEvento = useCallback(
     async (payload) => {
-      if (salvando) return;
+      if (salvando) {
+        return;
+      }
 
       try {
         setSalvando(true);
@@ -740,7 +790,7 @@ export default function GestaoEventos() {
             {
               on401: "redirect",
               on403: "silent",
-            }
+            },
           );
 
           toast.success("Evento atualizado com sucesso.");
@@ -754,11 +804,11 @@ export default function GestaoEventos() {
           {
             on401: "redirect",
             on403: "silent",
-          }
+          },
         );
 
         const novoEventoId = toPositiveIntOrNull(
-          response?.data?.id || response?.id || response?.evento_id
+          response?.data?.id || response?.id || response?.evento_id,
         );
 
         toast.success("Evento criado com sucesso.");
@@ -769,20 +819,20 @@ export default function GestaoEventos() {
         }
 
         return response;
-} catch (error) {
-  const message =
-    error?.data?.message ||
-    error?.response?.data?.message ||
-    error?.message ||
-    "Não foi possível salvar o evento.";
+      } catch (error) {
+        const message =
+          error?.data?.message ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Não foi possível salvar o evento.";
 
-  toast.error(message);
-  return null;
-} finally {
-  setSalvando(false);
-}
+        toast.error(message);
+        return null;
+      } finally {
+        setSalvando(false);
+      }
     },
-    [evento, eventoIdParam, navigate, recarregarEvento, salvando]
+    [evento, eventoIdParam, navigate, recarregarEvento, salvando],
   );
 
   const [titulo, setTitulo] = useState("");
@@ -834,15 +884,23 @@ export default function GestaoEventos() {
   const [modalQuestionarioAberto, setModalQuestionarioAberto] = useState(false);
 
   const folderExistenteUrl = useMemo(() => {
-    if (!evento?.id || removerFolderExistente || folderFile) return "";
-    if (!eventoTemFolder(evento)) return "";
+    if (!evento?.id || removerFolderExistente || folderFile) {
+      return "";
+    }
+    if (!eventoTemFolder(evento)) {
+      return "";
+    }
 
     return getEventoFolderUrl(evento);
   }, [evento, folderFile, removerFolderExistente]);
 
   const programacaoExistenteUrl = useMemo(() => {
-    if (!evento?.id || removerProgramacaoExistente || programacaoFile) return "";
-    if (!eventoTemProgramacao(evento)) return "";
+    if (!evento?.id || removerProgramacaoExistente || programacaoFile) {
+      return "";
+    }
+    if (!eventoTemProgramacao(evento)) {
+      return "";
+    }
 
     return getEventoProgramacaoUrl(evento);
   }, [evento, programacaoFile, removerProgramacaoExistente]);
@@ -864,7 +922,10 @@ export default function GestaoEventos() {
       const id = Number(organizador?.id);
 
       if (Number.isInteger(id)) {
-        map.set(id, String(organizador?.nome || "").trim() || `organizador ${id}`);
+        map.set(
+          id,
+          String(organizador?.nome || "").trim() || `organizador ${id}`,
+        );
       }
     }
 
@@ -874,11 +935,13 @@ export default function GestaoEventos() {
   const nomeorganizador = useCallback(
     (id) => {
       const n = Number(id);
-      if (!Number.isInteger(n)) return "—";
+      if (!Number.isInteger(n)) {
+        return "—";
+      }
 
       return organizadoresById.get(n) || `organizador ${n}`;
     },
-    [organizadoresById]
+    [organizadoresById],
   );
 
   const cargosById = useMemo(() => {
@@ -886,7 +949,9 @@ export default function GestaoEventos() {
 
     for (const cargo of cargosDisponiveis) {
       const id = Number(cargo?.id);
-      if (Number.isInteger(id)) map.set(id, cargo);
+      if (Number.isInteger(id)) {
+        map.set(id, cargo);
+      }
     }
 
     return map;
@@ -897,14 +962,18 @@ export default function GestaoEventos() {
 
     for (const unidade of unidades) {
       const id = Number(unidade?.id);
-      if (Number.isInteger(id)) map.set(id, unidade);
+      if (Number.isInteger(id)) {
+        map.set(id, unidade);
+      }
     }
 
     return map;
   }, [unidades]);
 
   useEffect(() => {
-    if (!effectiveOpen) return;
+    if (!effectiveOpen) {
+      return;
+    }
 
     let alive = true;
 
@@ -912,24 +981,30 @@ export default function GestaoEventos() {
       try {
         setCarregandoAuxiliares(true);
 
-        if (cacheUnidades) setUnidades(cacheUnidades);
-        if (cacheorganizadores) setorganizadoresDisponiveis(cacheorganizadores);
-        if (cacheCargos) setCargosDisponiveis(cacheCargos);
+        if (cacheUnidades) {
+          setUnidades(cacheUnidades);
+        }
+        if (cacheorganizadores) {
+          setorganizadoresDisponiveis(cacheorganizadores);
+        }
+        if (cacheCargos) {
+          setCargosDisponiveis(cacheCargos);
+        }
 
         const promises = [];
 
         if (!cacheUnidades) {
           promises.push(
-         apiLookupUnidade({
-  query: { limit: 300, offset: 0 },
-  on401: "silent",
-  on403: "silent",
-})
+            apiLookupUnidade({
+              query: { limit: 300, offset: 0 },
+              on401: "silent",
+              on403: "silent",
+            })
               .then((res) => ({ key: "unidades", value: asArray(res) }))
               .catch((error) => {
                 warnDev("Falha ao carregar unidades", error);
                 return { key: "unidades", value: [] };
-              })
+              }),
           );
         }
 
@@ -943,28 +1018,30 @@ export default function GestaoEventos() {
               .catch((error) => {
                 warnDev("Falha ao carregar organizadores", error);
                 return { key: "organizadores", value: [] };
-              })
+              }),
           );
         }
 
         if (!cacheCargos) {
           promises.push(
-           apiLookupCargo({
-  query: { limit: 500, offset: 0 },
-  on401: "silent",
-  on403: "silent",
-})
+            apiLookupCargo({
+              query: { limit: 500, offset: 0 },
+              on401: "silent",
+              on403: "silent",
+            })
               .then((res) => ({ key: "cargos", value: asArray(res) }))
               .catch((error) => {
                 warnDev("Falha ao carregar cargos", error);
                 return { key: "cargos", value: [] };
-              })
+              }),
           );
         }
 
         const results = promises.length ? await Promise.all(promises) : [];
 
-        if (!alive) return;
+        if (!alive) {
+          return;
+        }
 
         for (const result of results) {
           if (result.key === "unidades") {
@@ -973,8 +1050,8 @@ export default function GestaoEventos() {
               .sort((a, b) =>
                 String(a.nome || "").localeCompare(
                   String(b.nome || ""),
-                  "pt-BR"
-                )
+                  "pt-BR",
+                ),
               );
 
             cacheUnidades = lista;
@@ -987,8 +1064,8 @@ export default function GestaoEventos() {
               .sort((a, b) =>
                 String(a.nome || "").localeCompare(
                   String(b.nome || ""),
-                  "pt-BR"
-                )
+                  "pt-BR",
+                ),
               );
 
             cacheorganizadores = lista;
@@ -999,7 +1076,7 @@ export default function GestaoEventos() {
             const lista = result.value
               .filter(Boolean)
               .sort((a, b) =>
-                cargoLabel(a).localeCompare(cargoLabel(b), "pt-BR")
+                cargoLabel(a).localeCompare(cargoLabel(b), "pt-BR"),
               );
 
             cacheCargos = lista;
@@ -1007,7 +1084,9 @@ export default function GestaoEventos() {
           }
         }
       } finally {
-        if (alive) setCarregandoAuxiliares(false);
+        if (alive) {
+          setCarregandoAuxiliares(false);
+        }
       }
     }
 
@@ -1019,13 +1098,17 @@ export default function GestaoEventos() {
   }, [effectiveOpen]);
 
   useEffect(() => {
-    if (!effectiveOpen) return;
+    if (!effectiveOpen) {
+      return;
+    }
 
     const key = evento?.id ? Number(evento.id) : "novo";
-    if (prevEventoKeyRef.current === key) return;
+    if (prevEventoKeyRef.current === key) {
+      return;
+    }
 
     startTransition(() => {
-            setTitulo(evento?.titulo || "");
+      setTitulo(evento?.titulo || "");
       setDescricao(evento?.descricao || "");
       setLocal(evento?.local || "");
       setTipo(evento?.tipo || "");
@@ -1040,8 +1123,12 @@ export default function GestaoEventos() {
       setRemoverFolderExistente(false);
       setRemoverProgramacaoExistente(false);
 
-      if (folderInputRef.current) folderInputRef.current.value = "";
-      if (pdfInputRef.current) pdfInputRef.current.value = "";
+      if (folderInputRef.current) {
+        folderInputRef.current.value = "";
+      }
+      if (pdfInputRef.current) {
+        pdfInputRef.current.value = "";
+      }
 
       const turmasBase = Array.isArray(evento?.turmas) ? evento.turmas : [];
       setTurmas(turmasBase.map(normalizarTurmaParaEstado));
@@ -1058,9 +1145,9 @@ export default function GestaoEventos() {
           ? evento.registros
           : [];
 
-      setRegistrosPermitidos(
-        [...new Set(regs.map(onlyDigits).filter((r) => /^\d{6}$/.test(r)))]
-      );
+      setRegistrosPermitidos([
+        ...new Set(regs.map(onlyDigits).filter((r) => /^\d{6}$/.test(r))),
+      ]);
 
       setCargosPermitidos(normalizarCargosParaEstado(evento));
       setUnidadesPermitidas(normalizarUnidadesParaEstado(evento));
@@ -1098,7 +1185,9 @@ export default function GestaoEventos() {
   }, [effectiveOpen, evento]);
 
   useEffect(() => {
-    if (!effectiveOpen || !evento?.id) return;
+    if (!effectiveOpen || !evento?.id) {
+      return;
+    }
 
     let alive = true;
 
@@ -1106,27 +1195,32 @@ export default function GestaoEventos() {
       try {
         const completo = await EventoService.admin.buscarCompleto(evento.id);
 
-        if (!alive || !completo?.id) return;
+        if (!alive || !completo?.id) {
+          return;
+        }
 
-if (Object.prototype.hasOwnProperty.call(completo, "conteudo_programatico")) {
-  setConteudoProgramatico(completo?.conteudo_programatico || "");
-}
+        if (
+          Object.prototype.hasOwnProperty.call(
+            completo,
+            "conteudo_programatico",
+          )
+        ) {
+          setConteudoProgramatico(completo?.conteudo_programatico || "");
+        }
 
         setTurmas(
           Array.isArray(completo.turmas)
             ? completo.turmas.map(normalizarTurmaParaEstado)
-            : []
+            : [],
         );
 
-        setRegistrosPermitidos(
-          [
-            ...new Set(
-              (completo.registros_permitidos || [])
-                .map(onlyDigits)
-                .filter((r) => /^\d{6}$/.test(r))
-            ),
-          ]
-        );
+        setRegistrosPermitidos([
+          ...new Set(
+            (completo.registros_permitidos || [])
+              .map(onlyDigits)
+              .filter((r) => /^\d{6}$/.test(r)),
+          ),
+        ]);
 
         setCargosPermitidos(normalizarCargosParaEstado(completo));
         setUnidadesPermitidas(normalizarUnidadesParaEstado(completo));
@@ -1144,7 +1238,9 @@ if (Object.prototype.hasOwnProperty.call(completo, "conteudo_programatico")) {
                 ? Number(posCurso.min_nota) / 10
                 : Number(posCurso?.min_nota || prev.nota_minima),
             tentativas: Number(posCurso?.tentativas_max || prev.tentativas),
-            tempo_minutos: Number(posCurso?.tempo_minutos || prev.tempo_minutos),
+            tempo_minutos: Number(
+              posCurso?.tempo_minutos || prev.tempo_minutos,
+            ),
             questionario_id: posCurso?.questionario_id || prev.questionario_id,
             publicado:
               String(posCurso?.status || "").toLowerCase() === "publicado" ||
@@ -1163,79 +1259,86 @@ if (Object.prototype.hasOwnProperty.call(completo, "conteudo_programatico")) {
     };
   }, [effectiveOpen, evento?.id]);
 
-useEffect(() => {
-  if (!effectiveOpen || !evento?.id) return;
+  useEffect(() => {
+    if (!effectiveOpen || !evento?.id) {
+      return;
+    }
 
-  const questionarioIdExistente =
-    evento?.pos_curso?.questionario_id ||
-    evento?.questionario_id ||
-    null;
+    const questionarioIdExistente =
+      evento?.pos_curso?.questionario_id || evento?.questionario_id || null;
 
-  if (!questionarioIdExistente) {
-    setTesteObrigatorio(false);
-    setTesteConfig(TESTE_DEFAULT);
-    return;
-  }
-
-  let alive = true;
-
-  async function carregarQuestionario() {
-    try {
-      const response = await apiGet(`/questionario/evento/${Number(evento.id)}`, {
-        on404: "silent",
-        on401: "redirect",
-        on403: "silent",
-        suppressGlobalError: true,
-      });
-
-      if (!alive) return;
-
-      const qz = response?.data ?? response;
-
-      if (!qz?.id) {
-        setTesteObrigatorio(false);
-        setTesteConfig(TESTE_DEFAULT);
-        return;
-      }
-
-      setTesteObrigatorio(true);
-      setTesteConfig((prev) => ({
-        ...prev,
-        titulo: qz.titulo || prev.titulo,
-        nota_minima:
-          Number.isFinite(Number(qz.min_nota)) && Number(qz.min_nota) > 10
-            ? Number(qz.min_nota) / 10
-            : Number(qz.min_nota || prev.nota_minima),
-        tentativas: Number(qz.tentativas_max || prev.tentativas),
-        tempo_minutos: Number(qz.tempo_minutos || prev.tempo_minutos),
-        questionario_id: qz.id || prev.questionario_id,
-        questoes_count: Array.isArray(qz.questoes)
-          ? qz.questoes.length
-          : Number(qz.questoes_count || prev.questoes_count || 0),
-        peso_total: Number(qz.peso_total || prev.peso_total || 0),
-        publicado: Boolean(qz.publicado),
-      }));
-    } catch (error) {
-      if (!alive) return;
-
-      warnDev("Falha ao carregar questionário", error);
-
+    if (!questionarioIdExistente) {
       setTesteObrigatorio(false);
       setTesteConfig(TESTE_DEFAULT);
+      return;
     }
-  }
 
-  carregarQuestionario();
+    let alive = true;
 
-  return () => {
-    alive = false;
-  };
-}, [
-  effectiveOpen,
-  evento?.id,
-  evento?.pos_curso?.questionario_id,
-  evento?.questionario_id,
-]);
+    async function carregarQuestionario() {
+      try {
+        const response = await apiGet(
+          `/questionario/evento/${Number(evento.id)}`,
+          {
+            on404: "silent",
+            on401: "redirect",
+            on403: "silent",
+            suppressGlobalError: true,
+          },
+        );
+
+        if (!alive) {
+          return;
+        }
+
+        const qz = response?.data ?? response;
+
+        if (!qz?.id) {
+          setTesteObrigatorio(false);
+          setTesteConfig(TESTE_DEFAULT);
+          return;
+        }
+
+        setTesteObrigatorio(true);
+        setTesteConfig((prev) => ({
+          ...prev,
+          titulo: qz.titulo || prev.titulo,
+          nota_minima:
+            Number.isFinite(Number(qz.min_nota)) && Number(qz.min_nota) > 10
+              ? Number(qz.min_nota) / 10
+              : Number(qz.min_nota || prev.nota_minima),
+          tentativas: Number(qz.tentativas_max || prev.tentativas),
+          tempo_minutos: Number(qz.tempo_minutos || prev.tempo_minutos),
+          questionario_id: qz.id || prev.questionario_id,
+          questoes_count: Array.isArray(qz.questoes)
+            ? qz.questoes.length
+            : Number(qz.questoes_count || prev.questoes_count || 0),
+          peso_total: Number(qz.peso_total || prev.peso_total || 0),
+          publicado: Boolean(qz.publicado),
+        }));
+      } catch (error) {
+        if (!alive) {
+          return;
+        }
+
+        warnDev("Falha ao carregar questionário", error);
+
+        setTesteObrigatorio(false);
+        setTesteConfig(TESTE_DEFAULT);
+      }
+    }
+
+    carregarQuestionario();
+
+    return () => {
+      alive = false;
+    };
+  }, [
+    effectiveOpen,
+    evento?.id,
+    evento?.pos_curso?.questionario_id,
+    evento?.questionario_id,
+  ]);
 
   const addRegistros = useCallback(() => {
     const novos = parseRegistrosBulk(registroInput);
@@ -1267,7 +1370,7 @@ useEffect(() => {
 
   const removeCargo = useCallback((id) => {
     setCargosPermitidos((prev) =>
-      prev.filter((item) => Number(item) !== Number(id))
+      prev.filter((item) => Number(item) !== Number(id)),
     );
   }, []);
 
@@ -1285,14 +1388,16 @@ useEffect(() => {
 
   const removeUnidade = useCallback((id) => {
     setUnidadesPermitidas((prev) =>
-      prev.filter((item) => Number(item) !== Number(id))
+      prev.filter((item) => Number(item) !== Number(id)),
     );
   }, []);
 
   const onChangeFolder = useCallback((event) => {
     const file = event.target.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (!fileIsImage(file)) {
       toast.error("Envie uma imagem PNG ou JPG.");
@@ -1301,7 +1406,9 @@ useEffect(() => {
     }
 
     if (file.size > MAX_FOLDER_BYTES) {
-      toast.error(`Folder muito grande. Máximo permitido: ${MAX_FOLDER_MB} MB.`);
+      toast.error(
+        `Folder muito grande. Máximo permitido: ${MAX_FOLDER_MB} MB.`,
+      );
       event.target.value = "";
       return;
     }
@@ -1321,7 +1428,9 @@ useEffect(() => {
   const onChangeProgramacao = useCallback((event) => {
     const file = event.target.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (!fileIsPdf(file)) {
       toast.error("Envie um PDF válido.");
@@ -1331,7 +1440,7 @@ useEffect(() => {
 
     if (file.size > MAX_PROGRAMACAO_BYTES) {
       toast.error(
-        `Programação muito grande. Máximo permitido: ${MAX_PROGRAMACAO_MB} MB.`
+        `Programação muito grande. Máximo permitido: ${MAX_PROGRAMACAO_MB} MB.`,
       );
       event.target.value = "";
       return;
@@ -1345,7 +1454,9 @@ useEffect(() => {
     setFolderFile(null);
     setFolderPreview("");
 
-    if (folderInputRef.current) folderInputRef.current.value = "";
+    if (folderInputRef.current) {
+      folderInputRef.current.value = "";
+    }
 
     if (eventoTemFolder(evento)) {
       setRemoverFolderExistente(true);
@@ -1355,7 +1466,9 @@ useEffect(() => {
   const limparProgramacao = useCallback(() => {
     setProgramacaoFile(null);
 
-    if (pdfInputRef.current) pdfInputRef.current.value = "";
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = "";
+    }
 
     if (eventoTemProgramacao(evento)) {
       setRemoverProgramacaoExistente(true);
@@ -1373,60 +1486,60 @@ useEffect(() => {
   }, []);
 
   const salvarTurma = useCallback(
-  (turmaPayload) => {
-    const normalizada = normalizarTurmaParaEstado(turmaPayload);
+    (turmaPayload) => {
+      const normalizada = normalizarTurmaParaEstado(turmaPayload);
 
-    if (!normalizada.nome) {
-      toast.error("Informe o nome da turma.");
-      return;
-    }
-
-    if (!normalizada.datas.length) {
-      toast.error("A turma precisa ter ao menos uma data.");
-      return;
-    }
-
-    const organizadores = extractIds(normalizada.organizadores);
-
-    if (!organizadores.length) {
-      toast.error("A turma precisa ter ao menos um organizador.");
-      return;
-    }
-
-    const assinantes = normalizarAssinantesTurma(normalizada.assinantes);
-
-    if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
-      toast.error("A assinatura da Rafaella Pitol é obrigatória.");
-      return;
-    }
-
-    if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
-      toast.error("A turma deve ter de 1 a 3 assinantes.");
-      return;
-    }
-
-    const turmaFinal = {
-      ...normalizada,
-      organizadores,
-      palestrantes: normalizarPalestrantesTurma(normalizada.palestrantes),
-      assinantes,
-    };
-
-    setTurmas((prev) => {
-      if (editandoTurmaIndex === null || editandoTurmaIndex === undefined) {
-        return [...prev, turmaFinal];
+      if (!normalizada.nome) {
+        toast.error("Informe o nome da turma.");
+        return;
       }
 
-      return prev.map((item, index) =>
-        index === editandoTurmaIndex ? turmaFinal : item
-      );
-    });
+      if (!normalizada.datas.length) {
+        toast.error("A turma precisa ter ao menos uma data.");
+        return;
+      }
 
-    setModalTurmaAberto(false);
-    setEditandoTurmaIndex(null);
-  },
-  [editandoTurmaIndex]
-);
+      const organizadores = extractIds(normalizada.organizadores);
+
+      if (!organizadores.length) {
+        toast.error("A turma precisa ter ao menos um organizador.");
+        return;
+      }
+
+      const assinantes = normalizarAssinantesTurma(normalizada.assinantes);
+
+      if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
+        toast.error("A assinatura da Rafaella Pitol é obrigatória.");
+        return;
+      }
+
+      if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
+        toast.error("A turma deve ter de 1 a 3 assinantes.");
+        return;
+      }
+
+      const turmaFinal = {
+        ...normalizada,
+        organizadores,
+        palestrantes: normalizarPalestrantesTurma(normalizada.palestrantes),
+        assinantes,
+      };
+
+      setTurmas((prev) => {
+        if (editandoTurmaIndex === null || editandoTurmaIndex === undefined) {
+          return [...prev, turmaFinal];
+        }
+
+        return prev.map((item, index) =>
+          index === editandoTurmaIndex ? turmaFinal : item,
+        );
+      });
+
+      setModalTurmaAberto(false);
+      setEditandoTurmaIndex(null);
+    },
+    [editandoTurmaIndex],
+  );
 
   const solicitarRemoverTurma = useCallback((turma, idx) => {
     setConfirmTurma({
@@ -1449,7 +1562,7 @@ useEffect(() => {
 
     if (turma?.id) {
       toast.info(
-        "Turma removida da edição. Se houver inscrições, presenças ou certificados, o backend bloqueará a alteração ao salvar."
+        "Turma removida da edição. Se houver inscrições, presenças ou certificados, o backend bloqueará a alteração ao salvar.",
       );
       onTurmaRemovida?.(turma.id);
     } else {
@@ -1459,44 +1572,53 @@ useEffect(() => {
     setConfirmTurma({ open: false, idx: null, turma: null });
   }, [confirmTurma, onTurmaRemovida]);
 
-const validarFormulario = useCallback(() => {
-  const tituloLimpo = String(titulo || "").trim();
-  const localLimpo = String(local || "").trim();
-  const descricaoLimpa = String(descricao || "").trim();
-  const publicoAlvoLimpo = String(publicoAlvo || "").trim();
-  const conteudoProgramaticoLimpo = String(conteudoProgramatico || "").trim();
+  const validarFormulario = useCallback(() => {
+    const tituloLimpo = String(titulo || "").trim();
+    const localLimpo = String(local || "").trim();
+    const descricaoLimpa = String(descricao || "").trim();
+    const publicoAlvoLimpo = String(publicoAlvo || "").trim();
+    const conteudoProgramaticoLimpo = String(conteudoProgramatico || "").trim();
 
-  if (!tituloLimpo) return "Informe o título do evento.";
+    if (!tituloLimpo) {
+      return "Informe o título do evento.";
+    }
 
-  if (tituloLimpo.length > EVENTO_LIMITES.titulo) {
-    return `O título ultrapassou o limite de ${EVENTO_LIMITES.titulo} caracteres.`;
-  }
+    if (tituloLimpo.length > EVENTO_LIMITES.titulo) {
+      return `O título ultrapassou o limite de ${EVENTO_LIMITES.titulo} caracteres.`;
+    }
 
-  if (!String(tipo || "").trim()) return "Selecione o tipo do evento.";
-  if (!TIPOS_EVENTO.includes(tipo)) return "Tipo de evento inválido.";
+    if (!String(tipo || "").trim()) {
+      return "Selecione o tipo do evento.";
+    }
+    if (!TIPOS_EVENTO.includes(tipo)) {
+      return "Tipo de evento inválido.";
+    }
 
-  if (!localLimpo) return "Informe o local do evento.";
+    if (!localLimpo) {
+      return "Informe o local do evento.";
+    }
 
-  if (localLimpo.length > EVENTO_LIMITES.local) {
-    return `O local ultrapassou o limite de ${EVENTO_LIMITES.local} caracteres.`;
-  }
+    if (localLimpo.length > EVENTO_LIMITES.local) {
+      return `O local ultrapassou o limite de ${EVENTO_LIMITES.local} caracteres.`;
+    }
 
-  if (descricaoLimpa.length > EVENTO_LIMITES.descricao) {
-    return `A descrição ultrapassou o limite de ${EVENTO_LIMITES.descricao} caracteres.`;
-  }
+    if (descricaoLimpa.length > EVENTO_LIMITES.descricao) {
+      return `A descrição ultrapassou o limite de ${EVENTO_LIMITES.descricao} caracteres.`;
+    }
 
-  if (publicoAlvoLimpo.length > EVENTO_LIMITES.publico_alvo) {
-    return `O público-alvo ultrapassou o limite de ${EVENTO_LIMITES.publico_alvo} caracteres.`;
-  }
+    if (publicoAlvoLimpo.length > EVENTO_LIMITES.publico_alvo) {
+      return `O público-alvo ultrapassou o limite de ${EVENTO_LIMITES.publico_alvo} caracteres.`;
+    }
 
-  if (
-    conteudoProgramaticoLimpo.length >
-    EVENTO_LIMITES.conteudo_programatico
-  ) {
-    return `O conteúdo programático ultrapassou o limite de ${EVENTO_LIMITES.conteudo_programatico} caracteres.`;
-  }
+    if (
+      conteudoProgramaticoLimpo.length > EVENTO_LIMITES.conteudo_programatico
+    ) {
+      return `O conteúdo programático ultrapassou o limite de ${EVENTO_LIMITES.conteudo_programatico} caracteres.`;
+    }
 
-  if (!toPositiveIntOrNull(unidadeId)) return "Selecione a unidade.";
+    if (!toPositiveIntOrNull(unidadeId)) {
+      return "Selecione a unidade.";
+    }
 
     if (!Array.isArray(turmas) || !turmas.length) {
       return "Adicione ao menos uma turma.";
@@ -1519,15 +1641,15 @@ const validarFormulario = useCallback(() => {
 
       const assinantes = normalizarAssinantesTurma(turma?.assinantes || []);
 
-if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
-  return `A turma "${turma?.nome}" precisa ter a assinatura obrigatória da Rafaella Pitol.`;
-}
+      if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
+        return `A turma "${turma?.nome}" precisa ter a assinatura obrigatória da Rafaella Pitol.`;
+      }
 
-if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
-  return `A turma "${turma?.nome}" deve ter de 1 a 3 assinantes.`;
-}
+      if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
+        return `A turma "${turma?.nome}" deve ter de 1 a 3 assinantes.`;
+      }
 
-       for (const data of turma.datas) {
+      for (const data of turma.datas) {
         if (!data?.data || !data?.horario_inicio || !data?.horario_fim) {
           return `A turma "${turma?.nome}" possui encontro incompleto.`;
         }
@@ -1535,7 +1657,9 @@ if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
     }
 
     if (restrito) {
-      if (!restricaoUi) return "Defina o tipo de restrição do evento.";
+      if (!restricaoUi) {
+        return "Defina o tipo de restrição do evento.";
+      }
 
       if (
         restricaoUi === RESTRICAO_UI.LISTA_REGISTROS &&
@@ -1555,26 +1679,28 @@ if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
 
     return "";
   }, [
-  cargosPermitidos.length,
-  conteudoProgramatico,
-  descricao,
-  local,
-  publicoAlvo,
-  registrosPermitidos.length,
-  restricaoUi,
-  restrito,
-  tipo,
-  titulo,
-  turmas,
-  unidadeId,
-  unidadesPermitidas.length,
-]);
+    cargosPermitidos.length,
+    conteudoProgramatico,
+    descricao,
+    local,
+    publicoAlvo,
+    registrosPermitidos.length,
+    restricaoUi,
+    restrito,
+    tipo,
+    titulo,
+    turmas,
+    unidadeId,
+    unidadesPermitidas.length,
+  ]);
 
   const handleSubmit = useCallback(
     (event) => {
       event.preventDefault();
 
-      if (salvando) return;
+      if (salvando) {
+        return;
+      }
 
       const erro = validarFormulario();
 
@@ -1590,19 +1716,19 @@ if (assinantes.length < 1 || assinantes.length > MAX_ASSINANTES_TURMA) {
 
       let restritoModo = null;
 
-if (restrito) {
-  if (restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES) {
-    restritoModo = "todos_servidores";
-  } else if (restricaoUi === RESTRICAO_UI.LISTA_REGISTROS) {
-    restritoModo = "lista_registros";
-  } else if (restricaoUi === RESTRICAO_UI.CARGOS) {
-    restritoModo = "cargos";
-  } else if (restricaoUi === RESTRICAO_UI.UNIDADES) {
-    restritoModo = "unidades";
-  }
-}
+      if (restrito) {
+        if (restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES) {
+          restritoModo = "todos_servidores";
+        } else if (restricaoUi === RESTRICAO_UI.LISTA_REGISTROS) {
+          restritoModo = "lista_registros";
+        } else if (restricaoUi === RESTRICAO_UI.CARGOS) {
+          restritoModo = "cargos";
+        } else if (restricaoUi === RESTRICAO_UI.UNIDADES) {
+          restritoModo = "unidades";
+        }
+      }
 
-            const payload = {
+      const payload = {
         ...(evento?.id ? { id: Number(evento.id) } : {}),
 
         titulo: String(titulo).trim(),
@@ -1640,7 +1766,7 @@ if (restrito) {
         ...(programacaoFile instanceof File ? { programacaoFile } : {}),
       };
 
-            logDev("Payload do modal preparado", {
+      logDev("Payload do modal preparado", {
         eventoId: payload.id || null,
         turmas: payload.turmas?.length || 0,
         restrito: payload.restrito,
@@ -1655,7 +1781,7 @@ if (restrito) {
 
       handleSalvarEvento(payload);
     },
-        [
+    [
       cargosPermitidos,
       conteudoProgramatico,
       descricao,
@@ -1677,7 +1803,7 @@ if (restrito) {
       unidadeId,
       unidadesPermitidas,
       validarFormulario,
-    ]
+    ],
   );
 
   const turmasRender = useMemo(() => {
@@ -1686,12 +1812,15 @@ if (restrito) {
       const dataInicio = minDate(datas) || turma.data_inicio;
       const dataFim = maxDate(datas) || turma.data_fim;
       const primeira = datas[0] || null;
-      const horarioInicio = primeira?.horario_inicio || turma.horario_inicio || "";
+      const horarioInicio =
+        primeira?.horario_inicio || turma.horario_inicio || "";
       const horarioFim = primeira?.horario_fim || turma.horario_fim || "";
 
       const organizadores = extractIds(turma.organizadores);
-const palestrantes = normalizarPalestrantesTurma(turma.palestrantes || []);
-const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
+      const palestrantes = normalizarPalestrantesTurma(
+        turma.palestrantes || [],
+      );
+      const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
 
       return (
         <div
@@ -1791,58 +1920,55 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
               </details>
             )}
 
-            {(organizadores.length > 0 || palestrantes.length > 0 || assinantes.length > 0) && (
-  <div className="mt-3 space-y-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-    {organizadores.length > 0 && (
-      <div className="text-xs">
-        <span className="font-black">Organizadores: </span>
-        {organizadores.map((id, idx) => (
-          <span key={id}>
-            {nomeorganizador(id)}
-            {idx < organizadores.length - 1 ? ", " : ""}
-          </span>
-        ))}
-      </div>
-    )}
+            {(organizadores.length > 0 ||
+              palestrantes.length > 0 ||
+              assinantes.length > 0) && (
+              <div className="mt-3 space-y-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                {organizadores.length > 0 && (
+                  <div className="text-xs">
+                    <span className="font-black">Organizadores: </span>
+                    {organizadores.map((id, idx) => (
+                      <span key={id}>
+                        {nomeorganizador(id)}
+                        {idx < organizadores.length - 1 ? ", " : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
-    {palestrantes.length > 0 && (
-      <div className="text-xs">
-        <span className="font-black">Palestrantes: </span>
-        {palestrantes.map((palestrante, idx) => (
-          <span key={`${palestrante.nome}-${idx}`}>
-            {palestrante.nome}
-            {idx < palestrantes.length - 1 ? ", " : ""}
-          </span>
-        ))}
-      </div>
-    )}
+                {palestrantes.length > 0 && (
+                  <div className="text-xs">
+                    <span className="font-black">Palestrantes: </span>
+                    {palestrantes.map((palestrante, idx) => (
+                      <span key={`${palestrante.nome}-${idx}`}>
+                        {palestrante.nome}
+                        {idx < palestrantes.length - 1 ? ", " : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
-    {assinantes.length > 0 && (
-      <div className="text-xs">
-        <span className="font-black">Assinantes: </span>
-        {assinantes.map((id, idx) => (
-          <span key={id}>
-            {nomeorganizador(id)}
-            {id === RAFAELLA_PITOL_ID ? " (obrigatória)" : ""}
-            {id === FABIO_LOPEZ_ID ? " (última assinatura)" : ""}
-            {idx < assinantes.length - 1 ? ", " : ""}
-          </span>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+                {assinantes.length > 0 && (
+                  <div className="text-xs">
+                    <span className="font-black">Assinantes: </span>
+                    {assinantes.map((id, idx) => (
+                      <span key={id}>
+                        {nomeorganizador(id)}
+                        {id === RAFAELLA_PITOL_ID ? " (obrigatória)" : ""}
+                        {id === FABIO_LOPEZ_ID ? " (última assinatura)" : ""}
+                        {idx < assinantes.length - 1 ? ", " : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );
     });
-  }, [
-    abrirEditarTurma,
-    nomeorganizador,
-    solicitarRemoverTurma,
-    turmas,
-  ]);
-    if (carregandoEvento) {
+  }, [abrirEditarTurma, nomeorganizador, solicitarRemoverTurma, turmas]);
+  if (carregandoEvento) {
     return (
       <div className="min-h-screen bg-zinc-50/80 dark:bg-zinc-950">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -1914,890 +2040,976 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
           />
 
           <div
-  className={[
-    "mt-5 overflow-visible rounded-[2rem] border border-black/5 bg-white shadow-xl dark:border-white/10 dark:bg-zinc-950",
-  ].join(" ")}
->
-          <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
+            className={[
+              "mt-5 overflow-visible rounded-[2rem] border border-black/5 bg-white shadow-xl dark:border-white/10 dark:bg-zinc-950",
+            ].join(" ")}
+          >
+            <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
 
-          <header className="relative border-b border-zinc-200 bg-white/90 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-6 sm:py-4">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
-              <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
-            </div>
+            <header className="relative border-b border-zinc-200 bg-white/90 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-6 sm:py-4">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
+                <div className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+              </div>
 
-            <div className="relative">
-              <div className="min-w-0">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300">
-                    <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-                  </span>
+              <div className="relative">
+                <div className="min-w-0">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300">
+                      <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                    </span>
 
-                  <div className="min-w-0">
-                    <h2
-                      id={titleId}
-                      className="break-words text-xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-2xl"
-                    >
-                      {evento?.id ? "Editar evento" : "Novo evento"}
-                    </h2>
+                    <div className="min-w-0">
+                      <h2
+                        id={titleId}
+                        className="break-words text-xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-2xl"
+                      >
+                        {evento?.id ? "Editar evento" : "Novo evento"}
+                      </h2>
 
-                    <p
-                      id={descId}
-                      className="mt-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300"
-                    >
-                      Configure dados institucionais, turmas, anexos, restrições e teste obrigatório.
-                    </p>
+                      <p
+                        id={descId}
+                        className="mt-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300"
+                      >
+                        Configure dados institucionais, turmas, anexos,
+                        restrições e teste obrigatório.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {tipo ? (
+                      <Chip tone="indigo" title="Tipo do evento">
+                        <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
+                        {tipo}
+                      </Chip>
+                    ) : (
+                      <Chip tone="zinc" title="Tipo pendente">
+                        <HelpCircle
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                        Tipo pendente
+                      </Chip>
+                    )}
+
+                    {unidadeNome ? (
+                      <Chip tone="emerald" title="Unidade responsável">
+                        <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        {unidadeNome}
+                      </Chip>
+                    ) : (
+                      <Chip tone="zinc" title="Unidade pendente">
+                        <HelpCircle
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                        Unidade pendente
+                      </Chip>
+                    )}
+
+                    <Chip tone={restrito ? "amber" : "zinc"}>
+                      {restrito ? (
+                        <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <Unlock className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      {restrito ? "Restrito" : "Padrão"}
+                    </Chip>
+
+                    <Chip tone={testeObrigatorio ? "violet" : "zinc"}>
+                      <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                      {testeObrigatorio ? "Teste obrigatório" : "Sem teste"}
+                    </Chip>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <main className="bg-zinc-50/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-5">
+              {" "}
+              <section
+                className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-5"
+                aria-label="Resumo do cadastro do evento"
+              >
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                    Turmas
+                  </div>
+                  <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
+                    {turmas.length}
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {tipo ? (
-                    <Chip tone="indigo" title="Tipo do evento">
-                      <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
-                      {tipo}
-                    </Chip>
-                  ) : (
-                    <Chip tone="zinc" title="Tipo pendente">
-                      <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                      Tipo pendente
-                    </Chip>
-                  )}
-
-                  {unidadeNome ? (
-                    <Chip tone="emerald" title="Unidade responsável">
-                      <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      {unidadeNome}
-                    </Chip>
-                  ) : (
-                    <Chip tone="zinc" title="Unidade pendente">
-                      <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                      Unidade pendente
-                    </Chip>
-                  )}
-
-                  <Chip tone={restrito ? "amber" : "zinc"}>
-                    {restrito ? (
-                      <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : (
-                      <Unlock className="h-3.5 w-3.5" aria-hidden="true" />
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                    Encontros
+                  </div>
+                  <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
+                    {turmas.reduce(
+                      (total, turma) =>
+                        total +
+                        (Array.isArray(turma.datas) ? turma.datas.length : 0),
+                      0,
                     )}
-                    {restrito ? "Restrito" : "Padrão"}
-                  </Chip>
+                  </div>
+                </div>
 
-                  <Chip tone={testeObrigatorio ? "violet" : "zinc"}>
-                    <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                    {testeObrigatorio ? "Teste obrigatório" : "Sem teste"}
-                  </Chip>
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                    Folder
+                  </div>
+                  <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                    {folderFile || folderExistenteUrl
+                      ? "Configurado"
+                      : removerFolderExistente
+                        ? "Remover"
+                        : "Pendente"}
+                  </div>
                 </div>
-              </div>
-            </div>
-          </header>
 
-<main className="bg-zinc-50/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-5">            <section
-              className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-5"
-              aria-label="Resumo do cadastro do evento"
-            >
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
-                  Turmas
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                    PDF
+                  </div>
+                  <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                    {programacaoFile || programacaoExistenteUrl
+                      ? "Configurado"
+                      : removerProgramacaoExistente
+                        ? "Remover"
+                        : "Opcional"}
+                  </div>
                 </div>
-                <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
-                  {turmas.length}
-                </div>
-              </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
-                  Encontros
-                </div>
-                <div className="mt-1 text-lg font-black text-zinc-950 dark:text-white">
-                  {turmas.reduce(
-                    (total, turma) =>
-                      total + (Array.isArray(turma.datas) ? turma.datas.length : 0),
-                    0
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
-                  Folder
-                </div>
-                <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
-                  {folderFile || folderExistenteUrl
-                    ? "Configurado"
-                    : removerFolderExistente
-                      ? "Remover"
-                      : "Pendente"}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
-                  PDF
-                </div>
-                <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
-                  {programacaoFile || programacaoExistenteUrl
-                    ? "Configurado"
-                    : removerProgramacaoExistente
-                      ? "Remover"
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                    Conteúdo
+                  </div>
+                  <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
+                    {String(conteudoProgramatico || "").trim()
+                      ? "Configurado"
                       : "Opcional"}
+                  </div>
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">
-                  Conteúdo
-                </div>
-                <div className="mt-1 text-sm font-black text-zinc-950 dark:text-white">
-                  {String(conteudoProgramatico || "").trim()
-                    ? "Configurado"
-                    : "Opcional"}
-                </div>
-              </div>
-            </section>
-
-            {isPending ? (
-              <p
-                className="rounded-2xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900"
-                role="status"
-                aria-live="polite"
-              >
-                Carregando dados do evento…
-              </p>
-            ) : (
-              <form
-                id={formId}
-                onSubmit={handleSubmit}
-                className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"
-                noValidate
-              >
-                <div className="space-y-5">
-                  <SectionCard
-                    id={`sec-dados-${uid}`}
-                    icon={FileText}
-                    title="Dados do evento"
-                    subtitle="Informações principais usadas na divulgação, inscrição e emissão de certificados."
-                  >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="grid gap-1 sm:col-span-2">
-                        <FieldLabel htmlFor={`evento-titulo-${uid}`} required>
-                          Título
-                        </FieldLabel>
-                        <TextInput
-  id={`evento-titulo-${uid}`}
-  icon={FileText}
-  value={titulo}
-  maxLength={EVENTO_LIMITES.titulo}
-  onChange={(e) =>
-    setTitulo(limitarTexto(e.target.value, EVENTO_LIMITES.titulo))
-  }
-  placeholder="Ex.: Curso de Atualização em Urgência"
-  required
-/>
-
-<CampoContador value={titulo} max={EVENTO_LIMITES.titulo} />
-                      </div>
-
-                      <div className="grid gap-1 sm:col-span-2">
-                        <FieldLabel htmlFor={`evento-descricao-${uid}`}>
-                          Descrição
-                        </FieldLabel>
-                        <TextArea
-  id={`evento-descricao-${uid}`}
-  icon={FileText}
-  value={descricao}
-  maxLength={EVENTO_LIMITES.descricao}
-  onChange={(e) =>
-    setDescricao(limitarTexto(e.target.value, EVENTO_LIMITES.descricao))
-  }
-  placeholder="Contexto, objetivos, orientações e observações do evento."
-/>
-
-<CampoContador value={descricao} max={EVENTO_LIMITES.descricao} />
-                      </div>
-
-                      <div className="grid gap-1 sm:col-span-2">
-                        <FieldLabel htmlFor={`evento-conteudo-programatico-${uid}`}>
-                          Conteúdo programático
-                        </FieldLabel>
-                        <TextArea
-  id={`evento-conteudo-programatico-${uid}`}
-  icon={ClipboardList}
-  value={conteudoProgramatico}
-  maxLength={EVENTO_LIMITES.conteudo_programatico}
-  onChange={(e) =>
-    setConteudoProgramatico(
-      limitarTexto(
-        e.target.value,
-        EVENTO_LIMITES.conteudo_programatico
-      )
-    )
-  }
-  placeholder={
-    "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
-  }
-  rows={6}
-  className="min-h-36"
-/>
-
-<CampoContador
-  value={conteudoProgramatico}
-  max={EVENTO_LIMITES.conteudo_programatico}
-/>
-
-<p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-  Campo opcional. Quando preenchido, será impresso no verso do certificado,
-  preservando as quebras de linha informadas.
-</p>
-                      </div>
-
-                      <div className="grid gap-1 sm:col-span-2">
-                        <FieldLabel htmlFor={`evento-publico-${uid}`}>
-                          Público-alvo
-                        </FieldLabel>
-                        <TextInput
-  id={`evento-publico-${uid}`}
-  icon={Info}
-  value={publicoAlvo}
-  maxLength={EVENTO_LIMITES.publico_alvo}
-  onChange={(e) =>
-    setPublicoAlvo(
-      limitarTexto(e.target.value, EVENTO_LIMITES.publico_alvo)
-    )
-  }
-  placeholder="Ex.: Profissionais da APS, enfermeiros, médicos"
-/>
-
-<CampoContador value={publicoAlvo} max={EVENTO_LIMITES.publico_alvo} />
-                      </div>
-
-                      <div className="grid gap-1">
-                        <FieldLabel htmlFor={`evento-local-${uid}`} required>
-                          Local
-                        </FieldLabel>
-                        <TextInput
-  id={`evento-local-${uid}`}
-  icon={MapPin}
-  value={local}
-  maxLength={EVENTO_LIMITES.local}
-  onChange={(e) =>
-    setLocal(limitarTexto(e.target.value, EVENTO_LIMITES.local))
-  }
-  placeholder="Ex.: Auditório da Escola da Saúde"
-  required
-/>
-
-<CampoContador value={local} max={EVENTO_LIMITES.local} />
-                      </div>
-
-                      <div className="grid gap-1">
-                        <FieldLabel htmlFor={`evento-tipo-${uid}`} required>
-                          Tipo
-                        </FieldLabel>
-                        <SelectInput
-                          id={`evento-tipo-${uid}`}
-                          value={tipo}
-                          onChange={(e) => setTipo(e.target.value)}
-                          required
-                        >
-                          <option value="">Selecione o tipo</option>
-                          {TIPOS_EVENTO.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </SelectInput>
-                      </div>
-
-                      <div className="grid gap-1 sm:col-span-2">
-                        <FieldLabel htmlFor={`evento-unidade-${uid}`} required>
-                          Unidade responsável
-                        </FieldLabel>
-                        <SelectInput
-                          id={`evento-unidade-${uid}`}
-                          value={unidadeId}
-                          onChange={(e) => setUnidadeId(e.target.value)}
-                          required
-                        >
-                          <option value="">
-                            {carregandoAuxiliares
-                              ? "Carregando unidades..."
-                              : "Selecione a unidade"}
-                          </option>
-
-                          {unidades.map((unidade) => (
-                            <option key={unidade.id} value={String(unidade.id)}>
-                              {unidade.nome}
-                            </option>
-                          ))}
-                        </SelectInput>
-                      </div>
-                    </div>
-                  </SectionCard>
-
-                  <SectionCard
-                    id={`sec-turmas-${uid}`}
-                    icon={Users}
-                    title="Turmas"
-                    subtitle="Cada turma precisa ter encontros, horários, vagas, organizador obrigatório, palestrantes opcionais e assinantes."
-                  >
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex flex-wrap gap-2">
-                        <Chip tone="indigo">{turmas.length} turma(s)</Chip>
-                        <Chip tone="emerald">
-                          {turmas.reduce(
-                            (total, turma) =>
-                              total +
-                              (Array.isArray(turma.datas) ? turma.datas.length : 0),
-                            0
-                          )}{" "}
-                          encontro(s)
-                        </Chip>
-                      </div>
-
-                      <ActionButton
-                        type="button"
-                        tone="success"
-                        onClick={abrirCriarTurma}
-                      >
-                        <PlusCircle className="h-4 w-4" aria-hidden="true" />
-                        Adicionar turma
-                      </ActionButton>
-                    </div>
-
-                    {turmas.length ? (
-                      <div className="grid gap-3">{turmasRender}</div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
-                        Nenhuma turma cadastrada. Adicione ao menos uma turma para salvar o evento.
-                      </div>
-                    )}
-                  </SectionCard>
-                </div>
-
-                <aside className="space-y-5 xl:sticky xl:top-0 xl:self-start">
-                  <SectionCard
-                    id={`sec-arquivos-${uid}`}
-                    icon={Paperclip}
-                    title="Folder e programação"
-                    subtitle="Os arquivos são persistidos no banco."
-                  >
-                    <div className="space-y-4">
-                      <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <h4 className="font-black text-zinc-950 dark:text-white">
-                              Folder
-                            </h4>
-                            <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
-                              PNG/JPG até {MAX_FOLDER_MB} MB.
-                            </p>
-                          </div>
-
-                          <ImageIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
-                        </div>
-
-                        <div className="mt-3">
-                          {folderPreview ? (
-                            <img
-                              src={folderPreview}
-                              alt="Pré-visualização do novo folder"
-                              className="max-h-56 w-full rounded-2xl border border-zinc-200 object-contain dark:border-zinc-800"
-                            />
-                          ) : folderExistenteUrl ? (
-                            <img
-                              src={folderExistenteUrl}
-                              alt="Folder atual do evento"
-                              className="max-h-56 w-full rounded-2xl border border-zinc-200 object-contain dark:border-zinc-800"
-                            />
-                          ) : (
-                            <div className="flex min-h-36 items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-400">
-                              Sem folder selecionado
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <input
-                            ref={folderInputRef}
-                            id={`evento-folder-${uid}`}
-                            type="file"
-                            accept="image/png,image/jpeg"
-                            onChange={onChangeFolder}
-                            className="sr-only"
+              </section>
+              {isPending ? (
+                <p
+                  className="rounded-2xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Carregando dados do evento…
+                </p>
+              ) : (
+                <form
+                  id={formId}
+                  onSubmit={handleSubmit}
+                  className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"
+                  noValidate
+                >
+                  <div className="space-y-5">
+                    <SectionCard
+                      id={`sec-dados-${uid}`}
+                      icon={FileText}
+                      title="Dados do evento"
+                      subtitle="Informações principais usadas na divulgação, inscrição e emissão de certificados."
+                    >
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-1 sm:col-span-2">
+                          <FieldLabel htmlFor={`evento-titulo-${uid}`} required>
+                            Título
+                          </FieldLabel>
+                          <TextInput
+                            id={`evento-titulo-${uid}`}
+                            icon={FileText}
+                            value={titulo}
+                            maxLength={EVENTO_LIMITES.titulo}
+                            onChange={(e) =>
+                              setTitulo(
+                                limitarTexto(
+                                  e.target.value,
+                                  EVENTO_LIMITES.titulo,
+                                ),
+                              )
+                            }
+                            placeholder="Ex.: Curso de Atualização em Urgência"
+                            required
                           />
 
-                          <ActionButton
-                            type="button"
-                            tone="info"
-                            size="sm"
-                            onClick={() => folderInputRef.current?.click()}
-                          >
-                            <UploadCloud className="h-4 w-4" />
-                            Selecionar
-                          </ActionButton>
-
-                          {(folderFile ||
-                            folderExistenteUrl ||
-                            removerFolderExistente) && (
-                            <ActionButton
-                              type="button"
-                              tone="danger"
-                              size="sm"
-                              onClick={limparFolder}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Remover
-                            </ActionButton>
-                          )}
+                          <CampoContador
+                            value={titulo}
+                            max={EVENTO_LIMITES.titulo}
+                          />
                         </div>
 
-                        {removerFolderExistente && (
-                          <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
-                            O folder atual será removido ao salvar.
-                          </p>
-                        )}
-
-                        {folderFile && (
-                          <p className="mt-2 break-words text-xs text-zinc-600 dark:text-zinc-300">
-                            Novo arquivo: <strong>{folderFile.name}</strong>
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <h4 className="font-black text-zinc-950 dark:text-white">
-                              Programação PDF
-                            </h4>
-                            <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
-                              PDF até {MAX_PROGRAMACAO_MB} MB.
-                            </p>
-                          </div>
-
-                          <FileText className="h-5 w-5 text-sky-700 dark:text-sky-300" />
-                        </div>
-
-                        <div className="mt-3 rounded-2xl border border-dashed border-zinc-300 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950/40">
-                          {programacaoFile ? (
-                            <div className="flex items-start gap-3">
-                              <FileText className="mt-0.5 h-5 w-5 text-sky-700 dark:text-sky-300" />
-                              <div className="min-w-0">
-                                <p className="break-words text-sm font-black text-zinc-950 dark:text-white">
-                                  {programacaoFile.name}
-                                </p>
-                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                  Nova programação será enviada ao salvar.
-                                </p>
-                              </div>
-                            </div>
-                          ) : programacaoExistenteUrl ? (
-                            <div className="flex items-start gap-3">
-                              <FileText className="mt-0.5 h-5 w-5 text-sky-700 dark:text-sky-300" />
-                              <div className="min-w-0">
-                                <p className="text-sm font-black text-zinc-950 dark:text-white">
-                                  Programação cadastrada
-                                </p>
-                                <a
-                                  href={programacaoExistenteUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mt-1 inline-flex text-xs font-bold text-sky-700 underline dark:text-sky-300"
-                                >
-                                  Abrir PDF atual
-                                </a>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                              Nenhuma programação selecionada.
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <input
-                            ref={pdfInputRef}
-                            id={`evento-programacao-${uid}`}
-                            type="file"
-                            accept="application/pdf"
-                            onChange={onChangeProgramacao}
-                            className="sr-only"
+                        <div className="grid gap-1 sm:col-span-2">
+                          <FieldLabel htmlFor={`evento-descricao-${uid}`}>
+                            Descrição
+                          </FieldLabel>
+                          <TextArea
+                            id={`evento-descricao-${uid}`}
+                            icon={FileText}
+                            value={descricao}
+                            maxLength={EVENTO_LIMITES.descricao}
+                            onChange={(e) =>
+                              setDescricao(
+                                limitarTexto(
+                                  e.target.value,
+                                  EVENTO_LIMITES.descricao,
+                                ),
+                              )
+                            }
+                            placeholder="Contexto, objetivos, orientações e observações do evento."
                           />
 
-                          <ActionButton
-                            type="button"
-                            tone="info"
-                            size="sm"
-                            onClick={() => pdfInputRef.current?.click()}
+                          <CampoContador
+                            value={descricao}
+                            max={EVENTO_LIMITES.descricao}
+                          />
+                        </div>
+
+                        <div className="grid gap-1 sm:col-span-2">
+                          <FieldLabel
+                            htmlFor={`evento-conteudo-programatico-${uid}`}
                           >
-                            <UploadCloud className="h-4 w-4" />
-                            Selecionar
-                          </ActionButton>
+                            Conteúdo programático
+                          </FieldLabel>
+                          <TextArea
+                            id={`evento-conteudo-programatico-${uid}`}
+                            icon={ClipboardList}
+                            value={conteudoProgramatico}
+                            maxLength={EVENTO_LIMITES.conteudo_programatico}
+                            onChange={(e) =>
+                              setConteudoProgramatico(
+                                limitarTexto(
+                                  e.target.value,
+                                  EVENTO_LIMITES.conteudo_programatico,
+                                ),
+                              )
+                            }
+                            placeholder={
+                              "Informe os tópicos que serão impressos no verso do certificado.\nEx.: Atualização em sífilis adquirida\nDiagnóstico clínico e laboratorial\nTratamento conforme protocolos vigentes"
+                            }
+                            rows={6}
+                            className="min-h-36"
+                          />
 
-                          {(programacaoFile ||
-                            programacaoExistenteUrl ||
-                            removerProgramacaoExistente) && (
-                            <ActionButton
-                              type="button"
-                              tone="danger"
-                              size="sm"
-                              onClick={limparProgramacao}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Remover
-                            </ActionButton>
-                          )}
-                        </div>
+                          <CampoContador
+                            value={conteudoProgramatico}
+                            max={EVENTO_LIMITES.conteudo_programatico}
+                          />
 
-                        {removerProgramacaoExistente && (
-                          <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
-                            A programação atual será removida ao salvar.
+                          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                            Campo opcional. Quando preenchido, será impresso no
+                            verso do certificado, preservando as quebras de
+                            linha informadas.
                           </p>
-                        )}
-                      </div>
-                    </div>
-                  </SectionCard>
-
-                  <SectionCard
-                    id={`sec-restricao-${uid}`}
-                    icon={Lock}
-                    title="Restrição de inscrição"
-                    subtitle="O evento pode ficar visível, mas com inscrição bloqueada para não elegíveis."
-                  >
-                    <label className="inline-flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={restrito}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setRestrito(checked);
-
-                          if (!checked) {
-                            setRestricaoUi("");
-                          } else if (!restricaoUi) {
-                            setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES);
-                          }
-                        }}
-                        className="mt-1"
-                      />
-                      <span>
-                        <span className="block font-black text-zinc-950 dark:text-white">
-                          {restrito ? "Evento restrito" : "Evento padrão"}
-                        </span>
-                        <span className="text-xs text-zinc-600 dark:text-zinc-300">
-                          Use restrição apenas quando houver público autorizado.
-                        </span>
-                      </span>
-                    </label>
-
-                    {restrito && (
-                      <div className="mt-4 space-y-4">
-                        <div className="grid gap-2 text-sm text-zinc-800 dark:text-zinc-100">
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`restricao-${uid}`}
-                              checked={restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES}
-                              onChange={() =>
-                                setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES)
-                              }
-                            />
-                            <span>Todos os servidores com registro funcional</span>
-                          </label>
-
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`restricao-${uid}`}
-                              checked={restricaoUi === RESTRICAO_UI.LISTA_REGISTROS}
-                              onChange={() =>
-                                setRestricaoUi(RESTRICAO_UI.LISTA_REGISTROS)
-                              }
-                            />
-                            <span>Lista específica de registros</span>
-                          </label>
-
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`restricao-${uid}`}
-                              checked={restricaoUi === RESTRICAO_UI.CARGOS}
-                              onChange={() => setRestricaoUi(RESTRICAO_UI.CARGOS)}
-                            />
-                            <span>Cargos permitidos</span>
-                          </label>
-
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`restricao-${uid}`}
-                              checked={restricaoUi === RESTRICAO_UI.UNIDADES}
-                              onChange={() => setRestricaoUi(RESTRICAO_UI.UNIDADES)}
-                            />
-                            <span>Unidades permitidas</span>
-                          </label>
                         </div>
 
-                        {restricaoUi === RESTRICAO_UI.LISTA_REGISTROS && (
-                          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                            <FieldLabel htmlFor={`registros-${uid}`}>
-                              Registros autorizados
-                            </FieldLabel>
+                        <div className="grid gap-1 sm:col-span-2">
+                          <FieldLabel htmlFor={`evento-publico-${uid}`}>
+                            Público-alvo
+                          </FieldLabel>
+                          <TextInput
+                            id={`evento-publico-${uid}`}
+                            icon={Info}
+                            value={publicoAlvo}
+                            maxLength={EVENTO_LIMITES.publico_alvo}
+                            onChange={(e) =>
+                              setPublicoAlvo(
+                                limitarTexto(
+                                  e.target.value,
+                                  EVENTO_LIMITES.publico_alvo,
+                                ),
+                              )
+                            }
+                            placeholder="Ex.: Profissionais da APS, enfermeiros, médicos"
+                          />
 
-                            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                              <TextInput
-                                id={`registros-${uid}`}
-                                value={registroInput}
-                                onChange={(e) => setRegistroInput(e.target.value)}
-                                onPaste={(e) => {
-                                  const text =
-                                    e.clipboardData?.getData("text") || "";
-                                  const regs = parseRegistrosBulk(text);
+                          <CampoContador
+                            value={publicoAlvo}
+                            max={EVENTO_LIMITES.publico_alvo}
+                          />
+                        </div>
 
-                                  if (regs.length > 1) {
-                                    e.preventDefault();
-                                    setRegistrosPermitidos((prev) => [
-                                      ...new Set([...prev, ...regs]),
-                                    ]);
-                                    setRegistroInput("");
-                                  }
-                                }}
-                                placeholder="Digite ou cole registros de 6 dígitos"
+                        <div className="grid gap-1">
+                          <FieldLabel htmlFor={`evento-local-${uid}`} required>
+                            Local
+                          </FieldLabel>
+                          <TextInput
+                            id={`evento-local-${uid}`}
+                            icon={MapPin}
+                            value={local}
+                            maxLength={EVENTO_LIMITES.local}
+                            onChange={(e) =>
+                              setLocal(
+                                limitarTexto(
+                                  e.target.value,
+                                  EVENTO_LIMITES.local,
+                                ),
+                              )
+                            }
+                            placeholder="Ex.: Auditório da Escola da Saúde"
+                            required
+                          />
+
+                          <CampoContador
+                            value={local}
+                            max={EVENTO_LIMITES.local}
+                          />
+                        </div>
+
+                        <div className="grid gap-1">
+                          <FieldLabel htmlFor={`evento-tipo-${uid}`} required>
+                            Tipo
+                          </FieldLabel>
+                          <SelectInput
+                            id={`evento-tipo-${uid}`}
+                            value={tipo}
+                            onChange={(e) => setTipo(e.target.value)}
+                            required
+                          >
+                            <option value="">Selecione o tipo</option>
+                            {TIPOS_EVENTO.map((item) => (
+                              <option key={item} value={item}>
+                                {item}
+                              </option>
+                            ))}
+                          </SelectInput>
+                        </div>
+
+                        <div className="grid gap-1 sm:col-span-2">
+                          <FieldLabel
+                            htmlFor={`evento-unidade-${uid}`}
+                            required
+                          >
+                            Unidade responsável
+                          </FieldLabel>
+                          <SelectInput
+                            id={`evento-unidade-${uid}`}
+                            value={unidadeId}
+                            onChange={(e) => setUnidadeId(e.target.value)}
+                            required
+                          >
+                            <option value="">
+                              {carregandoAuxiliares
+                                ? "Carregando unidades..."
+                                : "Selecione a unidade"}
+                            </option>
+
+                            {unidades.map((unidade) => (
+                              <option
+                                key={unidade.id}
+                                value={String(unidade.id)}
+                              >
+                                {unidade.nome}
+                              </option>
+                            ))}
+                          </SelectInput>
+                        </div>
+                      </div>
+                    </SectionCard>
+
+                    <SectionCard
+                      id={`sec-turmas-${uid}`}
+                      icon={Users}
+                      title="Turmas"
+                      subtitle="Cada turma precisa ter encontros, horários, vagas, organizador obrigatório, palestrantes opcionais e assinantes."
+                    >
+                      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          <Chip tone="indigo">{turmas.length} turma(s)</Chip>
+                          <Chip tone="emerald">
+                            {turmas.reduce(
+                              (total, turma) =>
+                                total +
+                                (Array.isArray(turma.datas)
+                                  ? turma.datas.length
+                                  : 0),
+                              0,
+                            )}{" "}
+                            encontro(s)
+                          </Chip>
+                        </div>
+
+                        <ActionButton
+                          type="button"
+                          tone="success"
+                          onClick={abrirCriarTurma}
+                        >
+                          <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                          Adicionar turma
+                        </ActionButton>
+                      </div>
+
+                      {turmas.length ? (
+                        <div className="grid gap-3">{turmasRender}</div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
+                          Nenhuma turma cadastrada. Adicione ao menos uma turma
+                          para salvar o evento.
+                        </div>
+                      )}
+                    </SectionCard>
+                  </div>
+
+                  <aside className="space-y-5 xl:sticky xl:top-0 xl:self-start">
+                    <SectionCard
+                      id={`sec-arquivos-${uid}`}
+                      icon={Paperclip}
+                      title="Folder e programação"
+                      subtitle="Os arquivos são persistidos no banco."
+                    >
+                      <div className="space-y-4">
+                        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="font-black text-zinc-950 dark:text-white">
+                                Folder
+                              </h4>
+                              <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
+                                PNG/JPG até {MAX_FOLDER_MB} MB.
+                              </p>
+                            </div>
+
+                            <ImageIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+                          </div>
+
+                          <div className="mt-3">
+                            {folderPreview ? (
+                              <img
+                                src={folderPreview}
+                                alt="Pré-visualização do novo folder"
+                                className="max-h-56 w-full rounded-2xl border border-zinc-200 object-contain dark:border-zinc-800"
                               />
-
-                              <ActionButton
-                                type="button"
-                                tone="info"
-                                onClick={addRegistros}
-                              >
-                                Adicionar
-                              </ActionButton>
-                            </div>
-
-                            {!!registrosPermitidos.length && (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {registrosPermitidos.map((registro) => (
-                                  <Chip key={registro} tone="amber">
-                                    {registro}
-                                    <button
-                                      type="button"
-                                      onClick={() => removeRegistro(registro)}
-                                      className="ml-1 rounded-full hover:bg-black/10"
-                                      aria-label={`Remover registro ${registro}`}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </Chip>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {restricaoUi === RESTRICAO_UI.CARGOS && (
-                          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                            <FieldLabel htmlFor={`cargo-${uid}`}>
-                              Cargo permitido
-                            </FieldLabel>
-
-                            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                              <SelectInput
-                                id={`cargo-${uid}`}
-                                value={cargoAddId}
-                                onChange={(e) => setCargoAddId(e.target.value)}
-                              >
-                                <option value="">Selecione um cargo</option>
-                                {cargosDisponiveis.map((cargo) => (
-                                  <option key={cargo.id} value={String(cargo.id)}>
-                                    {cargoLabel(cargo)}
-                                  </option>
-                                ))}
-                              </SelectInput>
-
-                              <ActionButton type="button" tone="info" onClick={addCargo}>
-                                Adicionar
-                              </ActionButton>
-                            </div>
-
-                            {!!cargosPermitidos.length && (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {cargosPermitidos.map((id) => (
-                                  <Chip key={id} tone="amber">
-                                    {cargoLabel(cargosById.get(Number(id))) ||
-                                      `Cargo ${id}`}
-                                    <button
-                                      type="button"
-                                      onClick={() => removeCargo(id)}
-                                      className="ml-1 rounded-full hover:bg-black/10"
-                                      aria-label={`Remover cargo ${id}`}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </Chip>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {restricaoUi === RESTRICAO_UI.UNIDADES && (
-                          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                            <FieldLabel htmlFor={`unidade-permitida-${uid}`}>
-                              Unidade permitida
-                            </FieldLabel>
-
-                            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                              <SelectInput
-                                id={`unidade-permitida-${uid}`}
-                                value={unidadeAddId}
-                                onChange={(e) => setUnidadeAddId(e.target.value)}
-                              >
-                                <option value="">Selecione uma unidade</option>
-                                {unidades.map((unidade) => (
-                                  <option key={unidade.id} value={String(unidade.id)}>
-                                    {unidade.nome}
-                                  </option>
-                                ))}
-                              </SelectInput>
-
-                              <ActionButton
-                                type="button"
-                                tone="info"
-                                onClick={addUnidade}
-                              >
-                                Adicionar
-                              </ActionButton>
-                            </div>
-
-                            {!!unidadesPermitidas.length && (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {unidadesPermitidas.map((id) => (
-                                  <Chip key={id} tone="amber">
-                                    {unidadesById.get(Number(id))?.nome ||
-                                      `Unidade ${id}`}
-                                    <button
-                                      type="button"
-                                      onClick={() => removeUnidade(id)}
-                                      className="ml-1 rounded-full hover:bg-black/10"
-                                      aria-label={`Remover unidade ${id}`}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </Chip>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </SectionCard>
-
-                  <SectionCard
-                    id={`sec-pos-${uid}`}
-                    icon={CheckCircle2}
-                    title="Teste obrigatório"
-                    subtitle="A avaliação final do curso continua obrigatória. Aqui você define se haverá teste para certificado."
-                  >
-                    <label className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                      <input
-                        type="checkbox"
-                        checked={testeObrigatorio}
-                        onChange={(e) => setTesteObrigatorio(e.target.checked)}
-                        className="mt-1"
-                      />
-
-                      <span className="min-w-0">
-                        <span className="block font-black text-zinc-950 dark:text-white">
-                          Exigir teste para gerar certificado
-                        </span>
-
-                        <span className="text-xs text-zinc-600 dark:text-zinc-300">
-                          Quando ativado, o participante libera certificado após frequência, avaliação e teste aprovado.
-                        </span>
-                      </span>
-                    </label>
-
-                    {testeObrigatorio && (
-                      <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="text-xs text-zinc-700 dark:text-zinc-200">
-                            <strong>Configuração:</strong>{" "}
-                            {testeConfig.questionario_id ? (
-                              <>
-                                {testeConfig.titulo || "Questionário"} •{" "}
-                                {Number(testeConfig.questoes_count || 0)} questão(ões) • nota mín.{" "}
-                                {Number(testeConfig.nota_minima || 0)} •{" "}
-                                {Number(testeConfig.tentativas || 1)} tentativa(s)
-                              </>
+                            ) : folderExistenteUrl ? (
+                              <img
+                                src={folderExistenteUrl}
+                                alt="Folder atual do evento"
+                                className="max-h-56 w-full rounded-2xl border border-zinc-200 object-contain dark:border-zinc-800"
+                              />
                             ) : (
-                              <>nenhum teste configurado ainda</>
+                              <div className="flex min-h-36 items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-400">
+                                Sem folder selecionado
+                              </div>
                             )}
                           </div>
 
-                          <ActionButton
-                            type="button"
-                            tone="info"
-                            size="sm"
-                            onClick={() => {
-                              if (!evento?.id) {
-                                toast.info(
-                                  "Salve o evento para configurar o teste depois."
-                                );
-                                return;
-                              }
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <input
+                              ref={folderInputRef}
+                              id={`evento-folder-${uid}`}
+                              type="file"
+                              accept="image/png,image/jpeg"
+                              onChange={onChangeFolder}
+                              className="sr-only"
+                            />
 
-                              setModalQuestionarioAberto(true);
-                            }}
-                          >
-                            <ClipboardList className="h-4 w-4" />
-                            {evento?.id ? "Configurar" : "Salve o evento"}
-                          </ActionButton>
+                            <ActionButton
+                              type="button"
+                              tone="info"
+                              size="sm"
+                              onClick={() => folderInputRef.current?.click()}
+                            >
+                              <UploadCloud className="h-4 w-4" />
+                              Selecionar
+                            </ActionButton>
+
+                            {(folderFile ||
+                              folderExistenteUrl ||
+                              removerFolderExistente) && (
+                              <ActionButton
+                                type="button"
+                                tone="danger"
+                                size="sm"
+                                onClick={limparFolder}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Remover
+                              </ActionButton>
+                            )}
+                          </div>
+
+                          {removerFolderExistente && (
+                            <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                              O folder atual será removido ao salvar.
+                            </p>
+                          )}
+
+                          {folderFile && (
+                            <p className="mt-2 break-words text-xs text-zinc-600 dark:text-zinc-300">
+                              Novo arquivo: <strong>{folderFile.name}</strong>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="font-black text-zinc-950 dark:text-white">
+                                Programação PDF
+                              </h4>
+                              <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-300">
+                                PDF até {MAX_PROGRAMACAO_MB} MB.
+                              </p>
+                            </div>
+
+                            <FileText className="h-5 w-5 text-sky-700 dark:text-sky-300" />
+                          </div>
+
+                          <div className="mt-3 rounded-2xl border border-dashed border-zinc-300 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950/40">
+                            {programacaoFile ? (
+                              <div className="flex items-start gap-3">
+                                <FileText className="mt-0.5 h-5 w-5 text-sky-700 dark:text-sky-300" />
+                                <div className="min-w-0">
+                                  <p className="break-words text-sm font-black text-zinc-950 dark:text-white">
+                                    {programacaoFile.name}
+                                  </p>
+                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    Nova programação será enviada ao salvar.
+                                  </p>
+                                </div>
+                              </div>
+                            ) : programacaoExistenteUrl ? (
+                              <div className="flex items-start gap-3">
+                                <FileText className="mt-0.5 h-5 w-5 text-sky-700 dark:text-sky-300" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-black text-zinc-950 dark:text-white">
+                                    Programação cadastrada
+                                  </p>
+                                  <a
+                                    href={programacaoExistenteUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-1 inline-flex text-xs font-bold text-sky-700 underline dark:text-sky-300"
+                                  >
+                                    Abrir PDF atual
+                                  </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                Nenhuma programação selecionada.
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <input
+                              ref={pdfInputRef}
+                              id={`evento-programacao-${uid}`}
+                              type="file"
+                              accept="application/pdf"
+                              onChange={onChangeProgramacao}
+                              className="sr-only"
+                            />
+
+                            <ActionButton
+                              type="button"
+                              tone="info"
+                              size="sm"
+                              onClick={() => pdfInputRef.current?.click()}
+                            >
+                              <UploadCloud className="h-4 w-4" />
+                              Selecionar
+                            </ActionButton>
+
+                            {(programacaoFile ||
+                              programacaoExistenteUrl ||
+                              removerProgramacaoExistente) && (
+                              <ActionButton
+                                type="button"
+                                tone="danger"
+                                size="sm"
+                                onClick={limparProgramacao}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Remover
+                              </ActionButton>
+                            )}
+                          </div>
+
+                          {removerProgramacaoExistente && (
+                            <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                              A programação atual será removida ao salvar.
+                            </p>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </SectionCard>
-                </aside>
-              </form>
-            )}
-          </main>
+                    </SectionCard>
 
-          <footer className="border-t border-zinc-200 bg-white/95 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                Campos obrigatórios: título, tipo, local, unidade e ao menos uma turma válida.
+                    <SectionCard
+                      id={`sec-restricao-${uid}`}
+                      icon={Lock}
+                      title="Restrição de inscrição"
+                      subtitle="O evento pode ficar visível, mas com inscrição bloqueada para não elegíveis."
+                    >
+                      <label className="inline-flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={restrito}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setRestrito(checked);
+
+                            if (!checked) {
+                              setRestricaoUi("");
+                            } else if (!restricaoUi) {
+                              setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES);
+                            }
+                          }}
+                          className="mt-1"
+                        />
+                        <span>
+                          <span className="block font-black text-zinc-950 dark:text-white">
+                            {restrito ? "Evento restrito" : "Evento padrão"}
+                          </span>
+                          <span className="text-xs text-zinc-600 dark:text-zinc-300">
+                            Use restrição apenas quando houver público
+                            autorizado.
+                          </span>
+                        </span>
+                      </label>
+
+                      {restrito && (
+                        <div className="mt-4 space-y-4">
+                          <div className="grid gap-2 text-sm text-zinc-800 dark:text-zinc-100">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`restricao-${uid}`}
+                                checked={
+                                  restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES
+                                }
+                                onChange={() =>
+                                  setRestricaoUi(RESTRICAO_UI.TODOS_SERVIDORES)
+                                }
+                              />
+                              <span>
+                                Todos os servidores com registro funcional
+                              </span>
+                            </label>
+
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`restricao-${uid}`}
+                                checked={
+                                  restricaoUi === RESTRICAO_UI.LISTA_REGISTROS
+                                }
+                                onChange={() =>
+                                  setRestricaoUi(RESTRICAO_UI.LISTA_REGISTROS)
+                                }
+                              />
+                              <span>Lista específica de registros</span>
+                            </label>
+
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`restricao-${uid}`}
+                                checked={restricaoUi === RESTRICAO_UI.CARGOS}
+                                onChange={() =>
+                                  setRestricaoUi(RESTRICAO_UI.CARGOS)
+                                }
+                              />
+                              <span>Cargos permitidos</span>
+                            </label>
+
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`restricao-${uid}`}
+                                checked={restricaoUi === RESTRICAO_UI.UNIDADES}
+                                onChange={() =>
+                                  setRestricaoUi(RESTRICAO_UI.UNIDADES)
+                                }
+                              />
+                              <span>Unidades permitidas</span>
+                            </label>
+                          </div>
+
+                          {restricaoUi === RESTRICAO_UI.LISTA_REGISTROS && (
+                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                              <FieldLabel htmlFor={`registros-${uid}`}>
+                                Registros autorizados
+                              </FieldLabel>
+
+                              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                <TextInput
+                                  id={`registros-${uid}`}
+                                  value={registroInput}
+                                  onChange={(e) =>
+                                    setRegistroInput(e.target.value)
+                                  }
+                                  onPaste={(e) => {
+                                    const text =
+                                      e.clipboardData?.getData("text") || "";
+                                    const regs = parseRegistrosBulk(text);
+
+                                    if (regs.length > 1) {
+                                      e.preventDefault();
+                                      setRegistrosPermitidos((prev) => [
+                                        ...new Set([...prev, ...regs]),
+                                      ]);
+                                      setRegistroInput("");
+                                    }
+                                  }}
+                                  placeholder="Digite ou cole registros de 6 dígitos"
+                                />
+
+                                <ActionButton
+                                  type="button"
+                                  tone="info"
+                                  onClick={addRegistros}
+                                >
+                                  Adicionar
+                                </ActionButton>
+                              </div>
+
+                              {!!registrosPermitidos.length && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {registrosPermitidos.map((registro) => (
+                                    <Chip key={registro} tone="amber">
+                                      {registro}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeRegistro(registro)}
+                                        className="ml-1 rounded-full hover:bg-black/10"
+                                        aria-label={`Remover registro ${registro}`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </Chip>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {restricaoUi === RESTRICAO_UI.CARGOS && (
+                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                              <FieldLabel htmlFor={`cargo-${uid}`}>
+                                Cargo permitido
+                              </FieldLabel>
+
+                              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                <SelectInput
+                                  id={`cargo-${uid}`}
+                                  value={cargoAddId}
+                                  onChange={(e) =>
+                                    setCargoAddId(e.target.value)
+                                  }
+                                >
+                                  <option value="">Selecione um cargo</option>
+                                  {cargosDisponiveis.map((cargo) => (
+                                    <option
+                                      key={cargo.id}
+                                      value={String(cargo.id)}
+                                    >
+                                      {cargoLabel(cargo)}
+                                    </option>
+                                  ))}
+                                </SelectInput>
+
+                                <ActionButton
+                                  type="button"
+                                  tone="info"
+                                  onClick={addCargo}
+                                >
+                                  Adicionar
+                                </ActionButton>
+                              </div>
+
+                              {!!cargosPermitidos.length && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {cargosPermitidos.map((id) => (
+                                    <Chip key={id} tone="amber">
+                                      {cargoLabel(cargosById.get(Number(id))) ||
+                                        `Cargo ${id}`}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeCargo(id)}
+                                        className="ml-1 rounded-full hover:bg-black/10"
+                                        aria-label={`Remover cargo ${id}`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </Chip>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {restricaoUi === RESTRICAO_UI.UNIDADES && (
+                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                              <FieldLabel htmlFor={`unidade-permitida-${uid}`}>
+                                Unidade permitida
+                              </FieldLabel>
+
+                              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                <SelectInput
+                                  id={`unidade-permitida-${uid}`}
+                                  value={unidadeAddId}
+                                  onChange={(e) =>
+                                    setUnidadeAddId(e.target.value)
+                                  }
+                                >
+                                  <option value="">
+                                    Selecione uma unidade
+                                  </option>
+                                  {unidades.map((unidade) => (
+                                    <option
+                                      key={unidade.id}
+                                      value={String(unidade.id)}
+                                    >
+                                      {unidade.nome}
+                                    </option>
+                                  ))}
+                                </SelectInput>
+
+                                <ActionButton
+                                  type="button"
+                                  tone="info"
+                                  onClick={addUnidade}
+                                >
+                                  Adicionar
+                                </ActionButton>
+                              </div>
+
+                              {!!unidadesPermitidas.length && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {unidadesPermitidas.map((id) => (
+                                    <Chip key={id} tone="amber">
+                                      {unidadesById.get(Number(id))?.nome ||
+                                        `Unidade ${id}`}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeUnidade(id)}
+                                        className="ml-1 rounded-full hover:bg-black/10"
+                                        aria-label={`Remover unidade ${id}`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </Chip>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </SectionCard>
+
+                    <SectionCard
+                      id={`sec-pos-${uid}`}
+                      icon={CheckCircle2}
+                      title="Teste obrigatório"
+                      subtitle="A avaliação final do curso continua obrigatória. Aqui você define se haverá teste para certificado."
+                    >
+                      <label className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                        <input
+                          type="checkbox"
+                          checked={testeObrigatorio}
+                          onChange={(e) =>
+                            setTesteObrigatorio(e.target.checked)
+                          }
+                          className="mt-1"
+                        />
+
+                        <span className="min-w-0">
+                          <span className="block font-black text-zinc-950 dark:text-white">
+                            Exigir teste para gerar certificado
+                          </span>
+
+                          <span className="text-xs text-zinc-600 dark:text-zinc-300">
+                            Quando ativado, o participante libera certificado
+                            após frequência, avaliação e teste aprovado.
+                          </span>
+                        </span>
+                      </label>
+
+                      {testeObrigatorio && (
+                        <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="text-xs text-zinc-700 dark:text-zinc-200">
+                              <strong>Configuração:</strong>{" "}
+                              {testeConfig.questionario_id ? (
+                                <>
+                                  {testeConfig.titulo || "Questionário"} •{" "}
+                                  {Number(testeConfig.questoes_count || 0)}{" "}
+                                  questão(ões) • nota mín.{" "}
+                                  {Number(testeConfig.nota_minima || 0)} •{" "}
+                                  {Number(testeConfig.tentativas || 1)}{" "}
+                                  tentativa(s)
+                                </>
+                              ) : (
+                                <>nenhum teste configurado ainda</>
+                              )}
+                            </div>
+
+                            <ActionButton
+                              type="button"
+                              tone="info"
+                              size="sm"
+                              onClick={() => {
+                                if (!evento?.id) {
+                                  toast.info(
+                                    "Salve o evento para configurar o teste depois.",
+                                  );
+                                  return;
+                                }
+
+                                setModalQuestionarioAberto(true);
+                              }}
+                            >
+                              <ClipboardList className="h-4 w-4" />
+                              {evento?.id ? "Configurar" : "Salve o evento"}
+                            </ActionButton>
+                          </div>
+                        </div>
+                      )}
+                    </SectionCard>
+                  </aside>
+                </form>
+              )}
+            </main>
+
+            <footer className="border-t border-zinc-200 bg-white/95 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Campos obrigatórios: título, tipo, local, unidade e ao menos
+                  uma turma válida.
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <ActionButton
+                    type="button"
+                    tone="neutral"
+                    disabled={closeBlocked}
+                    onClick={closeBlocked ? undefined : onClose}
+                  >
+                    Voltar
+                  </ActionButton>
+
+                  <ActionButton
+                    type="submit"
+                    form={formId}
+                    tone="success"
+                    disabled={salvando}
+                  >
+                    <Save className="h-4 w-4" aria-hidden="true" />
+                    {salvando ? "Salvando..." : "Salvar evento"}
+                  </ActionButton>
+                </div>
               </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <ActionButton
-                  type="button"
-                  tone="neutral"
-                  disabled={closeBlocked}
-                  onClick={closeBlocked ? undefined : onClose}
-                >
-                  Voltar
-                </ActionButton>
-
-                <ActionButton
-                  type="submit"
-                  form={formId}
-                  tone="success"
-                  disabled={salvando}
-                >
-                  <Save className="h-4 w-4" aria-hidden="true" />
-                  {salvando ? "Salvando..." : "Salvar evento"}
-                </ActionButton>
-              </div>
-            </div>
-          </footer>
-        </div>
+            </footer>
           </div>
         </div>
+      </div>
 
-        <Footer />
+      <Footer />
 
       {modalTurmaAberto && (
         <ModalTurma
@@ -2816,31 +3028,35 @@ const assinantes = normalizarAssinantesTurma(turma.assinantes || []);
         />
       )}
 
-    {modalQuestionarioAberto && evento?.id && (
-  <ModalQuestionarioEvento
-    open={modalQuestionarioAberto}
-    isOpen={modalQuestionarioAberto}
-    eventoId={evento.id}
-    onClose={() => setModalQuestionarioAberto(false)}
-    onConfigSaved={(questionario) => {
-      if (questionario?.id) {
-        setTesteObrigatorio(true);
-        setTesteConfig((prev) => ({
-          ...prev,
-          titulo: questionario?.titulo || prev.titulo,
-          questionario_id: questionario.id,
-          questoes_count: Array.isArray(questionario?.questoes)
-            ? questionario.questoes.length
-            : Number(questionario?.questoes_count || prev.questoes_count || 0),
-          peso_total: Number(questionario?.peso_total || prev.peso_total || 0),
-          publicado: Boolean(questionario?.publicado),
-        }));
-      }
+      {modalQuestionarioAberto && evento?.id && (
+        <ModalQuestionarioEvento
+          open={modalQuestionarioAberto}
+          isOpen={modalQuestionarioAberto}
+          eventoId={evento.id}
+          onClose={() => setModalQuestionarioAberto(false)}
+          onConfigSaved={(questionario) => {
+            if (questionario?.id) {
+              setTesteObrigatorio(true);
+              setTesteConfig((prev) => ({
+                ...prev,
+                titulo: questionario?.titulo || prev.titulo,
+                questionario_id: questionario.id,
+                questoes_count: Array.isArray(questionario?.questoes)
+                  ? questionario.questoes.length
+                  : Number(
+                      questionario?.questoes_count || prev.questoes_count || 0,
+                    ),
+                peso_total: Number(
+                  questionario?.peso_total || prev.peso_total || 0,
+                ),
+                publicado: Boolean(questionario?.publicado),
+              }));
+            }
 
-      setModalQuestionarioAberto(false);
-    }}
-  />
-)}
+            setModalQuestionarioAberto(false);
+          }}
+        />
+      )}
 
       <ModalConfirmacao
         open={!!confirmTurma.open}

@@ -60,13 +60,13 @@ const { authorize } = require("../middlewares/authorize");
 
 if (typeof requireAuth !== "function") {
   throw new Error(
-    "[submissaoRoute] authMiddleware oficial inválido. Esperado export direto como função."
+    "[submissaoRoute] authMiddleware oficial inválido. Esperado export direto como função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[submissaoRoute] authorize oficial inválido. Esperado export nomeado { authorize }."
+    "[submissaoRoute] authorize oficial inválido. Esperado export nomeado { authorize }.",
   );
 }
 
@@ -109,10 +109,7 @@ function noStore(_req, res, next) {
 }
 
 const idParam = [
-  param("id")
-    .isInt({ min: 1 })
-    .withMessage("ID inválido.")
-    .toInt(),
+  param("id").isInt({ min: 1 }).withMessage("ID inválido.").toInt(),
 ];
 
 const chamadaIdParam = [
@@ -140,11 +137,7 @@ router.use(noStore);
  *
  * GET /api/submissao/minhas
  */
-router.get(
-  "/minhas",
-  requireAuth,
-  asyncHandler(ctrl.listarMinhas)
-);
+router.get("/minhas", requireAuth, asyncHandler(ctrl.listarMinhas));
 
 /**
  * Detalhe de submissão.
@@ -161,7 +154,7 @@ router.get(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.obterSubmissao)
+  asyncHandler(ctrl.obterSubmissao),
 );
 
 /**
@@ -179,7 +172,7 @@ router.get(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.baixarPoster)
+  asyncHandler(ctrl.baixarPoster),
 );
 
 /* =========================================================================
@@ -194,7 +187,7 @@ router.get(
 router.get(
   "/avaliador/atribuida",
   requireAuth,
-  asyncHandler(ctrl.listarAtribuidas)
+  asyncHandler(ctrl.listarAtribuidas),
 );
 
 /**
@@ -205,7 +198,7 @@ router.get(
 router.get(
   "/avaliador/pendente",
   requireAuth,
-  asyncHandler(ctrl.listarPendentes)
+  asyncHandler(ctrl.listarPendentes),
 );
 
 /**
@@ -216,7 +209,7 @@ router.get(
 router.get(
   "/avaliador/contagem",
   requireAuth,
-  asyncHandler(ctrl.minhasContagens)
+  asyncHandler(ctrl.minhasContagens),
 );
 
 /**
@@ -224,11 +217,7 @@ router.get(
  *
  * GET /api/submissao/avaliador/para-mim
  */
-router.get(
-  "/avaliador/para-mim",
-  requireAuth,
-  asyncHandler(ctrl.paraMim)
-);
+router.get("/avaliador/para-mim", requireAuth, asyncHandler(ctrl.paraMim));
 
 /**
  * Avaliação escrita feita pelo avaliador vinculado ou administrador.
@@ -252,7 +241,7 @@ router.post(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.avaliarEscrita)
+  asyncHandler(ctrl.avaliarEscrita),
 );
 
 /**
@@ -277,7 +266,7 @@ router.post(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.avaliarOral)
+  asyncHandler(ctrl.avaliarOral),
 );
 
 /**
@@ -295,7 +284,7 @@ router.get(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.listarAvaliacaoDaSubmissao)
+  asyncHandler(ctrl.listarAvaliacaoDaSubmissao),
 );
 
 /* =========================================================================
@@ -311,11 +300,7 @@ router.get(
  *
  * GET /api/submissao/admin
  */
-router.get(
-  "/admin",
-  ...requireAdmin,
-  asyncHandler(ctrl.listarAdmin)
-);
+router.get("/admin", ...requireAdmin, asyncHandler(ctrl.listarAdmin));
 
 /**
  * Lista administrativa de submissões por chamada.
@@ -327,7 +312,7 @@ router.get(
   ...requireAdmin,
   chamadaIdParam,
   validate,
-  asyncHandler(ctrl.listarPorChamadaAdmin)
+  asyncHandler(ctrl.listarPorChamadaAdmin),
 );
 
 /**
@@ -340,7 +325,7 @@ router.get(
   ...requireAdmin,
   chamadaIdParam,
   validate,
-  asyncHandler(ctrl.consolidarClassificacao)
+  asyncHandler(ctrl.consolidarClassificacao),
 );
 
 /**
@@ -351,7 +336,7 @@ router.get(
 router.get(
   "/admin/avaliador/resumo",
   ...requireAdmin,
-  asyncHandler(ctrl.resumoAvaliadores)
+  asyncHandler(ctrl.resumoAvaliadores),
 );
 
 /* =========================================================================
@@ -371,7 +356,7 @@ router.get(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.listarAvaliadores)
+  asyncHandler(ctrl.listarAvaliadores),
 );
 
 /**
@@ -392,7 +377,7 @@ router.post(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.incluirAvaliadores)
+  asyncHandler(ctrl.incluirAvaliadores),
 );
 
 /**
@@ -411,7 +396,7 @@ router.delete(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.revogarAvaliador)
+  asyncHandler(ctrl.revogarAvaliador),
 );
 
 /**
@@ -430,7 +415,7 @@ router.patch(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.restaurarAvaliador)
+  asyncHandler(ctrl.restaurarAvaliador),
 );
 
 /* =========================================================================
@@ -452,7 +437,7 @@ router.patch(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.definirNotaVisivel)
+  asyncHandler(ctrl.definirNotaVisivel),
 );
 
 /**
@@ -471,7 +456,7 @@ router.patch(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.definirStatusFinal)
+  asyncHandler(ctrl.definirStatusFinal),
 );
 
 /**
@@ -484,7 +469,7 @@ router.patch(
   ...requireAdmin,
   idParam,
   validate,
-  asyncHandler(ctrl.atualizarNotaMediaMaterializada)
+  asyncHandler(ctrl.atualizarNotaMediaMaterializada),
 );
 
 module.exports = router;

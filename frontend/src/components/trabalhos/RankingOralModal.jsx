@@ -33,7 +33,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   Award,
-  CalendarDays,
   CheckCircle2,
   Filter,
   Loader2,
@@ -64,7 +63,9 @@ function fmt(value, fallback = "—") {
 
 function fmtNum(value, digits = 1) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) {
+    return "—";
+  }
   return n.toFixed(digits).replace(".", ",");
 }
 
@@ -88,14 +89,30 @@ function getMessage(error, fallback) {
 function normalizarStatus(status) {
   const value = String(status || "").toLowerCase();
 
-  if (value === "rascunho") return "rascunho";
-  if (value === "submetida") return "submetida";
-  if (value === "em_avaliacao") return "em_avaliacao";
-  if (value === "aprovada_exposicao") return "aprovada_exposicao";
-  if (value === "aprovada_oral") return "aprovada_oral";
-  if (value === "aprovada") return "aprovada";
-  if (value === "reprovada") return "reprovada";
-  if (value === "cancelada") return "cancelada";
+  if (value === "rascunho") {
+    return "rascunho";
+  }
+  if (value === "submetida") {
+    return "submetida";
+  }
+  if (value === "em_avaliacao") {
+    return "em_avaliacao";
+  }
+  if (value === "aprovada_exposicao") {
+    return "aprovada_exposicao";
+  }
+  if (value === "aprovada_oral") {
+    return "aprovada_oral";
+  }
+  if (value === "aprovada") {
+    return "aprovada";
+  }
+  if (value === "reprovada") {
+    return "reprovada";
+  }
+  if (value === "cancelada") {
+    return "cancelada";
+  }
 
   return value || "indefinido";
 }
@@ -155,16 +172,24 @@ function lerNotaOral(item) {
 
   for (const candidato of candidatos) {
     const n = Number(candidato);
-    if (Number.isFinite(n)) return n;
+    if (Number.isFinite(n)) {
+      return n;
+    }
   }
 
   return 0;
 }
 
 function medalTone(rank) {
-  if (rank === 1) return "amber";
-  if (rank === 2) return "slate";
-  if (rank === 3) return "rose";
+  if (rank === 1) {
+    return "amber";
+  }
+  if (rank === 2) {
+    return "slate";
+  }
+  if (rank === 3) {
+    return "rose";
+  }
   return "indigo";
 }
 
@@ -176,7 +201,9 @@ function patchStatusPayload(action, item) {
       payload: {
         status: exposicaoJaAprovada ? "aprovada" : "aprovada_oral",
         status_oral: "aprovado",
-        status_escrita: exposicaoJaAprovada ? "aprovado" : item?.status_escrita || null,
+        status_escrita: exposicaoJaAprovada
+          ? "aprovado"
+          : item?.status_escrita || null,
         observacao_admin: null,
       },
       optimistic: {
@@ -227,8 +254,7 @@ function Button({
       "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
     emerald:
       "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-700",
-    rose:
-      "bg-rose-600 text-white shadow-lg shadow-rose-900/20 hover:bg-rose-700",
+    rose: "bg-rose-600 text-white shadow-lg shadow-rose-900/20 hover:bg-rose-700",
     ghost:
       "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
   };
@@ -240,7 +266,7 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
         "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -259,14 +285,12 @@ function Badge({ children, tone = "slate", icon: Icon }) {
   const tones = {
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
     indigo:
       "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200",
   };
@@ -275,7 +299,7 @@ function Badge({ children, tone = "slate", icon: Icon }) {
     <span
       className={cx(
         "inline-flex items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -299,7 +323,9 @@ function StatusBadge({ status }) {
     indefinido: { tone: "slate" },
   };
 
-  return <Badge tone={config[value]?.tone || "slate"}>{statusLabel(value)}</Badge>;
+  return (
+    <Badge tone={config[value]?.tone || "slate"}>{statusLabel(value)}</Badge>
+  );
 }
 
 function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
@@ -315,7 +341,7 @@ function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
     <div
       className={cx(
         "rounded-3xl border bg-white p-4 shadow-sm dark:bg-slate-900/70",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       <div className="flex items-center gap-3">
@@ -344,9 +370,11 @@ function RankBadge({ rank }) {
       className={cx(
         "inline-flex h-10 min-w-10 items-center justify-center rounded-2xl px-2 text-sm font-black",
         tone === "amber" && "bg-amber-500 text-white",
-        tone === "slate" && "bg-slate-300 text-slate-900 dark:bg-slate-700 dark:text-white",
+        tone === "slate" &&
+          "bg-slate-300 text-slate-900 dark:bg-slate-700 dark:text-white",
         tone === "rose" && "bg-rose-500 text-white",
-        tone === "indigo" && "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200"
+        tone === "indigo" &&
+          "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200",
       )}
     >
       {rank <= 3 ? <Medal className="h-4 w-4" aria-hidden="true" /> : null}
@@ -356,7 +384,9 @@ function RankBadge({ rank }) {
 }
 
 function ConfirmBox({ item, action, busy, onCancel, onConfirm }) {
-  if (!item || !action) return null;
+  if (!item || !action) {
+    return null;
+  }
 
   const approve = action === "aprovar_oral";
 
@@ -365,7 +395,9 @@ function ConfirmBox({ item, action, busy, onCancel, onConfirm }) {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="font-black">
-            {approve ? "Aprovar para apresentação oral?" : "Reprovar submissão?"}
+            {approve
+              ? "Aprovar para apresentação oral?"
+              : "Reprovar submissão?"}
           </p>
           <p className="mt-1 break-words">
             {item.titulo || `Submissão #${item.id}`}
@@ -429,9 +461,11 @@ export default function RankingOralModal({
       Array.isArray(itens)
         ? itens
             .filter((item) => !isReprovada(item))
-            .filter((item) => Number.isFinite(Number(item?.nota_oral ?? item?.media_oral)))
+            .filter((item) =>
+              Number.isFinite(Number(item?.nota_oral ?? item?.media_oral)),
+            )
         : [],
-    [itens]
+    [itens],
   );
 
   const chamadas = useMemo(() => {
@@ -439,11 +473,13 @@ export default function RankingOralModal({
 
     for (const item of base) {
       const value = String(item?.chamada_titulo || "").trim();
-      if (value) set.add(value);
+      if (value) {
+        set.add(value);
+      }
     }
 
     return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
     );
   }, [base]);
 
@@ -452,14 +488,20 @@ export default function RankingOralModal({
 
     for (const item of base) {
       const chamada = String(item?.chamada_titulo || "").trim();
-      if (filtroChamada !== "__all__" && chamada !== filtroChamada) continue;
+      if (filtroChamada !== "__all__" && chamada !== filtroChamada) {
+        continue;
+      }
 
-      const value = String(item?.linha_tematica_nome || item?.linha_tematica_codigo || "").trim();
-      if (value) set.add(value);
+      const value = String(
+        item?.linha_tematica_nome || item?.linha_tematica_codigo || "",
+      ).trim();
+      if (value) {
+        set.add(value);
+      }
     }
 
     return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
     );
   }, [base, filtroChamada]);
 
@@ -469,9 +511,12 @@ export default function RankingOralModal({
     const rows = base
       .filter((item) => {
         const chamada = String(item?.chamada_titulo || "").trim();
-        const linha = String(item?.linha_tematica_nome || item?.linha_tematica_codigo || "").trim();
+        const linha = String(
+          item?.linha_tematica_nome || item?.linha_tematica_codigo || "",
+        ).trim();
 
-        const matchChamada = filtroChamada === "__all__" || chamada === filtroChamada;
+        const matchChamada =
+          filtroChamada === "__all__" || chamada === filtroChamada;
         const matchLinha = filtroLinha === "__all__" || linha === filtroLinha;
 
         const matchBusca =
@@ -493,7 +538,10 @@ export default function RankingOralModal({
         ...item,
         _nota_oral: lerNotaOral(item),
       }))
-      .sort((a, b) => b._nota_oral - a._nota_oral || Number(a.id || 0) - Number(b.id || 0));
+      .sort(
+        (a, b) =>
+          b._nota_oral - a._nota_oral || Number(a.id || 0) - Number(b.id || 0),
+      );
 
     return rows.map((item, index) => ({
       ...item,
@@ -507,7 +555,8 @@ export default function RankingOralModal({
     const aprovadasExposicao = lista.filter(hasAprovacaoExposicao).length;
     const media =
       total > 0
-        ? lista.reduce((sum, item) => sum + Number(item._nota_oral || 0), 0) / total
+        ? lista.reduce((sum, item) => sum + Number(item._nota_oral || 0), 0) /
+          total
         : null;
 
     return {
@@ -519,7 +568,9 @@ export default function RankingOralModal({
   }, [lista]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape") {
@@ -527,7 +578,7 @@ export default function RankingOralModal({
       }
 
       const typing = ["input", "textarea", "select"].includes(
-        document.activeElement?.tagName?.toLowerCase()
+        document.activeElement?.tagName?.toLowerCase(),
       );
 
       if (event.key === "/" && !typing) {
@@ -548,7 +599,9 @@ export default function RankingOralModal({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (open) return;
+    if (open) {
+      return;
+    }
 
     setBusca("");
     setFiltroChamada("__all__");
@@ -563,7 +616,9 @@ export default function RankingOralModal({
     const item = confirmacao.item;
     const action = confirmacao.action;
 
-    if (!item?.id || !action) return;
+    if (!item?.id || !action) {
+      return;
+    }
 
     const config = patchStatusPayload(action, item);
 
@@ -578,7 +633,9 @@ export default function RankingOralModal({
       setMensagem(config.message);
       setConfirmacao({ item: null, action: null });
     } catch (error) {
-      setErro(getMessage(error, "Não foi possível atualizar o status da submissão."));
+      setErro(
+        getMessage(error, "Não foi possível atualizar o status da submissão."),
+      );
     } finally {
       setWorkingId(null);
     }
@@ -590,7 +647,9 @@ export default function RankingOralModal({
     setFiltroLinha("__all__");
   }
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -598,7 +657,9 @@ export default function RankingOralModal({
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
         role="presentation"
         onMouseDown={(event) => {
-          if (event.target === event.currentTarget) onClose?.();
+          if (event.target === event.currentTarget) {
+            onClose?.();
+          }
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -637,8 +698,12 @@ export default function RankingOralModal({
                   Ranking da apresentação oral
                 </h3>
 
-                <p id={descId} className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75">
-                  Ordene submissões por nota oral, filtre por chamada/linha temática e defina aprovação para apresentação oral.
+                <p
+                  id={descId}
+                  className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75"
+                >
+                  Ordene submissões por nota oral, filtre por chamada/linha
+                  temática e defina aprovação para apresentação oral.
                 </p>
 
                 <div className="mt-4 grid gap-2 lg:grid-cols-[1.4fr_1fr_1fr_auto]">
@@ -669,7 +734,11 @@ export default function RankingOralModal({
                         Todas as chamadas
                       </option>
                       {chamadas.map((chamada) => (
-                        <option className="text-slate-900" key={chamada} value={chamada}>
+                        <option
+                          className="text-slate-900"
+                          key={chamada}
+                          value={chamada}
+                        >
                           {chamada}
                         </option>
                       ))}
@@ -686,7 +755,11 @@ export default function RankingOralModal({
                       Todas as linhas
                     </option>
                     {linhas.map((linha) => (
-                      <option className="text-slate-900" key={linha} value={linha}>
+                      <option
+                        className="text-slate-900"
+                        key={linha}
+                        value={linha}
+                      >
                         {linha}
                       </option>
                     ))}
@@ -716,7 +789,12 @@ export default function RankingOralModal({
 
           <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <MiniStat icon={Trophy} label="Resultados" value={stats.total} tone="indigo" />
+              <MiniStat
+                icon={Trophy}
+                label="Resultados"
+                value={stats.total}
+                tone="indigo"
+              />
               <MiniStat
                 icon={Star}
                 label="Média oral"
@@ -767,14 +845,17 @@ export default function RankingOralModal({
 
             {lista.length === 0 ? (
               <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                Nenhuma submissão com nota oral encontrada para os filtros atuais.
+                Nenhuma submissão com nota oral encontrada para os filtros
+                atuais.
               </div>
             ) : (
               <>
                 <div className="mt-6 hidden overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:block">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[1180px] text-sm">
-                      <caption className="sr-only">Ranking de submissões por nota oral</caption>
+                      <caption className="sr-only">
+                        Ranking de submissões por nota oral
+                      </caption>
 
                       <thead className="bg-slate-950 text-white">
                         <tr>
@@ -824,7 +905,10 @@ export default function RankingOralModal({
                               </td>
 
                               <td className="p-4 align-top text-slate-700 dark:text-slate-300">
-                                {fmt(item.linha_tematica_nome || item.linha_tematica_codigo)}
+                                {fmt(
+                                  item.linha_tematica_nome ||
+                                    item.linha_tematica_codigo,
+                                )}
                               </td>
 
                               <td className="p-4 text-center align-top">
@@ -854,7 +938,10 @@ export default function RankingOralModal({
                                   <Button
                                     tone="emerald"
                                     icon={Mic}
-                                    loading={busy && confirmacao.action === "aprovar_oral"}
+                                    loading={
+                                      busy &&
+                                      confirmacao.action === "aprovar_oral"
+                                    }
                                     disabled={busy || okOral}
                                     onClick={() =>
                                       setConfirmacao({
@@ -869,7 +956,9 @@ export default function RankingOralModal({
                                   <Button
                                     tone="rose"
                                     icon={XCircle}
-                                    loading={busy && confirmacao.action === "reprovar"}
+                                    loading={
+                                      busy && confirmacao.action === "reprovar"
+                                    }
                                     disabled={busy}
                                     onClick={() =>
                                       setConfirmacao({
@@ -925,7 +1014,10 @@ export default function RankingOralModal({
                               {fmt(item.chamada_titulo)}
                             </p>
                             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                              {fmt(item.linha_tematica_nome || item.linha_tematica_codigo)}
+                              {fmt(
+                                item.linha_tematica_nome ||
+                                  item.linha_tematica_codigo,
+                              )}
                             </p>
                           </div>
 
@@ -956,7 +1048,9 @@ export default function RankingOralModal({
                             <Button
                               tone="emerald"
                               icon={Mic}
-                              loading={busy && confirmacao.action === "aprovar_oral"}
+                              loading={
+                                busy && confirmacao.action === "aprovar_oral"
+                              }
                               disabled={busy || okOral}
                               onClick={() =>
                                 setConfirmacao({
@@ -972,7 +1066,9 @@ export default function RankingOralModal({
                             <Button
                               tone="rose"
                               icon={XCircle}
-                              loading={busy && confirmacao.action === "reprovar"}
+                              loading={
+                                busy && confirmacao.action === "reprovar"
+                              }
                               disabled={busy}
                               onClick={() =>
                                 setConfirmacao({
@@ -994,10 +1090,12 @@ export default function RankingOralModal({
             )}
           </div>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              Este ranking usa apenas nota oral. A aprovação de exposição continua separada no ranking geral/escrito.
+          <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+            {" "}
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Este ranking usa apenas nota oral. A aprovação de exposição
+              continua separada no ranking geral/escrito.
             </p>
-
             <Button tone="ghost" onClick={onClose}>
               Fechar
             </Button>

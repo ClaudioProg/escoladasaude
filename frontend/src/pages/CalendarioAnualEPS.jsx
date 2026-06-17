@@ -32,14 +32,11 @@ import {
   Filter,
   Globe2,
   GraduationCap,
-  Info,
   Lock,
   MapPin,
   Plus,
   RefreshCcw,
   Search,
-  ShieldCheck,
-  Sparkles,
   Trash2,
   Users,
   X,
@@ -85,9 +82,15 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
@@ -113,7 +116,9 @@ function isYMD(value) {
 }
 
 function brDate(ymd) {
-  if (!isYMD(String(ymd || ""))) return String(ymd || "—");
+  if (!isYMD(String(ymd || ""))) {
+    return String(ymd || "—");
+  }
 
   const [year, month, day] = String(ymd).split("-");
   return `${day}/${month}/${year}`;
@@ -126,23 +131,34 @@ function resumirDatas(datas = []) {
         .sort((a, b) => a.data.localeCompare(b.data))
     : [];
 
-  if (ordenadas.length === 0) return "Datas a definir";
+  if (ordenadas.length === 0) {
+    return "Datas a definir";
+  }
 
   const primeira = ordenadas[0].data;
   const ultima = ordenadas[ordenadas.length - 1].data;
 
-  if (primeira === ultima) return `Dia ${brDate(primeira)}`;
+  if (primeira === ultima) {
+    return `Dia ${brDate(primeira)}`;
+  }
 
   return `De ${brDate(primeira)} a ${brDate(ultima)}`;
 }
 
 function resumirHorarios(datas = []) {
   const horarios = Array.isArray(datas)
-    ? datas.map((item) => item?.horario_inicio).filter(Boolean).slice(0, 2)
+    ? datas
+        .map((item) => item?.horario_inicio)
+        .filter(Boolean)
+        .slice(0, 2)
     : [];
 
-  if (horarios.length === 0) return "Horários a definir";
-  if (horarios.length === 1) return `A partir das ${horarios[0]}`;
+  if (horarios.length === 0) {
+    return "Horários a definir";
+  }
+  if (horarios.length === 1) {
+    return `A partir das ${horarios[0]}`;
+  }
 
   return `Início às ${horarios[0]} e ${horarios[1]}`;
 }
@@ -170,7 +186,7 @@ function normalizeDepartamentoItem(item) {
       item?.departamento_label ||
       item?.value ||
       item?.departamento ||
-      ""
+      "",
   ).trim();
 
   return {
@@ -246,10 +262,10 @@ export default function CalendarioAnualEPS() {
   const [mensagem, setMensagem] = useState("");
 
   const [filtroDepartamento, setFiltroDepartamento] = useState(
-    persisted.filtroDepartamento || ""
+    persisted.filtroDepartamento || "",
   );
   const [filtroUnidade, setFiltroUnidade] = useState(
-    persisted.filtroUnidade || ""
+    persisted.filtroUnidade || "",
   );
   const [filtroTipo, setFiltroTipo] = useState(persisted.filtroTipo || "");
   const [busca, setBusca] = useState(persisted.busca || "");
@@ -262,7 +278,7 @@ export default function CalendarioAnualEPS() {
 
   const departamentosNormalizados = useMemo(
     () => normalizeDepartamentos(departamentos),
-    [departamentos]
+    [departamentos],
   );
 
   function setLive(message) {
@@ -284,7 +300,7 @@ export default function CalendarioAnualEPS() {
           filtroUnidade,
           filtroTipo,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página
@@ -328,7 +344,7 @@ export default function CalendarioAnualEPS() {
       const unidadesData = unwrapArray(unidadesResponse);
       const tiposData = unwrapArray(tiposResponse);
       const departamentosData = normalizeDepartamentos(
-        unwrapArray(departamentosResponse)
+        unwrapArray(departamentosResponse),
       );
       const resumoMensalData = unwrapArray(resumoMensalResponse);
       const resumoAnualData = unwrapArray(resumoAnualResponse);
@@ -344,7 +360,7 @@ export default function CalendarioAnualEPS() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar o Calendário Anual de EPS."
+        "Não foi possível carregar o Calendário Anual de EPS.",
       );
 
       setErro(message);
@@ -362,7 +378,7 @@ export default function CalendarioAnualEPS() {
     return programacoes.map((programacao) => {
       const meta = getDepartamentoMeta(
         departamentosNormalizados,
-        programacao.departamento
+        programacao.departamento,
       );
 
       return {
@@ -382,13 +398,17 @@ export default function CalendarioAnualEPS() {
       const datas = Array.isArray(programacao?.datas) ? programacao.datas : [];
 
       const temNoMes = datas.some((item) => {
-        if (!isYMD(item?.data)) return false;
+        if (!isYMD(item?.data)) {
+          return false;
+        }
 
         const [ano, mes] = item.data.split("-");
         return ano === String(year) && mes === mesStr;
       });
 
-      if (!temNoMes) return false;
+      if (!temNoMes) {
+        return false;
+      }
 
       if (
         filtroDepartamento &&
@@ -430,10 +450,12 @@ export default function CalendarioAnualEPS() {
             palestrantes,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -454,11 +476,15 @@ export default function CalendarioAnualEPS() {
 
     for (const programacao of programacoesFiltradas) {
       for (const item of programacao.datas || []) {
-        if (!String(item?.data || "").startsWith(prefix)) continue;
+        if (!String(item?.data || "").startsWith(prefix)) {
+          continue;
+        }
 
         const dia = String(item.data).slice(-2);
 
-        if (!map[dia]) map[dia] = [];
+        if (!map[dia]) {
+          map[dia] = [];
+        }
         map[dia].push(programacao);
       }
     }
@@ -471,17 +497,17 @@ export default function CalendarioAnualEPS() {
       total: programacoesDecoradas.length,
       minhas: programacoesDecoradas.filter((item) => item.pode_editar).length,
       aprovadas: programacoesDecoradas.filter(
-        (item) => item.status === "aprovado"
+        (item) => item.status === "aprovado",
       ).length,
       emAnalise: programacoesDecoradas.filter(
-        (item) => item.status === "em_analise"
+        (item) => item.status === "em_analise",
       ).length,
     }),
-    [programacoesDecoradas]
+    [programacoesDecoradas],
   );
 
   const temFiltrosAtivos = Boolean(
-    filtroDepartamento || filtroUnidade || filtroTipo || buscaDebounced
+    filtroDepartamento || filtroUnidade || filtroTipo || buscaDebounced,
   );
 
   const unidadeSelecionadaNome =
@@ -498,9 +524,15 @@ export default function CalendarioAnualEPS() {
   }
 
   function removerChip(tipo) {
-    if (tipo === "departamento") setFiltroDepartamento("");
-    if (tipo === "unidade") setFiltroUnidade("");
-    if (tipo === "tipo") setFiltroTipo("");
+    if (tipo === "departamento") {
+      setFiltroDepartamento("");
+    }
+    if (tipo === "unidade") {
+      setFiltroUnidade("");
+    }
+    if (tipo === "tipo") {
+      setFiltroTipo("");
+    }
 
     if (tipo === "busca") {
       setBusca("");
@@ -516,14 +548,18 @@ export default function CalendarioAnualEPS() {
   }
 
   function handleEditar(programacao) {
-    if (!programacao?.pode_editar) return;
+    if (!programacao?.pode_editar) {
+      return;
+    }
 
     setProgramacaoEmEdicao(programacao);
     setModalAberto(true);
   }
 
   function pedirExclusao(programacao) {
-    if (!programacao?.pode_editar) return;
+    if (!programacao?.pode_editar) {
+      return;
+    }
 
     setConfirmacao({
       id: programacao.id,
@@ -532,7 +568,9 @@ export default function CalendarioAnualEPS() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -543,7 +581,7 @@ export default function CalendarioAnualEPS() {
       await api.calendarioEPS.excluir(confirmacao.id);
 
       setProgramacoes((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Programação de EPS excluída com sucesso.");
@@ -552,7 +590,7 @@ export default function CalendarioAnualEPS() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível excluir a programação. Verifique se ela ainda pode ser alterada."
+        "Não foi possível excluir a programação. Verifique se ela ainda pode ser alterada.",
       );
 
       setErro(message);
@@ -569,7 +607,9 @@ export default function CalendarioAnualEPS() {
       <ModalConfirmacao
         open={Boolean(confirmacao)}
         onClose={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -591,16 +631,16 @@ export default function CalendarioAnualEPS() {
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <HeaderHero
-  titulo="Programações de Educação Permanente em Saúde"
-  subtitulo="Cadastre, consulte e acompanhe as programações institucionais de EPS por mês, departamento, unidade, tipo e situação."
-  icone={CalendarDays}
-  tamanho="lg"
-  raio="xl"
-/>
+          titulo="Programações de Educação Permanente em Saúde"
+          subtitulo="Cadastre, consulte e acompanhe as programações institucionais de EPS por mês, departamento, unidade, tipo e situação."
+          icone={CalendarDays}
+          tamanho="lg"
+          raio="xl"
+        />
 
-<p className="inline-flex rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-100">
-  Visualizando: {monthLabel(currentMonthYear)}
-</p>
+        <p className="inline-flex rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-100">
+          Visualizando: {monthLabel(currentMonthYear)}
+        </p>
 
         <ActionBar
           carregando={carregando}
@@ -618,7 +658,12 @@ export default function CalendarioAnualEPS() {
         />
 
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -638,8 +683,8 @@ export default function CalendarioAnualEPS() {
                 Agenda mensal de EPS
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Consulte as programações registradas no mês selecionado e acompanhe
-                sua distribuição por departamento.
+                Consulte as programações registradas no mês selecionado e
+                acompanhe sua distribuição por departamento.
               </p>
             </div>
 
@@ -761,8 +806,8 @@ export default function CalendarioAnualEPS() {
               Programações do mês
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Relação detalhada das atividades encontradas para o período e filtros
-              selecionados.
+              Relação detalhada das atividades encontradas para o período e
+              filtros selecionados.
             </p>
           </div>
 
@@ -837,11 +882,31 @@ function ActionBar({ carregando, onRefresh, onCriar }) {
 function KpiGrid({ kpis, totalVisiveisMes }) {
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      <KpiCard icon={CalendarDays} label="Total anual" value={kpis.total} tone="cyan" />
+      <KpiCard
+        icon={CalendarDays}
+        label="Total anual"
+        value={kpis.total}
+        tone="cyan"
+      />
       <KpiCard icon={Users} label="Minhas" value={kpis.minhas} tone="violet" />
-      <KpiCard icon={Clock} label="Em análise" value={kpis.emAnalise} tone="amber" />
-      <KpiCard icon={CheckCircle2} label="Aprovadas" value={kpis.aprovadas} tone="emerald" />
-      <KpiCard icon={Filter} label="No mês" value={totalVisiveisMes} tone="sky" />
+      <KpiCard
+        icon={Clock}
+        label="Em análise"
+        value={kpis.emAnalise}
+        tone="amber"
+      />
+      <KpiCard
+        icon={CheckCircle2}
+        label="Aprovadas"
+        value={kpis.aprovadas}
+        tone="emerald"
+      />
+      <KpiCard
+        icon={Filter}
+        label="No mês"
+        value={totalVisiveisMes}
+        tone="sky"
+      />
     </section>
   );
 }
@@ -872,19 +937,27 @@ function KpiCard({ icon: Icon, label, value, tone }) {
   );
 }
 
-function ResumoDepartamentos({ resumoMensal = [], resumoAnual = [], mes, ano }) {
+function ResumoDepartamentos({
+  resumoMensal = [],
+  resumoAnual = [],
+  mes,
+  ano,
+}) {
   const totalMensal = resumoMensal.reduce(
     (acc, item) => acc + Number(item.total || 0),
-    0
+    0,
   );
 
   const totalAnual = resumoAnual.reduce(
     (acc, item) => acc + Number(item.total || 0),
-    0
+    0,
   );
 
   return (
-    <section className="grid gap-4 xl:grid-cols-2" aria-label="Resumo por departamento">
+    <section
+      className="grid gap-4 xl:grid-cols-2"
+      aria-label="Resumo por departamento"
+    >
       <ResumoCard
         icon={CalendarDays}
         title="Programações no mês"
@@ -946,7 +1019,9 @@ function DepartamentoResumoLista({ itens = [] }) {
               <div className="flex min-w-0 items-center gap-2">
                 <span
                   className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: item.departamento_cor || "#64748b" }}
+                  style={{
+                    backgroundColor: item.departamento_cor || "#64748b",
+                  }}
                   aria-hidden="true"
                 />
                 <span className="truncate font-bold text-slate-700 dark:text-slate-200">
@@ -977,8 +1052,7 @@ function DepartamentoResumoLista({ itens = [] }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -1005,7 +1079,7 @@ function MonthNavigator({ currentMonthYear, setCurrentMonthYear }) {
           setCurrentMonthYear((previous) =>
             previous.month === 0
               ? { year: previous.year - 1, month: 11 }
-              : { year: previous.year, month: previous.month - 1 }
+              : { year: previous.year, month: previous.month - 1 },
           )
         }
         className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -1024,7 +1098,7 @@ function MonthNavigator({ currentMonthYear, setCurrentMonthYear }) {
           setCurrentMonthYear((previous) =>
             previous.month === 11
               ? { year: previous.year + 1, month: 0 }
-              : { year: previous.year, month: previous.month + 1 }
+              : { year: previous.year, month: previous.month + 1 },
           )
         }
         className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -1189,10 +1263,11 @@ function CalendarioMensal({
                       "truncate rounded-lg px-2 py-1 text-left text-[10px] font-bold text-white transition focus:outline-none focus:ring-2 focus:ring-emerald-400",
                       programacao.pode_editar
                         ? "hover:brightness-110"
-                        : "cursor-default opacity-80"
+                        : "cursor-default opacity-80",
                     )}
                     style={{
-                      backgroundColor: programacao.departamento_cor || "#64748b",
+                      backgroundColor:
+                        programacao.departamento_cor || "#64748b",
                     }}
                     title={`${programacao.departamento || "EPS"} · ${
                       programacao.titulo
@@ -1320,7 +1395,11 @@ function ProgramacaoCard({ programacao, reduceMotion, onEditar, onExcluir }) {
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <InfoBox icon={GraduationCap} title="Palestrantes" value={palestrantes} />
+        <InfoBox
+          icon={GraduationCap}
+          title="Palestrantes"
+          value={palestrantes}
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           {programacao.restrito ? (
@@ -1358,14 +1437,11 @@ function StatusBadge({ status }) {
   const tones = {
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
+    sky: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
     slate:
@@ -1376,7 +1452,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}

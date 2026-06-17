@@ -56,7 +56,6 @@ import {
   Plus,
   RefreshCcw,
   Search,
-  ShieldCheck,
   Sparkles,
   Trash2,
   Users,
@@ -120,9 +119,15 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
@@ -149,7 +154,9 @@ function isYMD(value) {
 }
 
 function brDate(ymd) {
-  if (!isYMD(String(ymd || ""))) return String(ymd || "—");
+  if (!isYMD(String(ymd || ""))) {
+    return String(ymd || "—");
+  }
 
   const [year, month, day] = String(ymd).split("-");
   return `${day}/${month}/${year}`;
@@ -162,23 +169,34 @@ function resumirDatas(datas = []) {
         .sort((a, b) => a.data.localeCompare(b.data))
     : [];
 
-  if (ordenadas.length === 0) return "Datas a definir";
+  if (ordenadas.length === 0) {
+    return "Datas a definir";
+  }
 
   const primeira = ordenadas[0].data;
   const ultima = ordenadas[ordenadas.length - 1].data;
 
-  if (primeira === ultima) return `Dia ${brDate(primeira)}`;
+  if (primeira === ultima) {
+    return `Dia ${brDate(primeira)}`;
+  }
 
   return `De ${brDate(primeira)} a ${brDate(ultima)}`;
 }
 
 function resumirHorarios(datas = []) {
   const horarios = Array.isArray(datas)
-    ? datas.map((item) => item?.horario_inicio).filter(Boolean).slice(0, 2)
+    ? datas
+        .map((item) => item?.horario_inicio)
+        .filter(Boolean)
+        .slice(0, 2)
     : [];
 
-  if (horarios.length === 0) return "Horários a definir";
-  if (horarios.length === 1) return `A partir das ${horarios[0]}`;
+  if (horarios.length === 0) {
+    return "Horários a definir";
+  }
+  if (horarios.length === 1) {
+    return `A partir das ${horarios[0]}`;
+  }
 
   return `Início às ${horarios[0]} e ${horarios[1]}`;
 }
@@ -236,7 +254,11 @@ function statusInfo(status) {
 function normalizarDepartamentoItem(item) {
   const value = String(item?.value || item?.departamento || "").trim();
   const label = String(
-    item?.label || item?.departamento_label || item?.value || item?.departamento || ""
+    item?.label ||
+      item?.departamento_label ||
+      item?.value ||
+      item?.departamento ||
+      "",
   ).trim();
 
   return {
@@ -316,14 +338,14 @@ export default function CalendarioAnualEPSAdmin() {
   const [mensagem, setMensagem] = useState("");
 
   const [filtroDepartamento, setFiltroDepartamento] = useState(
-    persisted.filtroDepartamento || ""
+    persisted.filtroDepartamento || "",
   );
   const [filtroUnidade, setFiltroUnidade] = useState(
-    persisted.filtroUnidade || ""
+    persisted.filtroUnidade || "",
   );
   const [filtroTipo, setFiltroTipo] = useState(persisted.filtroTipo || "");
   const [filtroStatus, setFiltroStatus] = useState(
-    persisted.filtroStatus || ""
+    persisted.filtroStatus || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -336,7 +358,7 @@ export default function CalendarioAnualEPSAdmin() {
 
   const departamentosNormalizados = useMemo(
     () => normalizarDepartamentos(departamentos),
-    [departamentos]
+    [departamentos],
   );
 
   function setLive(message) {
@@ -359,7 +381,7 @@ export default function CalendarioAnualEPSAdmin() {
           filtroTipo,
           filtroStatus,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página
@@ -403,7 +425,7 @@ export default function CalendarioAnualEPSAdmin() {
       const unidadesData = unwrapArray(unidadesResponse);
       const tiposData = unwrapArray(tiposResponse);
       const departamentosData = normalizarDepartamentos(
-        unwrapArray(departamentosResponse)
+        unwrapArray(departamentosResponse),
       );
       const resumoMensalData = unwrapArray(resumoMensalResponse);
       const resumoAnualData = unwrapArray(resumoAnualResponse);
@@ -419,7 +441,7 @@ export default function CalendarioAnualEPSAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar o Calendário Anual de EPS."
+        "Não foi possível carregar o Calendário Anual de EPS.",
       );
 
       setErro(message);
@@ -437,7 +459,7 @@ export default function CalendarioAnualEPSAdmin() {
     return programacoes.map((programacao) => {
       const meta = getDepartamentoMeta(
         departamentosNormalizados,
-        programacao.departamento
+        programacao.departamento,
       );
 
       return {
@@ -457,13 +479,17 @@ export default function CalendarioAnualEPSAdmin() {
       const datas = Array.isArray(programacao?.datas) ? programacao.datas : [];
 
       const temNoMes = datas.some((item) => {
-        if (!isYMD(item?.data)) return false;
+        if (!isYMD(item?.data)) {
+          return false;
+        }
 
         const [ano, mes] = item.data.split("-");
         return ano === String(year) && mes === mesStr;
       });
 
-      if (!temNoMes) return false;
+      if (!temNoMes) {
+        return false;
+      }
 
       if (
         filtroDepartamento &&
@@ -510,10 +536,12 @@ export default function CalendarioAnualEPSAdmin() {
             palestrantes,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -535,11 +563,15 @@ export default function CalendarioAnualEPSAdmin() {
 
     for (const programacao of programacoesFiltradas) {
       for (const item of programacao.datas || []) {
-        if (!String(item?.data || "").startsWith(prefix)) continue;
+        if (!String(item?.data || "").startsWith(prefix)) {
+          continue;
+        }
 
         const dia = String(item.data).slice(-2);
 
-        if (!map[dia]) map[dia] = [];
+        if (!map[dia]) {
+          map[dia] = [];
+        }
         map[dia].push(programacao);
       }
     }
@@ -572,10 +604,10 @@ export default function CalendarioAnualEPSAdmin() {
 
   const temFiltrosAtivos = Boolean(
     filtroDepartamento ||
-      filtroUnidade ||
-      filtroTipo ||
-      filtroStatus ||
-      buscaDebounced
+    filtroUnidade ||
+    filtroTipo ||
+    filtroStatus ||
+    buscaDebounced,
   );
 
   function limparFiltros() {
@@ -589,10 +621,18 @@ export default function CalendarioAnualEPSAdmin() {
   }
 
   function removerChip(tipo) {
-    if (tipo === "departamento") setFiltroDepartamento("");
-    if (tipo === "unidade") setFiltroUnidade("");
-    if (tipo === "tipo") setFiltroTipo("");
-    if (tipo === "status") setFiltroStatus("");
+    if (tipo === "departamento") {
+      setFiltroDepartamento("");
+    }
+    if (tipo === "unidade") {
+      setFiltroUnidade("");
+    }
+    if (tipo === "tipo") {
+      setFiltroTipo("");
+    }
+    if (tipo === "status") {
+      setFiltroStatus("");
+    }
 
     if (tipo === "busca") {
       setBusca("");
@@ -620,7 +660,9 @@ export default function CalendarioAnualEPSAdmin() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -631,7 +673,7 @@ export default function CalendarioAnualEPSAdmin() {
       await api.calendarioEPS.excluir(confirmacao.id);
 
       setProgramacoes((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Programação de EPS excluída com sucesso.");
@@ -640,7 +682,7 @@ export default function CalendarioAnualEPSAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível excluir a programação. Verifique se ela já possui vínculo operacional."
+        "Não foi possível excluir a programação. Verifique se ela já possui vínculo operacional.",
       );
 
       setErro(message);
@@ -663,7 +705,9 @@ export default function CalendarioAnualEPSAdmin() {
         titulo={confirmacao?.titulo}
         loading={excluindo}
         onCancel={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -693,7 +737,12 @@ export default function CalendarioAnualEPSAdmin() {
         />
 
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -714,7 +763,8 @@ export default function CalendarioAnualEPSAdmin() {
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Filtre por departamento, unidade, tipo, status e busca textual.
-                O calendário mostra apenas programações com data no mês selecionado.
+                O calendário mostra apenas programações com data no mês
+                selecionado.
               </p>
             </div>
 
@@ -981,23 +1031,19 @@ function PainelOperacionalEPS({
 function KpiCard({ label, value, icon: Icon, tone = "sky" }) {
   const tones = {
     sky: {
-      wrap:
-        "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-sky-100",
+      wrap: "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-sky-100",
       gradient: "from-sky-600 via-cyan-500 to-blue-500",
     },
     amber: {
-      wrap:
-        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      wrap: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
       gradient: "from-amber-500 via-orange-400 to-yellow-500",
     },
     emerald: {
-      wrap:
-        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      wrap: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
       gradient: "from-emerald-600 via-teal-500 to-cyan-500",
     },
     violet: {
-      wrap:
-        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      wrap: "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
       gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
     },
   };
@@ -1005,7 +1051,9 @@ function KpiCard({ label, value, icon: Icon, tone = "sky" }) {
   const cfg = tones[tone] || tones.sky;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -1024,15 +1072,20 @@ function KpiCard({ label, value, icon: Icon, tone = "sky" }) {
   );
 }
 
-function ResumoDepartamentos({ resumoMensal = [], resumoAnual = [], mes, ano }) {
+function ResumoDepartamentos({
+  resumoMensal = [],
+  resumoAnual = [],
+  mes,
+  ano,
+}) {
   const totalMensal = resumoMensal.reduce(
     (acc, item) => acc + Number(item.total || 0),
-    0
+    0,
   );
 
   const totalAnual = resumoAnual.reduce(
     (acc, item) => acc + Number(item.total || 0),
-    0
+    0,
   );
 
   return (
@@ -1098,7 +1151,9 @@ function DepartamentoResumoLista({ itens = [] }) {
               <div className="flex min-w-0 items-center gap-2">
                 <span
                   className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: item.departamento_cor || "#64748b" }}
+                  style={{
+                    backgroundColor: item.departamento_cor || "#64748b",
+                  }}
                   aria-hidden="true"
                 />
                 <span className="truncate font-bold text-slate-700 dark:text-slate-200">
@@ -1129,8 +1184,7 @@ function DepartamentoResumoLista({ itens = [] }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -1157,7 +1211,7 @@ function MonthNavigator({ currentMonthYear, setCurrentMonthYear }) {
           setCurrentMonthYear((previous) =>
             previous.month === 0
               ? { year: previous.year - 1, month: 11 }
-              : { year: previous.year, month: previous.month - 1 }
+              : { year: previous.year, month: previous.month - 1 },
           )
         }
         className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -1176,7 +1230,7 @@ function MonthNavigator({ currentMonthYear, setCurrentMonthYear }) {
           setCurrentMonthYear((previous) =>
             previous.month === 11
               ? { year: previous.year + 1, month: 0 }
-              : { year: previous.year, month: previous.month + 1 }
+              : { year: previous.year, month: previous.month + 1 },
           )
         }
         className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -1332,7 +1386,8 @@ function CalendarioMensalAdmin({
                     onClick={() => onProgramacaoClick(programacao)}
                     className="truncate rounded-lg px-2 py-1 text-left text-[10px] font-bold text-white transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-sky-400"
                     style={{
-                      backgroundColor: programacao.departamento_cor || "#64748b",
+                      backgroundColor:
+                        programacao.departamento_cor || "#64748b",
                     }}
                     title={`${programacao.departamento || "EPS"} · ${
                       programacao.titulo
@@ -1454,7 +1509,11 @@ function ProgramacaoCard({ programacao, reduceMotion, onEditar, onExcluir }) {
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <InfoBox icon={GraduationCap} title="Palestrantes" value={palestrantes} />
+        <InfoBox
+          icon={GraduationCap}
+          title="Palestrantes"
+          value={palestrantes}
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           {programacao.restrito ? (
@@ -1492,14 +1551,11 @@ function StatusBadge({ status }) {
   const tones = {
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
+    sky: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
     slate:
@@ -1510,7 +1566,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}
@@ -1560,16 +1616,28 @@ function LoadingList() {
   );
 }
 
-function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
-  if (!open) return null;
+function ConfirmarExclusaoModal({
+  open,
+  titulo,
+  loading,
+  onCancel,
+  onConfirm,
+}) {
+  if (!open) {
+    return null;
+  }
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onCancel?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onCancel?.();
+        }
       }}
     >
       <div

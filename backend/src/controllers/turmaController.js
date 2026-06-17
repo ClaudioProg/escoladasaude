@@ -41,7 +41,7 @@ const { pool, query: dbQuery } = require("../db");
 
 if (!pool?.connect || typeof dbQuery !== "function") {
   throw new Error(
-    "[turmaController] Contrato inválido: ../db deve exportar pool e query."
+    "[turmaController] Contrato inválido: ../db deve exportar pool e query.",
   );
 }
 
@@ -65,10 +65,7 @@ const FABIO_LOPEZ_ID = 2474;
 const PAPEL_ORGANIZADOR = "organizador";
 const PAPEL_PALESTRANTE = "palestrante";
 
-const PERFIS_RESPONSAVEIS_VALIDOS = new Set([
-  "organizador",
-  "administrador",
-]);
+const PERFIS_RESPONSAVEIS_VALIDOS = new Set(["organizador", "administrador"]);
 
 /* ───────────────────────────────────────────────────────────────
    Logger
@@ -90,7 +87,7 @@ function log(rid, level, message, extra) {
   if (level === "error") {
     return console.error(
       `${prefix} ✖ ${message}`,
-      extra?.stack || extra?.message || extra
+      extra?.stack || extra?.message || extra,
     );
   }
 
@@ -115,7 +112,7 @@ const logError = (rid, message, error) => log(rid, "error", message, error);
 
 function sendOk(
   res,
-  { status = 200, message = "Operação realizada.", data = null, meta = null }
+  { status = 200, message = "Operação realizada.", data = null, meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -135,7 +132,7 @@ function sendError(
     details = null,
     adminHint = null,
     error = null,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -173,7 +170,7 @@ function assertOrThrow(
   condition,
   message,
   status = 400,
-  code = "REQUISICAO_INVALIDA"
+  code = "REQUISICAO_INVALIDA",
 ) {
   if (!condition) {
     throw createHttpError(message, status, code);
@@ -199,7 +196,7 @@ function toPositiveIntArray(value) {
           return item;
         })
         .map(Number)
-        .filter((n) => Number.isInteger(n) && n > 0)
+        .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
 }
@@ -259,7 +256,9 @@ function calcularCargaHoraria(datas = []) {
 }
 
 function ordenarDatas(datas = []) {
-  return [...datas].sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  return [...datas].sort((a, b) =>
+    String(a.data).localeCompare(String(b.data)),
+  );
 }
 
 function validarDatasPayload(datas) {
@@ -306,12 +305,14 @@ function normalizeDatasPayload(datas = []) {
         horario_inicio: normalizeTime(item?.horario_inicio),
         horario_fim: normalizeTime(item?.horario_fim),
       }))
-      .filter((item) => item.data && item.horario_inicio && item.horario_fim)
+      .filter((item) => item.data && item.horario_inicio && item.horario_fim),
   );
 }
 
 function normalizarVia(value) {
-  const via = String(value || VIA_DATAS).trim().toLowerCase();
+  const via = String(value || VIA_DATAS)
+    .trim()
+    .toLowerCase();
 
   if (!VIAS_PERMITIDAS.has(via)) return VIA_DATAS;
 
@@ -385,7 +386,7 @@ function normalizarAssinantesObrigatorios(assinantes = []) {
   const pediuFabio = ids.includes(FABIO_LOPEZ_ID);
 
   const selecionados = ids.filter(
-    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID
+    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID,
   );
 
   const base = selecionados.slice(0, pediuFabio ? 1 : 2);
@@ -431,7 +432,7 @@ async function carregarTurmaBase(turmaId) {
     WHERE id = $1
     LIMIT 1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -455,7 +456,7 @@ async function carregarDatasOficiais(turmaId) {
     WHERE dt.turma_id = $1
     ORDER BY dt.data ASC
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return dedupeDatas(result.rows || []);
@@ -473,7 +474,7 @@ async function carregarDatasPorPresenca(turmaId) {
     WHERE p.turma_id = $1
     ORDER BY 1 ASC
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return dedupeDatas(result.rows || []);
@@ -484,7 +485,7 @@ async function carregarDatasPorIntervalo(turmaBase) {
     throw createHttpError(
       "Turma sem data_inicio/data_fim configuradas.",
       409,
-      "TURMA_SEM_INTERVALO"
+      "TURMA_SEM_INTERVALO",
     );
   }
 
@@ -510,7 +511,7 @@ async function carregarDatasPorIntervalo(turmaBase) {
       turmaBase.data_fim,
       turmaBase.horario_inicio || "00:00",
       turmaBase.horario_fim || "23:59",
-    ]
+    ],
   );
 
   return dedupeDatas(result.rows || []);
@@ -565,7 +566,10 @@ async function resolverDatasTurma(turmaId, via = VIA_DATAS, rid = null) {
   return { data, source, turma: turmaBase };
 }
 
-async function validarUsuariosOrganizadorOuAdministrador(client, usuarioIds = []) {
+async function validarUsuariosOrganizadorOuAdministrador(
+  client,
+  usuarioIds = [],
+) {
   const ids = toPositiveIntArray(usuarioIds);
 
   if (!ids.length) return [];
@@ -577,7 +581,7 @@ async function validarUsuariosOrganizadorOuAdministrador(client, usuarioIds = []
     WHERE id = ANY($1::int[])
     ORDER BY nome ASC
     `,
-    [ids]
+    [ids],
   );
 
   const encontrados = result.rows || [];
@@ -589,19 +593,19 @@ async function validarUsuariosOrganizadorOuAdministrador(client, usuarioIds = []
     throw createHttpError(
       `Usuário(s) não encontrado(s): ${ausentes.join(", ")}.`,
       400,
-      "USUARIO_RESPONSAVEL_NAO_ENCONTRADO"
+      "USUARIO_RESPONSAVEL_NAO_ENCONTRADO",
     );
   }
 
   const invalidos = encontrados.filter(
-    (row) => !PERFIS_RESPONSAVEIS_VALIDOS.has(String(row.perfil || ""))
+    (row) => !PERFIS_RESPONSAVEIS_VALIDOS.has(String(row.perfil || "")),
   );
 
   if (invalidos.length) {
     throw createHttpError(
       "Organizadores, palestrantes vinculados e assinantes devem ser usuários com perfil organizador ou administrador.",
       400,
-      "USUARIO_RESPONSAVEL_PERFIL_INVALIDO"
+      "USUARIO_RESPONSAVEL_PERFIL_INVALIDO",
     );
   }
 
@@ -622,7 +626,7 @@ async function carregarOrganizadoresDaTurma(turmaId) {
       AND tr.papel = $2
     ORDER BY u.nome ASC
     `,
-    [turmaId, PAPEL_ORGANIZADOR]
+    [turmaId, PAPEL_ORGANIZADOR],
   );
 
   return result.rows || [];
@@ -640,7 +644,7 @@ async function carregarPalestrantesDaTurma(turmaId) {
     WHERE turma_id = $1
     ORDER BY nome ASC, id ASC
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows || [];
@@ -662,7 +666,7 @@ async function carregarAssinantesDaTurma(turmaId) {
     WHERE tca.turma_id = $1
     ORDER BY tca.ordem ASC
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows || [];
@@ -678,7 +682,7 @@ async function carregarInscritosPorTurmas(turmaIds = []) {
     WHERE turma_id = ANY($1::int[])
     GROUP BY turma_id
     `,
-    [turmaIds]
+    [turmaIds],
   );
 
   const map = new Map();
@@ -707,7 +711,7 @@ async function carregarOrganizadoresPorTurmas(turmaIds = []) {
       AND tr.papel = $2
     ORDER BY tr.turma_id, u.nome ASC
     `,
-    [turmaIds, PAPEL_ORGANIZADOR]
+    [turmaIds, PAPEL_ORGANIZADOR],
   );
 
   const map = new Map();
@@ -743,7 +747,7 @@ async function carregarPalestrantesPorTurmas(turmaIds = []) {
     WHERE turma_id = ANY($1::bigint[])
     ORDER BY turma_id, nome ASC, id ASC
     `,
-    [turmaIds]
+    [turmaIds],
   );
 
   const map = new Map();
@@ -781,7 +785,7 @@ async function carregarAssinantesPorTurmas(turmaIds = []) {
     WHERE tca.turma_id = ANY($1::bigint[])
     ORDER BY tca.turma_id, tca.ordem ASC
     `,
-    [turmaIds]
+    [turmaIds],
   );
 
   const map = new Map();
@@ -819,7 +823,7 @@ async function carregarDatasPorTurmas(turmaIds = []) {
     WHERE turma_id = ANY($1::int[])
     ORDER BY turma_id, data ASC
     `,
-    [turmaIds]
+    [turmaIds],
   );
 
   const map = new Map();
@@ -897,7 +901,7 @@ async function salvarDatasTurma(client, turmaId, datas) {
       INSERT INTO datas_turma (turma_id, data, horario_inicio, horario_fim)
       VALUES ($1, $2, $3, $4)
       `,
-      [turmaId, item.data, item.horario_inicio, item.horario_fim]
+      [turmaId, item.data, item.horario_inicio, item.horario_fim],
     );
   }
 
@@ -911,7 +915,7 @@ async function salvarResponsaveisTurma(client, turmaId, organizadores) {
     throw createHttpError(
       "Informe ao menos um organizador para a turma.",
       400,
-      "TURMA_SEM_ORGANIZADOR"
+      "TURMA_SEM_ORGANIZADOR",
     );
   }
 
@@ -923,7 +927,7 @@ async function salvarResponsaveisTurma(client, turmaId, organizadores) {
     WHERE turma_id = $1
       AND papel = $2
     `,
-    [turmaId, PAPEL_ORGANIZADOR]
+    [turmaId, PAPEL_ORGANIZADOR],
   );
 
   for (const organizadorId of organizadorIds) {
@@ -938,7 +942,7 @@ async function salvarResponsaveisTurma(client, turmaId, organizadores) {
       ON CONFLICT (turma_id, usuario_id, papel)
       DO NOTHING
       `,
-      [turmaId, organizadorId, PAPEL_ORGANIZADOR]
+      [turmaId, organizadorId, PAPEL_ORGANIZADOR],
     );
   }
 
@@ -971,7 +975,7 @@ async function salvarPalestrantesTurma(client, turmaId, palestrantes) {
         WHERE id = $1
         LIMIT 1
         `,
-        [item.usuario_id]
+        [item.usuario_id],
       );
 
       nome = usuario.rows?.[0]?.nome || null;
@@ -988,7 +992,7 @@ async function salvarPalestrantesTurma(client, turmaId, palestrantes) {
       )
       VALUES ($1, $2, $3)
       `,
-      [turmaId, nome, item.usuario_id || null]
+      [turmaId, nome, item.usuario_id || null],
     );
   }
 
@@ -1002,7 +1006,7 @@ async function salvarAssinantesTurma(client, turmaId, assinantes) {
     throw createHttpError(
       "Rafaella Pitol deve compor obrigatoriamente a lista de assinantes.",
       400,
-      "RAFAELLA_ASSINATURA_OBRIGATORIA"
+      "RAFAELLA_ASSINATURA_OBRIGATORIA",
     );
   }
 
@@ -1010,7 +1014,7 @@ async function salvarAssinantesTurma(client, turmaId, assinantes) {
     throw createHttpError(
       "A turma deve ter de 1 a 3 assinantes.",
       400,
-      "TURMA_ASSINANTES_QUANTIDADE_INVALIDA"
+      "TURMA_ASSINANTES_QUANTIDADE_INVALIDA",
     );
   }
 
@@ -1018,7 +1022,7 @@ async function salvarAssinantesTurma(client, turmaId, assinantes) {
 
   await client.query(
     `DELETE FROM turma_certificado_assinante WHERE turma_id = $1`,
-    [turmaId]
+    [turmaId],
   );
 
   for (let index = 0; index < assinantesFinais.length; index += 1) {
@@ -1031,7 +1035,7 @@ async function salvarAssinantesTurma(client, turmaId, assinantes) {
       )
       VALUES ($1, $2, $3)
       `,
-      [turmaId, assinantesFinais[index], index + 1]
+      [turmaId, assinantesFinais[index], index + 1],
     );
   }
 
@@ -1066,19 +1070,24 @@ async function criar(req, res) {
       assinantes: assinantes.length,
     });
 
-    assertOrThrow(eventoId, "evento_id é obrigatório.", 400, "EVENTO_ID_OBRIGATORIO");
+    assertOrThrow(
+      eventoId,
+      "evento_id é obrigatório.",
+      400,
+      "EVENTO_ID_OBRIGATORIO",
+    );
     assertOrThrow(nome, "nome é obrigatório.", 400, "TURMA_NOME_OBRIGATORIO");
     assertOrThrow(
       nome.length <= LIMITE_NOME_TURMA,
       `O nome da turma pode ter no máximo ${LIMITE_NOME_TURMA} caracteres.`,
       422,
-      "TURMA_NOME_MUITO_LONGO"
+      "TURMA_NOME_MUITO_LONGO",
     );
     assertOrThrow(
       vagasTotal,
       "vagas_total é obrigatório.",
       400,
-      "TURMA_VAGAS_OBRIGATORIAS"
+      "TURMA_VAGAS_OBRIGATORIAS",
     );
 
     const erroDatas = validarDatasPayload(datas);
@@ -1093,11 +1102,15 @@ async function criar(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [eventoId]
+      [eventoId],
     );
 
     if (!eventoCheck.rowCount) {
-      throw createHttpError("Evento não encontrado.", 404, "EVENTO_NAO_ENCONTRADO");
+      throw createHttpError(
+        "Evento não encontrado.",
+        404,
+        "EVENTO_NAO_ENCONTRADO",
+      );
     }
 
     const resumo = montarResumoDatas(datas);
@@ -1126,7 +1139,7 @@ async function criar(req, res) {
         resumo.horario_fim,
         vagasTotal,
         resumo.carga_horaria,
-      ]
+      ],
     );
 
     const turmaId = Number(insert.rows[0]?.id);
@@ -1135,7 +1148,7 @@ async function criar(req, res) {
       throw createHttpError(
         "Falha ao criar turma: id não retornado.",
         500,
-        "TURMA_ID_NAO_RETORNADO"
+        "TURMA_ID_NAO_RETORNADO",
       );
     }
 
@@ -1195,7 +1208,9 @@ async function atualizar(req, res) {
     const body = req.body || {};
 
     const nome =
-      typeof body.nome === "undefined" ? undefined : String(body.nome || "").trim();
+      typeof body.nome === "undefined"
+        ? undefined
+        : String(body.nome || "").trim();
 
     const vagasTotal =
       typeof body.vagas_total === "undefined"
@@ -1216,7 +1231,9 @@ async function atualizar(req, res) {
       : null;
 
     const veioAssinantes = Array.isArray(body.assinantes);
-    const assinantes = veioAssinantes ? toPositiveIntArray(body.assinantes) : null;
+    const assinantes = veioAssinantes
+      ? toPositiveIntArray(body.assinantes)
+      : null;
 
     logInfo(rid, "atualizar:start", {
       turma_id: turmaId,
@@ -1229,17 +1246,27 @@ async function atualizar(req, res) {
     });
 
     if (typeof nome !== "undefined") {
-      assertOrThrow(nome, "nome não pode ficar vazio.", 400, "TURMA_NOME_INVALIDO");
+      assertOrThrow(
+        nome,
+        "nome não pode ficar vazio.",
+        400,
+        "TURMA_NOME_INVALIDO",
+      );
       assertOrThrow(
         nome.length <= LIMITE_NOME_TURMA,
         `O nome da turma pode ter no máximo ${LIMITE_NOME_TURMA} caracteres.`,
         422,
-        "TURMA_NOME_MUITO_LONGO"
+        "TURMA_NOME_MUITO_LONGO",
       );
     }
 
     if (typeof body.vagas_total !== "undefined") {
-      assertOrThrow(vagasTotal, "vagas_total inválido.", 400, "TURMA_VAGAS_INVALIDAS");
+      assertOrThrow(
+        vagasTotal,
+        "vagas_total inválido.",
+        400,
+        "TURMA_VAGAS_INVALIDAS",
+      );
     }
 
     if (veioDatas) {
@@ -1256,11 +1283,15 @@ async function atualizar(req, res) {
       WHERE id = $1
       FOR UPDATE
       `,
-      [turmaId]
+      [turmaId],
     );
 
     if (!exists.rowCount) {
-      throw createHttpError("Turma não encontrada.", 404, "TURMA_NAO_ENCONTRADA");
+      throw createHttpError(
+        "Turma não encontrada.",
+        404,
+        "TURMA_NAO_ENCONTRADA",
+      );
     }
 
     const setCols = [];
@@ -1291,7 +1322,7 @@ async function atualizar(req, res) {
         SET ${setCols.join(", ")}
         WHERE id = $1
         `,
-        params
+        params,
       );
     }
 
@@ -1426,11 +1457,15 @@ async function excluir(req, res) {
       WHERE id = $1
       FOR UPDATE
       `,
-      [turmaId]
+      [turmaId],
     );
 
     if (!exists.rowCount) {
-      throw createHttpError("Turma não encontrada.", 404, "TURMA_NAO_ENCONTRADA");
+      throw createHttpError(
+        "Turma não encontrada.",
+        404,
+        "TURMA_NAO_ENCONTRADA",
+      );
     }
 
     const uso = await client.query(
@@ -1440,7 +1475,7 @@ async function excluir(req, res) {
         (SELECT COUNT(*)::int FROM presencas WHERE turma_id = $1) AS presencas,
         (SELECT COUNT(*)::int FROM certificados WHERE turma_id = $1) AS certificados
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const contagens = uso.rows[0] || {};
@@ -1453,20 +1488,23 @@ async function excluir(req, res) {
       throw createHttpError(
         "Turma possui inscrições, presenças ou certificados e não pode ser excluída fisicamente.",
         409,
-        "TURMA_COM_HISTORICO"
+        "TURMA_COM_HISTORICO",
       );
     }
 
-    await client.query(`DELETE FROM turma_certificado_assinante WHERE turma_id = $1`, [
-      turmaId,
-    ]);
+    await client.query(
+      `DELETE FROM turma_certificado_assinante WHERE turma_id = $1`,
+      [turmaId],
+    );
     await client.query(`DELETE FROM turma_palestrante WHERE turma_id = $1`, [
       turmaId,
     ]);
     await client.query(`DELETE FROM turma_responsavel WHERE turma_id = $1`, [
       turmaId,
     ]);
-    await client.query(`DELETE FROM datas_turma WHERE turma_id = $1`, [turmaId]);
+    await client.query(`DELETE FROM datas_turma WHERE turma_id = $1`, [
+      turmaId,
+    ]);
     await client.query(`DELETE FROM turmas WHERE id = $1`, [turmaId]);
 
     await client.query("COMMIT");
@@ -1539,7 +1577,7 @@ async function listarPorEvento(req, res) {
       WHERE t.evento_id = $1
       ORDER BY t.data_inicio NULLS LAST, t.horario_inicio NULLS LAST, t.id
       `,
-      [eventoId]
+      [eventoId],
     );
 
     const turmas = result.rows || [];
@@ -1567,7 +1605,7 @@ async function listarPorEvento(req, res) {
         palestrantes: palestrantesMap.get(Number(turma.id)) || [],
         assinantes: assinantesMap.get(Number(turma.id)) || [],
         inscritos: inscritosMap.get(Number(turma.id)) || 0,
-      })
+      }),
     );
 
     return sendOk(res, {
@@ -1666,7 +1704,7 @@ async function listarPorEventoSimples(req, res) {
       WHERE t.evento_id = $1
       ORDER BY t.data_inicio NULLS LAST, t.horario_inicio NULLS LAST, t.id
       `,
-      [eventoId]
+      [eventoId],
     );
 
     const data = (result.rows || []).map((turma) => {
@@ -1676,7 +1714,9 @@ async function listarPorEventoSimples(req, res) {
       const palestrantes = Array.isArray(turma.palestrantes)
         ? turma.palestrantes
         : [];
-      const assinantes = Array.isArray(turma.assinantes) ? turma.assinantes : [];
+      const assinantes = Array.isArray(turma.assinantes)
+        ? turma.assinantes
+        : [];
       const datas = Array.isArray(turma.datas) ? turma.datas : [];
 
       return montarTurmaResposta({
@@ -1810,7 +1850,7 @@ async function listarAdmin(req, res) {
       LEFT JOIN assinantes_por_turma apt ON apt.turma_id = t.id
       LEFT JOIN inscricoes_por_turma i ON i.turma_id = t.id
       ORDER BY t.data_inicio ASC NULLS LAST, t.horario_inicio ASC NULLS LAST, t.id ASC
-      `
+      `,
     );
 
     return sendOk(res, {
@@ -1849,7 +1889,7 @@ async function listarComUsuario(req, res) {
       FROM turmas t
       JOIN eventos e ON e.id = t.evento_id
       ORDER BY t.data_inicio DESC NULLS LAST, t.id DESC
-      `
+      `,
     );
 
     const turmas = turmasResult.rows || [];
@@ -1885,7 +1925,7 @@ async function listarComUsuario(req, res) {
       WHERE i.turma_id = ANY($1::int[])
       ORDER BY u.nome ASC
       `,
-      [turmaIds]
+      [turmaIds],
     );
 
     const usuariosPorTurma = new Map();
@@ -2010,12 +2050,15 @@ async function listarOcorrenciasTurma(req, res) {
     const { data, source } = await resolverDatasTurma(turmaId, VIA_DATAS, rid);
 
     const ocorrencias = Array.from(
-      new Set(data.map((item) => item.data).filter(isDateOnly))
+      new Set(data.map((item) => item.data).filter(isDateOnly)),
     ).sort();
 
     res.setHeader("X-Datas-Source", source);
     res.setHeader("X-Datas-Count", String(ocorrencias.length));
-    res.setHeader("X-Datas-Handler", "turmaController:v2:listarOcorrenciasTurma");
+    res.setHeader(
+      "X-Datas-Handler",
+      "turmaController:v2:listarOcorrenciasTurma",
+    );
     res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
 
     return sendOk(res, {
@@ -2084,11 +2127,15 @@ async function adicionarOrganizador(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     if (!turma.rowCount) {
-      throw createHttpError("Turma não encontrada.", 404, "TURMA_NAO_ENCONTRADA");
+      throw createHttpError(
+        "Turma não encontrada.",
+        404,
+        "TURMA_NAO_ENCONTRADA",
+      );
     }
 
     await validarUsuariosOrganizadorOuAdministrador(client, organizadores);
@@ -2108,7 +2155,7 @@ async function adicionarOrganizador(req, res) {
         DO NOTHING
         RETURNING turma_id
         `,
-        [turmaId, organizadorId, PAPEL_ORGANIZADOR]
+        [turmaId, organizadorId, PAPEL_ORGANIZADOR],
       );
 
       if (result.rowCount) adicionados += 1;
@@ -2134,7 +2181,9 @@ async function adicionarOrganizador(req, res) {
     return sendError(res, {
       status: error.status || 500,
       code: error.code || "turma_responsavel_ADICIONAR_ERRO",
-      message: error.status ? error.message : "Erro ao adicionar organizador à turma.",
+      message: error.status
+        ? error.message
+        : "Erro ao adicionar organizador à turma.",
       rid,
       error,
     });
@@ -2227,7 +2276,7 @@ async function obterDetalhe(req, res) {
       WHERE t.id = $1
       LIMIT 1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     if (!result.rowCount) {

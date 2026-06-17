@@ -17,7 +17,9 @@ const THEME_EVENT = "escola-theme-change";
 const THEME_VALIDO = new Set(["light", "dark", "system"]);
 
 function normalizeTheme(value) {
-  const theme = String(value || "").trim().toLowerCase();
+  const theme = String(value || "")
+    .trim()
+    .toLowerCase();
 
   return THEME_VALIDO.has(theme) ? theme : "system";
 }
@@ -28,7 +30,7 @@ function canUseWindow() {
 
 export default function useEscolaTheme() {
   const [theme, setThemeState] = useState(() =>
-    normalizeTheme(getStoredTheme() || "system")
+    normalizeTheme(getStoredTheme() || "system"),
   );
 
   const themeRef = useRef(theme);
@@ -78,7 +80,7 @@ export default function useEscolaTheme() {
             theme: normalizeTheme(nextTheme),
             source,
           },
-        })
+        }),
       );
     } catch {
       // não bloquear a interface por falha de evento
@@ -104,7 +106,7 @@ export default function useEscolaTheme() {
 
       dispatchThemeEvent(normalized, "hook");
     },
-    [commitTheme, dispatchThemeEvent]
+    [commitTheme, dispatchThemeEvent],
   );
 
   /**

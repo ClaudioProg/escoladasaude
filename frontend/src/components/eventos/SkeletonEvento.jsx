@@ -30,7 +30,9 @@ function normalizarVariant(variant) {
 function normalizarLinhas(lines) {
   const value = Number(lines);
 
-  if (!Number.isFinite(value)) return 3;
+  if (!Number.isFinite(value)) {
+    return 3;
+  }
 
   return Math.max(1, Math.min(6, Math.trunc(value)));
 }
@@ -40,7 +42,7 @@ function SkeletonBlock({ className = "" }) {
     <div
       className={classNames(
         "animate-pulse rounded-2xl bg-slate-200/80 dark:bg-white/10",
-        className
+        className,
       )}
       aria-hidden="true"
     />
@@ -71,22 +73,20 @@ export default function SkeletonEvento({
         isList &&
           "overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/70",
         "supports-[backdrop-filter]:backdrop-blur",
-        className
+        className,
       )}
       aria-label={ariaLabel}
       aria-busy="true"
       aria-live="polite"
       role="status"
     >
-      <span className="sr-only">
-        Carregando informações do evento...
-      </span>
+      <span className="sr-only">Carregando informações do evento...</span>
 
       <div
         className={classNames(
           isCard && "p-5 sm:p-6",
           isPlain && "p-0",
-          isList && ""
+          isList && "",
         )}
       >
         {showMedia && (
@@ -117,7 +117,7 @@ export default function SkeletonEvento({
                   ? "w-3/4"
                   : index === 1
                     ? "w-11/12"
-                    : "w-full"
+                    : "w-full",
               )}
             />
           ))}

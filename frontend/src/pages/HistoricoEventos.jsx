@@ -60,7 +60,9 @@ function cx(...classes) {
 }
 
 function ymd(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
 
@@ -76,7 +78,9 @@ function yearFromYMD(value) {
 function formatarDataBR(value) {
   const dateOnly = ymd(value);
 
-  if (!dateOnly) return "—";
+  if (!dateOnly) {
+    return "—";
+  }
 
   const [year, month, day] = dateOnly.split("-");
 
@@ -87,13 +91,21 @@ function cmpDescByYMD(a, b, key) {
   const A = ymd(a?.[key]) || ymd(a?.data_fim) || "0000-00-00";
   const B = ymd(b?.[key]) || ymd(b?.data_fim) || "0000-00-00";
 
-  if (A < B) return 1;
-  if (A > B) return -1;
+  if (A < B) {
+    return 1;
+  }
+  if (A > B) {
+    return -1;
+  }
   return 0;
 }
 
 function unwrapData(response) {
-  if (response?.data && typeof response.data === "object" && "ok" in response.data) {
+  if (
+    response?.data &&
+    typeof response.data === "object" &&
+    "ok" in response.data
+  ) {
     return response.data.data;
   }
 
@@ -179,19 +191,27 @@ function AlertBox({ type = "info", title, message, onClose }) {
   );
 }
 
-function MiniStat({ icon: Icon, label, value, accent = "from-sky-600 to-indigo-600" }) {
+function MiniStat({
+  icon: Icon,
+  label,
+  value,
+  accent = "from-sky-600 to-indigo-600",
+}) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div
           className={cx(
             "rounded-xl bg-gradient-to-r px-2 py-1 text-xs font-bold text-white",
-            accent
+            accent,
           )}
         >
           {label}
         </div>
-        <Icon className="h-5 w-5 text-slate-500 dark:text-zinc-300" aria-hidden="true" />
+        <Icon
+          className="h-5 w-5 text-slate-500 dark:text-zinc-300"
+          aria-hidden="true"
+        />
       </div>
 
       <p className="text-3xl font-black leading-tight text-slate-950 dark:text-white">
@@ -216,7 +236,7 @@ function Badge({ tone = "zinc", children }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-        tones[tone] || tones.zinc
+        tones[tone] || tones.zinc,
       )}
     >
       {children}
@@ -226,7 +246,10 @@ function Badge({ tone = "zinc", children }) {
 
 function HeaderHero({ total, carregando, onRefresh }) {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div
         className="absolute inset-0 bg-gradient-to-br from-slate-950 via-sky-800 to-indigo-700"
         aria-hidden="true"
@@ -255,7 +278,10 @@ function HeaderHero({ total, carregando, onRefresh }) {
         <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
           <div className="min-w-0">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-200" aria-hidden="true" />
+              <Sparkles
+                className="h-3.5 w-3.5 text-cyan-200"
+                aria-hidden="true"
+              />
               Área do usuário • participação e certificados
             </div>
 
@@ -269,7 +295,8 @@ function HeaderHero({ total, carregando, onRefresh }) {
                   Histórico de Eventos
                 </h1>
                 <p className="mt-1 text-sm text-white/85 sm:text-base">
-                  {total} registro{total === 1 ? "" : "s"} no histórico filtrado.
+                  {total} registro{total === 1 ? "" : "s"} no histórico
+                  filtrado.
                 </p>
               </div>
             </div>
@@ -283,18 +310,23 @@ function HeaderHero({ total, carregando, onRefresh }) {
               "inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white backdrop-blur transition",
               carregando
                 ? "cursor-not-allowed opacity-60"
-                : "hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                : "hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
             )}
             aria-label="Atualizar histórico de eventos"
             aria-busy={carregando ? "true" : "false"}
           >
-            <RefreshCcw className={cx("h-4 w-4", carregando ? "animate-spin" : "")} />
+            <RefreshCcw
+              className={cx("h-4 w-4", carregando ? "animate-spin" : "")}
+            />
             {carregando ? "Atualizando..." : "Atualizar"}
           </button>
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-white/25" aria-hidden="true" />
+      <div
+        className="absolute bottom-0 left-0 right-0 h-px bg-white/25"
+        aria-hidden="true"
+      />
     </header>
   );
 }
@@ -314,7 +346,7 @@ function ActionButton({ children, icon: Icon, variant = "primary", ...props }) {
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
         "disabled:cursor-not-allowed disabled:opacity-60",
         variant === "primary" ? primary : secondary,
-        props.className
+        props.className,
       )}
     >
       {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : null}
@@ -367,7 +399,7 @@ export default function HistoricoEventos() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar seu histórico de eventos."
+        "Não foi possível carregar seu histórico de eventos.",
       );
 
       setErro(message);
@@ -397,7 +429,13 @@ export default function HistoricoEventos() {
       const tag = document.activeElement?.tagName?.toLowerCase();
       const isTyping = ["input", "textarea", "select"].includes(tag);
 
-      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && !isTyping) {
+      if (
+        event.key === "/" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !isTyping
+      ) {
         event.preventDefault();
         inputRef.current?.focus?.();
       }
@@ -414,26 +452,34 @@ export default function HistoricoEventos() {
     for (const evento of eventos) {
       const year = yearFromYMD(evento?.data_inicio);
 
-      if (year) anos.add(year);
+      if (year) {
+        anos.add(year);
+      }
     }
 
     return Array.from(anos).sort((a, b) => b - a);
   }, [eventos]);
 
   const eventosFiltrados = useMemo(() => {
-    const termo = String(busca || "").trim().toLowerCase();
+    const termo = String(busca || "")
+      .trim()
+      .toLowerCase();
 
     const porAno =
       anoSelecionado === "todos"
         ? eventos
         : eventos.filter(
-            (evento) => String(yearFromYMD(evento?.data_inicio)) === String(anoSelecionado)
+            (evento) =>
+              String(yearFromYMD(evento?.data_inicio)) ===
+              String(anoSelecionado),
           );
 
     const porBusca = !termo
       ? porAno
       : porAno.filter((evento) =>
-          String(evento?.titulo || "").toLowerCase().includes(termo)
+          String(evento?.titulo || "")
+            .toLowerCase()
+            .includes(termo),
         );
 
     return porBusca.slice().sort((a, b) => cmpDescByYMD(a, b, "data_fim"));
@@ -444,8 +490,12 @@ export default function HistoricoEventos() {
     let certificados = 0;
 
     for (const evento of eventosFiltrados) {
-      if (evento?.avaliado) avaliados += 1;
-      if (evento?.certificado_disponivel && evento?.certificado_id) certificados += 1;
+      if (evento?.avaliado) {
+        avaliados += 1;
+      }
+      if (evento?.certificado_disponivel && evento?.certificado_id) {
+        certificados += 1;
+      }
     }
 
     return {
@@ -468,18 +518,22 @@ export default function HistoricoEventos() {
 
   const eventosPaginados = useMemo(
     () => eventosFiltrados.slice(sliceStart, sliceEnd),
-    [eventosFiltrados, sliceStart, sliceEnd]
+    [eventosFiltrados, sliceStart, sliceEnd],
   );
 
   async function baixarCertificado(id, titulo) {
-    if (!id || baixandoId) return;
+    if (!id || baixandoId) {
+      return;
+    }
 
     try {
       setBaixandoId(id);
       setMensagem(null);
       setLive("Baixando certificado.");
 
-      const { blob, filename } = await apiGetFile(`/certificados/${id}/download`);
+      const { blob, filename } = await apiGetFile(
+        `/certificados/${id}/download`,
+      );
 
       if (!(blob instanceof Blob) || blob.size === 0) {
         throw new Error("Arquivo inválido retornado pelo servidor.");
@@ -502,7 +556,7 @@ export default function HistoricoEventos() {
         title: "Erro ao baixar certificado",
         message: getErrorMessage(
           error,
-          "Não foi possível baixar o certificado. Tente novamente ou procure o suporte."
+          "Não foi possível baixar o certificado. Tente novamente ou procure o suporte.",
         ),
       });
 
@@ -514,9 +568,18 @@ export default function HistoricoEventos() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
-      <HeaderHero total={kpis.total} carregando={carregando} onRefresh={fetchEventos} />
+      <HeaderHero
+        total={kpis.total}
+        carregando={carregando}
+        onRefresh={fetchEventos}
+      />
 
       {carregando ? (
         <div
@@ -527,7 +590,7 @@ export default function HistoricoEventos() {
           <div
             className={cx(
               "h-full w-1/3 bg-sky-600",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -616,7 +679,9 @@ export default function HistoricoEventos() {
                     <select
                       id="filtro-ano"
                       value={anoSelecionado}
-                      onChange={(event) => setAnoSelecionado(event.target.value)}
+                      onChange={(event) =>
+                        setAnoSelecionado(event.target.value)
+                      }
                       className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-600 dark:border-zinc-700 dark:bg-zinc-900"
                       aria-label="Filtrar eventos por ano"
                     >
@@ -640,7 +705,9 @@ export default function HistoricoEventos() {
                     <select
                       id="por-pagina"
                       value={pageSize}
-                      onChange={(event) => setPageSize(Number(event.target.value) || 8)}
+                      onChange={(event) =>
+                        setPageSize(Number(event.target.value) || 8)
+                      }
                       className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-600 dark:border-zinc-700 dark:bg-zinc-900"
                       aria-label="Quantidade por página"
                     >
@@ -671,7 +738,10 @@ export default function HistoricoEventos() {
                 </p>
 
                 <div className="mt-3 flex justify-center">
-                  <ActionButton onClick={fetchEventos} aria-label="Tentar carregar histórico novamente">
+                  <ActionButton
+                    onClick={fetchEventos}
+                    aria-label="Tentar carregar histórico novamente"
+                  >
                     Tentar novamente
                   </ActionButton>
                 </div>
@@ -683,7 +753,7 @@ export default function HistoricoEventos() {
               />
             ) : (
               <>
-                <ul className="space-y-4" role="list" aria-label="Histórico de eventos">
+                <ul className="space-y-4" aria-label="Histórico de eventos">
                   <AnimatePresence initial={false}>
                     {eventosPaginados.map((evento) => {
                       const key =
@@ -695,7 +765,7 @@ export default function HistoricoEventos() {
                       const dataFim = formatarDataBR(evento.data_fim);
 
                       const temCertificado = Boolean(
-                        evento.certificado_disponivel && evento.certificado_id
+                        evento.certificado_disponivel && evento.certificado_id,
                       );
                       const foiAvaliado = Boolean(evento.avaliado);
                       const certBaixando = baixandoId === evento.certificado_id;
@@ -708,7 +778,6 @@ export default function HistoricoEventos() {
                           exit={{ opacity: 0, y: 10 }}
                           transition={{ duration: reduceMotion ? 0 : 0.22 }}
                           tabIndex={0}
-                          role="listitem"
                           className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-600 dark:border-zinc-800 dark:bg-zinc-950"
                           aria-label={`Evento: ${evento.titulo}`}
                         >
@@ -745,10 +814,15 @@ export default function HistoricoEventos() {
                             </div>
 
                             <div className="mt-4 flex flex-wrap items-center gap-2">
-                              {!foiAvaliado && (evento.evento_id || evento.id) ? (
+                              {!foiAvaliado &&
+                              (evento.evento_id || evento.id) ? (
                                 <ActionButton
                                   variant="secondary"
-                                  onClick={() => navigate(`/avaliar/${evento.evento_id || evento.id}`)}
+                                  onClick={() =>
+                                    navigate(
+                                      `/avaliar/${evento.evento_id || evento.id}`,
+                                    )
+                                  }
                                   aria-label={`Avaliar evento ${evento.titulo}`}
                                   icon={GraduationCap}
                                 >
@@ -759,14 +833,21 @@ export default function HistoricoEventos() {
                               {temCertificado ? (
                                 <ActionButton
                                   onClick={() =>
-                                    baixarCertificado(evento.certificado_id, evento.titulo)
+                                    baixarCertificado(
+                                      evento.certificado_id,
+                                      evento.titulo,
+                                    )
                                   }
                                   disabled={Boolean(baixandoId)}
                                   aria-label={`Baixar certificado de ${evento.titulo}`}
                                   icon={certBaixando ? Loader2 : Download}
-                                  className={certBaixando ? "[&>svg]:animate-spin" : ""}
+                                  className={
+                                    certBaixando ? "[&>svg]:animate-spin" : ""
+                                  }
                                 >
-                                  {certBaixando ? "Baixando..." : "Ver certificado"}
+                                  {certBaixando
+                                    ? "Baixando..."
+                                    : "Ver certificado"}
                                 </ActionButton>
                               ) : (
                                 <span className="text-xs italic text-zinc-500">
@@ -792,7 +873,9 @@ export default function HistoricoEventos() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
                       disabled={pageClamped <= 1}
                       className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 px-3 py-2 text-xs transition hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
                       aria-label="Página anterior"

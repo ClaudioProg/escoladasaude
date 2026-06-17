@@ -82,7 +82,7 @@ export default function ThemeToggleButton({
 
   const label = useMemo(
     () => getThemeLabel(theme, effectiveTheme),
-    [effectiveTheme, theme]
+    [effectiveTheme, theme],
   );
 
   const quickToggleLabel = isDarkEffective
@@ -118,11 +118,13 @@ export default function ThemeToggleButton({
         buttonRef.current?.focus?.();
       });
     },
-    [closeMenu, setTheme]
+    [closeMenu, setTheme],
   );
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     function handleKeyDown(event) {
       if (event.key === "Escape") {
@@ -135,7 +137,9 @@ export default function ThemeToggleButton({
     function handlePointerDown(event) {
       const root = rootRef.current;
 
-      if (!root) return;
+      if (!root) {
+        return;
+      }
 
       if (!root.contains(event.target)) {
         closeMenu();
@@ -208,7 +212,7 @@ export default function ThemeToggleButton({
           "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
           "active:scale-[0.98] motion-reduce:active:scale-100",
-          "dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:bg-white/10 dark:focus-visible:ring-offset-slate-950"
+          "dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:bg-white/10 dark:focus-visible:ring-offset-slate-950",
         )}
       >
         <span
@@ -218,7 +222,7 @@ export default function ThemeToggleButton({
             "dark:border-white/10 dark:bg-white/5 dark:text-slate-100",
             isDarkEffective
               ? "shadow-[0_0_0_6px_rgba(16,185,129,0.10)]"
-              : "shadow-[0_0_0_6px_rgba(99,102,241,0.10)]"
+              : "shadow-[0_0_0_6px_rgba(99,102,241,0.10)]",
           )}
           aria-hidden="true"
         >
@@ -238,7 +242,7 @@ export default function ThemeToggleButton({
         <ChevronDown
           className={classNames(
             "h-4 w-4 opacity-65 transition-transform",
-            open && "rotate-180"
+            open && "rotate-180",
           )}
           aria-hidden="true"
         />
@@ -252,7 +256,7 @@ export default function ThemeToggleButton({
             "absolute top-[calc(100%+8px)] z-50 w-48 overflow-hidden rounded-2xl border shadow-xl backdrop-blur",
             "border-slate-200 bg-white/95 text-slate-900",
             "dark:border-white/10 dark:bg-slate-950/95 dark:text-slate-100",
-            menuPosition
+            menuPosition,
           )}
         >
           {THEME_OPTIONS.map((option, index) => (
@@ -278,7 +282,7 @@ export default function ThemeToggleButton({
 
 const ThemeMenuItem = forwardRef(function ThemeMenuItem(
   { active, label, icon: Icon, sub, onClick },
-  ref
+  ref,
 ) {
   return (
     <button
@@ -291,7 +295,7 @@ const ThemeMenuItem = forwardRef(function ThemeMenuItem(
         "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-black transition",
         "hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
         "dark:hover:bg-white/10",
-        active && "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+        active && "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
       )}
     >
       <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden="true" />

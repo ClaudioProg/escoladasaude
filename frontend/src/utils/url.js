@@ -26,7 +26,9 @@ function canUseWindow() {
 }
 
 function normalizeInput(value = "") {
-  return String(value || "").trim().replace(/\\/g, "/");
+  return String(value || "")
+    .trim()
+    .replace(/\\/g, "/");
 }
 
 export function isAbsoluteUrl(value) {
@@ -52,9 +54,7 @@ function normalizeRelativePath(value = "") {
     return "";
   }
 
-  return clean
-    .replace(/^\.?\/*/, "/")
-    .replace(/\/{2,}/g, "/");
+  return clean.replace(/^\.?\/*/, "/").replace(/\/{2,}/g, "/");
 }
 
 function ensureApiPrefix(path = "") {
@@ -107,7 +107,9 @@ function joinUrl(base, path) {
  * https://api.site.com
  */
 export function getBackendOrigin() {
-  const envBase = normalizeAbsoluteUrl(import.meta.env?.VITE_API_BASE_URL || "");
+  const envBase = normalizeAbsoluteUrl(
+    import.meta.env?.VITE_API_BASE_URL || "",
+  );
 
   if (envBase) {
     return stripApiSuffix(envBase);
@@ -129,7 +131,9 @@ export function getBackendOrigin() {
  * https://api.site.com/api
  */
 export function getApiBaseUrl() {
-  const envBase = normalizeAbsoluteUrl(import.meta.env?.VITE_API_BASE_URL || "");
+  const envBase = normalizeAbsoluteUrl(
+    import.meta.env?.VITE_API_BASE_URL || "",
+  );
 
   if (envBase) {
     return /\/api$/i.test(envBase) ? envBase : `${envBase}/api`;

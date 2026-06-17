@@ -25,11 +25,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   Award,
-  BarChart3,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -38,14 +34,12 @@ import {
   Eye,
   FileText,
   Filter,
-  Layers3,
   Loader2,
   Mic,
   Paperclip,
   RefreshCw,
   RotateCcw,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Users,
@@ -73,11 +67,21 @@ function cx(...classes) {
 }
 
 function unwrap(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
-  if (Array.isArray(response?.data?.data?.submissoes)) return response.data.data.submissoes;
-  if (Array.isArray(response?.submissoes)) return response.submissoes;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
+  if (Array.isArray(response?.data?.data?.submissoes)) {
+    return response.data.data.submissoes;
+  }
+  if (Array.isArray(response?.submissoes)) {
+    return response.submissoes;
+  }
   return [];
 }
 
@@ -87,7 +91,9 @@ function fmt(value, fallback = "—") {
 
 function fmtNum(value, digits = 2) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) {
+    return "—";
+  }
   return n.toFixed(digits);
 }
 
@@ -96,7 +102,9 @@ function fmtNota(value) {
 }
 
 function fmtDateTimeBR(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const text = String(value);
 
@@ -106,7 +114,9 @@ function fmtDateTimeBR(value) {
   }
 
   const d = new Date(text);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) {
+    return "—";
+  }
 
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -118,14 +128,30 @@ function fmtDateTimeBR(value) {
 function normalizarStatusPrincipal(raw) {
   const status = String(raw || "").toLowerCase();
 
-  if (status === "rascunho") return "rascunho";
-  if (status === "submetida") return "submetida";
-  if (status === "em_avaliacao") return "em_avaliacao";
-  if (status === "aprovada_exposicao") return "aprovada_exposicao";
-  if (status === "aprovada_oral") return "aprovada_oral";
-  if (status === "aprovada") return "aprovada";
-  if (status === "reprovada") return "reprovada";
-  if (status === "cancelada") return "cancelada";
+  if (status === "rascunho") {
+    return "rascunho";
+  }
+  if (status === "submetida") {
+    return "submetida";
+  }
+  if (status === "em_avaliacao") {
+    return "em_avaliacao";
+  }
+  if (status === "aprovada_exposicao") {
+    return "aprovada_exposicao";
+  }
+  if (status === "aprovada_oral") {
+    return "aprovada_oral";
+  }
+  if (status === "aprovada") {
+    return "aprovada";
+  }
+  if (status === "reprovada") {
+    return "reprovada";
+  }
+  if (status === "cancelada") {
+    return "cancelada";
+  }
 
   return status || "indefinido";
 }
@@ -153,7 +179,7 @@ function linhaKeyFromSubmissao(item) {
     item?.linha_tematica_id ??
       item?.linha_tematica_nome ??
       item?.linha_tematica_codigo ??
-      ""
+      "",
   );
 }
 
@@ -184,11 +210,11 @@ function hasAprovacaoOral(item) {
 function hasAnexo(item) {
   return Boolean(
     item?._hasAnexo ||
-      item?.poster_arquivo_id ||
-      item?.poster_nome ||
-      item?.has_anexo ||
-      item?.tem_anexo ||
-      item?.possui_anexo
+    item?.poster_arquivo_id ||
+    item?.poster_nome ||
+    item?.has_anexo ||
+    item?.tem_anexo ||
+    item?.possui_anexo,
   );
 }
 
@@ -210,7 +236,9 @@ function exportarCSV(items = []) {
   const bom = "\uFEFF";
 
   function safe(value) {
-    const text = String(value ?? "").replace(/\r?\n/g, " ").trim();
+    const text = String(value ?? "")
+      .replace(/\r?\n/g, " ")
+      .trim();
     return `"${text.replace(/"/g, '""')}"`;
   }
 
@@ -240,7 +268,7 @@ function exportarCSV(items = []) {
       safe(
         normalizarStatusPrincipal(item.status) === "rascunho"
           ? "—"
-          : fmtDateTimeBR(item.submetido_em || item.criado_em)
+          : fmtDateTimeBR(item.submetido_em || item.criado_em),
       ),
       safe(statusLabel(item.status)),
       safe(hasAprovacaoExposicao(item) ? "Sim" : "Não"),
@@ -249,7 +277,7 @@ function exportarCSV(items = []) {
       safe(fmtNota(item.nota_oral)),
       safe(fmtNota(item.nota_final)),
       safe(hasAnexo(item) ? "Sim" : "Não"),
-    ].join(sep)
+    ].join(sep),
   );
 
   const csv = [header, ...rows].join("\n");
@@ -257,9 +285,9 @@ function exportarCSV(items = []) {
 
   const d = new Date();
   const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(
-    d.getDate()
+    d.getDate(),
   ).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}${String(
-    d.getMinutes()
+    d.getMinutes(),
   ).padStart(2, "0")}`;
 
   const url = URL.createObjectURL(blob);
@@ -302,17 +330,34 @@ function useUrlState() {
       const next = { ...current, ...patch };
       const params = new URLSearchParams();
 
-      if (next.chamada) params.set("chamada", next.chamada);
-      if (next.status) params.set("status", next.status);
-      if (next.linha) params.set("linha", next.linha);
-      if (next.q) params.set("q", next.q);
-      if (next.sort) params.set("sort", next.sort);
-      if (next.page && next.page > 1) params.set("page", String(next.page));
-      if (next.per && next.per !== 20) params.set("per", String(next.per));
+      if (next.chamada) {
+        params.set("chamada", next.chamada);
+      }
+      if (next.status) {
+        params.set("status", next.status);
+      }
+      if (next.linha) {
+        params.set("linha", next.linha);
+      }
+      if (next.q) {
+        params.set("q", next.q);
+      }
+      if (next.sort) {
+        params.set("sort", next.sort);
+      }
+      if (next.page && next.page > 1) {
+        params.set("page", String(next.page));
+      }
+      if (next.per && next.per !== 20) {
+        params.set("per", String(next.per));
+      }
 
-      navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
+      navigate(
+        { search: params.toString() ? `?${params.toString()}` : "" },
+        { replace: true },
+      );
     },
-    [get, navigate]
+    [get, navigate],
   );
 
   return { get, set };
@@ -344,7 +389,7 @@ function GlassCard({ children, className = "" }) {
       className={cx(
         "rounded-[1.75rem] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur-xl",
         "dark:border-white/10 dark:bg-slate-900/80 dark:shadow-black/20",
-        className
+        className,
       )}
     >
       {children}
@@ -390,7 +435,7 @@ function Button({
         "focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
         sizes[size],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -413,19 +458,17 @@ function Badge({ children, tone = "slate", icon: Icon }) {
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
   };
 
   return (
     <span
       className={cx(
         "inline-flex items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -463,13 +506,23 @@ function Aprovacoes({ item }) {
   const oral = hasAprovacaoOral(item);
 
   if (!exposicao && !oral) {
-    return <span className="text-xs text-slate-400">Sem aprovação parcial</span>;
+    return (
+      <span className="text-xs text-slate-400">Sem aprovação parcial</span>
+    );
   }
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {exposicao ? <Badge tone="emerald" icon={CheckCircle2}>Exposição</Badge> : null}
-      {oral ? <Badge tone="emerald" icon={Mic}>Oral</Badge> : null}
+      {exposicao ? (
+        <Badge tone="emerald" icon={CheckCircle2}>
+          Exposição
+        </Badge>
+      ) : null}
+      {oral ? (
+        <Badge tone="emerald" icon={Mic}>
+          Oral
+        </Badge>
+      ) : null}
     </div>
   );
 }
@@ -501,24 +554,45 @@ function PainelOperacionalSubmissoes({
             </p>
 
             <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              Acompanhe submissões, rankings, avaliadores, anexos, notas e decisões institucionais.
+              Acompanhe submissões, rankings, avaliadores, anexos, notas e
+              decisões institucionais.
             </p>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
-            <Button tone="warning" icon={Award} onClick={onRanking} className="w-full sm:w-auto">
+            <Button
+              tone="warning"
+              icon={Award}
+              onClick={onRanking}
+              className="w-full sm:w-auto"
+            >
               Ranking escrita
             </Button>
 
-            <Button tone="slate" icon={Mic} onClick={onRankingOral} className="w-full sm:w-auto">
+            <Button
+              tone="slate"
+              icon={Mic}
+              onClick={onRankingOral}
+              className="w-full sm:w-auto"
+            >
               Ranking oral
             </Button>
 
-            <Button tone="success" icon={Users} onClick={onAvaliadores} className="w-full sm:w-auto">
+            <Button
+              tone="success"
+              icon={Users}
+              onClick={onAvaliadores}
+              className="w-full sm:w-auto"
+            >
               Avaliadores
             </Button>
 
-            <Button tone="slate" icon={Download} onClick={onExport} className="w-full sm:w-auto">
+            <Button
+              tone="slate"
+              icon={Download}
+              onClick={onExport}
+              className="w-full sm:w-auto"
+            >
               Exportar CSV
             </Button>
 
@@ -535,11 +609,36 @@ function PainelOperacionalSubmissoes({
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-5">
-          <MetricCard label="Total" value={stats.total} icon={ClipboardList} tone="amber" />
-          <MetricCard label="Visíveis" value={totalVisiveis} icon={Filter} tone="violet" />
-          <MetricCard label="Em avaliação" value={stats.emAvaliacao} icon={Loader2} tone="cyan" />
-          <MetricCard label="Aprovadas" value={stats.aprovadas} icon={CheckCircle2} tone="emerald" />
-          <MetricCard label="Reprovadas" value={stats.reprovadas} icon={XCircle} tone="rose" />
+          <MetricCard
+            label="Total"
+            value={stats.total}
+            icon={ClipboardList}
+            tone="amber"
+          />
+          <MetricCard
+            label="Visíveis"
+            value={totalVisiveis}
+            icon={Filter}
+            tone="violet"
+          />
+          <MetricCard
+            label="Em avaliação"
+            value={stats.emAvaliacao}
+            icon={Loader2}
+            tone="cyan"
+          />
+          <MetricCard
+            label="Aprovadas"
+            value={stats.aprovadas}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <MetricCard
+            label="Reprovadas"
+            value={stats.reprovadas}
+            icon={XCircle}
+            tone="rose"
+          />
         </div>
       </div>
     </GlassCard>
@@ -549,28 +648,23 @@ function PainelOperacionalSubmissoes({
 function MetricCard({ label, value, icon: Icon, tone = "amber" }) {
   const tones = {
     amber: {
-      wrap:
-        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      wrap: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
       gradient: "from-amber-500 via-orange-400 to-yellow-500",
     },
     violet: {
-      wrap:
-        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      wrap: "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
       gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
     },
     cyan: {
-      wrap:
-        "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
+      wrap: "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-100",
       gradient: "from-cyan-600 via-sky-500 to-blue-500",
     },
     emerald: {
-      wrap:
-        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      wrap: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
       gradient: "from-emerald-600 via-teal-500 to-cyan-500",
     },
     rose: {
-      wrap:
-        "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
+      wrap: "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
       gradient: "from-rose-600 via-red-500 to-orange-500",
     },
   };
@@ -578,7 +672,9 @@ function MetricCard({ label, value, icon: Icon, tone = "amber" }) {
   const cfg = tones[tone] || tones.amber;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -656,8 +752,8 @@ export default function SubmissaoAdmin() {
         setErro(
           getErrorMessage(
             error,
-            "Não foi possível carregar as submissões. Verifique sua conexão ou tente novamente."
-          )
+            "Não foi possível carregar as submissões. Verifique sua conexão ou tente novamente.",
+          ),
         );
       }
     } finally {
@@ -671,7 +767,9 @@ export default function SubmissaoAdmin() {
     const abortPromise = carregar();
     return () => {
       Promise.resolve(abortPromise).then((cleanup) => {
-        if (typeof cleanup === "function") cleanup();
+        if (typeof cleanup === "function") {
+          cleanup();
+        }
       });
     };
   }, [carregar]);
@@ -697,16 +795,28 @@ export default function SubmissaoAdmin() {
       per: perPage,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroChamada, filtroStatus, filtroLinha, buscaDebounced, sortKey, sortDir, page, perPage]);
+  }, [
+    filtroChamada,
+    filtroStatus,
+    filtroLinha,
+    buscaDebounced,
+    sortKey,
+    sortDir,
+    page,
+    perPage,
+  ]);
 
   const linhasTematicas = useMemo(() => {
     const map = new Map();
 
     for (const item of submissoes) {
       const key = linhaKeyFromSubmissao(item);
-      const nome = item?.linha_tematica_nome || item?.linha_tematica_codigo || null;
+      const nome =
+        item?.linha_tematica_nome || item?.linha_tematica_codigo || null;
 
-      if (!key || !nome) continue;
+      if (!key || !nome) {
+        continue;
+      }
 
       if (!map.has(key)) {
         map.set(key, {
@@ -718,12 +828,14 @@ export default function SubmissaoAdmin() {
     }
 
     return Array.from(map.values()).sort((a, b) =>
-      a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" })
+      a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
     );
   }, [submissoes]);
 
   const filtradas = useMemo(() => {
-    const termo = String(buscaDebounced || "").trim().toLowerCase();
+    const termo = String(buscaDebounced || "")
+      .trim()
+      .toLowerCase();
 
     return submissoes.filter((item) => {
       const matchChamada =
@@ -733,7 +845,8 @@ export default function SubmissaoAdmin() {
 
       const matchStatus =
         !filtroStatus ||
-        (filtroStatus === "aprovada_exposicao" && hasAprovacaoExposicao(item)) ||
+        (filtroStatus === "aprovada_exposicao" &&
+          hasAprovacaoExposicao(item)) ||
         (filtroStatus === "aprovada_oral" && hasAprovacaoOral(item)) ||
         statusAtual === filtroStatus;
 
@@ -758,7 +871,9 @@ export default function SubmissaoAdmin() {
   }, [submissoes, filtroChamada, filtroStatus, filtroLinha, buscaDebounced]);
 
   const sorted = useMemo(() => {
-    if (!sortKey) return filtradas;
+    if (!sortKey) {
+      return filtradas;
+    }
 
     const dir = sortDir === "desc" ? -1 : 1;
 
@@ -771,9 +886,13 @@ export default function SubmissaoAdmin() {
         case "chamada":
           return String(item.chamada_titulo || "").toLowerCase();
         case "linha":
-          return String(item.linha_tematica_nome || item.linha_tematica_codigo || "").toLowerCase();
+          return String(
+            item.linha_tematica_nome || item.linha_tematica_codigo || "",
+          ).toLowerCase();
         case "submetido":
-          return new Date(item.submetido_em || item.criado_em || 0).getTime() || 0;
+          return (
+            new Date(item.submetido_em || item.criado_em || 0).getTime() || 0
+          );
         case "nota_escrita":
           return Number(item.nota_escrita ?? -Infinity);
         case "nota_oral":
@@ -789,8 +908,12 @@ export default function SubmissaoAdmin() {
       const va = getValue(a);
       const vb = getValue(b);
 
-      if (va < vb) return -1 * dir;
-      if (va > vb) return 1 * dir;
+      if (va < vb) {
+        return -1 * dir;
+      }
+      if (va > vb) {
+        return 1 * dir;
+      }
       return 0;
     });
   }, [filtradas, sortKey, sortDir]);
@@ -808,29 +931,18 @@ export default function SubmissaoAdmin() {
     const totalAll = submissoes.length;
     const aprovadas = submissoes.filter((item) =>
       ["aprovada", "aprovada_exposicao", "aprovada_oral"].includes(
-        normalizarStatusPrincipal(item.status)
-      )
+        normalizarStatusPrincipal(item.status),
+      ),
     ).length;
     const reprovadas = submissoes.filter(
-      (item) => normalizarStatusPrincipal(item.status) === "reprovada"
+      (item) => normalizarStatusPrincipal(item.status) === "reprovada",
     ).length;
     const emAvaliacao = submissoes.filter(
-      (item) => normalizarStatusPrincipal(item.status) === "em_avaliacao"
+      (item) => normalizarStatusPrincipal(item.status) === "em_avaliacao",
     ).length;
 
     return { total: totalAll, aprovadas, reprovadas, emAvaliacao };
   }, [submissoes]);
-
-  function setSort(key) {
-    if (sortKey === key) {
-      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-
-    setPage(1);
-  }
 
   function limparFiltros() {
     setFiltroChamada("");
@@ -847,37 +959,48 @@ export default function SubmissaoAdmin() {
   function atualizarStatusLocal(id, patch) {
     setSubmissoes((current) =>
       current.map((item) => {
-        if (item.id !== id) return item;
+        if (item.id !== id) {
+          return item;
+        }
 
-        const payload = typeof patch === "string" ? { status: patch } : patch || {};
+        const payload =
+          typeof patch === "string" ? { status: patch } : patch || {};
         const next = { ...item, ...payload };
 
-        if (hasAprovacaoExposicao(next)) next._exposicao_aprovada = true;
-        if (hasAprovacaoOral(next)) next._oral_aprovada = true;
+        if (hasAprovacaoExposicao(next)) {
+          next._exposicao_aprovada = true;
+        }
+        if (hasAprovacaoOral(next)) {
+          next._oral_aprovada = true;
+        }
 
         return next;
-      })
+      }),
     );
   }
 
   const handleDetectAnexo = useCallback((id, has) => {
-  if (!has) return;
+    if (!has) {
+      return;
+    }
 
-  setSubmissoes((current) =>
-    current.map((item) => {
-      if (Number(item.id) !== Number(id)) return item;
+    setSubmissoes((current) =>
+      current.map((item) => {
+        if (Number(item.id) !== Number(id)) {
+          return item;
+        }
 
-      if (item._hasAnexo === true) {
-        return item;
-      }
+        if (item._hasAnexo === true) {
+          return item;
+        }
 
-      return {
-        ...item,
-        _hasAnexo: true,
-      };
-    })
-  );
-}, []);
+        return {
+          ...item,
+          _hasAnexo: true,
+        };
+      }),
+    );
+  }, []);
 
   if (loading) {
     return (
@@ -929,7 +1052,9 @@ export default function SubmissaoAdmin() {
           setPerPage={setPerPage}
           total={total}
           pageItems={pageItems}
-          hasFilters={Boolean(filtroChamada || filtroStatus || filtroLinha || buscaDebounced)}
+          hasFilters={Boolean(
+            filtroChamada || filtroStatus || filtroLinha || buscaDebounced,
+          )}
           onReload={carregar}
           onClear={limparFiltros}
           onRanking={() => setRankingOpen(true)}
@@ -938,7 +1063,6 @@ export default function SubmissaoAdmin() {
           onExport={() => exportarCSV(sorted)}
           erro={erro}
         />
-
 
         <SubmissaoCards
           items={pageItems}
@@ -969,15 +1093,15 @@ export default function SubmissaoAdmin() {
             <AnimatePresence>
               {detalheOpen ? (
                 <ModalDetalhesSubmissao
-  key="detalhe-submissao-modal"
-  open={detalheOpen}
-  onClose={() => {
-    setDetalheOpen(false);
-    setSelecionada(null);
-  }}
-  submissao={selecionada}
-  onDetectAnexo={handleDetectAnexo}
-/>
+                  key="detalhe-submissao-modal"
+                  open={detalheOpen}
+                  onClose={() => {
+                    setDetalheOpen(false);
+                    setSelecionada(null);
+                  }}
+                  submissao={selecionada}
+                  onDetectAnexo={handleDetectAnexo}
+                />
               ) : null}
 
               {atribOpen ? (
@@ -1020,7 +1144,7 @@ export default function SubmissaoAdmin() {
                 />
               ) : null}
             </AnimatePresence>,
-            document.body
+            document.body,
           )
         : null}
     </PageShell>
@@ -1045,12 +1169,7 @@ function Toolbar({
   total,
   pageItems,
   hasFilters,
-  onReload,
   onClear,
-  onRanking,
-  onRankingOral,
-  onAvaliadores,
-  onExport,
   erro,
 }) {
   return (
@@ -1062,7 +1181,8 @@ function Toolbar({
             Filtros e busca
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Refine por chamada, status, linha temática ou busca textual. A listagem abaixo aparece em cards para facilitar leitura.
+            Refine por chamada, status, linha temática ou busca textual. A
+            listagem abaixo aparece em cards para facilitar leitura.
           </p>
         </div>
 
@@ -1071,92 +1191,93 @@ function Toolbar({
         </Badge>
       </div>
 
-<div className="mt-5 space-y-3">
-  <div className="grid gap-3 lg:grid-cols-2">
-    <select
-      value={filtroChamada}
-      onChange={(event) => setFiltroChamada(event.target.value)}
-      className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-      aria-label="Filtrar por chamada"
-    >
-      <option value="">Todas as chamadas</option>
-      {chamadas.map((item) => (
-        <option key={item.id} value={item.id}>
-          {item.titulo}
-        </option>
-      ))}
-    </select>
+      <div className="mt-5 space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <select
+            value={filtroChamada}
+            onChange={(event) => setFiltroChamada(event.target.value)}
+            className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+            aria-label="Filtrar por chamada"
+          >
+            <option value="">Todas as chamadas</option>
+            {chamadas.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.titulo}
+              </option>
+            ))}
+          </select>
 
-    <select
-      value={filtroStatus}
-      onChange={(event) => setFiltroStatus(event.target.value)}
-      className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-      aria-label="Filtrar por status"
-    >
-      <option value="">Todos os status</option>
-      <option value="rascunho">Rascunho</option>
-      <option value="submetida">Submetida</option>
-      <option value="em_avaliacao">Em avaliação</option>
-      <option value="aprovada_exposicao">Aprovada para exposição</option>
-      <option value="aprovada_oral">Aprovada para oral</option>
-      <option value="aprovada">Aprovada</option>
-      <option value="reprovada">Reprovada</option>
-      <option value="cancelada">Cancelada</option>
-    </select>
-  </div>
+          <select
+            value={filtroStatus}
+            onChange={(event) => setFiltroStatus(event.target.value)}
+            className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+            aria-label="Filtrar por status"
+          >
+            <option value="">Todos os status</option>
+            <option value="rascunho">Rascunho</option>
+            <option value="submetida">Submetida</option>
+            <option value="em_avaliacao">Em avaliação</option>
+            <option value="aprovada_exposicao">Aprovada para exposição</option>
+            <option value="aprovada_oral">Aprovada para oral</option>
+            <option value="aprovada">Aprovada</option>
+            <option value="reprovada">Reprovada</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
 
-  <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(320px,1.4fr)_auto] lg:items-center">
-    <select
-      value={filtroLinha}
-      onChange={(event) => setFiltroLinha(event.target.value)}
-      className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-      aria-label="Filtrar por linha temática"
-    >
-      <option value="">Todas as linhas</option>
-      {linhasTematicas.map((item) => (
-        <option key={item.id} value={item.id}>
-          {item.nome}
-        </option>
-      ))}
-    </select>
+        <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(320px,1.4fr)_auto] lg:items-center">
+          <select
+            value={filtroLinha}
+            onChange={(event) => setFiltroLinha(event.target.value)}
+            className="h-12 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+            aria-label="Filtrar por linha temática"
+          >
+            <option value="">Todas as linhas</option>
+            {linhasTematicas.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.nome}
+              </option>
+            ))}
+          </select>
 
-    <div className="relative min-w-0">
-      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <div className="relative min-w-0">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
-      <input
-        value={busca}
-        onChange={(event) => setBusca(event.target.value)}
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
-        placeholder="Buscar título, autor, e-mail, chamada..."
-        aria-label="Buscar"
-      />
+            <input
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
+              placeholder="Buscar título, autor, e-mail, chamada..."
+              aria-label="Buscar"
+            />
 
-      {busca ? (
-        <button
-          type="button"
-          onClick={() => setBusca("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-          aria-label="Limpar busca"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      ) : null}
-    </div>
+            {busca ? (
+              <button
+                type="button"
+                onClick={() => setBusca("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                aria-label="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
 
-    <Button
-      tone="ghost"
-      icon={RotateCcw}
-      onClick={onClear}
-      className="w-full lg:w-auto"
-    >
-      Limpar
-    </Button>
-  </div>
-</div>
+          <Button
+            tone="ghost"
+            icon={RotateCcw}
+            onClick={onClear}
+            className="w-full lg:w-auto"
+          >
+            Limpar
+          </Button>
+        </div>
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
         <span>
-          Exibindo <strong>{pageItems.length}</strong> de <strong>{total}</strong> resultados
+          Exibindo <strong>{pageItems.length}</strong> de{" "}
+          <strong>{total}</strong> resultados
           {hasFilters ? " após filtros." : "."}
         </span>
       </div>
@@ -1177,186 +1298,15 @@ function Toolbar({
    Tabela desktop
 =========================================================================== */
 
-function SortButton({ label, active, dir, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-1 font-black"
-      title={`Ordenar por ${label}`}
-    >
-      <span>{label}</span>
-      {!active ? <ArrowUpDown className="h-4 w-4 opacity-70" /> : null}
-      {active && dir === "asc" ? <ArrowUp className="h-4 w-4" /> : null}
-      {active && dir === "desc" ? <ArrowDown className="h-4 w-4" /> : null}
-    </button>
-  );
-}
-
-function SubmissaoTable({ items, sortKey, sortDir, setSort, onDetalhe, onAtribuir }) {
-  return (
-    <GlassCard className="hidden overflow-hidden lg:block">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1280px] text-sm">
-          <caption className="sr-only">Lista administrativa de submissões de trabalhos</caption>
-
-          <thead className="bg-slate-950 text-white">
-            <tr>
-              <th className="p-4 text-left">
-                <SortButton
-                  label="Título"
-                  active={sortKey === "titulo"}
-                  dir={sortDir}
-                  onClick={() => setSort("titulo")}
-                />
-              </th>
-              <th className="p-4 text-left">
-                <SortButton
-                  label="Autor"
-                  active={sortKey === "autor"}
-                  dir={sortDir}
-                  onClick={() => setSort("autor")}
-                />
-              </th>
-              <th className="p-4 text-left">
-                <SortButton
-                  label="Chamada"
-                  active={sortKey === "chamada"}
-                  dir={sortDir}
-                  onClick={() => setSort("chamada")}
-                />
-              </th>
-              <th className="p-4 text-left">
-                <SortButton
-                  label="Linha"
-                  active={sortKey === "linha"}
-                  dir={sortDir}
-                  onClick={() => setSort("linha")}
-                />
-              </th>
-              <th className="p-4 text-center">
-                <SortButton
-                  label="Submetido"
-                  active={sortKey === "submetido"}
-                  dir={sortDir}
-                  onClick={() => setSort("submetido")}
-                />
-              </th>
-              <th className="p-4 text-center">Status</th>
-              <th className="p-4 text-center">
-                <SortButton
-                  label="Escrita"
-                  active={sortKey === "nota_escrita"}
-                  dir={sortDir}
-                  onClick={() => setSort("nota_escrita")}
-                />
-              </th>
-              <th className="p-4 text-center">
-                <SortButton
-                  label="Oral"
-                  active={sortKey === "nota_oral"}
-                  dir={sortDir}
-                  onClick={() => setSort("nota_oral")}
-                />
-              </th>
-              <th className="p-4 text-center">
-                <SortButton
-                  label="Final"
-                  active={sortKey === "nota_final"}
-                  dir={sortDir}
-                  onClick={() => setSort("nota_final")}
-                />
-              </th>
-              <th className="p-4 text-center">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="p-10 text-center text-slate-500">
-                  Nenhuma submissão encontrada.
-                </td>
-              </tr>
-            ) : null}
-
-            {items.map((item) => (
-              <tr
-                key={item.id}
-                className={cx(
-                  "border-b border-slate-100 transition hover:bg-amber-50/60 dark:border-slate-800 dark:hover:bg-slate-800/40",
-                  hasAnexo(item) ? "border-l-4 border-l-emerald-500" : "border-l-4 border-l-slate-300"
-                )}
-              >
-                <td className="p-4 align-top">
-                  <div className="flex min-w-0 items-start gap-2">
-                    <div className="min-w-0">
-                      <p className="line-clamp-2 font-black text-slate-900 dark:text-white">
-                        {item.titulo || "—"}
-                      </p>
-                      <div className="mt-2">
-                        <AnexoBadge item={item} />
-                      </div>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="p-4 align-top">
-                  <p className="font-semibold text-slate-800 dark:text-slate-100">
-                    {item.autor_nome || "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">{item.autor_email || "—"}</p>
-                </td>
-
-                <td className="p-4 align-top text-slate-700 dark:text-slate-300">
-                  {item.chamada_titulo || "—"}
-                </td>
-
-                <td className="p-4 align-top text-slate-700 dark:text-slate-300">
-                  {item.linha_tematica_nome || item.linha_tematica_codigo || "—"}
-                </td>
-
-                <td className="p-4 text-center align-top">
-                  {normalizarStatusPrincipal(item.status) === "rascunho"
-                    ? "—"
-                    : fmtDateTimeBR(item.submetido_em || item.criado_em)}
-                </td>
-
-                <td className="p-4 text-center align-top">
-                  <div className="flex flex-col items-center gap-2">
-                    <StatusBadge status={item.status} />
-                    <Aprovacoes item={item} />
-                  </div>
-                </td>
-
-                <td className="p-4 text-center align-top font-black">{fmtNota(item.nota_escrita)}</td>
-                <td className="p-4 text-center align-top font-black">{fmtNota(item.nota_oral)}</td>
-                <td className="p-4 text-center align-top font-black">{fmtNota(item.nota_final)}</td>
-
-                <td className="p-4 align-top">
-                  <div className="flex justify-center gap-2">
-                    <Button tone="warning" size="sm" icon={Eye} onClick={() => onDetalhe(item)}>
-                      Ver
-                    </Button>
-                    <Button tone="success" size="sm" icon={Users} onClick={() => onAtribuir(item.id)}>
-                      Avaliadores
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </GlassCard>
-  );
-}
-
 function AnexoBadge({ item }) {
   return hasAnexo(item) ? (
-    <Badge tone="emerald" icon={Paperclip}>Anexo</Badge>
+    <Badge tone="emerald" icon={Paperclip}>
+      Anexo
+    </Badge>
   ) : (
-    <Badge tone="slate" icon={Paperclip}>Sem anexo</Badge>
+    <Badge tone="slate" icon={Paperclip}>
+      Sem anexo
+    </Badge>
   );
 }
 
@@ -1406,7 +1356,7 @@ function SubmissaoCards({ items, onDetalhe, onAtribuir }) {
               "overflow-hidden rounded-[1.75rem] border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl dark:bg-slate-900",
               temAnexo
                 ? "border-emerald-200 dark:border-emerald-900/50"
-                : "border-slate-200 dark:border-slate-800"
+                : "border-slate-200 dark:border-slate-800",
             )}
           >
             <div
@@ -1414,7 +1364,7 @@ function SubmissaoCards({ items, onDetalhe, onAtribuir }) {
                 "h-1.5 bg-gradient-to-r",
                 temAnexo
                   ? "from-emerald-500 via-cyan-400 to-sky-500"
-                  : "from-slate-300 via-slate-400 to-slate-500"
+                  : "from-slate-300 via-slate-400 to-slate-500",
               )}
             />
 
@@ -1517,7 +1467,9 @@ function NotaBox({ label, value }) {
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
-      <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">{value}</p>
+      <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+        {value}
+      </p>
     </div>
   );
 }
@@ -1545,7 +1497,9 @@ function Paginacao({ page, totalPages, setPage, perPage, setPerPage, total }) {
             className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900"
           >
             {[10, 20, 50, 100].map((n) => (
-              <option key={n} value={n}>{n}</option>
+              <option key={n} value={n}>
+                {n}
+              </option>
             ))}
           </select>
         </label>
@@ -1570,7 +1524,9 @@ function Paginacao({ page, totalPages, setPage, perPage, setPerPage, total }) {
             size="sm"
             icon={ChevronRight}
             disabled={page >= totalPages}
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
           >
             Próxima
           </Button>

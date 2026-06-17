@@ -189,7 +189,9 @@ export default function ResumoEventoCard({
       };
 
   const handleKeyDown = (event) => {
-    if (!clicavel) return;
+    if (!clicavel) {
+      return;
+    }
 
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -218,7 +220,7 @@ export default function ResumoEventoCard({
         clicavel &&
           "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950",
         (disabled || loading) && "cursor-not-allowed opacity-75",
-        className
+        className,
       )}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.58),transparent_40%)] dark:bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.10),transparent_45%)]" />
@@ -228,14 +230,14 @@ export default function ResumoEventoCard({
           className={classNames(
             "shrink-0 rounded-2xl ring-1 ring-black/5 dark:ring-white/10",
             card.iconBg,
-            compact ? "p-2" : "p-3"
+            compact ? "p-2" : "p-3",
           )}
           aria-hidden="true"
         >
           <Icon
             className={classNames(
               card.iconText,
-              compact ? "h-5 w-5" : "h-6 w-6"
+              compact ? "h-5 w-5" : "h-6 w-6",
             )}
           />
         </span>
@@ -258,7 +260,7 @@ export default function ResumoEventoCard({
               <span
                 className={classNames(
                   "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-black ring-1 ring-black/5 dark:ring-white/10",
-                  getTrendClass(trendSeguro.dir)
+                  getTrendClass(trendSeguro.dir),
                 )}
                 aria-label={`Tendência de ${
                   trendSeguro.dir === "down" ? "queda" : "alta"
@@ -281,7 +283,7 @@ export default function ResumoEventoCard({
                 <div
                   className={classNames(
                     "font-black leading-none tracking-tight",
-                    compact ? "text-xl" : "text-3xl"
+                    compact ? "text-xl" : "text-3xl",
                   )}
                 >
                   {valorFormatado}

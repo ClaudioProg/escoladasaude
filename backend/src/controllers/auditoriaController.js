@@ -30,12 +30,7 @@ const auditoriaService = require("../services/auditoriaService");
  * ───────────────────────────────────────────────────────────── */
 
 function obterRequestId(req) {
-  return (
-    req?.requestId ||
-    req?.id ||
-    req?.headers?.["x-request-id"] ||
-    null
-  );
+  return req?.requestId || req?.id || req?.headers?.["x-request-id"] || null;
 }
 
 function respostaSucesso(res, resultado, status = 200) {
@@ -83,7 +78,7 @@ function validarAdministrador(req, res) {
         adminHint: "A rota de auditoria exige autenticação.",
       },
       401,
-      req
+      req,
     );
 
     return false;
@@ -99,7 +94,7 @@ function validarAdministrador(req, res) {
           "Somente usuários com perfil oficial administrador podem consultar auditoria.",
       },
       403,
-      req
+      req,
     );
 
     return false;
@@ -167,7 +162,7 @@ async function listar(req, res) {
         },
       },
       500,
-      req
+      req,
     );
   }
 }
@@ -190,7 +185,7 @@ async function obterPorId(req, res) {
             "O evento de auditoria solicitado não foi encontrado ou o ID informado é inválido.",
         },
         resultado.code === "AUDITORIA_ID_INVALIDO" ? 400 : 404,
-        req
+        req,
       );
     }
 
@@ -217,7 +212,7 @@ async function obterPorId(req, res) {
         },
       },
       500,
-      req
+      req,
     );
   }
 }
@@ -254,7 +249,7 @@ async function resumo(req, res) {
         },
       },
       500,
-      req
+      req,
     );
   }
 }
@@ -311,7 +306,7 @@ async function registrarManual(req, res) {
         message: error.message,
         code: error.code,
         requestId: obterRequestId(req),
-      }
+      },
     );
 
     return respostaErro(
@@ -330,7 +325,7 @@ async function registrarManual(req, res) {
         error.code === "AUDITORIA_MODULO_INVALIDO"
         ? 400
         : 500,
-      req
+      req,
     );
   }
 }

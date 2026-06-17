@@ -39,7 +39,6 @@ import {
   GraduationCap,
   Hash,
   IdCard,
-  Infinity,
   Loader2,
   Mail,
   Pencil,
@@ -781,7 +780,6 @@ export default function TabelaUsuarios({
   return (
     <ul
       className={cx("mx-auto max-w-6xl space-y-4", className)}
-      role="list"
       aria-label="Lista de usuários"
       data-testid={testId}
     >

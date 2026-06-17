@@ -16,7 +16,14 @@
 // - sem badges redundantes;
 // - acessível, mobile-first e sem compatibilidade legada.
 
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, useReducedMotion } from "framer-motion";
@@ -50,10 +57,12 @@ function cx(...classes) {
 }
 
 function debugLog(scope, payload) {
-  if (!IS_DEV) return;
+  if (!IS_DEV) {
+    return;
+  }
 
   try {
-    console.log(scope, payload);
+    console.warn(scope, payload);
   } catch {
     // noop
   }
@@ -82,13 +91,25 @@ function avaliarForca(value) {
   const senha = String(value || "");
   let score = 0;
 
-  if (senha.length >= 8) score += 1;
-  if (/[A-Z]/.test(senha)) score += 1;
-  if (/[a-z]/.test(senha)) score += 1;
-  if (/\d/.test(senha)) score += 1;
-  if (/[^A-Za-z0-9\s]/.test(senha)) score += 1;
+  if (senha.length >= 8) {
+    score += 1;
+  }
+  if (/[A-Z]/.test(senha)) {
+    score += 1;
+  }
+  if (/[a-z]/.test(senha)) {
+    score += 1;
+  }
+  if (/\d/.test(senha)) {
+    score += 1;
+  }
+  if (/[^A-Za-z0-9\s]/.test(senha)) {
+    score += 1;
+  }
 
-  if (/\s/.test(senha)) score = Math.max(0, score - 1);
+  if (/\s/.test(senha)) {
+    score = Math.max(0, score - 1);
+  }
 
   return Math.min(score, 5);
 }
@@ -118,7 +139,7 @@ const BotaoLocal = forwardRef(function BotaoLocal(
     disabled = false,
     ...props
   },
-  ref
+  ref,
 ) {
   const base =
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold transition focus:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-60";
@@ -150,14 +171,14 @@ function Rule({ ok, children, isDark }) {
     <div
       className={cx(
         "flex items-start gap-2 text-xs",
-        isDark ? "text-zinc-300" : "text-slate-600"
+        isDark ? "text-zinc-300" : "text-slate-600",
       )}
     >
       {ok ? (
         <CheckCircle2
           className={cx(
             "mt-0.5 h-4 w-4 shrink-0",
-            isDark ? "text-emerald-300" : "text-emerald-700"
+            isDark ? "text-emerald-300" : "text-emerald-700",
           )}
           aria-hidden="true"
         />
@@ -165,7 +186,7 @@ function Rule({ ok, children, isDark }) {
         <XCircle
           className={cx(
             "mt-0.5 h-4 w-4 shrink-0",
-            isDark ? "text-zinc-500" : "text-slate-400"
+            isDark ? "text-zinc-500" : "text-slate-400",
           )}
           aria-hidden="true"
         />
@@ -189,7 +210,7 @@ function HeaderHero({ isDark }) {
           "shadow-[0_30px_120px_-40px_rgba(15,23,42,.85)]",
           isDark
             ? "border-white/10 bg-white/[0.03]"
-            : "border-white/70 bg-white/20"
+            : "border-white/70 bg-white/20",
         )}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#f59e0b_0%,#d97706_40%,#92400e_100%)]" />
@@ -300,7 +321,7 @@ function PasswordInput({
             isDark
               ? "text-zinc-200 hover:bg-white/5"
               : "text-slate-700 hover:bg-slate-100",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/70"
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/70",
           )}
           aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
           title={visible ? "Ocultar senha" : "Mostrar senha"}
@@ -318,7 +339,7 @@ function PasswordInput({
         <p
           className={cx(
             "mt-1 flex items-center gap-1 text-[11px]",
-            isDark ? "text-amber-300" : "text-amber-700"
+            isDark ? "text-amber-300" : "text-amber-700",
           )}
         >
           <AlertTriangle size={12} aria-hidden="true" />
@@ -370,15 +391,19 @@ export default function RedefinirSenha() {
       sym: /[^A-Za-z0-9\s]/.test(s1),
       noSpaces: !/\s/.test(s1),
     }),
-    [s1]
+    [s1],
   );
 
   const atendeRegra = useMemo(() => SENHA_FORTE_RE.test(s1), [s1]);
   const senhasIguais = useMemo(() => !!s1 && s1 === s2, [s1, s2]);
 
   const barraCls = useMemo(() => {
-    if (forca >= 4) return "bg-emerald-400";
-    if (forca >= 2) return "bg-amber-300";
+    if (forca >= 4) {
+      return "bg-emerald-400";
+    }
+    if (forca >= 2) {
+      return "bg-amber-300";
+    }
     return "bg-rose-300";
   }, [forca]);
 
@@ -388,7 +413,7 @@ export default function RedefinirSenha() {
       animate: reduceMotion ? {} : { opacity: 1, y: 0 },
       transition: { duration: 0.35 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   const inputCls = useCallback(
@@ -399,13 +424,15 @@ export default function RedefinirSenha() {
         isDark
           ? "border-white/10 bg-black/30 text-zinc-100 placeholder:text-zinc-500"
           : "border-slate-300 bg-white/90 text-slate-900 shadow-sm placeholder:text-slate-400",
-        invalid ? "border-red-500/60 ring-2 ring-red-500/60" : ""
+        invalid ? "border-red-500/60 ring-2 ring-red-500/60" : "",
       ),
-    [isDark]
+    [isDark],
   );
 
   const setLive = useCallback((text) => {
-    if (liveRef.current) liveRef.current.textContent = text || "";
+    if (liveRef.current) {
+      liveRef.current.textContent = text || "";
+    }
   }, []);
 
   const fail = useCallback(
@@ -421,7 +448,7 @@ export default function RedefinirSenha() {
         reason: message,
       });
     },
-    [setLive]
+    [setLive],
   );
 
   useEffect(() => {
@@ -444,7 +471,8 @@ export default function RedefinirSenha() {
 
   useEffect(() => {
     if (!tokenValido) {
-      const message = "Link inválido ou expirado. Solicite uma nova recuperação.";
+      const message =
+        "Link inválido ou expirado. Solicite uma nova recuperação.";
 
       setErro(message);
       setMensagem("");
@@ -455,7 +483,9 @@ export default function RedefinirSenha() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setErro("");
     setMensagem("");
@@ -478,7 +508,7 @@ export default function RedefinirSenha() {
     if (!SENHA_FORTE_RE.test(s1)) {
       fail(
         "A senha deve ter 8+ caracteres, com maiúscula, minúscula, número e símbolo.",
-        s1Ref
+        s1Ref,
       );
       return;
     }
@@ -535,14 +565,14 @@ export default function RedefinirSenha() {
     <main
       className={cx(
         "relative flex min-h-screen flex-col overflow-hidden transition-colors",
-        isDark ? "bg-[#030712] text-zinc-100" : "bg-[#f6f8fb] text-slate-900"
+        isDark ? "bg-[#030712] text-zinc-100" : "bg-[#f6f8fb] text-slate-900",
       )}
     >
       <div
         aria-hidden="true"
         className={cx(
           "pointer-events-none absolute inset-0 overflow-hidden",
-          isDark ? "opacity-100" : "opacity-70"
+          isDark ? "opacity-100" : "opacity-70",
         )}
       >
         <div className="absolute left-[-10%] top-[-10%] h-[28rem] w-[28rem] rounded-full bg-amber-500/15 blur-3xl" />
@@ -556,7 +586,7 @@ export default function RedefinirSenha() {
           "pointer-events-none absolute inset-0",
           isDark
             ? "bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)]"
-            : "bg-[linear-gradient(rgba(15,23,42,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,.025)_1px,transparent_1px)]"
+            : "bg-[linear-gradient(rgba(15,23,42,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,.025)_1px,transparent_1px)]",
         )}
         style={{ backgroundSize: "36px 36px" }}
       />
@@ -576,7 +606,7 @@ export default function RedefinirSenha() {
                       "overflow-hidden rounded-3xl border transition-all",
                       isDark
                         ? "border-white/10 bg-white/[0.04] backdrop-blur-xl"
-                        : "border-white/80 bg-white/85 shadow-[0_12px_40px_-24px_rgba(15,23,42,.16)] backdrop-blur"
+                        : "border-white/80 bg-white/85 shadow-[0_12px_40px_-24px_rgba(15,23,42,.16)] backdrop-blur",
                     )}
                   >
                     <div className="h-1.5 w-full bg-gradient-to-r from-amber-500/45 via-orange-500/20 to-transparent" />
@@ -586,7 +616,7 @@ export default function RedefinirSenha() {
                         <ShieldCheck
                           className={cx(
                             "h-5 w-5",
-                            isDark ? "text-amber-300" : "text-amber-700"
+                            isDark ? "text-amber-300" : "text-amber-700",
                           )}
                           aria-hidden="true"
                         />
@@ -600,7 +630,7 @@ export default function RedefinirSenha() {
                           "rounded-2xl border p-4",
                           isDark
                             ? "border-white/10 bg-white/5"
-                            : "border-slate-200 bg-slate-50"
+                            : "border-slate-200 bg-slate-50",
                         )}
                       >
                         <div className="flex items-start gap-2">
@@ -611,7 +641,7 @@ export default function RedefinirSenha() {
                           <p
                             className={cx(
                               "text-sm",
-                              isDark ? "text-zinc-200" : "text-slate-700"
+                              isDark ? "text-zinc-200" : "text-slate-700",
                             )}
                           >
                             Use uma senha <strong>única</strong>, sem espaços e
@@ -652,7 +682,7 @@ export default function RedefinirSenha() {
                     "rounded-3xl border p-6 transition-colors md:p-8",
                     isDark
                       ? "border-white/10 bg-white/[0.04] shadow-[0_20px_80px_-40px_rgba(0,0,0,.85)] backdrop-blur-xl"
-                      : "border-white/80 bg-white/85 shadow-[0_20px_60px_-30px_rgba(15,23,42,.18)] backdrop-blur-xl"
+                      : "border-white/80 bg-white/85 shadow-[0_20px_60px_-30px_rgba(15,23,42,.18)] backdrop-blur-xl",
                   )}
                 >
                   <form
@@ -670,7 +700,7 @@ export default function RedefinirSenha() {
                               "rounded-2xl border px-4 py-3 text-center text-sm font-semibold",
                               isDark
                                 ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-emerald-200 bg-emerald-50 text-emerald-700",
                             )}
                             role="status"
                           >
@@ -684,7 +714,7 @@ export default function RedefinirSenha() {
                               "rounded-2xl border px-4 py-3 text-sm",
                               isDark
                                 ? "border-red-500/30 bg-red-500/10 text-red-200"
-                                : "border-red-200 bg-red-50 text-red-700"
+                                : "border-red-200 bg-red-50 text-red-700",
                             )}
                             role="alert"
                           >
@@ -749,7 +779,7 @@ export default function RedefinirSenha() {
                       <div
                         className={cx(
                           "h-2 w-full overflow-hidden rounded-full",
-                          isDark ? "bg-white/10" : "bg-black/10"
+                          isDark ? "bg-white/10" : "bg-black/10",
                         )}
                       >
                         <div
@@ -761,7 +791,7 @@ export default function RedefinirSenha() {
                       <div
                         className={cx(
                           "mt-1 flex items-center justify-between text-[11px]",
-                          isDark ? "text-zinc-300" : "text-slate-600"
+                          isDark ? "text-zinc-300" : "text-slate-600",
                         )}
                       >
                         <span>
@@ -775,7 +805,7 @@ export default function RedefinirSenha() {
                               ? isDark
                                 ? "text-emerald-300"
                                 : "text-emerald-700"
-                              : ""
+                              : "",
                           )}
                         >
                           {atendeRegra ? (
@@ -811,7 +841,7 @@ export default function RedefinirSenha() {
                         <p
                           className={cx(
                             "text-xs",
-                            isDark ? "text-red-300" : "text-red-600"
+                            isDark ? "text-red-300" : "text-red-600",
                           )}
                         >
                           As senhas não coincidem.
@@ -820,10 +850,13 @@ export default function RedefinirSenha() {
                         <p
                           className={cx(
                             "flex items-center gap-1 text-xs",
-                            isDark ? "text-emerald-300" : "text-emerald-700"
+                            isDark ? "text-emerald-300" : "text-emerald-700",
                           )}
                         >
-                          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                          <CheckCircle2
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
                           Senhas conferem.
                         </p>
                       ) : null}

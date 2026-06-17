@@ -28,7 +28,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
@@ -47,7 +47,6 @@ import HeaderHero from "../components/layout/HeaderHero";
 import {
   notifyError,
   notifyInfo,
-  notifySuccess,
   notifyWarning,
 } from "../components/ui/AppToast";
 
@@ -98,12 +97,6 @@ function computeQrbox() {
   return Math.min(max, Math.max(min, Math.floor(base * 0.9)));
 }
 
-function toPositiveInt(value) {
-  const number = Number(value);
-
-  return Number.isInteger(number) && number > 0 ? number : null;
-}
-
 function safeAtob(value) {
   try {
     return atob(value);
@@ -132,23 +125,29 @@ function getRawToken() {
 function getValidToken() {
   const raw = getRawToken();
 
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : raw;
   const parts = token.split(".");
 
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
 
   try {
-    const payloadStr = safeAtob(
-      parts[1].replace(/-/g, "+").replace(/_/g, "/")
-    );
+    const payloadStr = safeAtob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
 
     const payload = JSON.parse(payloadStr || "{}");
     const now = Date.now() / 1000;
 
-    if (payload?.nbf && now < payload.nbf) return null;
-    if (payload?.exp && now >= payload.exp) return null;
+    if (payload?.nbf && now < payload.nbf) {
+      return null;
+    }
+    if (payload?.exp && now >= payload.exp) {
+      return null;
+    }
 
     return token;
   } catch {
@@ -161,103 +160,6 @@ function getNomeUsuario() {
     return localStorage.getItem("nome") || "usuário";
   } catch {
     return "usuário";
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
- * QR oficial
- * ───────────────────────────────────────────────────────────── */
-
-function parseQrPayload(text) {
-  const raw = String(text || "").trim();
-
-  if (!raw) {
-    return {
-      ok: false,
-      message: "Conteúdo do QR Code vazio.",
-    };
-  }
-
-  const numeroDireto = toPositiveInt(raw);
-
-  if (numeroDireto) {
-    return {
-      ok: true,
-      tipo: "turma",
-      turma_id: numeroDireto,
-    };
-  }
-
-  try {
-    const maybeUrl = new URL(raw);
-    const turmaId = toPositiveInt(maybeUrl.searchParams.get("turma_id"));
-    const token = String(maybeUrl.searchParams.get("token") || "").trim();
-
-    if (turmaId) {
-      return {
-        ok: true,
-        tipo: "turma",
-        turma_id: turmaId,
-      };
-    }
-
-    if (token) {
-      return {
-        ok: true,
-        tipo: "token",
-        token,
-      };
-    }
-
-    return {
-      ok: false,
-      message:
-        "URL de QR inválida. O QR oficial precisa conter turma_id ou token.",
-    };
-  } catch {
-    // Não era URL. Tenta JSON.
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {
-        ok: false,
-        message: "JSON do QR Code inválido.",
-      };
-    }
-
-    const turmaId = toPositiveInt(parsed.turma_id);
-    const token = String(parsed.token || "").trim();
-
-    if (turmaId) {
-      return {
-        ok: true,
-        tipo: "turma",
-        turma_id: turmaId,
-      };
-    }
-
-    if (token) {
-      return {
-        ok: true,
-        tipo: "token",
-        token,
-      };
-    }
-
-    return {
-      ok: false,
-      message:
-        "JSON do QR inválido. Use somente { turma_id } ou { token } no contrato oficial.",
-    };
-  } catch {
-    return {
-      ok: false,
-      message:
-        "Conteúdo do QR Code inválido. Use QR oficial com turma_id ou token.",
-    };
   }
 }
 
@@ -302,7 +204,6 @@ function MiniStats({ cameras, ready, status }) {
  * ───────────────────────────────────────────────────────────── */
 
 export default function Scanner() {
-  const navigate = useNavigate();
   const location = useLocation();
   const reduceMotion = useReducedMotion();
 
@@ -351,7 +252,9 @@ export default function Scanner() {
   }, [token]);
 
   const stopCamera = useCallback(async () => {
-    if (!html5QrCodeRef.current) return;
+    if (!html5QrCodeRef.current) {
+      return;
+    }
 
     try {
       await html5QrCodeRef.current.stop();
@@ -377,7 +280,7 @@ export default function Scanner() {
 
         if (!deviceId) {
           const idxBack = devices.findIndex((device) =>
-            /back|traseir|rear|environment/i.test(device.label || "")
+            /back|traseir|rear|environment/i.test(device.label || ""),
           );
 
           currentIndexRef.current = idxBack >= 0 ? idxBack : 0;
@@ -393,76 +296,88 @@ export default function Scanner() {
   }, [deviceId]);
 
   const abrirUrlDoQrCode = useCallback(
-  async (decodedText) => {
-    const raw = String(decodedText || "").trim();
+    async (decodedText) => {
+      const raw = String(decodedText || "").trim();
 
-    if (!raw) {
-      processedRef.current = false;
-      setDetectado(false);
-      setResultado(null);
-      setHandoff(false);
-      setStatus("QR inválido");
-      notifyWarning("Conteúdo do QR Code vazio.");
-      setLive("Conteúdo do QR Code vazio.");
-      return;
-    }
+      if (!raw) {
+        processedRef.current = false;
+        setDetectado(false);
+        setResultado(null);
+        setHandoff(false);
+        setStatus("QR inválido");
+        notifyWarning("Conteúdo do QR Code vazio.");
+        setLive("Conteúdo do QR Code vazio.");
+        return;
+      }
 
-    let url;
+      let url;
 
-    try {
-      url = new URL(raw);
-    } catch {
-      processedRef.current = false;
-      setDetectado(false);
-      setResultado(null);
-      setHandoff(false);
-      setStatus("QR inválido");
-      notifyWarning("Este QR Code não contém uma URL válida.");
-      setLive("QR Code sem URL válida.");
-      return;
-    }
+      try {
+        url = new URL(raw);
+      } catch {
+        processedRef.current = false;
+        setDetectado(false);
+        setResultado(null);
+        setHandoff(false);
+        setStatus("QR inválido");
+        notifyWarning("Este QR Code não contém uma URL válida.");
+        setLive("QR Code sem URL válida.");
+        return;
+      }
 
-    const origensPermitidas = [
-      "https://escoladasaude.vercel.app",
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-    ];
+      const origensPermitidas = [
+        "https://escoladasaude.vercel.app",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+      ];
 
-    if (!origensPermitidas.includes(url.origin)) {
-      processedRef.current = false;
-      setDetectado(false);
-      setResultado(null);
-      setHandoff(false);
-      setStatus("QR não autorizado");
-      notifyWarning("Este QR Code não pertence à Plataforma da Escola da Saúde.");
-      setLive("QR Code não autorizado.");
-      return;
-    }
+      if (!origensPermitidas.includes(url.origin)) {
+        processedRef.current = false;
+        setDetectado(false);
+        setResultado(null);
+        setHandoff(false);
+        setStatus("QR não autorizado");
+        notifyWarning(
+          "Este QR Code não pertence à Plataforma da Escola da Saúde.",
+        );
+        setLive("QR Code não autorizado.");
+        return;
+      }
 
-    setHandoff(true);
-    setStatus("Abrindo confirmação...");
-    setLive("Abrindo página de confirmação de presença.");
+      setHandoff(true);
+      setStatus("Abrindo confirmação...");
+      setLive("Abrindo página de confirmação de presença.");
 
-    await stopCamera();
+      await stopCamera();
 
-    if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
-    window.location.assign(url.toString());
-  },
-  [setLive, stopCamera]
-);
+      window.location.assign(url.toString());
+    },
+    [setLive, stopCamera],
+  );
 
   const startCamera = useCallback(
     async (reason = "start") => {
-      if (startLockRef.current) return;
+      if (startLockRef.current) {
+        return;
+      }
 
       startLockRef.current = true;
 
       try {
-        if (!isSecureOk()) throw new Error("InsecureContext");
+        if (!isSecureOk()) {
+          throw new Error("InsecureContext");
+        }
 
         setErro("");
-        setStatus(reason === "restart" ? "Reiniciando câmera..." : "Iniciando câmera...");
+        setStatus(
+          reason === "restart"
+            ? "Reiniciando câmera..."
+            : "Iniciando câmera...",
+        );
         setLive("Iniciando câmera.");
 
         const element = document.getElementById("leitor-qr");
@@ -481,12 +396,16 @@ export default function Scanner() {
         }
 
         const onSuccess = async (decodedText) => {
-          if (!decodedText || processedRef.current) return;
+          if (!decodedText || processedRef.current) {
+            return;
+          }
 
           processedRef.current = true;
 
           try {
-            if (navigator.vibrate) navigator.vibrate(40);
+            if (navigator.vibrate) {
+              navigator.vibrate(40);
+            }
           } catch {
             // noop
           }
@@ -517,25 +436,25 @@ export default function Scanner() {
           : { facingMode: "environment" };
 
         await html5QrCode.start(
-  configArg,
-  {
-    fps: 15,
-    qrbox: computeQrbox(),
-    aspectRatio: 1.0,
-    disableFlip: false,
-    experimentalFeatures: {
-      useBarCodeDetectorIfSupported: true,
-    },
-    videoConstraints: {
-      facingMode: "environment",
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
-      focusMode: "continuous",
-    },
-  },
-  onSuccess,
-  onError
-);
+          configArg,
+          {
+            fps: 15,
+            qrbox: computeQrbox(),
+            aspectRatio: 1.0,
+            disableFlip: false,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            },
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              focusMode: "continuous",
+            },
+          },
+          onSuccess,
+          onError,
+        );
 
         setStatus("Aponte para o QR...");
         setLive("Leitor pronto.");
@@ -544,7 +463,7 @@ export default function Scanner() {
         timeoutRef.current = window.setTimeout(() => {
           if (!processedRef.current && mountedRef.current) {
             notifyInfo(
-              "Nenhum QR detectado. Tente aproximar o código ou reiniciar o leitor."
+              "Nenhum QR detectado. Tente aproximar o código ou reiniciar o leitor.",
             );
             setLive("Nenhum QR detectado.");
           }
@@ -560,11 +479,13 @@ export default function Scanner() {
         startLockRef.current = false;
       }
     },
-    [abrirUrlDoQrCode, deviceId, loadDevices, setLive, stopCamera]
+    [abrirUrlDoQrCode, deviceId, loadDevices, setLive, stopCamera],
   );
 
   useEffect(() => {
-    if (iniciando) return undefined;
+    if (iniciando) {
+      return undefined;
+    }
 
     processedRef.current = false;
     setResultado(null);
@@ -574,7 +495,9 @@ export default function Scanner() {
     startCamera("start");
 
     const onVisibilityChange = async () => {
-      if (!html5QrCodeRef.current) return;
+      if (!html5QrCodeRef.current) {
+        return;
+      }
 
       if (document.hidden) {
         try {
@@ -596,7 +519,9 @@ export default function Scanner() {
     const onResize = () => {
       const now = Date.now();
 
-      if (now - lastRestartRef.current < 900) return;
+      if (now - lastRestartRef.current < 900) {
+        return;
+      }
 
       lastRestartRef.current = now;
 
@@ -620,9 +545,15 @@ export default function Scanner() {
   }, [iniciando, startCamera, stopCamera, setLive]);
 
   useEffect(() => {
-    if (iniciando) return;
-    if (!deviceId) return;
-    if (!mountedRef.current) return;
+    if (iniciando) {
+      return;
+    }
+    if (!deviceId) {
+      return;
+    }
+    if (!mountedRef.current) {
+      return;
+    }
 
     processedRef.current = false;
     setDetectado(false);
@@ -651,7 +582,9 @@ export default function Scanner() {
       const next = list[currentIndexRef.current];
 
       setDeviceId(next?.id || null);
-      notifyInfo(`Câmera alternada: ${next?.label || "dispositivo selecionado"}.`);
+      notifyInfo(
+        `Câmera alternada: ${next?.label || "dispositivo selecionado"}.`,
+      );
       setLive("Câmera alternada.");
       return;
     }
@@ -672,7 +605,7 @@ export default function Scanner() {
       animate: reduceMotion ? {} : { opacity: 1, y: 0 },
       transition: { duration: 0.25 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   if (!token) {
@@ -689,49 +622,50 @@ export default function Scanner() {
   return (
     <div className="flex w-full flex-col bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <HeaderHero
-  icone={QrCode}
-  etiqueta="Scanner de presença"
-  titulo="Escanear QR Code"
-  subtitulo="Aponte a câmera para o QR Code oficial da turma para registrar sua presença de forma autenticada e segura."
-/>
+        icone={QrCode}
+        etiqueta="Scanner de presença"
+        titulo="Escanear QR Code"
+        subtitulo="Aponte a câmera para o QR Code oficial da turma para registrar sua presença de forma autenticada e segura."
+      />
 
       <p ref={liveRef} className="sr-only" aria-live="polite" />
 
       <main id="conteudo" role="main" className="flex-1">
         <section className="mx-auto w-full max-w-6xl px-3 pt-6 sm:px-4">
-  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 className="text-xl font-black text-slate-900 dark:text-white">
-        Leitor oficial de presença
-      </h2>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Permita o acesso à câmera e mantenha o QR Code dentro da área de leitura.
-      </p>
-    </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                Leitor oficial de presença
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Permita o acesso à câmera e mantenha o QR Code dentro da área de
+                leitura.
+              </p>
+            </div>
 
-    <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={handleRestart}
-        disabled={handoff}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-60"
-      >
-        <RefreshCw className="h-4 w-4" />
-        Reiniciar leitor
-      </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleRestart}
+                disabled={handoff}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-60"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reiniciar leitor
+              </button>
 
-      <button
-        type="button"
-        onClick={handleToggleCamera}
-        disabled={handoff}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-      >
-        <Repeat className="h-4 w-4" />
-        Alternar câmera
-      </button>
-    </div>
-  </div>
-</section>
+              <button
+                type="button"
+                onClick={handleToggleCamera}
+                disabled={handoff}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              >
+                <Repeat className="h-4 w-4" />
+                Alternar câmera
+              </button>
+            </div>
+          </div>
+        </section>
         <motion.div
           {...motionConfig}
           className="mx-auto max-w-6xl px-3 py-6 text-center sm:px-4"
@@ -742,7 +676,11 @@ export default function Scanner() {
               câmera do dispositivo.
             </p>
 
-            <MiniStats cameras={camerasCount || "—"} ready={ready} status={status} />
+            <MiniStats
+              cameras={camerasCount || "—"}
+              ready={ready}
+              status={status}
+            />
           </section>
 
           <section className="mt-5" aria-label="Área de leitura do QR Code">
@@ -787,7 +725,7 @@ export default function Scanner() {
                   "relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-[2rem] border-4 bg-black/5 transition-all duration-300 dark:bg-black/30",
                   detectado
                     ? "border-emerald-500"
-                    : "border-orange-700 dark:border-orange-500"
+                    : "border-orange-700 dark:border-orange-500",
                 )}
                 role="region"
                 aria-label="Leitor de QR Code"

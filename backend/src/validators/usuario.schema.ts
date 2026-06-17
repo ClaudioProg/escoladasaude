@@ -1,25 +1,11 @@
-// 📁 src/validators/usuario.schema.ts — v2.0
+// ✅ src/validators/usuario.schema.ts — v2.1
+// Atualizado em: 16/06/2026
 import { z } from "zod";
 
 /**
  * Plataforma Escola da Saúde
  *
  * Schemas oficiais de usuário.
- *
- * Contrato:
- * - Cadastro básico: nome, CPF, e-mail, senha e celular.
- * - Perfil institucional: unidade, cargo, data de nascimento,
- *   escolaridade e deficiência.
- *
- * Campos opcionais:
- * - registro
- * - genero_id
- * - orientacao_sexual_id
- * - cor_raca_id
- *
- * Regra anti-fuso:
- * - Datas date-only são tratadas como string YYYY-MM-DD.
- * - Não usar new Date("YYYY-MM-DD").
  */
 
 /* =========================
@@ -29,18 +15,18 @@ import { z } from "zod";
 const SENHA_FORTE_RE =
   /^(?=\S{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$/;
 
-function digits(value: unknown = "") {
+function digits(value: unknown): string {
   return String(value ?? "").replace(/\D+/g, "");
 }
 
-function sanitizeEmail(value: unknown = "") {
+function sanitizeEmail(value: unknown): string {
   return String(value ?? "")
     .trim()
     .toLowerCase()
     .replace(/[^\dA-Za-z@._+-]/g, "");
 }
 
-function isValidIsoDateOnly(value: string) {
+function isValidIsoDateOnly(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
 
   const [year, month, day] = value.split("-").map(Number);
@@ -58,7 +44,7 @@ function isValidIsoDateOnly(value: string) {
   );
 }
 
-function getTodayDateOnlySaoPaulo() {
+function getTodayDateOnlySaoPaulo(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -67,62 +53,46 @@ function getTodayDateOnlySaoPaulo() {
   }).format(new Date());
 }
 
-function isNotFutureIsoDateOnly(value: string) {
+function isNotFutureIsoDateOnly(value: string): boolean {
   if (!isValidIsoDateOnly(value)) return false;
-
   return value <= getTodayDateOnlySaoPaulo();
 }
 
-function cpfValido(cpfRaw: unknown) {
+function cpfValido(cpfRaw: string): boolean {
   const cpf = digits(cpfRaw);
-
   if (!/^\d{11}$/.test(cpf)) return false;
   if (/^(\d)\1{10}$/.test(cpf)) return false;
 
   const calc = (base: string) => {
     let sum = 0;
-
     for (let index = 0; index < base.length; index += 1) {
       sum += Number(base[index]) * (base.length + 1 - index);
     }
-
     const result = (sum * 10) % 11;
-
     return result === 10 ? 0 : result;
   };
 
-  const digit1 = calc(cpf.slice(0, 9));
-  const digit2 = calc(cpf.slice(0, 10));
-
-  return digit1 === Number(cpf[9]) && digit2 === Number(cpf[10]);
+  return (
+    calc(cpf.slice(0, 9)) === Number(cpf[9]) &&
+    calc(cpf.slice(0, 10)) === Number(cpf[10])
+  );
 }
 
-function celularValido(value: unknown) {
+function celularValido(value: string): boolean {
   const celular = digits(value);
-
   return /^(\d{10}|\d{11})$/.test(celular);
 }
 
 const idPositivo = (message: string) =>
-  z.coerce
-    .number({
-      invalid_type_error: message,
-      required_error: message,
-    })
-    .int({ message })
-    .positive({ message });
+  z.coerce.number({ message }).int({ message }).positive({ message });
 
 const idPositivoOpcional = z
   .union([z.string(), z.number(), z.null(), z.undefined()])
   .optional()
-  .transform((value) => {
+  .transform((value: unknown): number | null => {
     if (value === null || value === undefined || value === "") return null;
-
     const number = Number(value);
-
-    if (!Number.isInteger(number) || number <= 0) return null;
-
-    return number;
+    return Number.isInteger(number) && number > 0 ? number : null;
   });
 
 /* =========================
@@ -131,8 +101,8 @@ const idPositivoOpcional = z
 
 const NomeSchema = z
   .string({
-    required_error: "Nome é obrigatório.",
-    invalid_type_error: "Nome inválido.",
+    error: (issue) =>
+      issue.input === undefined ? "Nome é obrigatório." : "Nome inválido.",
   })
   .trim()
   .min(3, "Nome muito curto.")
@@ -140,67 +110,71 @@ const NomeSchema = z
 
 const CpfSchema = z
   .string({
-    required_error: "CPF é obrigatório.",
-    invalid_type_error: "CPF inválido.",
+    error: (issue) =>
+      issue.input === undefined ? "CPF é obrigatório." : "CPF inválido.",
   })
-  .transform((value) => digits(value))
-  .refine((value) => /^\d{11}$/.test(value), "CPF deve conter 11 dígitos.")
+  .transform((value: string) => digits(value))
+  .refine(
+    (value: string) => /^\d{11}$/.test(value),
+    "CPF deve conter 11 dígitos.",
+  )
   .refine(cpfValido, "CPF inválido.");
 
 const EmailSchema = z
   .string({
-    required_error: "E-mail é obrigatório.",
-    invalid_type_error: "E-mail inválido.",
+    error: (issue) =>
+      issue.input === undefined ? "E-mail é obrigatório." : "E-mail inválido.",
   })
-  .transform((value) => sanitizeEmail(value))
+  .transform((value: string) => sanitizeEmail(value))
   .pipe(z.string().email("E-mail inválido.").max(160, "E-mail muito longo."));
 
 const SenhaSchema = z
   .string({
-    required_error: "Senha é obrigatória.",
-    invalid_type_error: "Senha inválida.",
+    error: (issue) =>
+      issue.input === undefined ? "Senha é obrigatória." : "Senha inválida.",
   })
   .min(8, "A senha deve ter no mínimo 8 caracteres.")
   .max(120, "A senha é muito longa.")
   .refine(
-    (value) => SENHA_FORTE_RE.test(value),
-    "A senha deve ter maiúscula, minúscula, número, símbolo e não pode conter espaços."
+    (value: string) => SENHA_FORTE_RE.test(value),
+    "A senha deve ter maiúscula, minúscula, número, símbolo e não pode conter espaços.",
   );
 
 const CelularSchema = z
   .string({
-    required_error: "Celular é obrigatório.",
-    invalid_type_error: "Celular inválido.",
+    error: (issue) =>
+      issue.input === undefined
+        ? "Celular é obrigatório."
+        : "Celular inválido.",
   })
-  .transform((value) => digits(value))
+  .transform((value: string) => digits(value))
   .refine(celularValido, "Celular deve conter 10 ou 11 dígitos.");
 
 const RegistroSchema = z
   .union([z.string(), z.number(), z.null(), z.undefined()])
   .optional()
-  .transform((value) => {
+  .transform((value: unknown): string | null => {
     const registro = digits(value ?? "");
-
-    if (!registro.length) return null;
-
-    return registro.slice(0, 7);
+    return registro.length ? registro.slice(0, 7) : null;
   })
   .refine(
-    (value) => value === null || /^\d{6,7}$/.test(value),
-    "Registro deve conter 6 ou 7 dígitos."
+    (value: string | null) => value === null || /^\d{6,7}$/.test(value),
+    "Registro deve conter 6 ou 7 dígitos.",
   );
 
 const DataNascimentoSchema = z
   .string({
-    required_error: "Data de nascimento é obrigatória.",
-    invalid_type_error: "Data de nascimento inválida.",
+    error: (issue) =>
+      issue.input === undefined
+        ? "Data de nascimento é obrigatória."
+        : "Data de nascimento inválida.",
   })
   .trim()
   .refine(isValidIsoDateOnly, "Data no formato YYYY-MM-DD válida.")
   .refine(isNotFutureIsoDateOnly, "Data de nascimento não pode ser futura.");
 
 /* =========================
-   Cadastro básico
+   Schemas de Exportação
 ========================= */
 
 export const UsuarioCadastroSchema = z
@@ -212,19 +186,7 @@ export const UsuarioCadastroSchema = z
     celular: CelularSchema,
     registro: RegistroSchema,
   })
-  .strict()
-  .transform((data) => ({
-    nome: data.nome,
-    cpf: data.cpf,
-    email: data.email,
-    senha: data.senha,
-    celular: data.celular,
-    registro: data.registro,
-  }));
-
-/* =========================
-   Perfil institucional
-========================= */
+  .strict();
 
 export const UsuarioPerfilSchema = z
   .object({
@@ -233,7 +195,6 @@ export const UsuarioPerfilSchema = z
     dataNascimento: DataNascimentoSchema,
     escolaridadeId: idPositivo("Selecione a escolaridade."),
     deficienciaId: idPositivo("Selecione a deficiência."),
-
     generoId: idPositivoOpcional,
     orientacaoSexualId: idPositivoOpcional,
     corRacaId: idPositivoOpcional,
@@ -246,17 +207,11 @@ export const UsuarioPerfilSchema = z
     data_nascimento: data.dataNascimento,
     escolaridade_id: data.escolaridadeId,
     deficiencia_id: data.deficienciaId,
-
     genero_id: data.generoId,
     orientacao_sexual_id: data.orientacaoSexualId,
     cor_raca_id: data.corRacaId,
     registro: data.registro,
   }));
-
-/* =========================
-   Cadastro + perfil completo
-   Uso opcional para fluxos administrativos
-========================= */
 
 export const UsuarioCadastroCompletoSchema = z
   .object({
@@ -266,13 +221,11 @@ export const UsuarioCadastroCompletoSchema = z
     senha: SenhaSchema,
     celular: CelularSchema,
     registro: RegistroSchema,
-
     cargoId: idPositivo("Selecione um cargo."),
     unidadeId: idPositivo("Selecione uma unidade."),
     dataNascimento: DataNascimentoSchema,
     escolaridadeId: idPositivo("Selecione a escolaridade."),
     deficienciaId: idPositivo("Selecione a deficiência."),
-
     generoId: idPositivoOpcional,
     orientacaoSexualId: idPositivoOpcional,
     corRacaId: idPositivoOpcional,
@@ -285,28 +238,20 @@ export const UsuarioCadastroCompletoSchema = z
     senha: data.senha,
     celular: data.celular,
     registro: data.registro,
-
     cargo_id: data.cargoId,
     unidade_id: data.unidadeId,
     data_nascimento: data.dataNascimento,
     escolaridade_id: data.escolaridadeId,
     deficiencia_id: data.deficienciaId,
-
     genero_id: data.generoId,
     orientacao_sexual_id: data.orientacaoSexualId,
     cor_raca_id: data.corRacaId,
   }));
 
-/* =========================
-   Tipos úteis
-========================= */
-
 export type UsuarioCadastroInput = z.input<typeof UsuarioCadastroSchema>;
 export type UsuarioCadastroPayload = z.output<typeof UsuarioCadastroSchema>;
-
 export type UsuarioPerfilInput = z.input<typeof UsuarioPerfilSchema>;
 export type UsuarioPerfilPayload = z.output<typeof UsuarioPerfilSchema>;
-
 export type UsuarioCadastroCompletoInput = z.input<
   typeof UsuarioCadastroCompletoSchema
 >;

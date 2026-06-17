@@ -1,4 +1,5 @@
-// 📁 src/utils/gerarLinkGoogleAgenda.js — v2.0
+// 📁 src/utils/gerarLinkGoogleAgenda.js — v2.1
+// Atualizado em: 16/06/2026
 
 import {
   addDaysYMD,
@@ -31,10 +32,13 @@ const MAX_LOCATION = 1000;
 const MAX_ATTENDEES = 50;
 
 function sanitizeText(input = "") {
-  return String(input ?? "")
-    .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F]/g, "")
-    .replace(/\r\n?/g, "\n")
-    .trim();
+  return (
+    String(input ?? "")
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F]/g, "")
+      .replace(/\r\n?/g, "\n")
+      .trim()
+  );
 }
 
 function clampText(input, maxLength) {
@@ -174,7 +178,14 @@ function addMinutesToWall(wall, minutes) {
   }
 
   const date = new Date(
-    Date.UTC(year, month - 1, day, hour, minute + Math.trunc(increment), second)
+    Date.UTC(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute + Math.trunc(increment),
+      second,
+    ),
   );
 
   const yy = date.getUTCFullYear();
@@ -196,7 +207,9 @@ function normalizeAttendees(attendees) {
   const emails = [];
 
   for (const item of attendees) {
-    const email = String(item || "").trim().toLowerCase();
+    const email = String(item || "")
+      .trim()
+      .toLowerCase();
 
     if (!email || seen.has(email)) {
       continue;
@@ -236,10 +249,12 @@ function resolveDatesParam({ dataInicio, dataFim }) {
 
   if (inicioWall) {
     const fimResolvido =
-      fimWall && fimWall > inicioWall ? fimWall : addMinutesToWall(inicioWall, 90);
+      fimWall && fimWall > inicioWall
+        ? fimWall
+        : addMinutesToWall(inicioWall, 90);
 
     return `${wallToGoogleLocalStamp(inicioWall)}/${wallToGoogleLocalStamp(
-      fimResolvido
+      fimResolvido,
     )}`;
   }
 
@@ -260,7 +275,9 @@ function resolveDatesParam({ dataInicio, dataFim }) {
       const inicioDate =
         dataInicio instanceof Date ? dataInicio : new Date(dataInicio);
 
-      fimUtc = toGoogleUtcStamp(new Date(inicioDate.getTime() + 90 * 60 * 1000));
+      fimUtc = toGoogleUtcStamp(
+        new Date(inicioDate.getTime() + 90 * 60 * 1000),
+      );
     }
 
     return `${inicioUtc}/${fimUtc}`;
@@ -299,7 +316,7 @@ export function gerarLinkGoogleAgenda({
     resolveDatesParam({
       dataInicio,
       dataFim,
-    })
+    }),
   );
 
   const emails = normalizeAttendees(attendees);

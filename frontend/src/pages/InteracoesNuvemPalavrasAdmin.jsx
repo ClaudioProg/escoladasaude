@@ -49,10 +49,7 @@ import {
   Plus,
   RefreshCcw,
   Search,
-  ShieldCheck,
-  Sparkles,
   Trash2,
-  Users,
   X,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
@@ -126,15 +123,25 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
 function unwrapData(response) {
-  if (response?.data?.data !== undefined) return response.data.data;
-  if (response?.data !== undefined) return response.data;
+  if (response?.data?.data !== undefined) {
+    return response.data.data;
+  }
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -159,29 +166,23 @@ function norm(value) {
     .trim();
 }
 
-function brDate(value) {
-  if (!value) return "—";
-
-  try {
-    const [ano, mes, dia] = String(value).slice(0, 10).split("-");
-    if (!ano || !mes || !dia) return "—";
-    return `${dia}/${mes}/${ano}`;
-  } catch {
+function brTime(value) {
+  if (!value) {
     return "—";
   }
-}
-
-function brTime(value) {
-  if (!value) return "—";
   return String(value).slice(0, 5);
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -226,7 +227,9 @@ function readPersistedFilters() {
 }
 
 function normalizeFormFromInteracao(interacao) {
-  if (!interacao) return FORM_INICIAL;
+  if (!interacao) {
+    return FORM_INICIAL;
+  }
 
   const pergunta = Array.isArray(interacao.perguntas)
     ? interacao.perguntas[0]
@@ -306,7 +309,9 @@ const WORD_CLOUD_HEIGHT = 440;
 const WORD_CLOUD_MAX_TERMS = 28;
 
 function normalizarPalavrasNuvem(palavras) {
-  if (!Array.isArray(palavras)) return [];
+  if (!Array.isArray(palavras)) {
+    return [];
+  }
 
   return palavras
     .map((item) => ({
@@ -314,7 +319,10 @@ function normalizarPalavrasNuvem(palavras) {
       total: Number(item?.total || 0),
     }))
     .filter((item) => item.palavra && item.total > 0)
-    .sort((a, b) => b.total - a.total || a.palavra.localeCompare(b.palavra, "pt-BR"))
+    .sort(
+      (a, b) =>
+        b.total - a.total || a.palavra.localeCompare(b.palavra, "pt-BR"),
+    )
     .slice(0, WORD_CLOUD_MAX_TERMS);
 }
 
@@ -326,13 +334,15 @@ function calcularTamanhoPalavra(total, maiorTotal, index = 0) {
   const min = 18;
   const max = 78;
 
-  if (!maiorTotal || maiorTotal <= 0) return min;
+  if (!maiorTotal || maiorTotal <= 0) {
+    return min;
+  }
 
   const ratio = Math.sqrt(Number(total || 0) / maiorTotal);
   const destaque = index === 0 ? 1.18 : index === 1 ? 1.06 : 1;
 
   return Math.round(
-    Math.min(max, Math.max(min, min + (max - min) * ratio * destaque))
+    Math.min(max, Math.max(min, min + (max - min) * ratio * destaque)),
   );
 }
 
@@ -365,15 +375,17 @@ function boxDentroDaArea(box, largura, altura, margem = 18) {
 function calcularLayoutNuvemPalavras(
   palavras,
   largura = WORD_CLOUD_WIDTH,
-  altura = WORD_CLOUD_HEIGHT
+  altura = WORD_CLOUD_HEIGHT,
 ) {
   const lista = normalizarPalavrasNuvem(palavras);
 
-  if (!lista.length) return [];
+  if (!lista.length) {
+    return [];
+  }
 
   const maiorTotal = Math.max(
     ...lista.map((item) => Number(item.total || 0)),
-    1
+    1,
   );
 
   const centroX = largura / 2;
@@ -387,7 +399,11 @@ function calcularLayoutNuvemPalavras(
 
     let posicao = null;
 
-    for (let tentativaFonte = 0; tentativaFonte < 4 && !posicao; tentativaFonte += 1) {
+    for (
+      let tentativaFonte = 0;
+      tentativaFonte < 4 && !posicao;
+      tentativaFonte += 1
+    ) {
       const larguraTexto = estimarLarguraTexto(item.palavra, fontSize);
       const alturaTexto = fontSize * 1.08;
 
@@ -408,7 +424,11 @@ function calcularLayoutNuvemPalavras(
         const passoRaio = 10;
         const passoAngulo = 14;
 
-        for (let raio = raioInicial; raio <= raioMaximo && !posicao; raio += passoRaio) {
+        for (
+          let raio = raioInicial;
+          raio <= raioMaximo && !posicao;
+          raio += passoRaio
+        ) {
           for (let angulo = 0; angulo < 360; angulo += passoAngulo) {
             const rad = (angulo * Math.PI) / 180;
 
@@ -423,7 +443,7 @@ function calcularLayoutNuvemPalavras(
             };
 
             const temColisao = ocupados.some((ocupado) =>
-              boxesColidem(box, ocupado)
+              boxesColidem(box, ocupado),
             );
 
             if (boxDentroDaArea(box, largura, altura) && !temColisao) {
@@ -474,7 +494,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
   const [mensagem, setMensagem] = useState("");
 
   const [filtroStatus, setFiltroStatus] = useState(
-    persisted.filtroStatus || ""
+    persisted.filtroStatus || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -506,7 +526,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
         JSON.stringify({
           filtroStatus,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a tela.
@@ -538,7 +558,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as nuvens de palavras."
+        "Não foi possível carregar as nuvens de palavras.",
       );
 
       setErro(message);
@@ -556,7 +576,9 @@ export default function InteracoesNuvemPalavrasAdmin() {
     const query = norm(buscaDebounced);
 
     return interacoes.filter((interacao) => {
-      if (filtroStatus && interacao.status !== filtroStatus) return false;
+      if (filtroStatus && interacao.status !== filtroStatus) {
+        return false;
+      }
 
       if (query) {
         const haystack = norm(
@@ -572,10 +594,12 @@ export default function InteracoesNuvemPalavrasAdmin() {
             interacao.criado_por_nome,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -591,8 +615,12 @@ export default function InteracoesNuvemPalavrasAdmin() {
     };
 
     for (const interacao of interacoes) {
-      if (interacao.status === "publicada") base.publicada += 1;
-      if (interacao.status === "encerrada") base.encerrada += 1;
+      if (interacao.status === "publicada") {
+        base.publicada += 1;
+      }
+      if (interacao.status === "encerrada") {
+        base.encerrada += 1;
+      }
       base.respostas += Number(interacao.total_respostas || 0);
     }
 
@@ -624,7 +652,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a nuvem de palavras para edição."
+        "Não foi possível carregar a nuvem de palavras para edição.",
       );
 
       setErro(message);
@@ -633,7 +661,9 @@ export default function InteracoesNuvemPalavrasAdmin() {
   }
 
   async function alterarStatus(interacao, status) {
-    if (!interacao?.id || !status || interacao.status === status) return;
+    if (!interacao?.id || !status || interacao.status === status) {
+      return;
+    }
 
     setAlterandoStatusId(interacao.id);
     setErro("");
@@ -654,8 +684,8 @@ export default function InteracoesNuvemPalavrasAdmin() {
                   : {}),
                 status,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMensagem("Status da nuvem de palavras atualizado com sucesso.");
@@ -663,7 +693,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível alterar o status da nuvem de palavras."
+        "Não foi possível alterar o status da nuvem de palavras.",
       );
 
       setErro(message);
@@ -695,7 +725,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a nuvem de palavras."
+        "Não foi possível carregar a nuvem de palavras.",
       );
 
       setPainelNuvem({
@@ -718,7 +748,9 @@ export default function InteracoesNuvemPalavrasAdmin() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -729,7 +761,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
       await api.interacao.excluir(confirmacao.id);
 
       setInteracoes((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Nuvem de palavras excluída com sucesso.");
@@ -738,7 +770,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível excluir a nuvem de palavras."
+        "Não foi possível excluir a nuvem de palavras.",
       );
 
       setErro(message);
@@ -747,7 +779,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
       setExcluindo(false);
     }
   }
-    return (
+  return (
     <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <p ref={liveRef} className="sr-only" aria-live="polite" />
 
@@ -756,7 +788,9 @@ export default function InteracoesNuvemPalavrasAdmin() {
         titulo={confirmacao?.titulo}
         loading={excluindo}
         onCancel={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -766,16 +800,22 @@ export default function InteracoesNuvemPalavrasAdmin() {
         painel={painelNuvem}
         loading={carregandoNuvem}
         onClose={() => {
-          if (carregandoNuvem) return;
+          if (carregandoNuvem) {
+            return;
+          }
           setPainelNuvem(null);
         }}
         onRefresh={async () => {
-          if (!painelNuvem?.interacao?.id) return;
+          if (!painelNuvem?.interacao?.id) {
+            return;
+          }
 
           setCarregandoNuvem(true);
 
           try {
-            const response = await api.interacao.resultado(painelNuvem.interacao.id);
+            const response = await api.interacao.resultado(
+              painelNuvem.interacao.id,
+            );
 
             setPainelNuvem((current) => ({
               ...current,
@@ -787,7 +827,7 @@ export default function InteracoesNuvemPalavrasAdmin() {
               ...current,
               erro: getErrorMessage(
                 error,
-                "Não foi possível atualizar a nuvem de palavras."
+                "Não foi possível atualizar a nuvem de palavras.",
               ),
             }));
           } finally {
@@ -796,44 +836,63 @@ export default function InteracoesNuvemPalavrasAdmin() {
         }}
       />
 
-     <HeaderHero
-  titulo="Nuvens de palavras ao vivo"
-  subtitulo="Crie perguntas abertas e acompanhe as palavras mais frequentes aparecendo em painel ao vivo."
-  icon={Cloud}
-/>
+      <HeaderHero
+        titulo="Nuvens de palavras ao vivo"
+        subtitulo="Crie perguntas abertas e acompanhe as palavras mais frequentes aparecendo em painel ao vivo."
+        icon={Cloud}
+      />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <MiniStatCard label="Total" value={kpis.total} icon={Cloud} />
-    <MiniStatCard label="Publicadas" value={kpis.publicada} icon={CheckCircle2} />
-    <MiniStatCard label="Encerradas" value={kpis.encerrada} icon={Eye} />
-    <MiniStatCard label="Palavras" value={kpis.respostas} icon={MessageSquareText} />
-  </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MiniStatCard label="Total" value={kpis.total} icon={Cloud} />
+            <MiniStatCard
+              label="Publicadas"
+              value={kpis.publicada}
+              icon={CheckCircle2}
+            />
+            <MiniStatCard
+              label="Encerradas"
+              value={kpis.encerrada}
+              icon={Eye}
+            />
+            <MiniStatCard
+              label="Palavras"
+              value={kpis.respostas}
+              icon={MessageSquareText}
+            />
+          </div>
 
-  <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-    <button
-      type="button"
-      onClick={abrirCriacao}
-      className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-sky-700 px-5 py-4 text-sm font-black text-white shadow-sm hover:bg-sky-800"
-    >
-      <Plus className="h-4 w-4" />
-      Nova nuvem
-    </button>
+          <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+            <button
+              type="button"
+              onClick={abrirCriacao}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-sky-700 px-5 py-4 text-sm font-black text-white shadow-sm hover:bg-sky-800"
+            >
+              <Plus className="h-4 w-4" />
+              Nova nuvem
+            </button>
 
-    <button
-      type="button"
-      onClick={carregarDados}
-      disabled={carregando}
-      className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:bg-slate-900 dark:text-white dark:ring-slate-800"
-    >
-      <RefreshCcw className={cx("h-4 w-4", carregando && "animate-spin")} />
-      {carregando ? "Atualizando..." : "Atualizar"}
-    </button>
-  </div>
-</section>
+            <button
+              type="button"
+              onClick={carregarDados}
+              disabled={carregando}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:bg-slate-900 dark:text-white dark:ring-slate-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
+              />
+              {carregando ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+        </section>
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -944,7 +1003,9 @@ export default function InteracoesNuvemPalavrasAdmin() {
                 key={interacao.id}
                 interacao={interacao}
                 reduceMotion={reduceMotion}
-                alterandoStatus={String(alterandoStatusId) === String(interacao.id)}
+                alterandoStatus={
+                  String(alterandoStatusId) === String(interacao.id)
+                }
                 onEditar={() => abrirEdicao(interacao)}
                 onPainel={() => abrirPainel(interacao)}
                 onExcluir={() => pedirExclusao(interacao)}
@@ -999,8 +1060,7 @@ function MiniStatCard({ label, value, icon: Icon }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -1028,8 +1088,7 @@ function StatusBadge({ status }) {
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
   };
@@ -1038,7 +1097,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}
@@ -1106,7 +1165,7 @@ function NuvemCard({
           </div>
 
           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                       {interacao.descricao || "Sem descrição informada."}
+            {interacao.descricao || "Sem descrição informada."}
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1254,7 +1313,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     setForm(normalizeFormFromInteracao(interacao));
     setSalvando(false);
@@ -1281,7 +1342,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
     };
   }, [aberto, interacao, onClose, salvando]);
 
-  if (!aberto) return null;
+  if (!aberto) {
+    return null;
+  }
 
   function setCampo(campo, valor) {
     setForm((current) => {
@@ -1328,7 +1391,7 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       janelas: (current.janelas || []).map((janela) =>
-        janela.local_id === localId ? { ...janela, [campo]: valor } : janela
+        janela.local_id === localId ? { ...janela, [campo]: valor } : janela,
       ),
     }));
   }
@@ -1337,7 +1400,7 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       janelas: (current.janelas || []).filter(
-        (janela) => janela.local_id !== localId
+        (janela) => janela.local_id !== localId,
       ),
     }));
   }
@@ -1418,7 +1481,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
       exibir_ranking: false,
 
       atualizar_automaticamente: true,
-      intervalo_atualizacao_segundos: Number(form.intervalo_atualizacao_segundos),
+      intervalo_atualizacao_segundos: Number(
+        form.intervalo_atualizacao_segundos,
+      ),
       limite_palavra_caracteres: Number(form.limite_palavra_caracteres),
 
       perguntas: [
@@ -1443,7 +1508,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
   async function salvar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1457,7 +1524,11 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
     }
 
     setSalvando(true);
-    setA11y(isEdicao ? "Salvando nuvem de palavras." : "Cadastrando nuvem de palavras.");
+    setA11y(
+      isEdicao
+        ? "Salvando nuvem de palavras."
+        : "Cadastrando nuvem de palavras.",
+    );
 
     try {
       const payload = montarPayload();
@@ -1474,7 +1545,7 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível salvar a nuvem de palavras."
+        "Não foi possível salvar a nuvem de palavras.",
       );
 
       setErro(message);
@@ -1489,8 +1560,12 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
       className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (salvando) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <div
@@ -1500,8 +1575,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
         aria-describedby="modal-nuvem-desc"
         className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2rem]"
       >
-<header className="shrink-0 relative overflow-hidden border-b border-white/10 bg-slate-950 p-4 text-white sm:p-5">          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,.34),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(6,182,212,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
-
+        <header className="shrink-0 relative overflow-hidden border-b border-white/10 bg-slate-950 p-4 text-white sm:p-5">
+          {" "}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,.34),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(6,182,212,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,.18),transparent_35%)]" />
           <div className="relative flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
@@ -1513,7 +1589,9 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
                 id="modal-nuvem-title"
                 className="flex items-center gap-2 text-xl font-black tracking-tight sm:text-2xl"
               >
-                {isEdicao ? "Editar nuvem de palavras" : "Nova nuvem de palavras"}
+                {isEdicao
+                  ? "Editar nuvem de palavras"
+                  : "Nova nuvem de palavras"}
               </h2>
 
               <p
@@ -1543,10 +1621,15 @@ function ModalNuvemPalavras({ aberto, interacao, onClose, onSaved }) {
 
         <form
           onSubmit={salvar}
-className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-50 p-4 pb-32 dark:bg-slate-950 sm:p-5 sm:pb-36"
->
-            {erro ? (
-            <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-50 p-4 pb-32 dark:bg-slate-950 sm:p-5 sm:pb-36"
+        >
+          {erro ? (
+            <AlertBox
+              tone="rose"
+              icon={AlertCircle}
+              title="Atenção"
+              message={erro}
+            />
           ) : null}
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
@@ -1602,7 +1685,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                     type="number"
                     min="1"
                     value={form.evento_id}
-                    onChange={(event) => setCampo("evento_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("evento_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID do evento"
                     disabled={salvando}
@@ -1616,7 +1701,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                     type="number"
                     min="1"
                     value={form.turma_id}
-                    onChange={(event) => setCampo("turma_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("turma_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID da turma"
                     disabled={salvando}
@@ -1645,7 +1732,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                   onChange={(event) =>
                     setCampo(
                       "intervalo_atualizacao_segundos",
-                      event.target.value
+                      event.target.value,
                     )
                   }
                   className={inputClass()}
@@ -1657,7 +1744,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                 <Field label="Descrição">
                   <textarea
                     value={form.descricao}
-                    onChange={(event) => setCampo("descricao", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("descricao", event.target.value)
+                    }
                     className={textareaClass()}
                     rows={3}
                     placeholder="Explique o objetivo da nuvem de palavras."
@@ -1680,7 +1769,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
               <CheckboxField
                 label="Uma resposta por usuário"
                 checked={form.uma_resposta_por_usuario}
-                onChange={(value) => setCampo("uma_resposta_por_usuario", value)}
+                onChange={(value) =>
+                  setCampo("uma_resposta_por_usuario", value)
+                }
                 disabled={salvando}
               />
 
@@ -1711,7 +1802,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
               <Field label="Pergunta da nuvem de palavras" required>
                 <textarea
                   value={form.enunciado}
-                  onChange={(event) => setCampo("enunciado", event.target.value)}
+                  onChange={(event) =>
+                    setCampo("enunciado", event.target.value)
+                  }
                   className={textareaClass()}
                   rows={3}
                   placeholder="Ex.: Em uma palavra, como você está se sentindo hoje?"
@@ -1757,7 +1850,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                         atualizarJanela(
                           janela.local_id,
                           "data",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className={inputClass()}
@@ -1773,7 +1866,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                         atualizarJanela(
                           janela.local_id,
                           "horario_inicio",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className={inputClass()}
@@ -1789,7 +1882,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
                         atualizarJanela(
                           janela.local_id,
                           "horario_fim",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className={inputClass()}
@@ -1814,11 +1907,12 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
           </section>
         </form>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          {" "}
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             O painel administrativo atualizará a nuvem conforme o intervalo
             configurado.
           </p>
-
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             <button
               type="button"
@@ -1851,7 +1945,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain bg-slate-
         </footer>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -1863,17 +1957,25 @@ function PainelNuvemDrawer({ painel, loading, onClose, onRefresh }) {
   const intervaloRef = useRef(null);
 
   const interacao = painel?.resultado?.interacao || painel?.interacao;
-const palavras = normalizarPalavrasNuvem(painel?.resultado?.palavras || []);
-const intervalo = Number(interacao?.intervalo_atualizacao_segundos || 3);
-const total = palavras.reduce((acc, item) => acc + Number(item.total || 0), 0);
-const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
+  const palavras = normalizarPalavrasNuvem(painel?.resultado?.palavras || []);
+  const intervalo = Number(interacao?.intervalo_atualizacao_segundos || 3);
+  const total = palavras.reduce(
+    (acc, item) => acc + Number(item.total || 0),
+    0,
+  );
+  const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
 
   useEffect(() => {
-    if (!painel?.interacao?.id) return undefined;
+    if (!painel?.interacao?.id) {
+      return undefined;
+    }
 
-    intervaloRef.current = window.setInterval(() => {
-      onRefresh?.();
-    }, Math.max(1, intervalo) * 1000);
+    intervaloRef.current = window.setInterval(
+      () => {
+        onRefresh?.();
+      },
+      Math.max(1, intervalo) * 1000,
+    );
 
     return () => {
       if (intervaloRef.current) {
@@ -1882,15 +1984,21 @@ const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
     };
   }, [painel?.interacao?.id, intervalo, onRefresh]);
 
-  if (!painel) return null;
+  if (!painel) {
+    return null;
+  }
 
   return (
     <div
       className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-sm"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <aside
@@ -1988,7 +2096,8 @@ const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
                     </h3>
 
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                      O tamanho da palavra cresce conforme a frequência das respostas.
+                      O tamanho da palavra cresce conforme a frequência das
+                      respostas.
                     </p>
                   </div>
 
@@ -2013,39 +2122,39 @@ const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
                     </div>
                   </div>
                 ) : (
-<div className="rounded-3xl border border-amber-100 bg-[radial-gradient(circle_at_center,#fffdf8_0%,#fff9ef_46%,#ffffff_100%)] p-4 shadow-inner dark:border-slate-800 dark:bg-[radial-gradient(circle_at_center,rgba(30,41,59,.92)_0%,rgba(15,23,42,1)_100%)] sm:p-6">
-  <div className="overflow-hidden rounded-[2rem] border border-dashed border-amber-200/70 bg-white/40 p-2 dark:border-slate-700 dark:bg-slate-950/20">
-    <svg
-      viewBox={`0 0 ${WORD_CLOUD_WIDTH} ${WORD_CLOUD_HEIGHT}`}
-      className="block h-auto min-h-[360px] w-full sm:min-h-[440px]"
-      role="img"
-      aria-label="Nuvem de palavras em tempo real"
-    >
-      {layoutNuvem.map((item, index) => (
-        <text
-          key={`${item.palavra}-${index}`}
-          x={item.x}
-          y={item.y}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={item.fontSize}
-          fontWeight={item.destaque ? 950 : 850}
-          fill={item.cor}
-          opacity={index <= 4 ? 1 : 0.88}
-          className="select-none transition-transform duration-200"
-        >
-          {item.palavra}
-        </text>
-      ))}
-    </svg>
-  </div>
+                  <div className="rounded-3xl border border-amber-100 bg-[radial-gradient(circle_at_center,#fffdf8_0%,#fff9ef_46%,#ffffff_100%)] p-4 shadow-inner dark:border-slate-800 dark:bg-[radial-gradient(circle_at_center,rgba(30,41,59,.92)_0%,rgba(15,23,42,1)_100%)] sm:p-6">
+                    <div className="overflow-hidden rounded-[2rem] border border-dashed border-amber-200/70 bg-white/40 p-2 dark:border-slate-700 dark:bg-slate-950/20">
+                      <svg
+                        viewBox={`0 0 ${WORD_CLOUD_WIDTH} ${WORD_CLOUD_HEIGHT}`}
+                        className="block h-auto min-h-[360px] w-full sm:min-h-[440px]"
+                        role="img"
+                        aria-label="Nuvem de palavras em tempo real"
+                      >
+                        {layoutNuvem.map((item, index) => (
+                          <text
+                            key={`${item.palavra}-${index}`}
+                            x={item.x}
+                            y={item.y}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={item.fontSize}
+                            fontWeight={item.destaque ? 950 : 850}
+                            fill={item.cor}
+                            opacity={index <= 4 ? 1 : 0.88}
+                            className="select-none transition-transform duration-200"
+                          >
+                            {item.palavra}
+                          </text>
+                        ))}
+                      </svg>
+                    </div>
 
-  <div className="mt-3 flex justify-end">
-    <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-bold text-amber-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-      {total} palavra(s) • {palavras.length} termo(s)
-    </span>
-  </div>
-</div>
+                    <div className="mt-3 flex justify-end">
+                      <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-bold text-amber-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                        {total} palavra(s) • {palavras.length} termo(s)
+                      </span>
+                    </div>
+                  </div>
                 )}
               </section>
 
@@ -2112,16 +2221,28 @@ const layoutNuvem = calcularLayoutNuvemPalavras(palavras);
   );
 }
 
-function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
-  if (!open) return null;
+function ConfirmarExclusaoModal({
+  open,
+  titulo,
+  loading,
+  onCancel,
+  onConfirm,
+}) {
+  if (!open) {
+    return null;
+  }
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onCancel?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onCancel?.();
+        }
       }}
     >
       <div

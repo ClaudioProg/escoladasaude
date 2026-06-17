@@ -100,9 +100,7 @@ const MODO_EXECUCAO_QUIZ = Object.freeze({
 const TIPOS_OFICIAIS = new Set(Object.values(TIPO));
 const STATUS_OFICIAIS = new Set(Object.values(STATUS));
 const CONTEXTOS_OFICIAIS = new Set(Object.values(CONTEXTO));
-const MODOS_EXECUCAO_QUIZ_OFICIAIS = new Set(
-  Object.values(MODO_EXECUCAO_QUIZ)
-);
+const MODOS_EXECUCAO_QUIZ_OFICIAIS = new Set(Object.values(MODO_EXECUCAO_QUIZ));
 
 const TIPO_LABEL = Object.freeze({
   votacao: "Votação",
@@ -148,7 +146,7 @@ const query = getQuery();
 
 if (typeof query !== "function") {
   throw new Error(
-    "DB inválido em interacaoController.js: export oficial precisa expor query."
+    "DB inválido em interacaoController.js: export oficial precisa expor query.",
   );
 }
 
@@ -186,7 +184,7 @@ function gerarRequestId() {
 
 function sucesso(
   res,
-  { status = 200, data = null, message = "OK", code = "OK", meta = null }
+  { status = 200, data = null, message = "OK", code = "OK", meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -206,7 +204,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -291,7 +289,7 @@ function normalizarContexto(value, fallback = CONTEXTO.geral) {
 
 function normalizarModoExecucaoQuiz(
   value,
-  fallback = MODO_EXECUCAO_QUIZ.manual
+  fallback = MODO_EXECUCAO_QUIZ.manual,
 ) {
   return normalizarEnum(value, MODOS_EXECUCAO_QUIZ_OFICIAIS, fallback);
 }
@@ -310,10 +308,14 @@ function getPerfis(req) {
   const perfil = req?.user?.perfil;
 
   if (Array.isArray(perfil)) {
-    return perfil.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
+    return perfil
+      .map((item) => String(item).trim().toLowerCase())
+      .filter(Boolean);
   }
 
-  const unico = String(perfil || "").trim().toLowerCase();
+  const unico = String(perfil || "")
+    .trim()
+    .toLowerCase();
   return unico ? [unico] : [];
 }
 
@@ -344,7 +346,8 @@ function validarPermissaoAdmin(req, res, requestId) {
         status: 403,
         message: "Acesso restrito a administradores.",
         code: "SEM_PERMISSAO",
-        adminHint: "Somente perfil oficial administrador pode gerenciar interações.",
+        adminHint:
+          "Somente perfil oficial administrador pode gerenciar interações.",
         requestId,
       }),
     };
@@ -435,7 +438,10 @@ function validarJanelas(janelasInput = []) {
       };
     }
 
-    if (!horaRegex.test(horario_inicio || "") || !horaRegex.test(horario_fim || "")) {
+    if (
+      !horaRegex.test(horario_inicio || "") ||
+      !horaRegex.test(horario_fim || "")
+    ) {
       return {
         ok: false,
         message: `Horário inválido na janela ${index + 1}.`,
@@ -480,7 +486,10 @@ function validarPerguntasOpcoes(tipo, perguntasInput = []) {
     };
   }
 
-  if ((tipo === TIPO.votacao || tipo === TIPO.quiz) && perguntasInput.length === 0) {
+  if (
+    (tipo === TIPO.votacao || tipo === TIPO.quiz) &&
+    perguntasInput.length === 0
+  ) {
     return {
       ok: false,
       message: "Informe pelo menos uma pergunta.",
@@ -500,13 +509,17 @@ function validarPerguntasOpcoes(tipo, perguntasInput = []) {
     const pergunta = perguntasInput[index] || {};
     const enunciado = cleanRequiredStr(pergunta.enunciado);
     const ordem =
-      pergunta.ordem === undefined || pergunta.ordem === null || pergunta.ordem === ""
+      pergunta.ordem === undefined ||
+      pergunta.ordem === null ||
+      pergunta.ordem === ""
         ? index
         : toIntOrNull(pergunta.ordem);
 
     const obrigatoria = toBool(pergunta.obrigatoria, true);
     const peso =
-      pergunta.peso === undefined || pergunta.peso === null || pergunta.peso === ""
+      pergunta.peso === undefined ||
+      pergunta.peso === null ||
+      pergunta.peso === ""
         ? 1
         : toNumberOrNull(pergunta.peso);
     const limite_caracteres = toIntOrNull(pergunta.limite_caracteres);
@@ -576,11 +589,17 @@ function validarPerguntasOpcoes(tipo, perguntasInput = []) {
 
       let corretas = 0;
 
-      for (let optionIndex = 0; optionIndex < opcoesInput.length; optionIndex += 1) {
+      for (
+        let optionIndex = 0;
+        optionIndex < opcoesInput.length;
+        optionIndex += 1
+      ) {
         const opcao = opcoesInput[optionIndex] || {};
         const texto = cleanRequiredStr(opcao.texto);
         const ordemOpcao =
-          opcao.ordem === undefined || opcao.ordem === null || opcao.ordem === ""
+          opcao.ordem === undefined ||
+          opcao.ordem === null ||
+          opcao.ordem === ""
             ? optionIndex
             : toIntOrNull(opcao.ordem);
         const correta = Boolean(opcao.correta);
@@ -650,7 +669,7 @@ function validarPayloadInteracao(body = {}) {
 
   const exige_inscricao_ou_presenca = toBool(
     body.exige_inscricao_ou_presenca,
-    true
+    true,
   );
   const exige_geolocalizacao = toBool(body.exige_geolocalizacao, false);
   const latitude = toNumberOrNull(body.latitude);
@@ -659,27 +678,30 @@ function validarPayloadInteracao(body = {}) {
 
   const permite_anonima = toBool(body.permite_anonima, false);
   const uma_resposta_por_usuario = toBool(body.uma_resposta_por_usuario, true);
-  const mostrar_resultado_usuario = toBool(body.mostrar_resultado_usuario, false);
+  const mostrar_resultado_usuario = toBool(
+    body.mostrar_resultado_usuario,
+    false,
+  );
   const mostrar_resultado_admin = toBool(body.mostrar_resultado_admin, true);
   const exibir_ranking = toBool(body.exibir_ranking, true);
 
-const tempo_por_pergunta_segundos = toIntOrNull(
-  body.tempo_por_pergunta_segundos
-);
+  const tempo_por_pergunta_segundos = toIntOrNull(
+    body.tempo_por_pergunta_segundos,
+  );
 
-const modo_execucao_quiz = normalizarModoExecucaoQuiz(
-  body.modo_execucao_quiz,
-  MODO_EXECUCAO_QUIZ.manual
-);
+  const modo_execucao_quiz = normalizarModoExecucaoQuiz(
+    body.modo_execucao_quiz,
+    MODO_EXECUCAO_QUIZ.manual,
+  );
 
-const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
+  const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
   const embaralhar_opcoes = toBool(body.embaralhar_opcoes, false);
   const tentativas_max = toIntOrNull(body.tentativas_max);
   const nota_minima = toNumberOrNull(body.nota_minima);
 
   const atualizar_automaticamente = toBool(
     body.atualizar_automaticamente,
-    true
+    true,
   );
   const intervalo_atualizacao_segundos =
     body.intervalo_atualizacao_segundos === undefined
@@ -721,13 +743,13 @@ const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
   }
 
   if (!modo_execucao_quiz) {
-  return {
-    ok: false,
-    message: "Modo de execução do quiz inválido.",
-    code: "QUIZ_MODO_EXECUCAO_INVALIDO",
-    adminHint: "Valores oficiais: manual ou automatico.",
-  };
-}
+    return {
+      ok: false,
+      message: "Modo de execução do quiz inválido.",
+      code: "QUIZ_MODO_EXECUCAO_INVALIDO",
+      adminHint: "Valores oficiais: manual ou automatico.",
+    };
+  }
 
   if (contexto === CONTEXTO.geral && (evento_id || turma_id)) {
     return {
@@ -846,7 +868,10 @@ const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
   const perguntasValidacao = validarPerguntasOpcoes(tipo, body.perguntas || []);
   if (!perguntasValidacao.ok) return perguntasValidacao;
 
-  if ((tipo === TIPO.votacao || tipo === TIPO.nuvem_palavras) && janelasValidacao.data.length === 0) {
+  if (
+    (tipo === TIPO.votacao || tipo === TIPO.nuvem_palavras) &&
+    janelasValidacao.data.length === 0
+  ) {
     return {
       ok: false,
       message: "Informe pelo menos uma janela de disponibilidade.",
@@ -880,15 +905,15 @@ const mostrar_gabarito = toBool(body.mostrar_gabarito, false);
       mostrar_resultado_admin,
       exibir_ranking,
 
-tempo_por_pergunta_segundos:
-  tempo_por_pergunta_segundos === undefined
-    ? null
-    : tempo_por_pergunta_segundos,
+      tempo_por_pergunta_segundos:
+        tempo_por_pergunta_segundos === undefined
+          ? null
+          : tempo_por_pergunta_segundos,
 
-modo_execucao_quiz:
-  tipo === TIPO.quiz ? modo_execucao_quiz : MODO_EXECUCAO_QUIZ.manual,
+      modo_execucao_quiz:
+        tipo === TIPO.quiz ? modo_execucao_quiz : MODO_EXECUCAO_QUIZ.manual,
 
-mostrar_gabarito,
+      mostrar_gabarito,
       embaralhar_opcoes,
       tentativas_max: tentativas_max === undefined ? null : tentativas_max,
       nota_minima: nota_minima === undefined ? null : nota_minima,
@@ -899,7 +924,9 @@ mostrar_gabarito,
           ? 3
           : intervalo_atualizacao_segundos,
       limite_palavra_caracteres:
-        limite_palavra_caracteres === undefined ? null : limite_palavra_caracteres,
+        limite_palavra_caracteres === undefined
+          ? null
+          : limite_palavra_caracteres,
 
       janelas: janelasValidacao.data,
       perguntas: perguntasValidacao.data,
@@ -919,7 +946,7 @@ async function carregarPerguntasComOpcoes(client, interacaoId) {
       WHERE interacao_id = $1
       ORDER BY ordem ASC, id ASC
     `,
-    [interacaoId]
+    [interacaoId],
   );
 
   const perguntas = perguntasResult.rows || [];
@@ -935,7 +962,7 @@ async function carregarPerguntasComOpcoes(client, interacaoId) {
       WHERE pergunta_id = ANY($1::int[])
       ORDER BY pergunta_id ASC, ordem ASC, id ASC
     `,
-    [ids]
+    [ids],
   );
 
   const opcoesPorPergunta = new Map();
@@ -962,7 +989,7 @@ async function carregarJanelas(client, interacaoId) {
       WHERE interacao_id = $1
       ORDER BY data ASC, horario_inicio ASC, id ASC
     `,
-    [interacaoId]
+    [interacaoId],
   );
 
   return result.rows || [];
@@ -983,7 +1010,7 @@ async function carregarInteracaoCompleta(client, interacaoId) {
       WHERE i.id = $1
       LIMIT 1
     `,
-    [interacaoId]
+    [interacaoId],
   );
 
   const interacao = interacaoResult.rows?.[0]
@@ -1016,7 +1043,7 @@ async function inserirJanelas(client, interacaoId, janelas) {
         )
         VALUES ($1, $2, $3, $4)
       `,
-      [interacaoId, janela.data, janela.horario_inicio, janela.horario_fim]
+      [interacaoId, janela.data, janela.horario_inicio, janela.horario_fim],
     );
   }
 }
@@ -1049,7 +1076,7 @@ async function inserirPerguntasOpcoes(client, interacaoId, perguntas) {
         pergunta.tempo_segundos,
         pergunta.feedback_correto,
         pergunta.feedback_incorreto,
-      ]
+      ],
     );
 
     const perguntaId = perguntaResult.rows[0].id;
@@ -1065,7 +1092,7 @@ async function inserirPerguntasOpcoes(client, interacaoId, perguntas) {
           )
           VALUES ($1, $2, $3, $4)
         `,
-        [perguntaId, opcao.texto, opcao.ordem, opcao.correta]
+        [perguntaId, opcao.texto, opcao.ordem, opcao.correta],
       );
     }
   }
@@ -1097,7 +1124,7 @@ async function verificarInscricaoOuPresenca(client, interacao, usuarioId) {
             AND p.turma_id = $2
         ) AS autorizado
       `,
-      [usuarioId, turmaId]
+      [usuarioId, turmaId],
     );
 
     return Boolean(result.rows?.[0]?.autorizado);
@@ -1123,7 +1150,7 @@ async function verificarInscricaoOuPresenca(client, interacao, usuarioId) {
             AND t.evento_id = $2
         ) AS autorizado
       `,
-      [usuarioId, eventoId]
+      [usuarioId, eventoId],
     );
 
     return Boolean(result.rows?.[0]?.autorizado);
@@ -1150,7 +1177,7 @@ async function verificarJanelaDisponivel(client, interacaoId) {
           AND asp.hora_atual <= ij.horario_fim::time
       ) AS disponivel
     `,
-    [interacaoId]
+    [interacaoId],
   );
 
   return Boolean(result.rows?.[0]?.disponivel);
@@ -1166,7 +1193,7 @@ async function usuarioJaRespondeuInteracao(client, interacaoId, usuarioId) {
           AND usuario_id = $2
       ) AS ja_respondeu
     `,
-    [interacaoId, usuarioId]
+    [interacaoId, usuarioId],
   );
 
   return Boolean(result.rows?.[0]?.ja_respondeu);
@@ -1184,7 +1211,7 @@ function validarGeolocalizacaoInteracao(interacao, body = {}) {
 
   const coordenadas = validarLatitudeLongitude(
     body.latitude_usuario,
-    body.longitude_usuario
+    body.longitude_usuario,
   );
 
   if (!coordenadas) {
@@ -1200,13 +1227,14 @@ function validarGeolocalizacaoInteracao(interacao, body = {}) {
     Number(interacao.latitude),
     Number(interacao.longitude),
     coordenadas.latitude,
-    coordenadas.longitude
+    coordenadas.longitude,
   );
 
   if (distancia > Number(interacao.raio_metros)) {
     return {
       ok: false,
-      message: "Você está fora da área permitida para responder esta interação.",
+      message:
+        "Você está fora da área permitida para responder esta interação.",
       code: "FORA_DA_AREA_PERMITIDA",
       details: {
         distancia_metros: distancia,
@@ -1260,7 +1288,9 @@ function perguntaEstaAbertaParaResposta(pergunta) {
 function validarRespostaUsuario(interacao, body = {}) {
   const perguntaId = Number(body.pergunta_id);
   const opcaoId =
-    body.opcao_id === undefined || body.opcao_id === null || body.opcao_id === ""
+    body.opcao_id === undefined ||
+    body.opcao_id === null ||
+    body.opcao_id === ""
       ? null
       : Number(body.opcao_id);
   const respostaTexto = cleanStr(body.resposta_texto);
@@ -1274,7 +1304,7 @@ function validarRespostaUsuario(interacao, body = {}) {
   }
 
   const pergunta = (interacao.perguntas || []).find(
-    (item) => Number(item.id) === perguntaId
+    (item) => Number(item.id) === perguntaId,
   );
 
   if (!pergunta) {
@@ -1295,7 +1325,7 @@ function validarRespostaUsuario(interacao, body = {}) {
     }
 
     const opcao = (pergunta.opcoes || []).find(
-      (item) => Number(item.id) === opcaoId
+      (item) => Number(item.id) === opcaoId,
     );
 
     if (!opcao) {
@@ -1444,7 +1474,7 @@ async function listarAdmin(req, res) {
           i.criado_em DESC,
           i.id DESC
       `,
-      params
+      params,
     );
 
     const data = (result.rows || []).map(decorarInteracao);
@@ -1614,17 +1644,17 @@ $25, $26, $27, $28, $29,
           payload.mostrar_resultado_usuario,
           payload.mostrar_resultado_admin,
           payload.exibir_ranking,
-payload.tempo_por_pergunta_segundos,
-payload.modo_execucao_quiz,
-payload.mostrar_gabarito,
-payload.embaralhar_opcoes,
-payload.tentativas_max,
-payload.nota_minima,
-payload.atualizar_automaticamente,
-payload.intervalo_atualizacao_segundos,
-payload.limite_palavra_caracteres,
-permissao.usuarioId,
-        ]
+          payload.tempo_por_pergunta_segundos,
+          payload.modo_execucao_quiz,
+          payload.mostrar_gabarito,
+          payload.embaralhar_opcoes,
+          payload.tentativas_max,
+          payload.nota_minima,
+          payload.atualizar_automaticamente,
+          payload.intervalo_atualizacao_segundos,
+          payload.limite_palavra_caracteres,
+          permissao.usuarioId,
+        ],
       );
 
       const interacaoId = result.rows[0].id;
@@ -1698,7 +1728,7 @@ async function atualizarAdmin(req, res) {
           WHERE id = $1
           LIMIT 1
         `,
-        [id]
+        [id],
       );
 
       if (!existe.rows?.[0]) return null;
@@ -1770,25 +1800,26 @@ limite_palavra_caracteres = $28,
           payload.mostrar_resultado_admin,
           payload.exibir_ranking,
           payload.tempo_por_pergunta_segundos,
-payload.modo_execucao_quiz,
-payload.mostrar_gabarito,
-payload.embaralhar_opcoes,
-payload.tentativas_max,
-payload.nota_minima,
-payload.atualizar_automaticamente,
-payload.intervalo_atualizacao_segundos,
-payload.limite_palavra_caracteres,
-id,
-        ]
+          payload.modo_execucao_quiz,
+          payload.mostrar_gabarito,
+          payload.embaralhar_opcoes,
+          payload.tentativas_max,
+          payload.nota_minima,
+          payload.atualizar_automaticamente,
+          payload.intervalo_atualizacao_segundos,
+          payload.limite_palavra_caracteres,
+          id,
+        ],
       );
 
-      await client.query(`DELETE FROM ${TABELA_JANELA} WHERE interacao_id = $1`, [
-        id,
-      ]);
+      await client.query(
+        `DELETE FROM ${TABELA_JANELA} WHERE interacao_id = $1`,
+        [id],
+      );
 
       await client.query(
         `DELETE FROM ${TABELA_PERGUNTA} WHERE interacao_id = $1`,
-        [id]
+        [id],
       );
 
       await inserirJanelas(client, id, payload.janelas);
@@ -1800,7 +1831,7 @@ id,
              SET pergunta_atual_id = NULL
            WHERE id = $1
         `,
-        [id]
+        [id],
       );
 
       return carregarInteracaoCompleta(client, id);
@@ -1885,7 +1916,7 @@ async function alterarStatusAdmin(req, res) {
            WHERE id = $2
            RETURNING id
         `,
-        [status, id]
+        [status, id],
       );
 
       if (!result.rows?.[0]) return null;
@@ -1945,7 +1976,7 @@ async function excluirAdmin(req, res) {
         WHERE id = $1
         RETURNING id, titulo
       `,
-      [id]
+      [id],
     );
 
     const removida = result.rows?.[0];
@@ -2016,7 +2047,7 @@ async function iniciarExecucaoAdmin(req, res) {
           VALUES ($1, 'em_andamento', now(), $2)
           RETURNING *
         `,
-        [id, permissao.usuarioId]
+        [id, permissao.usuarioId],
       );
 
       await client.query(
@@ -2025,7 +2056,7 @@ async function iniciarExecucaoAdmin(req, res) {
              SET status = 'em_andamento'
            WHERE id = $1
         `,
-        [id]
+        [id],
       );
 
       return result.rows[0];
@@ -2084,7 +2115,9 @@ async function avancarPerguntaAdmin(req, res) {
       if (!interacao) return null;
 
       if (interacao.tipo !== TIPO.quiz) {
-        const error = new Error("Avanço sequencial é permitido apenas para quiz.");
+        const error = new Error(
+          "Avanço sequencial é permitido apenas para quiz.",
+        );
         error.status = 400;
         error.code = "QUIZ_AVANCO_TIPO_INVALIDO";
         throw error;
@@ -2112,7 +2145,9 @@ async function avancarPerguntaAdmin(req, res) {
 
       const perguntaAtual =
         perguntas.find((pergunta) => Number(pergunta.id) === perguntaAtualId) ||
-        perguntas.find((pergunta) => pergunta.status === STATUS_PERGUNTA.aberta) ||
+        perguntas.find(
+          (pergunta) => pergunta.status === STATUS_PERGUNTA.aberta,
+        ) ||
         null;
 
       let proximaPergunta = null;
@@ -2121,7 +2156,7 @@ async function avancarPerguntaAdmin(req, res) {
         proximaPergunta = perguntas[0];
       } else {
         const indexAtual = perguntas.findIndex(
-          (pergunta) => Number(pergunta.id) === Number(perguntaAtual.id)
+          (pergunta) => Number(pergunta.id) === Number(perguntaAtual.id),
         );
 
         proximaPergunta = perguntas[indexAtual + 1] || null;
@@ -2137,7 +2172,7 @@ async function avancarPerguntaAdmin(req, res) {
              WHERE id = $1
                AND interacao_id = $2
           `,
-          [perguntaAtual.id, id]
+          [perguntaAtual.id, id],
         );
       }
 
@@ -2156,7 +2191,7 @@ async function avancarPerguntaAdmin(req, res) {
                    atualizado_em = now()
              WHERE interacao_id = $1
           `,
-          [id]
+          [id],
         );
 
         await client.query(
@@ -2168,7 +2203,7 @@ async function avancarPerguntaAdmin(req, res) {
                    atualizado_em = now()
              WHERE id = $1
           `,
-          [id]
+          [id],
         );
 
         await client.query(
@@ -2181,7 +2216,7 @@ async function avancarPerguntaAdmin(req, res) {
              WHERE interacao_id = $1
                AND status = 'em_andamento'
           `,
-          [id]
+          [id],
         );
 
         return carregarInteracaoCompleta(client, id);
@@ -2196,16 +2231,16 @@ async function avancarPerguntaAdmin(req, res) {
            WHERE interacao_id = $1
              AND status = 'aberta'
         `,
-        [id]
+        [id],
       );
 
       const tempoProximaPerguntaSegundos = obterTempoPerguntaSegundos(
-  interacao,
-  proximaPergunta
-);
+        interacao,
+        proximaPergunta,
+      );
 
-await client.query(
-  `
+      await client.query(
+        `
     UPDATE ${TABELA_PERGUNTA}
        SET status = 'aberta',
            aberta_em = now(),
@@ -2219,8 +2254,8 @@ await client.query(
      WHERE id = $1
        AND interacao_id = $2
   `,
-  [proximaPergunta.id, id, tempoProximaPerguntaSegundos]
-);
+        [proximaPergunta.id, id, tempoProximaPerguntaSegundos],
+      );
 
       await client.query(
         `
@@ -2230,11 +2265,11 @@ await client.query(
                  atualizado_em = now()
            WHERE id = $2
         `,
-        [proximaPergunta.id, id]
+        [proximaPergunta.id, id],
       );
 
-await client.query(
-  `
+      await client.query(
+        `
     UPDATE ${TABELA_EXECUCAO}
        SET status = 'em_andamento',
            pergunta_atual_id = $1,
@@ -2247,8 +2282,8 @@ await client.query(
      WHERE interacao_id = $2
        AND status = 'em_andamento'
   `,
-  [proximaPergunta.id, id, tempoProximaPerguntaSegundos]
-);
+        [proximaPergunta.id, id, tempoProximaPerguntaSegundos],
+      );
 
       return carregarInteracaoCompleta(client, id);
     });
@@ -2321,10 +2356,10 @@ async function abrirPerguntaAdmin(req, res) {
       if (!interacao) return null;
 
       const perguntaAlvo = interacao.perguntas.find(
-  (pergunta) => Number(pergunta.id) === perguntaId
-);
+        (pergunta) => Number(pergunta.id) === perguntaId,
+      );
 
-const pertence = Boolean(perguntaAlvo);
+      const pertence = Boolean(perguntaAlvo);
 
       if (!pertence) {
         const error = new Error("Pergunta não pertence à interação.");
@@ -2341,16 +2376,16 @@ const pertence = Boolean(perguntaAlvo);
            WHERE interacao_id = $1
              AND status = 'aberta'
         `,
-        [id]
+        [id],
       );
 
       const tempoPerguntaSegundos = obterTempoPerguntaSegundos(
-  interacao,
-  perguntaAlvo
-);
+        interacao,
+        perguntaAlvo,
+      );
 
-await client.query(
-  `
+      await client.query(
+        `
     UPDATE ${TABELA_PERGUNTA}
        SET status = 'aberta',
            aberta_em = now(),
@@ -2364,11 +2399,11 @@ await client.query(
      WHERE id = $1
        AND interacao_id = $2
   `,
-  [perguntaId, id, tempoPerguntaSegundos]
-);
+        [perguntaId, id, tempoPerguntaSegundos],
+      );
 
-await client.query(
-  `
+      await client.query(
+        `
     UPDATE ${TABELA_EXECUCAO}
        SET status = 'em_andamento',
            pergunta_atual_id = $1,
@@ -2381,8 +2416,8 @@ await client.query(
      WHERE interacao_id = $2
        AND status = 'em_andamento'
   `,
-  [perguntaId, id, tempoPerguntaSegundos]
-);
+        [perguntaId, id, tempoPerguntaSegundos],
+      );
 
       await client.query(
         `
@@ -2391,7 +2426,7 @@ await client.query(
                  pergunta_atual_id = $1
            WHERE id = $2
         `,
-        [perguntaId, id]
+        [perguntaId, id],
       );
 
       return carregarInteracaoCompleta(client, id);
@@ -2435,7 +2470,6 @@ await client.query(
   }
 }
 
-
 async function fecharPerguntaAdmin(req, res) {
   const requestId = gerarRequestId();
   const permissao = validarPermissaoAdmin(req, res, requestId);
@@ -2463,7 +2497,7 @@ async function fecharPerguntaAdmin(req, res) {
            WHERE id = $1
              AND interacao_id = $2
         `,
-        [perguntaId, id]
+        [perguntaId, id],
       );
 
       return carregarInteracaoCompleta(client, id);
@@ -2522,7 +2556,7 @@ async function exibirGabaritoAdmin(req, res) {
            WHERE id = $1
              AND interacao_id = $2
         `,
-        [perguntaId, id]
+        [perguntaId, id],
       );
 
       return carregarInteracaoCompleta(client, id);
@@ -2600,7 +2634,7 @@ async function resultadoAdmin(req, res) {
           GROUP BY o.id, o.texto, o.ordem
           ORDER BY total DESC, o.ordem ASC, o.id ASC
         `,
-        [id]
+        [id],
       );
 
       return sucesso(res, {
@@ -2634,7 +2668,7 @@ async function resultadoAdmin(req, res) {
           GROUP BY u.id, u.nome
           ORDER BY acertos DESC, pontuacao DESC, tempo_total_ms ASC, nome_exibicao ASC
         `,
-        [id]
+        [id],
       );
 
       return sucesso(res, {
@@ -2658,7 +2692,7 @@ async function resultadoAdmin(req, res) {
         GROUP BY resposta_normalizada
         ORDER BY total DESC, palavra ASC
       `,
-      [id]
+      [id],
     );
 
     return sucesso(res, {
@@ -2722,7 +2756,7 @@ async function listarPublicadas(req, res) {
           i.criado_em DESC,
           i.id DESC
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     return sucesso(res, {
@@ -2768,7 +2802,10 @@ async function obterPublicadaPorId(req, res) {
   try {
     const interacao = await carregarInteracaoCompleta({ query }, id);
 
-    if (!interacao || !["publicada", "em_andamento"].includes(interacao.status)) {
+    if (
+      !interacao ||
+      !["publicada", "em_andamento"].includes(interacao.status)
+    ) {
       return falha(res, {
         status: 404,
         message: "Interação não encontrada ou indisponível.",
@@ -2792,7 +2829,7 @@ async function obterPublicadaPorId(req, res) {
           AND usuario_id = $2
         ORDER BY enviada_em ASC, id ASC
       `,
-      [id, usuarioId]
+      [id, usuarioId],
     );
 
     const respostasUsuario = respostasResult.rows || [];
@@ -2800,7 +2837,7 @@ async function obterPublicadaPorId(req, res) {
       respostasUsuario.map((resposta) => [
         Number(resposta.pergunta_id),
         resposta,
-      ])
+      ]),
     );
 
     const perguntas = Array.isArray(interacao.perguntas)
@@ -2818,16 +2855,18 @@ async function obterPublicadaPorId(req, res) {
 
     const perguntaAtual =
       perguntas.find(
-        (pergunta) => Number(pergunta.id) === Number(interacao.pergunta_atual_id)
+        (pergunta) =>
+          Number(pergunta.id) === Number(interacao.pergunta_atual_id),
       ) ||
-      perguntas.find((pergunta) => pergunta.status === STATUS_PERGUNTA.aberta) ||
+      perguntas.find(
+        (pergunta) => pergunta.status === STATUS_PERGUNTA.aberta,
+      ) ||
       null;
 
     const respondida =
       interacao.tipo === TIPO.quiz
         ? Boolean(
-            perguntaAtual &&
-              respostasPorPergunta.has(Number(perguntaAtual.id))
+            perguntaAtual && respostasPorPergunta.has(Number(perguntaAtual.id)),
           )
         : respostasUsuario.length > 0;
 
@@ -2883,7 +2922,10 @@ async function responderPublicada(req, res) {
     const resposta = await withTransaction(async (client) => {
       const interacao = await carregarInteracaoCompleta(client, id);
 
-      if (!interacao || !["publicada", "em_andamento"].includes(interacao.status)) {
+      if (
+        !interacao ||
+        !["publicada", "em_andamento"].includes(interacao.status)
+      ) {
         const error = new Error("Interação não encontrada ou indisponível.");
         error.status = 404;
         error.code = "INTERACAO_INDISPONIVEL";
@@ -2893,24 +2935,27 @@ async function responderPublicada(req, res) {
       const autorizado = await verificarInscricaoOuPresenca(
         client,
         interacao,
-        usuarioId
+        usuarioId,
       );
 
       if (!autorizado) {
         const error = new Error(
-          "Você precisa estar inscrito ou presente no evento/turma para responder esta interação."
+          "Você precisa estar inscrito ou presente no evento/turma para responder esta interação.",
         );
         error.status = 403;
         error.code = "USUARIO_NAO_AUTORIZADO_CONTEXTO";
         throw error;
       }
 
-      if (interacao.tipo === TIPO.votacao || interacao.tipo === TIPO.nuvem_palavras) {
+      if (
+        interacao.tipo === TIPO.votacao ||
+        interacao.tipo === TIPO.nuvem_palavras
+      ) {
         const janelaOk = await verificarJanelaDisponivel(client, id);
 
         if (!janelaOk) {
           const error = new Error(
-            "Esta interação está fora da janela de data e horário permitida."
+            "Esta interação está fora da janela de data e horário permitida.",
           );
           error.status = 403;
           error.code = "FORA_DA_JANELA_PERMITIDA";
@@ -2921,7 +2966,7 @@ async function responderPublicada(req, res) {
           const jaRespondeu = await usuarioJaRespondeuInteracao(
             client,
             id,
-            usuarioId
+            usuarioId,
           );
 
           if (jaRespondeu) {
@@ -2935,11 +2980,13 @@ async function responderPublicada(req, res) {
 
       if (interacao.tipo === TIPO.quiz) {
         const pergunta = interacao.perguntas.find(
-          (item) => Number(item.id) === Number(req.body?.pergunta_id)
+          (item) => Number(item.id) === Number(req.body?.pergunta_id),
         );
 
         if (!pergunta || pergunta.status !== STATUS_PERGUNTA.aberta) {
-          const error = new Error("Esta pergunta não está aberta para resposta.");
+          const error = new Error(
+            "Esta pergunta não está aberta para resposta.",
+          );
           error.status = 403;
           error.code = "PERGUNTA_NAO_ABERTA";
           throw error;
@@ -2956,30 +3003,35 @@ async function responderPublicada(req, res) {
         throw error;
       }
 
-const respostaValidada = validarRespostaUsuario(interacao, req.body || {});
+      const respostaValidada = validarRespostaUsuario(
+        interacao,
+        req.body || {},
+      );
 
-if (!respostaValidada.ok) {
-  const error = new Error(respostaValidada.message);
-  error.status = 400;
-  error.code = respostaValidada.code;
-  throw error;
-}
+      if (!respostaValidada.ok) {
+        const error = new Error(respostaValidada.message);
+        error.status = 400;
+        error.code = respostaValidada.code;
+        throw error;
+      }
 
-let tempoRespostaMsFinal = toIntOrNull(req.body?.tempo_resposta_ms);
+      let tempoRespostaMsFinal = toIntOrNull(req.body?.tempo_resposta_ms);
 
-if (interacao.tipo === TIPO.quiz) {
-  if (
-    Number(interacao.pergunta_atual_id || 0) !==
-    Number(respostaValidada.pergunta.id)
-  ) {
-    const error = new Error("Esta pergunta não está aberta para resposta.");
-    error.status = 409;
-    error.code = "QUIZ_PERGUNTA_NAO_ATIVA";
-    throw error;
-  }
+      if (interacao.tipo === TIPO.quiz) {
+        if (
+          Number(interacao.pergunta_atual_id || 0) !==
+          Number(respostaValidada.pergunta.id)
+        ) {
+          const error = new Error(
+            "Esta pergunta não está aberta para resposta.",
+          );
+          error.status = 409;
+          error.code = "QUIZ_PERGUNTA_NAO_ATIVA";
+          throw error;
+        }
 
-  const prazoResult = await client.query(
-    `
+        const prazoResult = await client.query(
+          `
       SELECT
         p.id,
         p.status,
@@ -3010,28 +3062,28 @@ if (interacao.tipo === TIPO.quiz) {
         AND p.interacao_id = $2
       LIMIT 1
     `,
-    [respostaValidada.pergunta.id, id, usuarioId]
-  );
+          [respostaValidada.pergunta.id, id, usuarioId],
+        );
 
-  const prazo = prazoResult.rows?.[0];
+        const prazo = prazoResult.rows?.[0];
 
-  if (!prazo) {
-    const error = new Error("Pergunta não encontrada.");
-    error.status = 404;
-    error.code = "PERGUNTA_NAO_ENCONTRADA";
-    throw error;
-  }
+        if (!prazo) {
+          const error = new Error("Pergunta não encontrada.");
+          error.status = 404;
+          error.code = "PERGUNTA_NAO_ENCONTRADA";
+          throw error;
+        }
 
-  if (prazo.ja_respondida) {
-    const error = new Error("Você já respondeu esta pergunta.");
-    error.status = 409;
-    error.code = "QUIZ_PERGUNTA_JA_RESPONDIDA";
-    throw error;
-  }
+        if (prazo.ja_respondida) {
+          const error = new Error("Você já respondeu esta pergunta.");
+          error.status = 409;
+          error.code = "QUIZ_PERGUNTA_JA_RESPONDIDA";
+          throw error;
+        }
 
-  if (!prazo.dentro_prazo) {
-    await client.query(
-      `
+        if (!prazo.dentro_prazo) {
+          await client.query(
+            `
         UPDATE ${TABELA_PERGUNTA}
            SET status = CASE
                  WHEN status = 'aberta' THEN 'fechada'
@@ -3042,19 +3094,22 @@ if (interacao.tipo === TIPO.quiz) {
          WHERE id = $1
            AND interacao_id = $2
       `,
-      [respostaValidada.pergunta.id, id]
-    );
+            [respostaValidada.pergunta.id, id],
+          );
 
-    const error = new Error("Tempo encerrado para responder esta pergunta.");
-    error.status = 409;
-    error.code = "QUIZ_TEMPO_ENCERRADO";
-    throw error;
-  }
+          const error = new Error(
+            "Tempo encerrado para responder esta pergunta.",
+          );
+          error.status = 409;
+          error.code = "QUIZ_TEMPO_ENCERRADO";
+          throw error;
+        }
 
-  tempoRespostaMsFinal = Number(prazo.tempo_resposta_ms || 0);
-}
+        tempoRespostaMsFinal = Number(prazo.tempo_resposta_ms || 0);
+      }
 
-      const anonima = Boolean(req.body?.anonima) && Boolean(interacao.permite_anonima);
+      const anonima =
+        Boolean(req.body?.anonima) && Boolean(interacao.permite_anonima);
 
       let correta = null;
       let pontuacao = null;
@@ -3105,7 +3160,7 @@ if (interacao.tipo === TIPO.quiz) {
           req.body?.metadata && typeof req.body.metadata === "object"
             ? req.body.metadata
             : null,
-        ]
+        ],
       );
 
       return result.rows[0];

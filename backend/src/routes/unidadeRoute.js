@@ -19,7 +19,7 @@ const router = express.Router();
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[unidadeRoute] Handler obrigatório ausente: unidadeController.${name}`
+      `[unidadeRoute] Handler obrigatório ausente: unidadeController.${name}`,
     );
   }
 }
@@ -28,10 +28,8 @@ assertHandler("listar", unidadeController.listar);
 assertHandler("obterPorId", unidadeController.obterPorId);
 assertHandler("existePorId", unidadeController.existePorId);
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -43,7 +41,7 @@ function routeTag(tag) {
 function publicLookupCache(_req, res, next) {
   res.setHeader(
     "Cache-Control",
-    "public, max-age=300, stale-while-revalidate=600"
+    "public, max-age=300, stale-while-revalidate=600",
   );
   return next();
 }
@@ -56,7 +54,8 @@ const unidadeLimiter = rateLimit({
   message: {
     ok: false,
     code: "UNIDADE-429-LIMITE",
-    message: "Muitas requisições de unidades. Aguarde antes de tentar novamente.",
+    message:
+      "Muitas requisições de unidades. Aguarde antes de tentar novamente.",
   },
 });
 
@@ -66,25 +65,23 @@ router.use(publicLookupCache);
 router.get(
   "/",
   routeTag("unidadeRoute:v2.0:GET /"),
-  asyncHandler(unidadeController.listar)
+  asyncHandler(unidadeController.listar),
 );
 
-router.head(
-  "/",
-  routeTag("unidadeRoute:v2.0:HEAD /"),
-  (_req, res) => res.sendStatus(204)
+router.head("/", routeTag("unidadeRoute:v2.0:HEAD /"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 router.get(
   "/:id",
   routeTag("unidadeRoute:v2.0:GET /:id"),
-  asyncHandler(unidadeController.obterPorId)
+  asyncHandler(unidadeController.obterPorId),
 );
 
 router.head(
   "/:id",
   routeTag("unidadeRoute:v2.0:HEAD /:id"),
-  asyncHandler(unidadeController.existePorId)
+  asyncHandler(unidadeController.existePorId),
 );
 
 module.exports = router;

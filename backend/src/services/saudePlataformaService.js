@@ -81,7 +81,7 @@ function exigirAdministrador(req) {
 
   if (!usuarioEhAdministrador(req)) {
     const error = new Error(
-      "Você não tem permissão para acessar a Saúde da Plataforma."
+      "Você não tem permissão para acessar a Saúde da Plataforma.",
     );
     error.code = "SEM_PERMISSAO_SAUDE_PLATAFORMA";
     error.status = 403;
@@ -239,8 +239,7 @@ async function registrarConsultaAuditoria(req, detalhes = {}) {
     severidade: "info",
     detalhes,
     mensagem: "Consulta à Saúde da Plataforma.",
-    admin_hint:
-      "Consulta administrativa derivada da view v_saude_plataforma.",
+    admin_hint: "Consulta administrativa derivada da view v_saude_plataforma.",
   });
 }
 
@@ -277,7 +276,7 @@ async function listarIndicadores(req, filtros = {}) {
       LIMIT ${limiteParam}
       OFFSET ${offsetParam}
     `,
-    paramsLista
+    paramsLista,
   );
 
   const totalResult = await pool.query(
@@ -286,7 +285,7 @@ async function listarIndicadores(req, filtros = {}) {
       FROM v_saude_plataforma
       ${whereSql}
     `,
-    values
+    values,
   );
 
   const total = totalResult.rows[0]?.total || 0;
@@ -349,7 +348,7 @@ async function obterIndicador(req, indicador_id) {
       WHERE indicador_id = $1
       LIMIT 1
     `,
-    [indicadorId]
+    [indicadorId],
   );
 
   if (!rows[0]) {
@@ -392,7 +391,7 @@ async function resumoSaude(req, filtros = {}) {
       FROM v_saude_plataforma
       ${whereSql}
     `,
-    values
+    values,
   );
 
   const porModulo = await pool.query(
@@ -415,7 +414,7 @@ async function resumoSaude(req, filtros = {}) {
         total DESC,
         modulo ASC
     `,
-    values
+    values,
   );
 
   const porStatus = await pool.query(
@@ -435,7 +434,7 @@ async function resumoSaude(req, filtros = {}) {
           ELSE 4
         END
     `,
-    values
+    values,
   );
 
   const porSeveridade = await pool.query(
@@ -456,7 +455,7 @@ async function resumoSaude(req, filtros = {}) {
           ELSE 5
         END
     `,
-    values
+    values,
   );
 
   const destaques = await pool.query(
@@ -477,7 +476,7 @@ async function resumoSaude(req, filtros = {}) {
       ${orderByIndicadores()}
       LIMIT 8
     `,
-    values
+    values,
   );
 
   const geral = geralResult.rows[0] || {};
@@ -532,7 +531,7 @@ async function diagnosticoExecutivo(req) {
       FROM v_saude_plataforma
       WHERE status = 'critico'
       ${orderByIndicadores()}
-    `
+    `,
   );
 
   const indicadoresAlerta = await pool.query(
@@ -549,7 +548,7 @@ async function diagnosticoExecutivo(req) {
       FROM v_saude_plataforma
       WHERE status = 'alerta'
       ${orderByIndicadores()}
-    `
+    `,
   );
 
   await registrarConsultaAuditoria(req, {
@@ -565,7 +564,8 @@ async function diagnosticoExecutivo(req) {
       criticos: indicadoresCriticos.rows,
       alertas: indicadoresAlerta.rows,
     },
-    message: "Diagnóstico executivo da Saúde da Plataforma carregado com sucesso.",
+    message:
+      "Diagnóstico executivo da Saúde da Plataforma carregado com sucesso.",
     code: "SAUDE_PLATAFORMA_DIAGNOSTICO_EXECUTIVO",
   };
 }

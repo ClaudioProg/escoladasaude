@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // ✅ src/components/ui/AppToast.jsx — v2.0
 // Plataforma Escola da Saúde
 //
@@ -50,7 +51,9 @@ function isObject(value) {
 
 function getNestedValue(obj, path) {
   return path.split(".").reduce((acc, key) => {
-    if (!isObject(acc)) return undefined;
+    if (!isObject(acc)) {
+      return undefined;
+    }
     return acc[key];
   }, obj);
 }
@@ -79,7 +82,7 @@ function extrairMensagemErro(error) {
     getNestedValue(error, "response.data.mensagem"),
     getNestedValue(error, "response.data.erro"),
     getNestedValue(error, "response.data.error"),
-    getNestedValue(error, "message")
+    getNestedValue(error, "message"),
   );
 
   if (mensagemDireta) {
@@ -93,7 +96,7 @@ function extrairStatusErro(error) {
   const status = Number(
     getNestedValue(error, "status") ??
       getNestedValue(error, "response.status") ??
-      getNestedValue(error, "data.status")
+      getNestedValue(error, "data.status"),
   );
 
   return Number.isFinite(status) ? status : null;
@@ -139,7 +142,9 @@ function montarMensagemComDetalhe(titulo, detalhe, acao) {
 }
 
 function getActiveToastIdByKey(key) {
-  if (!key) return null;
+  if (!key) {
+    return null;
+  }
 
   const id = activeToastByKey.get(key);
 
@@ -152,16 +157,22 @@ function getActiveToastIdByKey(key) {
 }
 
 function rememberToastKey(key, id) {
-  if (!key || id == null) return;
+  if (!key || id == null) {
+    return;
+  }
   activeToastByKey.set(key, id);
 }
 
 function forgetToastKey(key, id) {
-  if (!key) return;
+  if (!key) {
+    return;
+  }
 
   const current = activeToastByKey.get(key);
 
-  if (current == null) return;
+  if (current == null) {
+    return;
+  }
 
   if (id == null || current === id) {
     activeToastByKey.delete(key);
@@ -169,10 +180,18 @@ function forgetToastKey(key, id) {
 }
 
 function getAutoCloseByType(type) {
-  if (type === "success") return DEFAULT_AUTO_CLOSE.success;
-  if (type === "info") return DEFAULT_AUTO_CLOSE.info;
-  if (type === "warning" || type === "warn") return DEFAULT_AUTO_CLOSE.warning;
-  if (type === "error") return DEFAULT_AUTO_CLOSE.error;
+  if (type === "success") {
+    return DEFAULT_AUTO_CLOSE.success;
+  }
+  if (type === "info") {
+    return DEFAULT_AUTO_CLOSE.info;
+  }
+  if (type === "warning" || type === "warn") {
+    return DEFAULT_AUTO_CLOSE.warning;
+  }
+  if (type === "error") {
+    return DEFAULT_AUTO_CLOSE.error;
+  }
   return DEFAULT_AUTO_CLOSE.default;
 }
 
@@ -243,7 +262,7 @@ export default function AppToast() {
 
   const Transition = useMemo(
     () => (reducedMotion ? undefined : Slide),
-    [reducedMotion]
+    [reducedMotion],
   );
 
   return (
@@ -347,7 +366,7 @@ export function notifyInfo(message, options = {}) {
 export function notifyWarn(message, options = {}) {
   const texto = normalizarMensagem(
     message,
-    "Atenção: revise as informações antes de continuar."
+    "Atenção: revise as informações antes de continuar.",
   );
 
   return toast.warn(texto, {
@@ -364,7 +383,7 @@ export function notifyWarning(message, options = {}) {
 export function notifyError(message, options = {}) {
   const texto = normalizarMensagem(
     message,
-    "Não foi possível concluir a ação. Tente novamente e, se o problema persistir, acione o suporte."
+    "Não foi possível concluir a ação. Tente novamente e, se o problema persistir, acione o suporte.",
   );
 
   return toast.error(texto, {
@@ -427,7 +446,7 @@ export function notifyApiError(
     detalhe,
     acao = "Tente novamente e, se o problema persistir, acione o suporte.",
     options = {},
-  } = {}
+  } = {},
 ) {
   const status = extrairStatusErro(error);
   const mensagemApi = extrairMensagemErro(error);
@@ -540,7 +559,9 @@ export function notifyLoading(message = "Processando...", options = {}) {
  * Atualiza um toast existente.
  */
 export function notifyUpdate(toastId, message, options = {}) {
-  if (toastId == null) return null;
+  if (toastId == null) {
+    return null;
+  }
 
   const texto = normalizarMensagem(message, "Notificação atualizada.");
 
@@ -563,7 +584,7 @@ export function notifyUpdate(toastId, message, options = {}) {
 export function notifyLoadingSuccess(
   toastId,
   message = "Operação concluída com sucesso.",
-  options = {}
+  options = {},
 ) {
   return notifyUpdate(toastId, message, {
     type: "success",
@@ -578,7 +599,7 @@ export function notifyLoadingSuccess(
 export function notifyLoadingError(
   toastId,
   message = "Não foi possível concluir a operação. Tente novamente e, se o problema persistir, acione o suporte.",
-  options = {}
+  options = {},
 ) {
   return notifyUpdate(toastId, message, {
     type: "error",
@@ -630,7 +651,7 @@ export function notifyPromise(promise, messages = {}, options = {}) {
       draggable: true,
       hideProgressBar: false,
       ...options,
-    }
+    },
   );
 }
 
@@ -676,8 +697,9 @@ export async function notifyTask(task, messages = {}, options = {}) {
         : messages.error ||
           montarMensagemComDetalhe(
             "Não foi possível concluir a operação.",
-            extrairMensagemErro(error) || mensagemPorStatus(extrairStatusErro(error)),
-            "Tente novamente e, se o problema persistir, acione o suporte."
+            extrairMensagemErro(error) ||
+              mensagemPorStatus(extrairStatusErro(error)),
+            "Tente novamente e, se o problema persistir, acione o suporte.",
           );
 
     notifyLoadingError(toastId, errorMessage);

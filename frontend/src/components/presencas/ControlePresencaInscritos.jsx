@@ -41,7 +41,6 @@ import { motion } from "framer-motion";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Accessibility,
-  AlertCircle,
   Brain,
   User2,
   Mail,
@@ -53,7 +52,6 @@ import {
   Timer,
   Ear,
   Eye,
-  Infinity,
   Sparkles,
 } from "lucide-react";
 
@@ -95,8 +93,12 @@ function isDateOnly(value) {
 function ymd(value) {
   const safe = String(value || "").trim();
 
-  if (isDateOnly(safe)) return safe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) return safe.slice(0, 10);
+  if (isDateOnly(safe)) {
+    return safe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) {
+    return safe.slice(0, 10);
+  }
 
   return "";
 }
@@ -104,7 +106,9 @@ function ymd(value) {
 function toLocalDateOnly(value) {
   const data = ymd(value);
 
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   const [year, month, day] = data.split("-").map(Number);
 
@@ -126,7 +130,9 @@ function ymdLocalString(date) {
 function formatBRDateOnly(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [year, month, day] = data.split("-");
   return `${day}/${month}/${year}`;
@@ -135,8 +141,12 @@ function formatBRDateOnly(value) {
 function hhmm(value, fallback = "") {
   const safe = String(value || "").trim();
 
-  if (/^\d{2}:\d{2}$/.test(safe)) return safe;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) return safe.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) {
+    return safe.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -144,7 +154,9 @@ function hhmm(value, fallback = "") {
 function combineDateAndTimeLocal(dateOnly, timeHHmm, endOfDay = false) {
   const base = toLocalDateOnly(dateOnly);
 
-  if (!base) return null;
+  if (!base) {
+    return null;
+  }
 
   const hora = hhmm(timeHHmm);
   const [hour, minute] = hora.split(":").map(Number);
@@ -153,7 +165,7 @@ function combineDateAndTimeLocal(dateOnly, timeHHmm, endOfDay = false) {
     Number.isFinite(hour) ? hour : endOfDay ? 23 : 0,
     Number.isFinite(minute) ? minute : endOfDay ? 59 : 0,
     endOfDay ? 59 : 0,
-    endOfDay ? 999 : 0
+    endOfDay ? 999 : 0,
   );
 
   return base;
@@ -163,7 +175,9 @@ function generateDateRangeLocal(startDateOnly, endDateOnly) {
   const start = toLocalDateOnly(startDateOnly);
   const end = toLocalDateOnly(endDateOnly);
 
-  if (!start || !end) return [];
+  if (!start || !end) {
+    return [];
+  }
 
   const out = [];
   const cursor = new Date(start);
@@ -226,12 +240,12 @@ function obterRegraPrazoConfirmacao({
 }) {
   const horasOrganizador = normalizarPrazoHoras(
     prazoConfirmacaoOrganizadorHoras,
-    CONFIRM_WINDOW_ORGANIZADOR_HOURS
+    CONFIRM_WINDOW_ORGANIZADOR_HOURS,
   );
 
   const diasAdministrador = normalizarPrazoDias(
     prazoConfirmacaoAdministradorDias,
-    CONFIRM_WINDOW_ADMINISTRADOR_DAYS
+    CONFIRM_WINDOW_ADMINISTRADOR_DAYS,
   );
 
   if (modoAdministrador) {
@@ -262,7 +276,9 @@ function normalizarTextoBusca(value) {
 }
 
 function obterDeficienciaUsuario(usuario = {}) {
-  const codigo = String(usuario?.deficiencia_codigo || "").trim().toUpperCase();
+  const codigo = String(usuario?.deficiencia_codigo || "")
+    .trim()
+    .toUpperCase();
   const id = Number(usuario?.deficiencia_id);
 
   if (codigo && codigo !== "0") {
@@ -285,7 +301,9 @@ function obterDeficienciaUsuario(usuario = {}) {
   for (const candidato of candidatos) {
     const texto = String(candidato || "").trim();
 
-    if (texto) return texto;
+    if (texto) {
+      return texto;
+    }
   }
 
   return "";
@@ -420,7 +438,9 @@ function obterConfigDeficiencia(deficiencia) {
 function IconeDeficienciaUsuario({ usuario }) {
   const config = obterConfigDeficiencia(obterDeficienciaUsuario(usuario));
 
-  if (!config) return null;
+  if (!config) {
+    return null;
+  }
 
   const Icon = config.Icon;
 
@@ -428,7 +448,7 @@ function IconeDeficienciaUsuario({ usuario }) {
     <span
       className={classNames(
         "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
-        config.className
+        config.className,
       )}
       title={config.label}
       aria-label={config.label}
@@ -448,8 +468,7 @@ function Pill({ tone = "slate", icon: Icon, children }) {
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-200",
     indigo:
       "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-200",
     slate:
@@ -460,7 +479,7 @@ function Pill({ tone = "slate", icon: Icon, children }) {
     <span
       className={classNames(
         "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon size={14} aria-hidden="true" /> : null}
@@ -510,7 +529,7 @@ export default function ControlePresencaInscritos({
       modoAdministrador,
       prazoConfirmacaoAdministradorDias,
       prazoConfirmacaoOrganizadorHoras,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -536,7 +555,7 @@ export default function ControlePresencaInscritos({
         data,
         horario_inicio: hhmm(turma?.horario_inicio),
         horario_fim: hhmm(turma?.horario_fim),
-      })
+      }),
     );
   }, [
     datas,
@@ -566,31 +585,33 @@ export default function ControlePresencaInscritos({
       const fimDia = combineDateAndTimeLocal(
         data_presenca,
         horarioFimDoDia || horarioFimTurma,
-        true
+        true,
       );
 
-      if (!fimDia) return false;
+      if (!fimDia) {
+        return false;
+      }
 
-      const limite = new Date(
-        fimDia.getTime() + regraPrazoConfirmacao.prazoMs
-      );
+      const limite = new Date(fimDia.getTime() + regraPrazoConfirmacao.prazoMs);
 
       return now <= limite;
     },
-    [now, regraPrazoConfirmacao]
+    [now, regraPrazoConfirmacao],
   );
 
   const liberouPosInicio = useCallback(
     (data_presenca, horarioInicio, minutos = UNLOCK_MINUTES_AFTER_START) => {
       const inicioDia = combineDateAndTimeLocal(data_presenca, horarioInicio);
 
-      if (!inicioDia) return false;
+      if (!inicioDia) {
+        return false;
+      }
 
       const unlockAt = new Date(inicioDia.getTime() + minutos * MS_MIN);
 
       return now >= unlockAt;
     },
-    [now]
+    [now],
   );
 
   const confirmarPresenca = useCallback(
@@ -631,7 +652,7 @@ export default function ControlePresencaInscritos({
         setConfirmandoKey(null);
       }
     },
-    [carregarPresencas, turma_id]
+    [carregarPresencas, turma_id],
   );
 
   const getLinhaPresenca = useCallback(
@@ -643,11 +664,11 @@ export default function ControlePresencaInscritos({
       const noPrazo = dentroDoPrazoDeConfirmacao(
         data,
         horario_fim,
-        turma?.horario_fim
+        turma?.horario_fim,
       );
 
       const podeConfirmar = Boolean(
-        usuario_id && !presente && liberado && noPrazo
+        usuario_id && !presente && liberado && noPrazo,
       );
 
       const foraPrazo = liberado && !noPrazo;
@@ -709,7 +730,7 @@ export default function ControlePresencaInscritos({
       regraPrazoConfirmacao.hintExpirou,
       regraPrazoConfirmacao.hintForaPrazo,
       turma?.horario_fim,
-    ]
+    ],
   );
 
   return (
@@ -789,7 +810,7 @@ export default function ControlePresencaInscritos({
                         usuario_id,
                         data,
                         horario_inicio,
-                        horario_fim
+                        horario_fim,
                       );
 
                       const key = `${usuario_id || email || cpf}#${data}`;
@@ -802,9 +823,9 @@ export default function ControlePresencaInscritos({
                           <td className="px-4 py-3 align-middle">
                             <div className="min-w-0">
                               <p className="flex items-center gap-2 break-words font-black text-slate-950 dark:text-white">
-  <span>{nome}</span>
-  <IconeDeficienciaUsuario usuario={inscrito} />
-</p>
+                                <span>{nome}</span>
+                                <IconeDeficienciaUsuario usuario={inscrito} />
+                              </p>
 
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                                 <span>{email}</span>
@@ -833,7 +854,7 @@ export default function ControlePresencaInscritos({
                                 disabled={linha.isLoading}
                                 loading={linha.isLoading}
                                 aria-label={`Confirmar presença em ${formatBRDateOnly(
-                                  data
+                                  data,
                                 )} para ${nome}`}
                                 title={linha.titleButton}
                                 className="rounded-xl"
@@ -848,7 +869,7 @@ export default function ControlePresencaInscritos({
                           </td>
                         </tr>
                       );
-                    }
+                    },
                   );
                 })}
               </tbody>
@@ -869,7 +890,7 @@ export default function ControlePresencaInscritos({
                 key={keyInscrito}
                 className={classNames(
                   "relative rounded-2xl border border-slate-200 bg-white/85 shadow-sm backdrop-blur transition-shadow hover:shadow-md",
-                  "dark:border-slate-800 dark:bg-slate-950/45"
+                  "dark:border-slate-800 dark:bg-slate-950/45",
                 )}
               >
                 <div className="h-1.5 w-full rounded-t-2xl bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-amber-400 opacity-80" />
@@ -881,7 +902,7 @@ export default function ControlePresencaInscritos({
                         <span
                           className={classNames(
                             "mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-700",
-                            "dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                            "dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200",
                           )}
                           aria-hidden="true"
                         >
@@ -890,9 +911,9 @@ export default function ControlePresencaInscritos({
 
                         <div className="min-w-0">
                           <p className="flex items-center gap-2 break-words font-semibold text-slate-900 dark:text-white">
-  <span>{nome}</span>
-  <IconeDeficienciaUsuario usuario={inscrito} />
-</p>
+                            <span>{nome}</span>
+                            <IconeDeficienciaUsuario usuario={inscrito} />
+                          </p>
 
                           <p className="inline-flex break-all text-sm text-slate-600 dark:text-slate-300">
                             <Mail
@@ -925,71 +946,73 @@ export default function ControlePresencaInscritos({
                     className="mt-4 grid gap-2 md:hidden"
                     aria-label={`Datas e presenças de ${nome}`}
                   >
-                    {linhasDatas.map(({ data, horario_inicio, horario_fim }) => {
-                      const linha = getLinhaPresenca(
-                        usuario_id,
-                        data,
-                        horario_inicio,
-                        horario_fim
-                      );
+                    {linhasDatas.map(
+                      ({ data, horario_inicio, horario_fim }) => {
+                        const linha = getLinhaPresenca(
+                          usuario_id,
+                          data,
+                          horario_inicio,
+                          horario_fim,
+                        );
 
-                      const horarioStr =
-                        horario_inicio || horario_fim
-                          ? `${horario_inicio || ""}${
-                              horario_inicio && horario_fim ? " – " : ""
-                            }${horario_fim || ""}`
-                          : "—";
+                        const horarioStr =
+                          horario_inicio || horario_fim
+                            ? `${horario_inicio || ""}${
+                                horario_inicio && horario_fim ? " – " : ""
+                              }${horario_fim || ""}`
+                            : "—";
 
-                      return (
-                        <div
-                          key={data}
-                          className={classNames(
-                            "rounded-2xl border border-slate-200 bg-white p-3",
-                            "dark:border-slate-800 dark:bg-slate-950/40"
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                                {formatBRDateOnly(data)}
-                              </p>
+                        return (
+                          <div
+                            key={data}
+                            className={classNames(
+                              "rounded-2xl border border-slate-200 bg-white p-3",
+                              "dark:border-slate-800 dark:bg-slate-950/40",
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                  {formatBRDateOnly(data)}
+                                </p>
 
-                              <p className="text-xs text-slate-600 dark:text-slate-300">
-                                {horarioStr}
-                              </p>
+                                <p className="text-xs text-slate-600 dark:text-slate-300">
+                                  {horarioStr}
+                                </p>
+                              </div>
+
+                              <div aria-live="polite">{linha.statusNode}</div>
                             </div>
 
-                            <div aria-live="polite">{linha.statusNode}</div>
-                          </div>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {linha.hint}
+                              </p>
 
-                          <div className="mt-2 flex items-center justify-between gap-2">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {linha.hint}
-                            </p>
-
-                            {linha.podeConfirmar ? (
-                              <Botao
-                                type="button"
-                                variant="contorno"
-                                size="sm"
-                                onClick={() =>
-                                  confirmarPresenca(usuario_id, data)
-                                }
-                                disabled={linha.isLoading}
-                                loading={linha.isLoading}
-                                aria-label={`Confirmar presença em ${formatBRDateOnly(
-                                  data
-                                )} para ${nome}`}
-                                title="Confirmar presença deste dia"
-                                className="rounded-xl"
-                              >
-                                Confirmar
-                              </Botao>
-                            ) : null}
+                              {linha.podeConfirmar ? (
+                                <Botao
+                                  type="button"
+                                  variant="contorno"
+                                  size="sm"
+                                  onClick={() =>
+                                    confirmarPresenca(usuario_id, data)
+                                  }
+                                  disabled={linha.isLoading}
+                                  loading={linha.isLoading}
+                                  aria-label={`Confirmar presença em ${formatBRDateOnly(
+                                    data,
+                                  )} para ${nome}`}
+                                  title="Confirmar presença deste dia"
+                                  className="rounded-xl"
+                                >
+                                  Confirmar
+                                </Botao>
+                              ) : null}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      },
+                    )}
                   </div>
 
                   <div className="mt-4 hidden md:block">
@@ -1004,10 +1027,16 @@ export default function ControlePresencaInscritos({
 
                         <thead className="bg-slate-50 dark:bg-slate-900/40">
                           <tr className="text-slate-600 dark:text-slate-200">
-                            <th scope="col" className="p-3 text-left font-semibold">
+                            <th
+                              scope="col"
+                              className="p-3 text-left font-semibold"
+                            >
                               Data
                             </th>
-                            <th scope="col" className="p-3 text-left font-semibold">
+                            <th
+                              scope="col"
+                              className="p-3 text-left font-semibold"
+                            >
                               Horário
                             </th>
                             <th
@@ -1016,7 +1045,10 @@ export default function ControlePresencaInscritos({
                             >
                               Status
                             </th>
-                            <th scope="col" className="p-3 text-right font-semibold">
+                            <th
+                              scope="col"
+                              className="p-3 text-right font-semibold"
+                            >
                               Ação
                             </th>
                           </tr>
@@ -1029,7 +1061,7 @@ export default function ControlePresencaInscritos({
                                 usuario_id,
                                 data,
                                 horario_inicio,
-                                horario_fim
+                                horario_fim,
                               );
 
                               const horarioStr =
@@ -1069,7 +1101,7 @@ export default function ControlePresencaInscritos({
                                           disabled={linha.isLoading}
                                           loading={linha.isLoading}
                                           aria-label={`Confirmar presença em ${formatBRDateOnly(
-                                            data
+                                            data,
                                           )} para ${nome}`}
                                           title={linha.titleButton}
                                           className="rounded-xl"
@@ -1085,7 +1117,7 @@ export default function ControlePresencaInscritos({
                                   </td>
                                 </tr>
                               );
-                            }
+                            },
                           )}
                         </tbody>
                       </table>
@@ -1106,21 +1138,21 @@ export default function ControlePresencaInscritos({
  * ───────────────────────────────────────────────────────────── */
 
 ControlePresencaInscritos.propTypes = {
-inscritos: PropTypes.arrayOf(
-  PropTypes.shape({
-    usuario_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
-      .isRequired,
-    nome: PropTypes.string,
-    email: PropTypes.string,
-    cpf: PropTypes.string,
-    deficiencia_nome: PropTypes.string,
-    deficiencia: PropTypes.string,
-    tipo_deficiencia: PropTypes.string,
-    deficiencia_tipo: PropTypes.string,
-    pcd_tipo: PropTypes.string,
-    necessidade_especial: PropTypes.string,
-  })
-),
+  inscritos: PropTypes.arrayOf(
+    PropTypes.shape({
+      usuario_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+        .isRequired,
+      nome: PropTypes.string,
+      email: PropTypes.string,
+      cpf: PropTypes.string,
+      deficiencia_nome: PropTypes.string,
+      deficiencia: PropTypes.string,
+      tipo_deficiencia: PropTypes.string,
+      deficiencia_tipo: PropTypes.string,
+      pcd_tipo: PropTypes.string,
+      necessidade_especial: PropTypes.string,
+    }),
+  ),
   turma: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     turma_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -1141,7 +1173,7 @@ inscritos: PropTypes.arrayOf(
         .isRequired,
       data_presenca: PropTypes.string,
       presente: PropTypes.bool,
-    })
+    }),
   ),
   carregarPresencas: PropTypes.func,
   datas: PropTypes.arrayOf(
@@ -1149,7 +1181,7 @@ inscritos: PropTypes.arrayOf(
       data: PropTypes.string.isRequired,
       horario_inicio: PropTypes.string,
       horario_fim: PropTypes.string,
-    })
+    }),
   ),
   modoAdministrador: PropTypes.bool,
   prazoConfirmacaoOrganizadorHoras: PropTypes.number,

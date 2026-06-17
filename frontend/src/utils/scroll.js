@@ -79,7 +79,7 @@ function restoreStyles(body, html, snapshot) {
   if (snapshot.html.cssVarScrollbarWidth) {
     html.style.setProperty(
       "--scrollbar-width",
-      snapshot.html.cssVarScrollbarWidth
+      snapshot.html.cssVarScrollbarWidth,
     );
   } else {
     html.style.removeProperty("--scrollbar-width");

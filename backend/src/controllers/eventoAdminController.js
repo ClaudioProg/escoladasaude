@@ -56,7 +56,7 @@ if (
   typeof db.getClient !== "function"
 ) {
   throw new Error(
-    "[eventoAdminController] Contrato inválido: ../db deve exportar db.query e db.getClient."
+    "[eventoAdminController] Contrato inválido: ../db deve exportar db.query e db.getClient.",
   );
 }
 
@@ -98,9 +98,7 @@ const allowedPdfMime = new Set(["application/pdf"]);
 ─────────────────────────────────────────────────────────────── */
 
 function mkRid() {
-  return `${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function log(rid, level, msg, extra) {
@@ -110,7 +108,7 @@ function log(rid, level, msg, extra) {
   if (level === "error") {
     return console.error(
       `${prefix} ✖ ${msg}`,
-      extra?.stack || extra?.message || extra
+      extra?.stack || extra?.message || extra,
     );
   }
 
@@ -136,7 +134,7 @@ const logError = (rid, msg, err) => log(rid, "error", msg, err);
 
 function sendOk(
   res,
-  { status = 200, message = "Operação realizada.", data = null, meta = null }
+  { status = 200, message = "Operação realizada.", data = null, meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -156,7 +154,7 @@ function sendError(
     details = null,
     adminHint = null,
     error = null,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -244,7 +242,7 @@ function toIntArray(value) {
           return item;
         })
         .map((n) => Number(n))
-        .filter((n) => Number.isInteger(n) && n > 0)
+        .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
 }
@@ -301,17 +299,17 @@ function normalizeBodyMultipart(body = {}) {
 
   out.registros_permitidos = parseMaybeJson(
     body.registros_permitidos,
-    body.registros_permitidos
+    body.registros_permitidos,
   );
 
   out.cargos_permitidos = parseMaybeJson(
     body.cargos_permitidos,
-    body.cargos_permitidos
+    body.cargos_permitidos,
   );
 
   out.unidades_permitidas = parseMaybeJson(
     body.unidades_permitidas,
-    body.unidades_permitidas
+    body.unidades_permitidas,
   );
 
   out.restrito = parseBoolean(body.restrito);
@@ -360,7 +358,7 @@ function normalizarAssinantesTurma(value = []) {
   const temFabio = ids.includes(FABIO_LOPEZ_ID);
 
   const extras = ids.filter(
-    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID
+    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID,
   );
 
   const base = extras.slice(0, temFabio ? 1 : 2);
@@ -406,7 +404,7 @@ function validarTurmaPayload(turma, index) {
   }
 
   const dataInvalida = datas.find(
-    (d) => !d.data || !d.horario_inicio || !d.horario_fim
+    (d) => !d.data || !d.horario_inicio || !d.horario_fim,
   );
 
   if (dataInvalida) {
@@ -414,7 +412,8 @@ function validarTurmaPayload(turma, index) {
   }
 
   const horarioInvalido = datas.find(
-    (d) => d.horario_inicio && d.horario_fim && d.horario_fim <= d.horario_inicio
+    (d) =>
+      d.horario_inicio && d.horario_fim && d.horario_fim <= d.horario_inicio,
   );
 
   if (horarioInvalido) {
@@ -445,8 +444,10 @@ function sanitizeOriginalName(name = "arquivo") {
   const base = path.basename(name || "arquivo", ext);
 
   const safeBase =
-    base.replace(/[^a-z0-9._-]+/gi, "_").replace(/_+/g, "_").slice(0, 100) ||
-    "arquivo";
+    base
+      .replace(/[^a-z0-9._-]+/gi, "_")
+      .replace(/_+/g, "_")
+      .slice(0, 100) || "arquivo";
 
   return `${safeBase}${ext}`;
 }
@@ -585,7 +586,9 @@ const uploadFolderOnly = (req, res, next) => {
 const uploadProgramacaoOnly = (req, res, next) => {
   const rid = mkRid();
 
-  const handler = uploadEventosMem.fields([{ name: "programacao", maxCount: 1 }]);
+  const handler = uploadEventosMem.fields([
+    { name: "programacao", maxCount: 1 },
+  ]);
 
   handler(req, res, (err) => {
     if (err) {
@@ -642,7 +645,7 @@ async function salvarFolderNoEvento(client, eventoId, file) {
         folder_updated_at = NOW()
     WHERE id = $1
     `,
-    [eventoId, file.buffer, mime, Number(file.size || 0)]
+    [eventoId, file.buffer, mime, Number(file.size || 0)],
   );
 }
 
@@ -656,7 +659,7 @@ async function limparFolderDoEvento(client, eventoId) {
         folder_updated_at = NOW()
     WHERE id = $1
     `,
-    [eventoId]
+    [eventoId],
   );
 }
 
@@ -695,7 +698,7 @@ async function salvarProgramacaoNoEvento(client, eventoId, file) {
       mime,
       Number(file.size || 0),
       sanitizeOriginalName(file.originalname || "programacao.pdf"),
-    ]
+    ],
   );
 }
 
@@ -710,7 +713,7 @@ async function limparProgramacaoDoEvento(client, eventoId) {
         programacao_pdf_updated_at = NOW()
     WHERE id = $1
     `,
-    [eventoId]
+    [eventoId],
   );
 }
 
@@ -754,7 +757,7 @@ async function sincronizarRestricoesEvento(client, eventoId, payload) {
         VALUES ($1, $2)
         ON CONFLICT DO NOTHING
         `,
-        [eventoId, registro]
+        [eventoId, registro],
       );
     }
   }
@@ -773,7 +776,7 @@ async function sincronizarRestricoesEvento(client, eventoId, payload) {
         VALUES ($1, $2)
         ON CONFLICT DO NOTHING
         `,
-        [eventoId, String(cargoId)]
+        [eventoId, String(cargoId)],
       );
     }
   }
@@ -792,7 +795,7 @@ async function sincronizarRestricoesEvento(client, eventoId, payload) {
         VALUES ($1, $2)
         ON CONFLICT DO NOTHING
         `,
-        [eventoId, unidadeId]
+        [eventoId, unidadeId],
       );
     }
   }
@@ -802,7 +805,10 @@ async function sincronizarRestricoesEvento(client, eventoId, payload) {
    Turmas
 ─────────────────────────────────────────────────────────────── */
 
-async function validarUsuariosOrganizadorOuAdministrador(client, usuarioIds = []) {
+async function validarUsuariosOrganizadorOuAdministrador(
+  client,
+  usuarioIds = [],
+) {
   const ids = toIntArray(usuarioIds);
 
   if (!ids.length) return [];
@@ -814,7 +820,7 @@ async function validarUsuariosOrganizadorOuAdministrador(client, usuarioIds = []
     WHERE id = ANY($1::int[])
     ORDER BY nome ASC
     `,
-    [ids]
+    [ids],
   );
 
   const encontrados = result.rows || [];
@@ -828,23 +834,23 @@ async function validarUsuariosOrganizadorOuAdministrador(client, usuarioIds = []
       {
         status: 400,
         code: "USUARIO_RESPONSAVEL_NAO_ENCONTRADO",
-      }
+      },
     );
   }
 
   const invalidos = encontrados.filter(
-    (row) => !PERFIS_RESPONSAVEIS_VALIDOS.has(String(row.perfil || ""))
+    (row) => !PERFIS_RESPONSAVEIS_VALIDOS.has(String(row.perfil || "")),
   );
 
   if (invalidos.length) {
     throw Object.assign(
       new Error(
-        "Organizadores, palestrantes vinculados e assinantes devem ser usuários com perfil organizador ou administrador."
+        "Organizadores, palestrantes vinculados e assinantes devem ser usuários com perfil organizador ou administrador.",
       ),
       {
         status: 400,
         code: "USUARIO_RESPONSAVEL_PERFIL_INVALIDO",
-      }
+      },
     );
   }
 
@@ -865,7 +871,7 @@ async function salvarDatasTurma(client, turmaId, turma) {
       INSERT INTO datas_turma (turma_id, data, horario_inicio, horario_fim)
       VALUES ($1, $2, $3, $4)
       `,
-      [turmaId, d.data, inicio, fim]
+      [turmaId, d.data, inicio, fim],
     );
   }
 }
@@ -874,10 +880,13 @@ async function salvarResponsaveisTurma(client, turmaId, turma) {
   const organizadores = toIntArray(turma?.organizadores);
 
   if (!organizadores.length) {
-    throw Object.assign(new Error("Informe ao menos um organizador para a turma."), {
-      status: 400,
-      code: "TURMA_SEM_ORGANIZADOR",
-    });
+    throw Object.assign(
+      new Error("Informe ao menos um organizador para a turma."),
+      {
+        status: 400,
+        code: "TURMA_SEM_ORGANIZADOR",
+      },
+    );
   }
 
   await validarUsuariosOrganizadorOuAdministrador(client, organizadores);
@@ -888,7 +897,7 @@ async function salvarResponsaveisTurma(client, turmaId, turma) {
     WHERE turma_id = $1
       AND papel = $2
     `,
-    [turmaId, PAPEL_ORGANIZADOR]
+    [turmaId, PAPEL_ORGANIZADOR],
   );
 
   for (const organizadorId of organizadores) {
@@ -903,7 +912,7 @@ async function salvarResponsaveisTurma(client, turmaId, turma) {
       ON CONFLICT (turma_id, usuario_id, papel)
       DO NOTHING
       `,
-      [turmaId, organizadorId, PAPEL_ORGANIZADOR]
+      [turmaId, organizadorId, PAPEL_ORGANIZADOR],
     );
   }
 }
@@ -934,7 +943,7 @@ async function salvarPalestrantesTurma(client, turmaId, turma) {
         WHERE id = $1
         LIMIT 1
         `,
-        [item.usuario_id]
+        [item.usuario_id],
       );
 
       nome = usuario.rows?.[0]?.nome || null;
@@ -951,7 +960,7 @@ async function salvarPalestrantesTurma(client, turmaId, turma) {
       )
       VALUES ($1, $2, $3)
       `,
-      [turmaId, nome, item.usuario_id || null]
+      [turmaId, nome, item.usuario_id || null],
     );
   }
 }
@@ -961,11 +970,13 @@ async function salvarAssinantesTurma(client, turmaId, turma) {
 
   if (!assinantes.includes(RAFAELLA_PITOL_ID)) {
     throw Object.assign(
-      new Error("Rafaella Pitol deve compor obrigatoriamente a lista de assinantes."),
+      new Error(
+        "Rafaella Pitol deve compor obrigatoriamente a lista de assinantes.",
+      ),
       {
         status: 400,
         code: "RAFAELLA_ASSINATURA_OBRIGATORIA",
-      }
+      },
     );
   }
 
@@ -978,9 +989,10 @@ async function salvarAssinantesTurma(client, turmaId, turma) {
 
   await validarUsuariosOrganizadorOuAdministrador(client, assinantes);
 
-  await client.query(`DELETE FROM turma_certificado_assinante WHERE turma_id = $1`, [
-    turmaId,
-  ]);
+  await client.query(
+    `DELETE FROM turma_certificado_assinante WHERE turma_id = $1`,
+    [turmaId],
+  );
 
   for (let index = 0; index < assinantes.length; index += 1) {
     await client.query(
@@ -992,14 +1004,14 @@ async function salvarAssinantesTurma(client, turmaId, turma) {
       )
       VALUES ($1, $2, $3)
       `,
-      [turmaId, assinantes[index], index + 1]
+      [turmaId, assinantes[index], index + 1],
     );
   }
 }
 
 function montarDadosTurma(turma) {
   const datas = extrairDatasDaTurma(turma).sort((a, b) =>
-    a.data.localeCompare(b.data)
+    a.data.localeCompare(b.data),
   );
 
   const dataInicio = datas[0]?.data || null;
@@ -1052,7 +1064,7 @@ async function criarTurma(client, eventoId, turma) {
       dados.data_fim,
       dados.horario_inicio,
       dados.horario_fim,
-    ]
+    ],
   );
 
   const turmaId = Number(result.rows[0].id);
@@ -1078,7 +1090,7 @@ async function atualizarTurma(client, eventoId, turma) {
     FROM turmas
     WHERE id = $1 AND evento_id = $2
     `,
-    [turmaId, eventoId]
+    [turmaId, eventoId],
   );
 
   if (!pertence.rowCount) {
@@ -1087,7 +1099,7 @@ async function atualizarTurma(client, eventoId, turma) {
       {
         status: 400,
         code: "TURMA_NAO_PERTENCE_AO_EVENTO",
-      }
+      },
     );
   }
 
@@ -1114,7 +1126,7 @@ async function atualizarTurma(client, eventoId, turma) {
       dados.data_fim,
       dados.horario_inicio,
       dados.horario_fim,
-    ]
+    ],
   );
 
   await salvarDatasTurma(client, turmaId, turma);
@@ -1133,7 +1145,7 @@ async function turmaTemUsoOperacional(client, turmaId) {
       EXISTS (SELECT 1 FROM presencas WHERE turma_id = $1 LIMIT 1) AS tem_presenca,
       EXISTS (SELECT 1 FROM certificados WHERE turma_id = $1 LIMIT 1) AS tem_certificado
     `,
-    [turmaId]
+    [turmaId],
   );
 
   const row = result.rows[0] || {};
@@ -1142,9 +1154,10 @@ async function turmaTemUsoOperacional(client, turmaId) {
 }
 
 async function excluirTurmaSemUso(client, turmaId) {
-  await client.query(`DELETE FROM turma_certificado_assinante WHERE turma_id = $1`, [
-    turmaId,
-  ]);
+  await client.query(
+    `DELETE FROM turma_certificado_assinante WHERE turma_id = $1`,
+    [turmaId],
+  );
   await client.query(`DELETE FROM turma_palestrante WHERE turma_id = $1`, [
     turmaId,
   ]);
@@ -1175,13 +1188,13 @@ async function sincronizarTurmasEvento(client, eventoId, turmas) {
     FROM turmas
     WHERE evento_id = $1
     `,
-    [eventoId]
+    [eventoId],
   );
 
   const payloadIds = new Set(
     turmas
       .map((turma) => Number(turma.id))
-      .filter((id) => Number.isInteger(id) && id > 0)
+      .filter((id) => Number.isInteger(id) && id > 0),
   );
 
   for (const atual of turmasAtuais) {
@@ -1193,12 +1206,12 @@ async function sincronizarTurmasEvento(client, eventoId, turmas) {
       if (temUso) {
         throw Object.assign(
           new Error(
-            `A turma ${turmaId} possui inscrições, presenças ou certificados e não pode ser removida pela edição do evento.`
+            `A turma ${turmaId} possui inscrições, presenças ou certificados e não pode ser removida pela edição do evento.`,
           ),
           {
             status: 409,
             code: "TURMA_COM_HISTORICO",
-          }
+          },
         );
       }
 
@@ -1309,7 +1322,7 @@ async function listarEventosAdmin(req, res) {
         at.data_fim_geral::date + COALESCE(at.horario_fim_geral, '23:59'::time)
       ) DESC NULLS LAST,
       e.id DESC
-      `
+      `,
     );
 
     logInfo(rid, "listarEventosAdmin OK", { count: rows.length });
@@ -1425,7 +1438,7 @@ async function buscarEventoAdminPorId(req, res) {
       WHERE e.id = $1
       LIMIT 1
       `,
-      [id]
+      [id],
     );
 
     if (!rows.length) {
@@ -1469,7 +1482,7 @@ async function criarEvento(req, res) {
 
   const body = normalizeBodyMultipart(req.body || {});
 
-    const {
+  const {
     titulo,
     descricao,
     local,
@@ -1507,9 +1520,13 @@ async function criarEvento(req, res) {
   }
 
   if (!Number.isInteger(Number(unidade_id)) || Number(unidade_id) <= 0) {
-    return badRequest(res, "Campo 'unidade_id' é obrigatório e deve ser válido.", {
-      rid,
-    });
+    return badRequest(
+      res,
+      "Campo 'unidade_id' é obrigatório e deve ser válido.",
+      {
+        rid,
+      },
+    );
   }
 
   if (!Array.isArray(turmas) || !turmas.length) {
@@ -1525,7 +1542,7 @@ async function criarEvento(req, res) {
       return badRequest(
         res,
         "Evento restrito por lista precisa ter ao menos um registro autorizado.",
-        { rid }
+        { rid },
       );
     }
   }
@@ -1540,63 +1557,65 @@ async function criarEvento(req, res) {
   try {
     await client.query("BEGIN");
 
-const restritoFinal = Boolean(restrito);
-const restritoModoFinal = restritoFinal ? String(restrito_modo || "").trim() : null;
+    const restritoFinal = Boolean(restrito);
+    const restritoModoFinal = restritoFinal
+      ? String(restrito_modo || "").trim()
+      : null;
 
-const cargoIds =
-  restritoFinal && restritoModoFinal === MODO_CARGOS
-    ? toPostgresIntArray(cargos_permitidos)
-    : null;
+    const cargoIds =
+      restritoFinal && restritoModoFinal === MODO_CARGOS
+        ? toPostgresIntArray(cargos_permitidos)
+        : null;
 
-const unidadeIds =
-  restritoFinal && restritoModoFinal === MODO_UNIDADES
-    ? toPostgresIntArray(unidades_permitidas)
-    : null;
+    const unidadeIds =
+      restritoFinal && restritoModoFinal === MODO_UNIDADES
+        ? toPostgresIntArray(unidades_permitidas)
+        : null;
 
-const registrosNormalizados =
-  restritoFinal && restritoModoFinal === MODO_LISTA
-    ? normalizeListaRegistros(registros_permitidos)
-    : [];
+    const registrosNormalizados =
+      restritoFinal && restritoModoFinal === MODO_LISTA
+        ? normalizeListaRegistros(registros_permitidos)
+        : [];
 
     if (restritoFinal) {
-  const modosValidos = new Set([
-    MODO_TODOS,
-    MODO_LISTA,
-    MODO_CARGOS,
-    MODO_UNIDADES,
-  ]);
+      const modosValidos = new Set([
+        MODO_TODOS,
+        MODO_LISTA,
+        MODO_CARGOS,
+        MODO_UNIDADES,
+      ]);
 
-  if (!modosValidos.has(restritoModoFinal)) {
-    return badRequest(res, "Modo de restrição inválido.", {
-      rid,
-      code: "EVENTO_RESTRICAO_MODO_INVALIDO",
-    });
-  }
+      if (!modosValidos.has(restritoModoFinal)) {
+        return badRequest(res, "Modo de restrição inválido.", {
+          rid,
+          code: "EVENTO_RESTRICAO_MODO_INVALIDO",
+        });
+      }
 
-  if (restritoModoFinal === MODO_LISTA && !registrosNormalizados.length) {
-    return badRequest(
-      res,
-      "Evento restrito por lista precisa ter ao menos um registro autorizado.",
-      { rid }
-    );
-  }
+      if (restritoModoFinal === MODO_LISTA && !registrosNormalizados.length) {
+        return badRequest(
+          res,
+          "Evento restrito por lista precisa ter ao menos um registro autorizado.",
+          { rid },
+        );
+      }
 
-  if (restritoModoFinal === MODO_CARGOS && !cargoIds?.length) {
-    return badRequest(
-      res,
-      "Evento restrito por cargos precisa ter ao menos um cargo autorizado.",
-      { rid }
-    );
-  }
+      if (restritoModoFinal === MODO_CARGOS && !cargoIds?.length) {
+        return badRequest(
+          res,
+          "Evento restrito por cargos precisa ter ao menos um cargo autorizado.",
+          { rid },
+        );
+      }
 
-  if (restritoModoFinal === MODO_UNIDADES && !unidadeIds?.length) {
-    return badRequest(
-      res,
-      "Evento restrito por unidades precisa ter ao menos uma unidade autorizada.",
-      { rid }
-    );
-  }
-}
+      if (restritoModoFinal === MODO_UNIDADES && !unidadeIds?.length) {
+        return badRequest(
+          res,
+          "Evento restrito por unidades precisa ter ao menos uma unidade autorizada.",
+          { rid },
+        );
+      }
+    }
 
     const result = await client.query(
       `
@@ -1617,7 +1636,7 @@ const registrosNormalizados =
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,FALSE,$10,$11)
       RETURNING *
       `,
-            [
+      [
         String(titulo).trim(),
         String(descricao || "").trim(),
         String(local).trim(),
@@ -1629,7 +1648,7 @@ const registrosNormalizados =
         restritoFinal ? restritoModoFinal : null,
         cargoIds,
         unidadeIds,
-      ]
+      ],
     );
 
     const evento = result.rows[0];
@@ -1707,7 +1726,7 @@ async function atualizarEvento(req, res) {
 
   const body = normalizeBodyMultipart(req.body || {});
 
-    const {
+  const {
     titulo,
     descricao,
     local,
@@ -1806,124 +1825,130 @@ async function atualizarEvento(req, res) {
       pushSet("unidade_id", Number(unidade_id));
     }
 
-        if (typeof publico_alvo !== "undefined") {
+    if (typeof publico_alvo !== "undefined") {
       pushSet("publico_alvo", String(publico_alvo || "").trim());
     }
 
     if (typeof conteudo_programatico !== "undefined") {
       pushSet(
         "conteudo_programatico",
-        String(conteudo_programatico || "").trim() || null
+        String(conteudo_programatico || "").trim() || null,
       );
     }
 
-const alterouRestricao =
-  typeof restrito !== "undefined" ||
-  typeof restrito_modo !== "undefined" ||
-  typeof registros_permitidos !== "undefined" ||
-  typeof cargos_permitidos !== "undefined" ||
-  typeof unidades_permitidas !== "undefined";
+    const alterouRestricao =
+      typeof restrito !== "undefined" ||
+      typeof restrito_modo !== "undefined" ||
+      typeof registros_permitidos !== "undefined" ||
+      typeof cargos_permitidos !== "undefined" ||
+      typeof unidades_permitidas !== "undefined";
 
-if (alterouRestricao) {
-  const restritoFinal = Boolean(restrito);
-  const restritoModoFinal = restritoFinal
-    ? String(restrito_modo || "").trim()
-    : null;
-
-  const modosValidos = new Set([
-    MODO_TODOS,
-    MODO_LISTA,
-    MODO_CARGOS,
-    MODO_UNIDADES,
-  ]);
-
-  if (!restritoFinal) {
-    pushSet("restrito", false);
-    pushSet("restrito_modo", null);
-    pushSet("restricao_registros", null);
-    pushSet("cargos_permitidos_ids", null);
-    pushSet("unidades_permitidas_ids", null);
-  } else {
-    if (!modosValidos.has(restritoModoFinal)) {
-      throw Object.assign(new Error("Modo de restrição inválido."), {
-        status: 400,
-        code: "EVENTO_RESTRICAO_MODO_INVALIDO",
-      });
-    }
-
-    const registrosNormalizados =
-      restritoModoFinal === MODO_LISTA
-        ? normalizeListaRegistros(registros_permitidos)
-        : [];
-
-    const cargoIds =
-      restritoModoFinal === MODO_CARGOS
-        ? toPostgresIntArray(cargos_permitidos)
+    if (alterouRestricao) {
+      const restritoFinal = Boolean(restrito);
+      const restritoModoFinal = restritoFinal
+        ? String(restrito_modo || "").trim()
         : null;
 
-    const unidadeIds =
-      restritoModoFinal === MODO_UNIDADES
-        ? toPostgresIntArray(unidades_permitidas)
-        : null;
+      const modosValidos = new Set([
+        MODO_TODOS,
+        MODO_LISTA,
+        MODO_CARGOS,
+        MODO_UNIDADES,
+      ]);
 
-    if (restritoModoFinal === MODO_LISTA && !registrosNormalizados.length) {
-      throw Object.assign(
-        new Error("Evento restrito por lista precisa ter ao menos um registro autorizado."),
-        {
-          status: 400,
-          code: "EVENTO_RESTRICAO_LISTA_VAZIA",
+      if (!restritoFinal) {
+        pushSet("restrito", false);
+        pushSet("restrito_modo", null);
+        pushSet("restricao_registros", null);
+        pushSet("cargos_permitidos_ids", null);
+        pushSet("unidades_permitidas_ids", null);
+      } else {
+        if (!modosValidos.has(restritoModoFinal)) {
+          throw Object.assign(new Error("Modo de restrição inválido."), {
+            status: 400,
+            code: "EVENTO_RESTRICAO_MODO_INVALIDO",
+          });
         }
-      );
-    }
 
-    if (restritoModoFinal === MODO_CARGOS && !cargoIds?.length) {
-      throw Object.assign(
-        new Error("Evento restrito por cargos precisa ter ao menos um cargo autorizado."),
-        {
-          status: 400,
-          code: "EVENTO_RESTRICAO_CARGOS_VAZIA",
+        const registrosNormalizados =
+          restritoModoFinal === MODO_LISTA
+            ? normalizeListaRegistros(registros_permitidos)
+            : [];
+
+        const cargoIds =
+          restritoModoFinal === MODO_CARGOS
+            ? toPostgresIntArray(cargos_permitidos)
+            : null;
+
+        const unidadeIds =
+          restritoModoFinal === MODO_UNIDADES
+            ? toPostgresIntArray(unidades_permitidas)
+            : null;
+
+        if (restritoModoFinal === MODO_LISTA && !registrosNormalizados.length) {
+          throw Object.assign(
+            new Error(
+              "Evento restrito por lista precisa ter ao menos um registro autorizado.",
+            ),
+            {
+              status: 400,
+              code: "EVENTO_RESTRICAO_LISTA_VAZIA",
+            },
+          );
         }
-      );
-    }
 
-    if (restritoModoFinal === MODO_UNIDADES && !unidadeIds?.length) {
-      throw Object.assign(
-        new Error("Evento restrito por unidades precisa ter ao menos uma unidade autorizada."),
-        {
-          status: 400,
-          code: "EVENTO_RESTRICAO_UNIDADES_VAZIA",
+        if (restritoModoFinal === MODO_CARGOS && !cargoIds?.length) {
+          throw Object.assign(
+            new Error(
+              "Evento restrito por cargos precisa ter ao menos um cargo autorizado.",
+            ),
+            {
+              status: 400,
+              code: "EVENTO_RESTRICAO_CARGOS_VAZIA",
+            },
+          );
         }
-      );
-    }
 
-    pushSet("restrito", true);
-    pushSet("restrito_modo", restritoModoFinal);
+        if (restritoModoFinal === MODO_UNIDADES && !unidadeIds?.length) {
+          throw Object.assign(
+            new Error(
+              "Evento restrito por unidades precisa ter ao menos uma unidade autorizada.",
+            ),
+            {
+              status: 400,
+              code: "EVENTO_RESTRICAO_UNIDADES_VAZIA",
+            },
+          );
+        }
 
-    if (restritoModoFinal === MODO_TODOS) {
-      pushSet("restricao_registros", null);
-      pushSet("cargos_permitidos_ids", null);
-      pushSet("unidades_permitidas_ids", null);
-    }
+        pushSet("restrito", true);
+        pushSet("restrito_modo", restritoModoFinal);
 
-    if (restritoModoFinal === MODO_LISTA) {
-      pushSet("restricao_registros", registrosNormalizados);
-      pushSet("cargos_permitidos_ids", null);
-      pushSet("unidades_permitidas_ids", null);
-    }
+        if (restritoModoFinal === MODO_TODOS) {
+          pushSet("restricao_registros", null);
+          pushSet("cargos_permitidos_ids", null);
+          pushSet("unidades_permitidas_ids", null);
+        }
 
-    if (restritoModoFinal === MODO_CARGOS) {
-      pushSet("restricao_registros", null);
-      pushSet("cargos_permitidos_ids", cargoIds);
-      pushSet("unidades_permitidas_ids", null);
-    }
+        if (restritoModoFinal === MODO_LISTA) {
+          pushSet("restricao_registros", registrosNormalizados);
+          pushSet("cargos_permitidos_ids", null);
+          pushSet("unidades_permitidas_ids", null);
+        }
 
-    if (restritoModoFinal === MODO_UNIDADES) {
-      pushSet("restricao_registros", null);
-      pushSet("cargos_permitidos_ids", null);
-      pushSet("unidades_permitidas_ids", unidadeIds);
+        if (restritoModoFinal === MODO_CARGOS) {
+          pushSet("restricao_registros", null);
+          pushSet("cargos_permitidos_ids", cargoIds);
+          pushSet("unidades_permitidas_ids", null);
+        }
+
+        if (restritoModoFinal === MODO_UNIDADES) {
+          pushSet("restricao_registros", null);
+          pushSet("cargos_permitidos_ids", null);
+          pushSet("unidades_permitidas_ids", unidadeIds);
+        }
+      }
     }
-  }
-}
 
     if (body.remover_folder === true) {
       await limparFolderDoEvento(client, eventoId);
@@ -1948,19 +1973,21 @@ if (alterouRestricao) {
         SET ${setCols.join(", ")}
         WHERE id = $1
         `,
-        params
+        params,
       );
     }
 
     if (alterouRestricao) {
-  await sincronizarRestricoesEvento(client, eventoId, {
-    restrito: Boolean(restrito),
-    restrito_modo: Boolean(restrito) ? String(restrito_modo || "").trim() : null,
-    registros_permitidos,
-    cargos_permitidos,
-    unidades_permitidas,
-  });
-}
+      await sincronizarRestricoesEvento(client, eventoId, {
+        restrito: Boolean(restrito),
+        restrito_modo: Boolean(restrito)
+          ? String(restrito_modo || "").trim()
+          : null,
+        registros_permitidos,
+        cargos_permitidos,
+        unidades_permitidas,
+      });
+    }
 
     if (Array.isArray(turmas)) {
       await sincronizarTurmasEvento(client, eventoId, turmas);
@@ -2022,7 +2049,7 @@ async function validarEventoParaPublicacao(eventoId) {
     WHERE e.id = $1
     GROUP BY e.id
     `,
-    [eventoId]
+    [eventoId],
   );
 
   if (!result.rowCount) {
@@ -2150,7 +2177,7 @@ async function publicarEvento(req, res) {
       WHERE id = $1
       RETURNING id, publicado
       `,
-      [id]
+      [id],
     );
 
     return sendOk(res, {
@@ -2194,7 +2221,7 @@ async function despublicarEvento(req, res) {
       WHERE id = $1
       RETURNING id, publicado
       `,
-      [id]
+      [id],
     );
 
     if (!result.rowCount) {
@@ -2274,7 +2301,7 @@ async function excluirEvento(req, res) {
           LIMIT 1
         ) AS tem_certificado
       `,
-      [id]
+      [id],
     );
 
     const row = uso.rows[0] || {};
@@ -2314,16 +2341,20 @@ async function excluirEvento(req, res) {
       FROM turmas
       WHERE evento_id = $1
       `,
-      [id]
+      [id],
     );
 
     for (const turma of turmas) {
       await excluirTurmaSemUso(client, Number(turma.id));
     }
 
-    await client.query(`DELETE FROM evento_registros WHERE evento_id = $1`, [id]);
+    await client.query(`DELETE FROM evento_registros WHERE evento_id = $1`, [
+      id,
+    ]);
     await client.query(`DELETE FROM evento_cargos WHERE evento_id = $1`, [id]);
-    await client.query(`DELETE FROM evento_unidades WHERE evento_id = $1`, [id]);
+    await client.query(`DELETE FROM evento_unidades WHERE evento_id = $1`, [
+      id,
+    ]);
 
     const deleted = await client.query(
       `
@@ -2331,7 +2362,7 @@ async function excluirEvento(req, res) {
       WHERE id = $1
       RETURNING id, titulo
       `,
-      [id]
+      [id],
     );
 
     await client.query("COMMIT");
@@ -2445,7 +2476,7 @@ async function atualizarArquivosDoEvento(req, res) {
       FROM eventos
       WHERE id = $1
       `,
-      [id]
+      [id],
     );
 
     await client.query("COMMIT");
@@ -2466,7 +2497,9 @@ async function atualizarArquivosDoEvento(req, res) {
     return sendError(res, {
       status: err.status || 500,
       code: err.code || "EVENTO_ARQUIVO_ATUALIZAR_ERRO",
-      message: err.status ? err.message : "Erro ao atualizar arquivos do evento.",
+      message: err.status
+        ? err.message
+        : "Erro ao atualizar arquivos do evento.",
       rid,
       error: err,
     });
@@ -2495,7 +2528,7 @@ async function listarOrganizadoresDisponiveis(req, res) {
       FROM usuarios
       WHERE perfil IN ('organizador', 'administrador')
       ORDER BY nome ASC
-      `
+      `,
     );
 
     logInfo(rid, "listarOrganizadoresDisponiveis OK", {

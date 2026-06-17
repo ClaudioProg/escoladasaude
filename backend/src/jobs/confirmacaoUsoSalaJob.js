@@ -119,7 +119,7 @@ function obterAgoraSaoPaulo() {
   const mapa = Object.fromEntries(
     partes
       .filter((parte) => parte.type !== "literal")
-      .map((parte) => [parte.type, parte.value])
+      .map((parte) => [parte.type, parte.value]),
   );
 
   return {
@@ -151,7 +151,7 @@ function deveExecutarAgora() {
     {
       min: 0,
       max: 23,
-    }
+    },
   );
 
   if (agora.hora < horaMinima) {
@@ -225,16 +225,19 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
   running = true;
 
   try {
-    console.log("[confirmacaoUsoSalaJob] Executando fluxo de confirmação de uso de sala.", {
-      origem,
-      dia_execucao: decisao.agora.ymd,
-      hora_execucao: `${String(decisao.agora.hora).padStart(2, "0")}:${String(
-        decisao.agora.minuto
-      ).padStart(2, "0")}`,
-      timezone: TIMEZONE_OFICIAL,
-    });
+    console.log(
+      "[confirmacaoUsoSalaJob] Executando fluxo de confirmação de uso de sala.",
+      {
+        origem,
+        dia_execucao: decisao.agora.ymd,
+        hora_execucao: `${String(decisao.agora.hora).padStart(2, "0")}:${String(
+          decisao.agora.minuto,
+        ).padStart(2, "0")}`,
+        timezone: TIMEZONE_OFICIAL,
+      },
+    );
 
-        const resultadoSolicitacoes = await executarSolicitacoesConfirmacaoUsoSala({
+    const resultadoSolicitacoes = await executarSolicitacoesConfirmacaoUsoSala({
       timezone: TIMEZONE_OFICIAL,
     });
 
@@ -246,10 +249,11 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
     let resultadoCancelamentos = null;
 
     if (cancelamentoAutomaticoHabilitado()) {
-      resultadoCancelamentos =
-        await executarCancelamentosSemConfirmacaoUsoSala({
+      resultadoCancelamentos = await executarCancelamentosSemConfirmacaoUsoSala(
+        {
           timezone: TIMEZONE_OFICIAL,
-        });
+        },
+      );
     } else {
       resultadoCancelamentos = {
         ok: true,
@@ -274,7 +278,7 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
 
     ultimoDiaExecutado = decisao.agora.ymd;
 
-       console.log("[confirmacaoUsoSalaJob] Execução concluída.", {
+    console.log("[confirmacaoUsoSalaJob] Execução concluída.", {
       dia_execucao: decisao.agora.ymd,
       solicitacoes: resultadoSolicitacoes?.data?.resumo || null,
       alertas_admin_49h: resultadoAlertasAdmin49h?.data?.resumo || null,
@@ -285,7 +289,7 @@ async function executarTickConfirmacaoUsoSalaJob(origem = "intervalo") {
     return {
       ok: true,
       skipped: false,
-       result: {
+      result: {
         solicitacoes: resultadoSolicitacoes,
         alertas_admin_49h: resultadoAlertasAdmin49h,
         cancelamentos: resultadoCancelamentos,
@@ -330,7 +334,7 @@ function iniciarConfirmacaoUsoSalaJob() {
     {
       min: 60_000,
       max: 24 * 60 * 60 * 1000,
-    }
+    },
   );
 
   console.log("[confirmacaoUsoSalaJob] Job iniciado.", {
@@ -341,7 +345,7 @@ function iniciarConfirmacaoUsoSalaJob() {
       {
         min: 0,
         max: 23,
-      }
+      },
     ),
     intervalo_ms: intervalMs,
     cancelamento_automatico_habilitado: cancelamentoAutomaticoHabilitado(),

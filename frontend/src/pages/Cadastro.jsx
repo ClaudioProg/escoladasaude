@@ -76,12 +76,16 @@ function titleCasePtBr(nome) {
     .toLowerCase()
     .replace(/\s+/g, " ");
 
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   return value
     .split(" ")
     .map((part, index) => {
-      if (index > 0 && PALAVRAS_MINUSCULAS_PT.has(part)) return part;
+      if (index > 0 && PALAVRAS_MINUSCULAS_PT.has(part)) {
+        return part;
+      }
       return part.charAt(0).toUpperCase() + part.slice(1);
     })
     .join(" ");
@@ -98,8 +102,12 @@ function aplicarMascaraCPF(value) {
 function aplicarMascaraCelular(value) {
   const digits = onlyDigits(value).slice(0, 11);
 
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
   if (digits.length <= 10) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
@@ -110,8 +118,12 @@ function aplicarMascaraCelular(value) {
 function aplicarMascaraRegistro(value) {
   const digits = onlyDigits(value).slice(0, 7);
 
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 5) {
+    return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  }
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}-${digits.slice(5, 6)}`;
 }
 
@@ -132,14 +144,16 @@ function todayYmd() {
   const pad = (number) => String(number).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 
 function validarDataNascimento(value) {
   const dateOnly = String(value || "").trim();
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    return false;
+  }
 
   const [anoRaw, mesRaw, diaRaw] = dateOnly.split("-");
   const ano = Number(anoRaw);
@@ -153,21 +167,29 @@ function validarDataNascimento(value) {
     date.getUTCMonth() === mes - 1 &&
     date.getUTCDate() === dia;
 
-  if (!existe) return false;
-  if (ano < 1900) return false;
+  if (!existe) {
+    return false;
+  }
+  if (ano < 1900) {
+    return false;
+  }
 
   return dateOnly <= todayYmd();
 }
 
 function toNumberOrNull(value) {
-  if (value === "" || value === null || value === undefined) return null;
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
 
 function normalizarErroMensagem(error) {
   const data = error?.response?.data || error?.data || {};
-  return data?.message || data?.erro || error?.message || "Erro ao criar conta.";
+  return (
+    data?.message || data?.erro || error?.message || "Erro ao criar conta."
+  );
 }
 
 function normalizarFieldErrors(error) {
@@ -210,7 +232,7 @@ function BotaoLocal({
   return (
     <button
       className={[base, variants[variant] || variants.primary, className].join(
-        " "
+        " ",
       )}
       disabled={disabled || loading}
       {...props}
@@ -430,7 +452,12 @@ function CampoTexto({
   );
 }
 
-function PainelProgresso({ totalObrigatorios, preenchidos, pendentes, isDark }) {
+function PainelProgresso({
+  totalObrigatorios,
+  preenchidos,
+  pendentes,
+  isDark,
+}) {
   const percentual = totalObrigatorios
     ? Math.round((preenchidos / totalObrigatorios) * 100)
     : 0;
@@ -593,12 +620,12 @@ export default function Cadastro() {
           : "border-slate-300 bg-white text-slate-900 placeholder:text-slate-400",
         hasError ? "border-red-500/60 ring-2 ring-red-500/60" : "",
       ].join(" "),
-    [isDark]
+    [isDark],
   );
 
   const selectCls = useCallback(
     (hasError) => [inputCls(hasError), "appearance-none"].join(" "),
-    [inputCls]
+    [inputCls],
   );
 
   useEffect(() => {
@@ -606,27 +633,27 @@ export default function Cadastro() {
     refNome.current?.focus();
   }, []);
 
-function ordenarPorNome(array = []) {
-  return [...array].sort((a, b) =>
-    String(a?.nome || a?.sigla || "").localeCompare(
-      String(b?.nome || b?.sigla || ""),
-      "pt-BR",
-      { sensitivity: "base" }
-    )
-  );
-}
+  function ordenarPorNome(array = []) {
+    return [...array].sort((a, b) =>
+      String(a?.nome || a?.sigla || "").localeCompare(
+        String(b?.nome || b?.sigla || ""),
+        "pt-BR",
+        { sensitivity: "base" },
+      ),
+    );
+  }
 
-function ordenarPorId(array = []) {
-  return [...array].sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
-}
+  function ordenarPorId(array = []) {
+    return [...array].sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
+  }
 
-function ordenarUnidades(array = []) {
+  function ordenarUnidades(array = []) {
     return [...array].sort((a, b) =>
       String(a?.sigla || a?.nome || "").localeCompare(
         String(b?.sigla || b?.nome || ""),
         "pt-BR",
-        { sensitivity: "base" }
-      )
+        { sensitivity: "base" },
+      ),
     );
   }
 
@@ -638,7 +665,9 @@ function ordenarUnidades(array = []) {
         setLoadinglookup(true);
 
         const data = await apiPerfilOpcao();
-        if (!alive) return;
+        if (!alive) {
+          return;
+        }
 
         const unidadesData = Array.isArray(data?.unidades) ? data.unidades : [];
         const cargosData = Array.isArray(data?.cargos) ? data.cargos : [];
@@ -657,28 +686,32 @@ function ordenarUnidades(array = []) {
           : [];
 
         const temOutros = unidadesData.some((unidade) => {
-          const sigla = String(unidade?.sigla || "").trim().toLowerCase();
-          const nomeUnidade = String(unidade?.nome || "").trim().toLowerCase();
+          const sigla = String(unidade?.sigla || "")
+            .trim()
+            .toLowerCase();
+          const nomeUnidade = String(unidade?.nome || "")
+            .trim()
+            .toLowerCase();
           return sigla === "outros" || nomeUnidade === "outros";
         });
 
         if (!temOutros) {
           toast.warn(
-            "A unidade OUTROS não foi localizada na lista oficial. Verifique o cadastro de unidades."
+            "A unidade OUTROS não foi localizada na lista oficial. Verifique o cadastro de unidades.",
           );
         }
 
-setUnidades(ordenarUnidades(unidadesData));
-setCargos(ordenarPorNome(cargosData));
+        setUnidades(ordenarUnidades(unidadesData));
+        setCargos(ordenarPorNome(cargosData));
 
-// Escolaridade e deficiência respeitam a ordem oficial recebida da API.
-setEscolaridades(escolaridadesData);
-setDeficiencias(deficienciasData);
+        // Escolaridade e deficiência respeitam a ordem oficial recebida da API.
+        setEscolaridades(escolaridadesData);
+        setDeficiencias(deficienciasData);
 
-// Campos opcionais: exibição em ordem de ID do banco.
-setGeneros(generosData);
-setOrientacoesSexuais(ordenarPorId(orientacoesData));
-setCoresRacas(ordenarPorId(coresData));
+        // Campos opcionais: exibição em ordem de ID do banco.
+        setGeneros(generosData);
+        setOrientacoesSexuais(ordenarPorId(orientacoesData));
+        setCoresRacas(ordenarPorId(coresData));
 
         if (
           !unidadesData.length ||
@@ -691,10 +724,12 @@ setCoresRacas(ordenarPorId(coresData));
       } catch (error) {
         console.warn("[Cadastro.v2.0] Falha ao carregar lookup", error);
         toast.error(
-          "Não foi possível carregar as listas do cadastro. Tente novamente em instantes."
+          "Não foi possível carregar as listas do cadastro. Tente novamente em instantes.",
         );
       } finally {
-        if (alive) setLoadinglookup(false);
+        if (alive) {
+          setLoadinglookup(false);
+        }
       }
     }
 
@@ -709,18 +744,32 @@ setCoresRacas(ordenarPorId(coresData));
     const value = senha || "";
     let score = 0;
 
-    if (value.length >= 8) score += 1;
-    if (/[A-Z]/.test(value)) score += 1;
-    if (/[a-z]/.test(value)) score += 1;
-    if (/\d/.test(value)) score += 1;
-    if (/[^A-Za-z0-9\s]/.test(value)) score += 1;
-    if (/\s/.test(value)) score = Math.max(0, score - 1);
+    if (value.length >= 8) {
+      score += 1;
+    }
+    if (/[A-Z]/.test(value)) {
+      score += 1;
+    }
+    if (/[a-z]/.test(value)) {
+      score += 1;
+    }
+    if (/\d/.test(value)) {
+      score += 1;
+    }
+    if (/[^A-Za-z0-9\s]/.test(value)) {
+      score += 1;
+    }
+    if (/\s/.test(value)) {
+      score = Math.max(0, score - 1);
+    }
 
     return Math.min(score, 5);
   }, [senha]);
 
   const labelForca = useMemo(() => {
-    if (!senha) return null;
+    if (!senha) {
+      return null;
+    }
 
     if (forcaSenha <= 1) {
       return {
@@ -780,7 +829,7 @@ setCoresRacas(ordenarPorId(coresData));
 
     const preenchidos = REQUIRED_FIELDS.filter((field) => status[field]).length;
     const pendentes = REQUIRED_FIELDS.filter((field) => !status[field]).map(
-      (field) => labels[field]
+      (field) => labels[field],
     );
 
     return {
@@ -842,10 +891,14 @@ setCoresRacas(ordenarPorId(coresData));
   }
 
   const onBlurNome = useCallback(() => {
-    if (!nome) return;
+    if (!nome) {
+      return;
+    }
 
     const formatted = titleCasePtBr(nome);
-    if (formatted && formatted !== nome) setNome(formatted);
+    if (formatted && formatted !== nome) {
+      setNome(formatted);
+    }
   }, [nome]);
 
   const onSenhaKey = useCallback((event) => {
@@ -854,9 +907,14 @@ setCoresRacas(ordenarPorId(coresData));
 
   useEffect(() => {
     function onKey(event) {
-      if (event.key === "Escape") limparErrosVisuais();
+      if (event.key === "Escape") {
+        limparErrosVisuais();
+      }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "enter") {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "enter"
+      ) {
         document.querySelector("#btn-cadastrar")?.click();
       }
     }
@@ -870,13 +928,17 @@ setCoresRacas(ordenarPorId(coresData));
     const nomeTrim = nome.trim();
     const emailTrim = email.trim().toLowerCase();
 
-    if (!nomeTrim) fields.nome = "Nome é obrigatório.";
+    if (!nomeTrim) {
+      fields.nome = "Nome é obrigatório.";
+    }
 
     if (!validarCPF(cpf)) {
       fields.cpf = "CPF inválido. Use 000.000.000-00.";
     }
 
-    if (!validarEmail(emailTrim)) fields.email = "E-mail inválido.";
+    if (!validarEmail(emailTrim)) {
+      fields.email = "E-mail inválido.";
+    }
 
     if (!validarCelular(celular)) {
       fields.celular = "Celular inválido. Informe DDD + número.";
@@ -888,10 +950,18 @@ setCoresRacas(ordenarPorId(coresData));
       fields.data_nascimento = "Data de nascimento inválida.";
     }
 
-    if (!unidadeId) fields.unidade_id = "Unidade é obrigatória.";
-    if (!cargoId) fields.cargo_id = "Cargo é obrigatório.";
-    if (!escolaridadeId) fields.escolaridade_id = "Escolaridade é obrigatória.";
-    if (!deficienciaId) fields.deficiencia_id = "Deficiência é obrigatória.";
+    if (!unidadeId) {
+      fields.unidade_id = "Unidade é obrigatória.";
+    }
+    if (!cargoId) {
+      fields.cargo_id = "Cargo é obrigatório.";
+    }
+    if (!escolaridadeId) {
+      fields.escolaridade_id = "Escolaridade é obrigatória.";
+    }
+    if (!deficienciaId) {
+      fields.deficiencia_id = "Deficiência é obrigatória.";
+    }
 
     if (!SENHA_FORTE_RE.test(senha)) {
       fields.senha =
@@ -908,7 +978,9 @@ setCoresRacas(ordenarPorId(coresData));
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     if (hpRef.current?.value) {
       toast.error("Falha na validação.");
@@ -948,7 +1020,9 @@ setCoresRacas(ordenarPorId(coresData));
     try {
       await apiCadastrarUsuario(payload);
 
-      toast.success("Cadastro realizado com sucesso. Você já pode fazer login.");
+      toast.success(
+        "Cadastro realizado com sucesso. Você já pode fazer login.",
+      );
       setTimeout(() => navigate("/login"), 800);
     } catch (error) {
       const fields = normalizarFieldErrors(error);
@@ -983,67 +1057,67 @@ setCoresRacas(ordenarPorId(coresData));
         ].join(" ")}
       >
         <header className="relative px-4 pt-4 sm:px-6">
-  <div
-    className={[
-      "relative mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] border backdrop-blur-xl",
-      "shadow-[0_30px_120px_-40px_rgba(15,23,42,.85)]",
-      isDark
-        ? "border-white/10 bg-white/[0.03]"
-        : "border-white/70 bg-white/20",
-    ].join(" ")}
-  >
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#7c3aed_0%,#4f46e5_45%,#c026d3_100%)]" />
-    {isDark ? <div className="absolute inset-0 bg-black/35" /> : null}
+          <div
+            className={[
+              "relative mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] border backdrop-blur-xl",
+              "shadow-[0_30px_120px_-40px_rgba(15,23,42,.85)]",
+              isDark
+                ? "border-white/10 bg-white/[0.03]"
+                : "border-white/70 bg-white/20",
+            ].join(" ")}
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#7c3aed_0%,#4f46e5_45%,#c026d3_100%)]" />
+            {isDark ? <div className="absolute inset-0 bg-black/35" /> : null}
 
-    <div
-      aria-hidden="true"
-      className="absolute inset-0 opacity-[0.08]"
-      style={{
-        backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='white' fill-opacity='1'%3E%3Ccircle cx='1' cy='1' r='1'/%3E%3C/g%3E%3C/svg%3E\")",
-      }}
-    />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 opacity-[0.08]"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='white' fill-opacity='1'%3E%3Ccircle cx='1' cy='1' r='1'/%3E%3C/g%3E%3C/svg%3E\")",
+              }}
+            />
 
-    <div
-      className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/20 blur-3xl"
-      aria-hidden="true"
-    />
+            <div
+              className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/20 blur-3xl"
+              aria-hidden="true"
+            />
 
-    <div
-      className="absolute -bottom-28 -right-28 h-80 w-80 rounded-full bg-white/16 blur-3xl"
-      aria-hidden="true"
-    />
+            <div
+              className="absolute -bottom-28 -right-28 h-80 w-80 rounded-full bg-white/16 blur-3xl"
+              aria-hidden="true"
+            />
 
-    <div className="relative px-5 py-7 text-center sm:px-8 md:py-8">
-      <div className="flex flex-col items-center gap-4">
-        <div className="inline-flex rounded-[1.75rem] bg-white p-3 shadow-xl ring-1 ring-white/80">
-          <img
-            src="/logo_escola.png"
-            alt="Logotipo da Escola Municipal de Saúde Pública de Santos"
-            className="h-16 w-16 object-contain sm:h-20 sm:w-20"
-            loading="eager"
-          />
-        </div>
+            <div className="relative px-5 py-7 text-center sm:px-8 md:py-8">
+              <div className="flex flex-col items-center gap-4">
+                <div className="inline-flex rounded-[1.75rem] bg-white p-3 shadow-xl ring-1 ring-white/80">
+                  <img
+                    src="/logo_escola.png"
+                    alt="Logotipo da Escola Municipal de Saúde Pública de Santos"
+                    className="h-16 w-16 object-contain sm:h-20 sm:w-20"
+                    loading="eager"
+                  />
+                </div>
 
-        <div className="inline-flex items-center gap-2 text-xs font-semibold text-white/90">
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-          <span>Portal oficial • criação segura de conta</span>
-        </div>
+                <div className="inline-flex items-center gap-2 text-xs font-semibold text-white/90">
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  <span>Portal oficial • criação segura de conta</span>
+                </div>
 
-        <h1 className="text-2xl font-black tracking-[-0.03em] text-white md:text-4xl">
-          Cadastro
-        </h1>
+                <h1 className="text-2xl font-black tracking-[-0.03em] text-white md:text-4xl">
+                  Cadastro
+                </h1>
 
-        <p className="max-w-2xl text-sm leading-relaxed text-white/90 md:text-base">
-          Crie sua conta para acessar cursos, presenças, avaliações e
-          certificados da Escola da Saúde.
-        </p>
-      </div>
-    </div>
+                <p className="max-w-2xl text-sm leading-relaxed text-white/90 md:text-base">
+                  Crie sua conta para acessar cursos, presenças, avaliações e
+                  certificados da Escola da Saúde.
+                </p>
+              </div>
+            </div>
 
-    <div className="h-px w-full bg-white/25" aria-hidden="true" />
-  </div>
-</header>
+            <div className="h-px w-full bg-white/25" aria-hidden="true" />
+          </div>
+        </header>
 
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12">
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
@@ -1250,7 +1324,7 @@ setCoresRacas(ordenarPorId(coresData));
                           value={celular}
                           onChange={(event) => {
                             setCelular(
-                              aplicarMascaraCelular(event.target.value)
+                              aplicarMascaraCelular(event.target.value),
                             );
                             setErros((old) => ({ ...old, celular: "" }));
                           }}
@@ -1313,7 +1387,9 @@ setCoresRacas(ordenarPorId(coresData));
                         placeholder="Ex.: 00.000-0"
                         value={registro}
                         onChange={(event) => {
-                          setRegistro(aplicarMascaraRegistro(event.target.value));
+                          setRegistro(
+                            aplicarMascaraRegistro(event.target.value),
+                          );
                           setErros((old) => ({ ...old, registro: "" }));
                         }}
                         className={inputCls(!!erros.registro)}
@@ -1521,8 +1597,8 @@ setCoresRacas(ordenarPorId(coresData));
                           aria-invalid={!!erros.genero_id}
                         >
                           <option value="">
-  {loadinglookup ? "Carregando..." : "Selecione…"}
-</option>
+                            {loadinglookup ? "Carregando..." : "Selecione…"}
+                          </option>
                           {generos.map((genero) => (
                             <option key={genero.id} value={String(genero.id)}>
                               {genero.nome}
@@ -1559,8 +1635,8 @@ setCoresRacas(ordenarPorId(coresData));
                           aria-invalid={!!erros.orientacao_sexual_id}
                         >
                           <option value="">
-  {loadinglookup ? "Carregando..." : "Selecione…"}
-</option>
+                            {loadinglookup ? "Carregando..." : "Selecione…"}
+                          </option>
                           {orientacoesSexuais.map((orientacao) => (
                             <option
                               key={orientacao.id}
@@ -1595,8 +1671,8 @@ setCoresRacas(ordenarPorId(coresData));
                           aria-invalid={!!erros.cor_raca_id}
                         >
                           <option value="">
-  {loadinglookup ? "Carregando..." : "Selecione…"}
-</option>
+                            {loadinglookup ? "Carregando..." : "Selecione…"}
+                          </option>
                           {coresRacas.map((cor) => (
                             <option key={cor.id} value={String(cor.id)}>
                               {cor.nome}
@@ -1636,7 +1712,7 @@ setCoresRacas(ordenarPorId(coresData));
                             onKeyUp={onSenhaKey}
                             onKeyDown={onSenhaKey}
                             className={[inputCls(!!erros.senha), "pr-12"].join(
-                              " "
+                              " ",
                             )}
                             autoComplete="new-password"
                             required
@@ -1755,8 +1831,9 @@ setCoresRacas(ordenarPorId(coresData));
                     </div>
 
                     <div aria-hidden="true" className="hidden">
-                      <label>Deixe em branco</label>
+                      <label htmlFor="cadastro-hp">Deixe em branco</label>
                       <input
+                        id="cadastro-hp"
                         ref={hpRef}
                         type="text"
                         tabIndex={-1}

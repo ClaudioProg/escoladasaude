@@ -1,6 +1,6 @@
 // ✅ frontend/src/pages/DashboardAnalitico.jsx — v2.1
 // Atualizado em: 01/06/2026
-/* eslint-disable no-console */
+
 /**
  * Plataforma Escola da Saúde
  *
@@ -63,10 +63,7 @@ import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
-import {
-  apiDashboardAnalitico,
-  apiUsuarioEstatistica,
-} from "../services/api";
+import { apiDashboardAnalitico, apiUsuarioEstatistica } from "../services/api";
 
 ChartJS.register(
   BarElement,
@@ -75,7 +72,7 @@ ChartJS.register(
   ArcElement,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -143,22 +140,40 @@ function unwrap(response) {
 function getErrorMessage(error, fallback) {
   const data = error?.response?.data || error?.data || {};
 
-  if (data?.message) return data.message;
-  if (data?.erro) return data.erro;
-  if (error?.message) return error.message;
-  if (typeof error === "string" && error.trim()) return error;
+  if (data?.message) {
+    return data.message;
+  }
+  if (data?.erro) {
+    return data.erro;
+  }
+  if (error?.message) {
+    return error.message;
+  }
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
 
   return fallback;
 }
 
 function isAbortLike(error) {
-  if (!error) return false;
+  if (!error) {
+    return false;
+  }
 
-  if (error === "unmount") return true;
-  if (error === "nova-requisicao") return true;
+  if (error === "unmount") {
+    return true;
+  }
+  if (error === "nova-requisicao") {
+    return true;
+  }
 
-  if (error?.name === "AbortError") return true;
-  if (error?.code === "ERR_CANCELED") return true;
+  if (error?.name === "AbortError") {
+    return true;
+  }
+  if (error?.code === "ERR_CANCELED") {
+    return true;
+  }
 
   const message = String(error?.message || error || "").toLowerCase();
 
@@ -181,7 +196,9 @@ function toNumber(value, fallback = 0) {
 function clampPercent(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return 0;
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
 
   return Math.max(0, Math.min(100, number));
 }
@@ -191,7 +208,11 @@ function normalizeArray(value) {
 }
 
 function normalizeChartPayload(value) {
-  if (!value || !Array.isArray(value.labels) || !Array.isArray(value.datasets)) {
+  if (
+    !value ||
+    !Array.isArray(value.labels) ||
+    !Array.isArray(value.datasets)
+  ) {
     return {
       labels: [],
       datasets: [],
@@ -242,9 +263,7 @@ function sanitizePieArray(value) {
 
       return {
         label: label || "Não informado",
-        value: Number.isFinite(numericValue)
-          ? Math.max(0, numericValue)
-          : 0,
+        value: Number.isFinite(numericValue) ? Math.max(0, numericValue) : 0,
       };
     })
     .filter((item) => item.value > 0);
@@ -270,8 +289,8 @@ function colorizeChartData(chartData, { isDark = false, type = "bar" } = {}) {
       const baseColor = colorAt(datasetIndex, isDark);
       const labelsCount = chartData.labels.length;
 
-      const perItemColors = Array.from({ length: labelsCount }).map((_, index) =>
-        colorAt(index, isDark)
+      const perItemColors = Array.from({ length: labelsCount }).map(
+        (_, index) => colorAt(index, isDark),
       );
 
       if (type === "pie") {
@@ -435,8 +454,8 @@ function InfoRibbon() {
           </p>
 
           <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
-            Analise eventos, inscrições, presença e perfil da população cadastrada
-            para apoiar decisões da Escola da Saúde.
+            Analise eventos, inscrições, presença e perfil da população
+            cadastrada para apoiar decisões da Escola da Saúde.
           </p>
         </div>
       </div>
@@ -495,13 +514,7 @@ function FieldSelect({ id, label, value, onChange, options }) {
   );
 }
 
-function MiniStat({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone = "indigo",
-}) {
+function MiniStat({ icon: Icon, label, value, hint, tone = "indigo" }) {
   const toneMap = {
     indigo: {
       soft: "bg-indigo-600/10 text-indigo-700 dark:text-indigo-200 dark:bg-indigo-400/10",
@@ -645,7 +658,8 @@ function PieCard({ title, data }) {
 
               return (chart.data.labels || []).map((raw, index) => {
                 const label = String(raw ?? "—");
-                const color = dataset.backgroundColor?.[index] || colorAt(index);
+                const color =
+                  dataset.backgroundColor?.[index] || colorAt(index);
 
                 return {
                   text: label.length > 22 ? `${label.slice(0, 21)}…` : label,
@@ -673,7 +687,7 @@ function PieCard({ title, data }) {
       animation: reduceMotion ? false : undefined,
       maintainAspectRatio: false,
     }),
-    [reduceMotion, total]
+    [reduceMotion, total],
   );
 
   return (
@@ -775,66 +789,72 @@ export default function DashboardAnalitico() {
         }),
       ]);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       if (dashboardResult.status === "fulfilled") {
-  setDados(normalizeMetricPayload(unwrap(dashboardResult.value) || {}));
-} else if (!isAbortLike(dashboardResult.reason)) {
-  const message = getErrorMessage(
-    dashboardResult.reason,
-    "Erro ao carregar os indicadores de eventos."
-  );
+        setDados(normalizeMetricPayload(unwrap(dashboardResult.value) || {}));
+      } else if (!isAbortLike(dashboardResult.reason)) {
+        const message = getErrorMessage(
+          dashboardResult.reason,
+          "Erro ao carregar os indicadores de eventos.",
+        );
 
-  console.error("[DashboardAnalitico] erro nos indicadores de eventos", {
-    error: dashboardResult.reason,
-  });
+        console.error("[DashboardAnalitico] erro nos indicadores de eventos", {
+          error: dashboardResult.reason,
+        });
 
-  setDados(normalizeMetricPayload({}));
-  setErro(message);
-  toast.error(message);
-}
+        setDados(normalizeMetricPayload({}));
+        setErro(message);
+        toast.error(message);
+      }
 
       if (estatisticaResult.status === "fulfilled") {
-  setStats(normalizeStatsPayload(unwrap(estatisticaResult.value) || {}));
-} else if (!isAbortLike(estatisticaResult.reason)) {
-  console.warn("[DashboardAnalitico] erro nas estatísticas de usuários", {
-    error: estatisticaResult.reason,
-  });
+        setStats(normalizeStatsPayload(unwrap(estatisticaResult.value) || {}));
+      } else if (!isAbortLike(estatisticaResult.reason)) {
+        console.warn("[DashboardAnalitico] erro nas estatísticas de usuários", {
+          error: estatisticaResult.reason,
+        });
 
-  setStats(normalizeStatsPayload({}));
+        setStats(normalizeStatsPayload({}));
 
-  if (dashboardResult.status === "fulfilled") {
-    const message = getErrorMessage(
-      estatisticaResult.reason,
-      "Não foi possível carregar a população cadastrada."
-    );
+        if (dashboardResult.status === "fulfilled") {
+          const message = getErrorMessage(
+            estatisticaResult.reason,
+            "Não foi possível carregar a população cadastrada.",
+          );
 
-    setErro(message);
-    toast.error(message);
-  }
-}
+          setErro(message);
+          toast.error(message);
+        }
+      }
 
       const dashboardAbortado =
-  dashboardResult.status === "rejected" && isAbortLike(dashboardResult.reason);
+        dashboardResult.status === "rejected" &&
+        isAbortLike(dashboardResult.reason);
 
-const estatisticaAbortada =
-  estatisticaResult.status === "rejected" && isAbortLike(estatisticaResult.reason);
+      const estatisticaAbortada =
+        estatisticaResult.status === "rejected" &&
+        isAbortLike(estatisticaResult.reason);
 
-if (dashboardAbortado || estatisticaAbortada) {
-  return;
-}
+      if (dashboardAbortado || estatisticaAbortada) {
+        return;
+      }
 
-if (
-  dashboardResult.status === "fulfilled" &&
-  estatisticaResult.status === "fulfilled"
-) {
-  setErro("");
-  setLive("Dashboard analítico atualizado.");
-} else {
-  setLive("Dashboard analítico carregado parcialmente.");
-}
+      if (
+        dashboardResult.status === "fulfilled" &&
+        estatisticaResult.status === "fulfilled"
+      ) {
+        setErro("");
+        setLive("Dashboard analítico atualizado.");
+      } else {
+        setLive("Dashboard analítico carregado parcialmente.");
+      }
     } catch (error) {
-      if (error?.name === "AbortError") return;
+      if (error?.name === "AbortError") {
+        return;
+      }
 
       console.error("[DashboardAnalitico] erro inesperado ao carregar dados", {
         error,
@@ -842,10 +862,12 @@ if (
 
       const message = getErrorMessage(
         error,
-        "Erro ao carregar dados do painel analítico."
+        "Erro ao carregar dados do painel analítico.",
       );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setErro(message);
       toast.error(message);
@@ -875,7 +897,7 @@ if (
         isDark,
         type: "bar",
       }),
-    [dados.evento_por_mes, isDark]
+    [dados.evento_por_mes, isDark],
   );
 
   const eventoPorTipoData = useMemo(
@@ -884,13 +906,15 @@ if (
         isDark,
         type: "pie",
       }),
-    [dados.evento_por_tipo, isDark]
+    [dados.evento_por_tipo, isDark],
   );
 
   const presencaPorEventoData = useMemo(() => {
     const base = dados.presenca_por_evento;
 
-    if (!base?.datasets?.length) return base;
+    if (!base?.datasets?.length) {
+      return base;
+    }
 
     const labels = Array.isArray(base.labels) ? base.labels : [];
     const datasets = Array.isArray(base.datasets) ? base.datasets : [];
@@ -926,7 +950,7 @@ if (
       datasets: datasets.map((dataset) => ({
         ...dataset,
         data: indices.map((index) =>
-          Number(clampPercent(dataset.data?.[index]).toFixed(1))
+          Number(clampPercent(dataset.data?.[index]).toFixed(1)),
         ),
         fill: false,
       })),
@@ -972,7 +996,7 @@ if (
       },
       maintainAspectRatio: false,
     }),
-    [isDark, reduceMotion]
+    [isDark, reduceMotion],
   );
 
   const chartOptions = useMemo(
@@ -1004,7 +1028,7 @@ if (
       },
       maintainAspectRatio: false,
     }),
-    [isDark, reduceMotion]
+    [isDark, reduceMotion],
   );
 
   const pieOptions = useMemo(
@@ -1023,47 +1047,47 @@ if (
       animation: reduceMotion ? false : undefined,
       maintainAspectRatio: false,
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   const pieFaixa = useMemo(
     () => toPieDataset(stats.faixa_etaria, isDark),
-    [isDark, stats.faixa_etaria]
+    [isDark, stats.faixa_etaria],
   );
 
   const pieUnidade = useMemo(
     () => toPieDataset(stats.por_unidade, isDark),
-    [isDark, stats.por_unidade]
+    [isDark, stats.por_unidade],
   );
 
   const pieEscolaridade = useMemo(
     () => toPieDataset(stats.por_escolaridade, isDark),
-    [isDark, stats.por_escolaridade]
+    [isDark, stats.por_escolaridade],
   );
 
   const pieCargo = useMemo(
     () => toPieDataset(stats.por_cargo, isDark),
-    [isDark, stats.por_cargo]
+    [isDark, stats.por_cargo],
   );
 
   const pieOrientacaoSexual = useMemo(
     () => toPieDataset(stats.por_orientacao_sexual, isDark),
-    [isDark, stats.por_orientacao_sexual]
+    [isDark, stats.por_orientacao_sexual],
   );
 
   const pieGenero = useMemo(
     () => toPieDataset(stats.por_genero, isDark),
-    [isDark, stats.por_genero]
+    [isDark, stats.por_genero],
   );
 
   const pieDeficiencia = useMemo(
     () => toPieDataset(stats.por_deficiencia, isDark),
-    [isDark, stats.por_deficiencia]
+    [isDark, stats.por_deficiencia],
   );
 
   const pieCorRaca = useMemo(
     () => toPieDataset(stats.por_cor_raca, isDark),
-    [isDark, stats.por_cor_raca]
+    [isDark, stats.por_cor_raca],
   );
 
   return (
@@ -1075,7 +1099,12 @@ if (
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
-        <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+        <p
+          ref={liveRef}
+          className="sr-only"
+          aria-live="polite"
+          aria-atomic="true"
+        />
 
         {carregando ? (
           <div
@@ -1088,7 +1117,7 @@ if (
             <div
               className={cx(
                 "h-full w-1/3 bg-fuchsia-600",
-                reduceMotion ? "" : "animate-pulse"
+                reduceMotion ? "" : "animate-pulse",
               )}
             />
           </div>

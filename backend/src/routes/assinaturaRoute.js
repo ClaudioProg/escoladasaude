@@ -59,14 +59,14 @@ if (typeof requireAuth !== "function") {
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[assinaturaRoute] authorize deve ser exportado por middlewares/authorize."
+    "[assinaturaRoute] authorize deve ser exportado por middlewares/authorize.",
   );
 }
 
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[assinaturaRoute] Handler obrigatório ausente: assinaturaController.${name}`
+      `[assinaturaRoute] Handler obrigatório ausente: assinaturaController.${name}`,
     );
   }
 }
@@ -89,10 +89,8 @@ const DATA_IMAGE_URL_RE =
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -172,7 +170,7 @@ const validarAssinaturaBody = [
     .bail()
     .custom((value) => isDataImageUrl(value))
     .withMessage(
-      "Assinatura deve ser uma dataURL válida de imagem PNG, JPG/JPEG ou WEBP."
+      "Assinatura deve ser uma dataURL válida de imagem PNG, JPG/JPEG ou WEBP.",
     )
     .bail()
     .custom((value) => {
@@ -212,16 +210,14 @@ router.use(noStore);
 router.get(
   "/",
   routeTag("assinaturaRoute:v2.0:GET /"),
-  asyncHandler(assinaturaController.getAssinatura)
+  asyncHandler(assinaturaController.getAssinatura),
 );
 
 /**
  * HEAD /api/assinatura
  */
-router.head(
-  "/",
-  routeTag("assinaturaRoute:v2.0:HEAD /"),
-  (_req, res) => res.sendStatus(204)
+router.head("/", routeTag("assinaturaRoute:v2.0:HEAD /"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 /**
@@ -237,7 +233,7 @@ router.post(
   validarAssinaturaBody,
   validate,
   routeTag("assinaturaRoute:v2.0:POST /"),
-  asyncHandler(assinaturaController.salvarAssinatura)
+  asyncHandler(assinaturaController.salvarAssinatura),
 );
 
 /**
@@ -248,7 +244,7 @@ router.post(
 router.post(
   "/auto",
   routeTag("assinaturaRoute:v2.0:POST /auto"),
-  asyncHandler(assinaturaController.getAssinatura)
+  asyncHandler(assinaturaController.getAssinatura),
 );
 
 /**
@@ -261,7 +257,7 @@ router.get(
   "/lista",
   authorize("administrador", "organizador"),
   routeTag("assinaturaRoute:v2.0:GET /lista"),
-  asyncHandler(assinaturaController.listarAssinaturas)
+  asyncHandler(assinaturaController.listarAssinaturas),
 );
 
 /**
@@ -271,7 +267,7 @@ router.head(
   "/lista",
   authorize("administrador", "organizador"),
   routeTag("assinaturaRoute:v2.0:HEAD /lista"),
-  (_req, res) => res.sendStatus(204)
+  (_req, res) => res.sendStatus(204),
 );
 
 module.exports = router;

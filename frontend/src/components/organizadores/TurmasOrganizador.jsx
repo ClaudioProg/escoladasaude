@@ -16,7 +16,6 @@ import {
   Ear,
   Eye,
   FileText,
-  Infinity,
   MapPin,
   QrCode,
   Sparkles,

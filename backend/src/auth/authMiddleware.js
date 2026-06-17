@@ -170,7 +170,7 @@ function authenticateRequest(req, res) {
     if (!IS_PROD) {
       console.warn(
         "[authMiddleware] token ausente",
-        buildAuthLog(req, { tokenSource: null })
+        buildAuthLog(req, { tokenSource: null }),
       );
     }
 
@@ -191,7 +191,7 @@ function authenticateRequest(req, res) {
         "[authMiddleware] payload JWT fora do contrato oficial",
         buildAuthLog(req, {
           decodedKeys: decoded ? Object.keys(decoded) : [],
-        })
+        }),
       );
 
       return {
@@ -212,14 +212,13 @@ function authenticateRequest(req, res) {
   } catch (error) {
     const isExpired = error?.name === "TokenExpiredError";
     const isJwtError =
-      error?.name === "JsonWebTokenError" ||
-      error?.name === "NotBeforeError";
+      error?.name === "JsonWebTokenError" || error?.name === "NotBeforeError";
     const isSecretMissing = error?.code === "JWT_SECRET_MISSING";
 
     if (isSecretMissing) {
       console.error(
         "[authMiddleware] JWT_SECRET ausente ou inválido",
-        buildAuthLog(req)
+        buildAuthLog(req),
       );
 
       return {
@@ -238,7 +237,7 @@ function authenticateRequest(req, res) {
       buildAuthLog(req, {
         errorName: error?.name,
         errorMessage: error?.message,
-      })
+      }),
     );
 
     if (isExpired) {
@@ -261,9 +260,14 @@ function authenticateRequest(req, res) {
 
     return {
       ok: false,
-      response: buildAuthErrorResponse(res, 401, "Token inválido ou expirado.", {
-        sessionExpired: false,
-      }),
+      response: buildAuthErrorResponse(
+        res,
+        401,
+        "Token inválido ou expirado.",
+        {
+          sessionExpired: false,
+        },
+      ),
     };
   }
 }
@@ -295,7 +299,7 @@ function authAdmin(req, res, next) {
       buildAuthLog(req, {
         userId: req.user?.id,
         perfil: req.user?.perfil,
-      })
+      }),
     );
 
     return res.status(403).json({

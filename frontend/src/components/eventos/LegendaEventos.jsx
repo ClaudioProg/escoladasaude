@@ -19,7 +19,7 @@
 
 import PropTypes from "prop-types";
 
-export const EVENTOS_LEGENDA_PADRAO = Object.freeze([
+const EVENTOS_LEGENDA_PADRAO = Object.freeze([
   { key: "programado", text: "Programado", color: "emerald" },
   { key: "andamento", text: "Em andamento", color: "amber" },
   { key: "encerrado", text: "Encerrado", color: "rose" },
@@ -39,7 +39,7 @@ const CORES_PERMITIDAS = Object.freeze([
   "gray",
 ]);
 
-export function colorClasses(color) {
+function colorClasses(color) {
   const map = {
     emerald: "bg-emerald-600 border-emerald-700 dark:border-emerald-500",
     amber: "bg-amber-500 border-amber-600 dark:border-amber-400",
@@ -86,15 +86,20 @@ function classNames(...classes) {
 }
 
 function normalizarItems(items) {
-  const lista = Array.isArray(items) && items.length ? items : EVENTOS_LEGENDA_PADRAO;
+  const lista =
+    Array.isArray(items) && items.length ? items : EVENTOS_LEGENDA_PADRAO;
 
   return lista
     .map((item) => {
       const key = String(item?.key || item?.text || "").trim();
       const text = String(item?.text || "").trim();
-      const color = CORES_PERMITIDAS.includes(item?.color) ? item.color : "gray";
+      const color = CORES_PERMITIDAS.includes(item?.color)
+        ? item.color
+        : "gray";
 
-      if (!key || !text) return null;
+      if (!key || !text) {
+        return null;
+      }
 
       return {
         key,
@@ -118,7 +123,9 @@ function normalizarQuantidade(value) {
 function normalizarOpacidade(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return 0.55;
+  if (!Number.isFinite(number)) {
+    return 0.55;
+  }
 
   return Math.max(0.2, Math.min(1, number));
 }
@@ -143,14 +150,14 @@ export default function LegendaEventos({
   const activeSet = new Set(
     Array.isArray(activeKeys) && activeKeys.length
       ? activeKeys.map((key) => String(key).trim()).filter(Boolean)
-      : itensNormalizados.map((item) => item.key)
+      : itensNormalizados.map((item) => item.key),
   );
 
   return (
     <ul
       className={classNames(
         "mt-6 flex flex-wrap items-center gap-4",
-        className
+        className,
       )}
       role={interativo ? "listbox" : "list"}
       aria-label={ariaLabelledBy ? undefined : ariaLabel}
@@ -171,7 +178,7 @@ export default function LegendaEventos({
             className={classNames(
               "shrink-0 rounded-full border ring-1 ring-black/5 dark:ring-white/10",
               colorClasses(color),
-              tamanho.dot
+              tamanho.dot,
             )}
             aria-hidden="true"
           />
@@ -181,7 +188,7 @@ export default function LegendaEventos({
           <span
             className={classNames(
               "leading-tight text-gray-700 dark:text-gray-300",
-              tamanho.text
+              tamanho.text,
             )}
           >
             {text}
@@ -193,7 +200,7 @@ export default function LegendaEventos({
             <span
               className={classNames(
                 "inline-flex items-center rounded-full border border-current/25 bg-black/5 py-0.5 leading-none text-gray-700 dark:bg-white/10 dark:text-gray-200",
-                tamanho.badge
+                tamanho.badge,
               )}
               aria-label={`${text}: ${quantidade}`}
             >
@@ -207,7 +214,7 @@ export default function LegendaEventos({
               className={classNames(
                 "inline-flex items-center rounded-full border font-semibold text-white shadow-sm",
                 colorClasses(color),
-                tamanho.pill
+                tamanho.pill,
               )}
               title={text}
             >
@@ -234,17 +241,12 @@ export default function LegendaEventos({
         const commonClass = classNames(
           "flex items-center gap-2",
           interativo && "cursor-pointer select-none",
-          !ativo && "transition-opacity"
+          !ativo && "transition-opacity",
         );
 
         if (!interativo) {
           return (
-            <li
-              key={key}
-              className={commonClass}
-              role="listitem"
-              style={itemStyle}
-            >
+            <li key={key} className={commonClass} style={itemStyle}>
               {content}
             </li>
           );
@@ -256,7 +258,7 @@ export default function LegendaEventos({
               type="button"
               className={classNames(
                 commonClass,
-                "rounded-full px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                "rounded-full px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
               )}
               style={itemStyle}
               role="option"
@@ -279,7 +281,7 @@ LegendaEventos.propTypes = {
       key: PropTypes.string,
       text: PropTypes.string.isRequired,
       color: PropTypes.oneOf(CORES_PERMITIDAS).isRequired,
-    })
+    }),
   ),
   size: PropTypes.oneOf(["sm", "md", "lg"]),
   variant: PropTypes.oneOf(["dot", "pill", "dot-badge"]),

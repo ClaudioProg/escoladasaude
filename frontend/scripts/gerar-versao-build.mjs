@@ -53,7 +53,7 @@ const versionPayload = {
 fs.writeFileSync(
   outputPath,
   `${JSON.stringify(versionPayload, null, 2)}\n`,
-  "utf8"
+  "utf8",
 );
 
 console.log("[build-version] version.json gerado em:", outputPath);

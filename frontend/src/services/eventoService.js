@@ -1,5 +1,5 @@
-// ✅ frontend/src/services/eventoService.js — v2.2
-// Atualizado em: 02/06/2026
+// ✅ frontend/src/services/eventoService.js — v2.3
+// Atualizado em: 16/06/2026
 // Plataforma Escola da Saúde
 //
 // Service específico do domínio de eventos.
@@ -88,32 +88,50 @@ const MAX_ASSINANTES_TURMA = 3;
 export function cleanObject(obj = {}) {
   return Object.fromEntries(
     Object.entries(obj || {}).filter(([, value]) => {
-      if (value === undefined || value === null) return false;
-      if (typeof value === "string" && value.trim() === "") return false;
+      if (value === undefined || value === null) {
+        return false;
+      }
+      if (typeof value === "string" && value.trim() === "") {
+        return false;
+      }
       return true;
-    })
+    }),
   );
 }
 
 export function ymd(value) {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") {
+    return "";
+  }
 
   const s = value.trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    return s.slice(0, 10);
+  }
 
   return "";
 }
 
 export function hhmm(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const s = value.trim();
 
-  if (!s) return fallback;
-  if (/^\d{2}:\d{2}$/.test(s)) return s;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s.slice(0, 5);
+  if (!s) {
+    return fallback;
+  }
+  if (/^\d{2}:\d{2}$/.test(s)) {
+    return s;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) {
+    return s.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -125,13 +143,17 @@ export function onlyDigits(value) {
 export function toPositiveIntOrNull(value) {
   const n = Number(value);
 
-  if (!Number.isInteger(n) || n <= 0) return null;
+  if (!Number.isInteger(n) || n <= 0) {
+    return null;
+  }
 
   return n;
 }
 
 export function extractIds(value) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return [
     ...new Set(
@@ -144,13 +166,15 @@ export function extractIds(value) {
           return item;
         })
         .map((item) => Number(String(item).trim()))
-        .filter((n) => Number.isInteger(n) && n > 0)
+        .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
 }
 
 export function extractRegistros(value) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return [
     ...new Set(
@@ -163,7 +187,7 @@ export function extractRegistros(value) {
           return item;
         })
         .map((item) => onlyDigits(item))
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
 }
@@ -185,7 +209,9 @@ export function normalizeTitleSort(value) {
 }
 
 export function isAbortLike(error) {
-  if (!error) return false;
+  if (!error) {
+    return false;
+  }
 
   const name = String(error?.name || "");
   const message = String(error?.message || error || "");
@@ -209,7 +235,9 @@ export function isAbortLike(error) {
 }
 
 function unwrapData(response) {
-  if (response?.data !== undefined) return response.data;
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -228,7 +256,7 @@ function isUploadFile(value) {
   const hasBlob = typeof Blob !== "undefined";
 
   return Boolean(
-    (hasFile && value instanceof File) || (hasBlob && value instanceof Blob)
+    (hasFile && value instanceof File) || (hasBlob && value instanceof Blob),
   );
 }
 
@@ -245,7 +273,9 @@ function fileName(value, fallback) {
 export function yearFromYmd(value) {
   const date = ymd(value);
 
-  if (!date) return null;
+  if (!date) {
+    return null;
+  }
 
   const year = Number(date.slice(0, 4));
 
@@ -259,7 +289,9 @@ export function getEventYear(evento) {
     yearFromYmd(evento?.data_fim) ||
     yearFromYmd(evento?.data_fim_geral);
 
-  if (direct) return direct;
+  if (direct) {
+    return direct;
+  }
 
   const turmas = Array.isArray(evento?.turmas) ? evento.turmas : [];
 
@@ -269,13 +301,17 @@ export function getEventYear(evento) {
       yearFromYmd(turma?.data_fim) ||
       yearFromYmd(turma?.data);
 
-    if (turmaYear) return turmaYear;
+    if (turmaYear) {
+      return turmaYear;
+    }
 
     const datas = Array.isArray(turma?.datas) ? turma.datas : [];
 
     for (const d of datas) {
       const dataYear = yearFromYmd(d?.data);
-      if (dataYear) return dataYear;
+      if (dataYear) {
+        return dataYear;
+      }
     }
   }
 
@@ -287,7 +323,9 @@ export function getEventStartDate(evento) {
 
   const push = (value) => {
     const d = ymd(value);
-    if (d) candidates.push(d);
+    if (d) {
+      candidates.push(d);
+    }
   };
 
   push(evento?.data_inicio);
@@ -299,21 +337,35 @@ export function getEventStartDate(evento) {
     push(turma?.data_inicio);
 
     const datas = Array.isArray(turma?.datas) ? turma.datas : [];
-    for (const d of datas) push(d?.data);
+    for (const d of datas) {
+      push(d?.data);
+    }
   }
 
-  if (!candidates.length) return "9999-12-31";
+  if (!candidates.length) {
+    return "9999-12-31";
+  }
 
   return [...candidates].sort()[0];
 }
 
 export function deduzStatusEvento(evento) {
-  const raw = String(evento?.status || "").trim().toLowerCase();
+  const raw = String(evento?.status || "")
+    .trim()
+    .toLowerCase();
 
-  if (raw === EVENTO_STATUS.ANDAMENTO) return EVENTO_STATUS.ANDAMENTO;
-  if (raw === EVENTO_STATUS.PROGRAMADO) return EVENTO_STATUS.PROGRAMADO;
-  if (raw === EVENTO_STATUS.ENCERRADO) return EVENTO_STATUS.ENCERRADO;
-  if (raw === EVENTO_STATUS.SEM_DATAS) return EVENTO_STATUS.SEM_DATAS;
+  if (raw === EVENTO_STATUS.ANDAMENTO) {
+    return EVENTO_STATUS.ANDAMENTO;
+  }
+  if (raw === EVENTO_STATUS.PROGRAMADO) {
+    return EVENTO_STATUS.PROGRAMADO;
+  }
+  if (raw === EVENTO_STATUS.ENCERRADO) {
+    return EVENTO_STATUS.ENCERRADO;
+  }
+  if (raw === EVENTO_STATUS.SEM_DATAS) {
+    return EVENTO_STATUS.SEM_DATAS;
+  }
 
   return EVENTO_STATUS.PROGRAMADO;
 }
@@ -330,25 +382,37 @@ export function sortEventosAdmin(a, b) {
   const da = getEventStartDate(a);
   const db = getEventStartDate(b);
 
-  if (da !== db) return da.localeCompare(db);
+  if (da !== db) {
+    return da.localeCompare(db);
+  }
 
   return normalizeTitleSort(a?.titulo).localeCompare(
     normalizeTitleSort(b?.titulo),
-    "pt-BR"
+    "pt-BR",
   );
 }
 
 export function sortEventosPublicos(a, b) {
-  const da = ymd(a?.data_inicio_geral || a?.data_inicio || getEventStartDate(a));
-  const db = ymd(b?.data_inicio_geral || b?.data_inicio || getEventStartDate(b));
+  const da = ymd(
+    a?.data_inicio_geral || a?.data_inicio || getEventStartDate(a),
+  );
+  const db = ymd(
+    b?.data_inicio_geral || b?.data_inicio || getEventStartDate(b),
+  );
 
-  if (da && db && da !== db) return da.localeCompare(db);
-  if (da && !db) return -1;
-  if (!da && db) return 1;
+  if (da && db && da !== db) {
+    return da.localeCompare(db);
+  }
+  if (da && !db) {
+    return -1;
+  }
+  if (!da && db) {
+    return 1;
+  }
 
   return normalizeTitleSort(a?.titulo).localeCompare(
     normalizeTitleSort(b?.titulo),
-    "pt-BR"
+    "pt-BR",
   );
 }
 
@@ -366,7 +430,9 @@ export function calcularCargaHorariaPorDatas(datas = []) {
     const [h1, m1] = inicio.split(":").map(Number);
     const [h2, m2] = fim.split(":").map(Number);
 
-    if (!Number.isFinite(h1) || !Number.isFinite(h2)) continue;
+    if (!Number.isFinite(h1) || !Number.isFinite(h2)) {
+      continue;
+    }
 
     const minutosInicio = h1 * 60 + (Number.isFinite(m1) ? m1 : 0);
     const minutosFim = h2 * 60 + (Number.isFinite(m2) ? m2 : 0);
@@ -396,7 +462,9 @@ export function normalizeDatasTurma(turma = {}) {
 }
 
 export function normalizePalestrantesTurma(value = []) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return value
     .map((item) => {
@@ -420,7 +488,7 @@ export function normalizeAssinantesTurma(value = []) {
   const temFabio = ids.includes(FABIO_LOPEZ_ID);
 
   const extras = ids.filter(
-    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID
+    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID,
   );
 
   const base = extras.slice(0, temFabio ? 1 : 2);
@@ -449,7 +517,9 @@ export function normalizeTurmas(turmas = []) {
           : calcularCargaHorariaPorDatas(datas);
 
       const organizadores = extractIds(turma?.organizadores || []);
-      const palestrantes = normalizePalestrantesTurma(turma?.palestrantes || []);
+      const palestrantes = normalizePalestrantesTurma(
+        turma?.palestrantes || [],
+      );
       const assinantes = normalizeAssinantesTurma(turma?.assinantes || []);
 
       return cleanObject({
@@ -465,8 +535,7 @@ export function normalizeTurmas(turmas = []) {
       });
     })
     .filter(
-      (turma) =>
-        turma.nome && Array.isArray(turma.datas) && turma.datas.length
+      (turma) => turma.nome && Array.isArray(turma.datas) && turma.datas.length,
     );
 }
 
@@ -510,7 +579,9 @@ export function validarTurmasComorganizadores(turmas = []) {
 }
 
 function normalizePosCurso(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
 
   const obrigatorio = value.obrigatorio === true;
   const questionarioId = toPositiveIntOrNull(value.questionario_id);
@@ -537,22 +608,22 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
   const local = String(source?.local ?? base?.local ?? "").trim();
   const tipo = String(source?.tipo ?? base?.tipo ?? "").trim();
   const publicoAlvo = String(
-    source?.publico_alvo ?? base?.publico_alvo ?? ""
+    source?.publico_alvo ?? base?.publico_alvo ?? "",
   ).trim();
 
   const conteudoProgramatico = String(
-    source?.conteudo_programatico ?? base?.conteudo_programatico ?? ""
+    source?.conteudo_programatico ?? base?.conteudo_programatico ?? "",
   ).trim();
 
   const unidadeId = toPositiveIntOrNull(source?.unidade_id ?? base?.unidade_id);
 
   const restrito = Boolean(
     source?.restrito ??
-      (typeof base?.restrito === "boolean" ? base.restrito : false)
+    (typeof base?.restrito === "boolean" ? base.restrito : false),
   );
 
   const restritoModo = restrito
-    ? source?.restrito_modo ?? base?.restrito_modo ?? null
+    ? (source?.restrito_modo ?? base?.restrito_modo ?? null)
     : null;
 
   const cargosPermitidos =
@@ -576,7 +647,7 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
             ? source.registros_permitidos
             : Array.isArray(base?.registros_permitidos)
               ? base.registros_permitidos
-              : []
+              : [],
         )
       : [];
 
@@ -632,9 +703,15 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
 }
 
 export function validateEventoPayload(payload = {}) {
-  if (!String(payload?.titulo || "").trim()) return "Informe o título do evento.";
-  if (!String(payload?.local || "").trim()) return "Informe o local do evento.";
-  if (!String(payload?.tipo || "").trim()) return "Informe o tipo do evento.";
+  if (!String(payload?.titulo || "").trim()) {
+    return "Informe o título do evento.";
+  }
+  if (!String(payload?.local || "").trim()) {
+    return "Informe o local do evento.";
+  }
+  if (!String(payload?.tipo || "").trim()) {
+    return "Informe o tipo do evento.";
+  }
   if (!toPositiveIntOrNull(payload?.unidade_id)) {
     return "Informe a unidade do evento.";
   }
@@ -644,7 +721,9 @@ export function validateEventoPayload(payload = {}) {
   }
 
   const erroTurmas = validarTurmasComorganizadores(payload.turmas);
-  if (erroTurmas) return erroTurmas;
+  if (erroTurmas) {
+    return erroTurmas;
+  }
 
   if (
     payload?.restrito === true &&
@@ -659,7 +738,9 @@ export function validateEventoPayload(payload = {}) {
 }
 
 function appendJsonField(formData, key, value) {
-  if (value === undefined || value === null) return;
+  if (value === undefined || value === null) {
+    return;
+  }
 
   if (typeof value === "object") {
     formData.append(key, JSON.stringify(value));
@@ -680,7 +761,7 @@ export function buildEventoFormData(payload = {}, arquivos = {}) {
     formData.append(
       "folder",
       arquivos.folder,
-      fileName(arquivos.folder, "folder.jpg")
+      fileName(arquivos.folder, "folder.jpg"),
     );
   }
 
@@ -688,7 +769,7 @@ export function buildEventoFormData(payload = {}, arquivos = {}) {
     formData.append(
       "programacao",
       arquivos.programacao,
-      fileName(arquivos.programacao, "programacao.pdf")
+      fileName(arquivos.programacao, "programacao.pdf"),
     );
   }
 
@@ -698,9 +779,9 @@ export function buildEventoFormData(payload = {}, arquivos = {}) {
 export function shouldUseMultipart(payload = {}, arquivos = {}) {
   return Boolean(
     isUploadFile(arquivos?.folder) ||
-      isUploadFile(arquivos?.programacao) ||
-      payload?.remover_folder === true ||
-      payload?.remover_programacao === true
+    isUploadFile(arquivos?.programacao) ||
+    payload?.remover_folder === true ||
+    payload?.remover_programacao === true,
   );
 }
 
@@ -721,25 +802,34 @@ export function getEventoProgramacaoPath(eventoId) {
 export function getEventoFolderUrl(evento) {
   const id = toPositiveIntOrNull(evento?.id ?? evento);
 
-  if (!id) return "";
+  if (!id) {
+    return "";
+  }
 
   const version =
-    evento?.folder_updated_at || evento?.atualizado_em || evento?.criado_em || "";
+    evento?.folder_updated_at ||
+    evento?.atualizado_em ||
+    evento?.criado_em ||
+    "";
 
   const path = getEventoFolderPath(id);
   const url = makeApiUrl(path);
 
-  if (!version) return url;
+  if (!version) {
+    return url;
+  }
 
   return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(
-    String(version)
+    String(version),
   )}`;
 }
 
 export function getEventoProgramacaoUrl(evento) {
   const id = toPositiveIntOrNull(evento?.id ?? evento);
 
-  if (!id) return "";
+  if (!id) {
+    return "";
+  }
 
   const version =
     evento?.programacao_pdf_updated_at ||
@@ -750,10 +840,12 @@ export function getEventoProgramacaoUrl(evento) {
   const path = getEventoProgramacaoPath(id);
   const url = makeApiUrl(path);
 
-  if (!version) return url;
+  if (!version) {
+    return url;
+  }
 
   return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(
-    String(version)
+    String(version),
   )}`;
 }
 
@@ -775,7 +867,9 @@ export async function listarEventosAdmin(opts = {}) {
 export async function buscarEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   const response = await apiGet(`${EVENTO_BASE}/${id}`, {
     auth: true,
@@ -790,7 +884,9 @@ export async function buscarEvento(eventoId, opts = {}) {
 export async function buscarEventoAdmin(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   const response = await apiGet(`${EVENTO_BASE}/administrador/${id}`, {
     auth: true,
@@ -805,7 +901,9 @@ export async function buscarEventoAdmin(eventoId, opts = {}) {
 export async function listarTurmasDoEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   const response = await apiGet(`${TURMA_BASE}/evento/${id}`, {
     auth: true,
@@ -820,7 +918,9 @@ export async function listarTurmasDoEvento(eventoId, opts = {}) {
 export async function listarTurmasSimplesDoEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   const response = await apiGet(`${TURMA_BASE}/evento/${id}/simples`, {
     auth: true,
@@ -835,7 +935,9 @@ export async function listarTurmasSimplesDoEvento(eventoId, opts = {}) {
 export async function buscarEventoCompleto(eventoId, opts = {}) {
   const evento = await buscarEvento(eventoId, opts);
 
-  if (!evento?.id) return null;
+  if (!evento?.id) {
+    return null;
+  }
 
   let turmas = [];
 
@@ -847,11 +949,14 @@ export async function buscarEventoCompleto(eventoId, opts = {}) {
     });
   } catch (error) {
     if (!isAbortLike(error)) {
-      console.warn("[eventoService.buscarEventoCompleto] falha ao carregar turmas completas", {
-        evento_id: evento.id,
-        message: error?.message,
-        status: error?.status,
-      });
+      console.warn(
+        "[eventoService.buscarEventoCompleto] falha ao carregar turmas completas",
+        {
+          evento_id: evento.id,
+          message: error?.message,
+          status: error?.status,
+        },
+      );
     }
 
     turmas = Array.isArray(evento?.turmas) ? evento.turmas : [];
@@ -866,7 +971,9 @@ export async function buscarEventoCompleto(eventoId, opts = {}) {
 export async function buscarEventoAdminCompleto(eventoId, opts = {}) {
   const evento = await buscarEventoAdmin(eventoId, opts);
 
-  if (!evento?.id) return null;
+  if (!evento?.id) {
+    return null;
+  }
 
   let turmas = [];
 
@@ -878,11 +985,14 @@ export async function buscarEventoAdminCompleto(eventoId, opts = {}) {
     });
   } catch (error) {
     if (!isAbortLike(error)) {
-      console.warn("[eventoService.buscarEventoAdminCompleto] falha ao carregar turmas completas", {
-        evento_id: evento.id,
-        message: error?.message,
-        status: error?.status,
-      });
+      console.warn(
+        "[eventoService.buscarEventoAdminCompleto] falha ao carregar turmas completas",
+        {
+          evento_id: evento.id,
+          message: error?.message,
+          status: error?.status,
+        },
+      );
     }
 
     turmas = Array.isArray(evento?.turmas) ? evento.turmas : [];
@@ -907,7 +1017,9 @@ export async function criarEvento(dados, arquivos = {}, opts = {}) {
 
   const erro = validateEventoPayload(payload);
 
-  if (erro) throw new Error(erro);
+  if (erro) {
+    throw new Error(erro);
+  }
 
   if (shouldUseMultipart(payload, arquivosNormalizados)) {
     const formData = buildEventoFormData(payload, arquivosNormalizados);
@@ -928,17 +1040,26 @@ export async function criarEvento(dados, arquivos = {}, opts = {}) {
   });
 }
 
-export async function atualizarEvento(eventoId, dados, arquivos = {}, opts = {}) {
+export async function atualizarEvento(
+  eventoId,
+  dados,
+  arquivos = {},
+  opts = {},
+) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   const payload = buildEventoPayload(dados, dados?.baseServidor || null);
   const arquivosNormalizados = normalizeEventoArquivos(dados, arquivos);
 
   const erro = validateEventoPayload(payload);
 
-  if (erro) throw new Error(erro);
+  if (erro) {
+    throw new Error(erro);
+  }
 
   if (shouldUseMultipart(payload, arquivosNormalizados)) {
     const formData = buildEventoFormData(payload, arquivosNormalizados);
@@ -963,7 +1084,9 @@ export async function atualizarEvento(eventoId, dados, arquivos = {}, opts = {})
 export async function excluirEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiDelete(`${EVENTO_BASE}/${id}`, {
     auth: true,
@@ -976,7 +1099,9 @@ export async function excluirEvento(eventoId, opts = {}) {
 export async function publicarEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiPost(`${EVENTO_BASE}/${id}/publicar`, null, {
     auth: true,
@@ -989,7 +1114,9 @@ export async function publicarEvento(eventoId, opts = {}) {
 export async function despublicarEvento(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiPost(`${EVENTO_BASE}/${id}/despublicar`, null, {
     auth: true,
@@ -1002,7 +1129,9 @@ export async function despublicarEvento(eventoId, opts = {}) {
 export async function alternarPublicacaoEvento(evento, opts = {}) {
   const id = toPositiveIntOrNull(evento?.id ?? evento);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   if (evento?.publicado) {
     return despublicarEvento(id, opts);
@@ -1011,10 +1140,16 @@ export async function alternarPublicacaoEvento(evento, opts = {}) {
   return publicarEvento(id, opts);
 }
 
-export async function atualizarArquivosEvento(eventoId, arquivos = {}, opts = {}) {
+export async function atualizarArquivosEvento(
+  eventoId,
+  arquivos = {},
+  opts = {},
+) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   const formData = buildEventoFormData(
     {
@@ -1026,7 +1161,7 @@ export async function atualizarArquivosEvento(eventoId, arquivos = {}, opts = {}
     {
       folder: arquivos?.folder || null,
       programacao: arquivos?.programacao || null,
-    }
+    },
   );
 
   return apiUpload(`${EVENTO_BASE}/${id}/arquivo`, formData, {
@@ -1040,7 +1175,9 @@ export async function atualizarArquivosEvento(eventoId, arquivos = {}, opts = {}
 export async function atualizarFolderEvento(eventoId, folder, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
   if (!isUploadFile(folder)) {
     throw new Error("folder é obrigatório.");
   }
@@ -1056,10 +1193,16 @@ export async function atualizarFolderEvento(eventoId, folder, opts = {}) {
   });
 }
 
-export async function atualizarProgramacaoEvento(eventoId, programacao, opts = {}) {
+export async function atualizarProgramacaoEvento(
+  eventoId,
+  programacao,
+  opts = {},
+) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
   if (!isUploadFile(programacao)) {
     throw new Error("programacao é obrigatória.");
   }
@@ -1068,15 +1211,15 @@ export async function atualizarProgramacaoEvento(eventoId, programacao, opts = {
   formData.append(
     "programacao",
     programacao,
-    fileName(programacao, "programacao.pdf")
+    fileName(programacao, "programacao.pdf"),
   );
 
   return apiUpload(`${EVENTO_BASE}/${id}/programacao`, formData, {
-  auth: true,
-  on401: "redirect",
-  on403: "silent",
-  ...opts,
-});
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1108,7 +1251,9 @@ export async function listarEventosParaMim(opts = {}) {
 export async function obterFolderEventoResponse(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiEventoFolderResponse(id, opts);
 }
@@ -1116,7 +1261,9 @@ export async function obterFolderEventoResponse(eventoId, opts = {}) {
 export async function obterProgramacaoEventoResponse(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiEventoProgramacaoResponse(id, opts);
 }
@@ -1124,7 +1271,9 @@ export async function obterProgramacaoEventoResponse(eventoId, opts = {}) {
 export async function obterProgramacaoEventoFile(eventoId, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
-  if (!id) throw new Error("evento_id é obrigatório.");
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
 
   return apiEventoProgramacaoFile(id, opts);
 }
@@ -1156,7 +1305,9 @@ export async function listarMinhasInscricoes(opts = {}) {
 export async function listarInscritosDaTurma(turmaId, opts = {}) {
   const id = toPositiveIntOrNull(turmaId);
 
-  if (!id) throw new Error("turma_id é obrigatório.");
+  if (!id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   const response = await apiGet(`${INSCRICAO_BASE}/turma/${id}`, {
     auth: true,
@@ -1171,7 +1322,9 @@ export async function listarInscritosDaTurma(turmaId, opts = {}) {
 export async function inscreverNaTurma(turmaId, opts = {}) {
   const id = toPositiveIntOrNull(turmaId);
 
-  if (!id) throw new Error("turma_id é obrigatório.");
+  if (!id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiPost(
     INSCRICAO_BASE,
@@ -1181,14 +1334,16 @@ export async function inscreverNaTurma(turmaId, opts = {}) {
       on401: "redirect",
       on403: "silent",
       ...opts,
-    }
+    },
   );
 }
 
 export async function cancelarInscricao(inscricaoId, opts = {}) {
   const id = toPositiveIntOrNull(inscricaoId);
 
-  if (!id) throw new Error("inscricao_id é obrigatório.");
+  if (!id) {
+    throw new Error("inscricao_id é obrigatório.");
+  }
 
   return apiDelete(`${INSCRICAO_BASE}/${id}`, {
     auth: true,
@@ -1201,7 +1356,9 @@ export async function cancelarInscricao(inscricaoId, opts = {}) {
 export async function cancelarMinhaInscricaoPorTurma(turmaId, opts = {}) {
   const id = toPositiveIntOrNull(turmaId);
 
-  if (!id) throw new Error("turma_id é obrigatório.");
+  if (!id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   return apiDelete(`${INSCRICAO_BASE}/minha/turma/${id}`, {
     auth: true,
@@ -1214,7 +1371,9 @@ export async function cancelarMinhaInscricaoPorTurma(turmaId, opts = {}) {
 export async function verificarConflitoTurma(turmaId, opts = {}) {
   const id = toPositiveIntOrNull(turmaId);
 
-  if (!id) throw new Error("turma_id é obrigatório.");
+  if (!id) {
+    throw new Error("turma_id é obrigatório.");
+  }
 
   const response = await apiGet(`${INSCRICAO_BASE}/conflito/${id}`, {
     auth: true,
@@ -1229,11 +1388,13 @@ export async function verificarConflitoTurma(turmaId, opts = {}) {
 export function getInscricaoPorTurmaId(inscricoes = [], turmaId) {
   const id = toPositiveIntOrNull(turmaId);
 
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
 
   return (
     (Array.isArray(inscricoes) ? inscricoes : []).find(
-      (item) => Number(item?.turma_id) === id
+      (item) => Number(item?.turma_id) === id,
     ) || null
   );
 }
@@ -1287,22 +1448,22 @@ export const EventoService = {
     getInscricaoPorTurmaId,
   },
 
-admin: {
-  listar: listarEventosAdmin,
-  buscar: buscarEventoAdmin,
-  buscarCompleto: buscarEventoAdminCompleto,
-  listarTurmas: listarTurmasDoEvento,
-  listarTurmasSimples: listarTurmasSimplesDoEvento,
-  criar: criarEvento,
-  atualizar: atualizarEvento,
-  excluir: excluirEvento,
-  publicar: publicarEvento,
-  despublicar: despublicarEvento,
-  alternarPublicacao: alternarPublicacaoEvento,
-  atualizarArquivos: atualizarArquivosEvento,
-  atualizarFolder: atualizarFolderEvento,
-  atualizarProgramacao: atualizarProgramacaoEvento,
-},
+  admin: {
+    listar: listarEventosAdmin,
+    buscar: buscarEventoAdmin,
+    buscarCompleto: buscarEventoAdminCompleto,
+    listarTurmas: listarTurmasDoEvento,
+    listarTurmasSimples: listarTurmasSimplesDoEvento,
+    criar: criarEvento,
+    atualizar: atualizarEvento,
+    excluir: excluirEvento,
+    publicar: publicarEvento,
+    despublicar: despublicarEvento,
+    alternarPublicacao: alternarPublicacaoEvento,
+    atualizarArquivos: atualizarArquivosEvento,
+    atualizarFolder: atualizarFolderEvento,
+    atualizarProgramacao: atualizarProgramacaoEvento,
+  },
 
   publico: {
     listar: listarEventosPublicos,

@@ -174,7 +174,7 @@ const query = getQuery();
 
 if (typeof query !== "function") {
   throw new Error(
-    "DB inválido em pesquisaController.js: export oficial precisa expor query."
+    "DB inválido em pesquisaController.js: export oficial precisa expor query.",
   );
 }
 
@@ -213,7 +213,7 @@ function gerarRequestId() {
 
 function sucesso(
   res,
-  { status = 200, data = null, message = "OK", code = "OK", meta = null }
+  { status = 200, data = null, message = "OK", code = "OK", meta = null },
 ) {
   return res.status(status).json({
     ok: true,
@@ -233,7 +233,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -352,10 +352,14 @@ function getPerfis(req) {
   const perfil = req?.user?.perfil;
 
   if (Array.isArray(perfil)) {
-    return perfil.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
+    return perfil
+      .map((item) => String(item).trim().toLowerCase())
+      .filter(Boolean);
   }
 
-  const unico = String(perfil || "").trim().toLowerCase();
+  const unico = String(perfil || "")
+    .trim()
+    .toLowerCase();
   return unico ? [unico] : [];
 }
 
@@ -391,7 +395,8 @@ function validarPermissaoAdmin(req, res, requestId) {
         status: 403,
         message: "Acesso restrito a administradores.",
         code: "SEM_PERMISSAO",
-        adminHint: "Somente perfil oficial administrador pode gerenciar pesquisas.",
+        adminHint:
+          "Somente perfil oficial administrador pode gerenciar pesquisas.",
         requestId,
       }),
     };
@@ -424,11 +429,16 @@ function decorarPergunta(row) {
 }
 
 function perguntaExigeOpcoes(tipo) {
-  return tipo === TIPO_PERGUNTA.opcao_unica || tipo === TIPO_PERGUNTA.multipla_escolha;
+  return (
+    tipo === TIPO_PERGUNTA.opcao_unica ||
+    tipo === TIPO_PERGUNTA.multipla_escolha
+  );
 }
 
 function perguntaAceitaTexto(tipo) {
-  return tipo === TIPO_PERGUNTA.texto_curto || tipo === TIPO_PERGUNTA.texto_longo;
+  return (
+    tipo === TIPO_PERGUNTA.texto_curto || tipo === TIPO_PERGUNTA.texto_longo
+  );
 }
 
 function perguntaAceitaNumero(tipo) {
@@ -511,7 +521,9 @@ function validarPerguntas(perguntas = []) {
         const opcao = opcoes[optionIndex] || {};
         const texto = cleanRequiredStr(opcao.texto);
         const ordemOpcao =
-          opcao.ordem === undefined || opcao.ordem === null || opcao.ordem === ""
+          opcao.ordem === undefined ||
+          opcao.ordem === null ||
+          opcao.ordem === ""
             ? optionIndex
             : toIntOrNull(opcao.ordem);
 
@@ -565,7 +577,9 @@ function validarPesquisaPayload(body = {}, { parcial = false } = {}) {
       ? undefined
       : cleanRequiredStr(body.titulo);
   const descricao =
-    body.descricao === undefined && parcial ? undefined : cleanStr(body.descricao);
+    body.descricao === undefined && parcial
+      ? undefined
+      : cleanStr(body.descricao);
 
   const tipo =
     body.tipo === undefined && parcial
@@ -583,10 +597,14 @@ function validarPesquisaPayload(body = {}, { parcial = false } = {}) {
       : normalizarContexto(body.contexto, CONTEXTO.geral);
 
   const evento_id =
-    body.evento_id === undefined && parcial ? undefined : toIntOrNull(body.evento_id);
+    body.evento_id === undefined && parcial
+      ? undefined
+      : toIntOrNull(body.evento_id);
 
   const turma_id =
-    body.turma_id === undefined && parcial ? undefined : toIntOrNull(body.turma_id);
+    body.turma_id === undefined && parcial
+      ? undefined
+      : toIntOrNull(body.turma_id);
 
   const link_externo =
     body.link_externo === undefined && parcial
@@ -601,7 +619,9 @@ function validarPesquisaPayload(body = {}, { parcial = false } = {}) {
       : toBool(body.exibir_inicio, true);
 
   const destaque =
-    body.destaque === undefined && parcial ? undefined : toBool(body.destaque, false);
+    body.destaque === undefined && parcial
+      ? undefined
+      : toBool(body.destaque, false);
 
   const obrigatoria =
     body.obrigatoria === undefined && parcial
@@ -650,7 +670,8 @@ function validarPesquisaPayload(body = {}, { parcial = false } = {}) {
       ok: false,
       message: "Status de pesquisa inválido.",
       code: "STATUS_INVALIDO",
-      adminHint: "Status oficiais: rascunho, publicada, encerrada ou arquivada.",
+      adminHint:
+        "Status oficiais: rascunho, publicada, encerrada ou arquivada.",
     };
   }
 
@@ -810,7 +831,7 @@ async function carregarPerguntasComOpcoes(client, pesquisaId) {
       WHERE pesquisa_id = $1
       ORDER BY ordem ASC, id ASC
     `,
-    [pesquisaId]
+    [pesquisaId],
   );
 
   const perguntas = (perguntasResult.rows || []).map(decorarPergunta);
@@ -834,7 +855,7 @@ async function carregarPerguntasComOpcoes(client, pesquisaId) {
       WHERE pergunta_id = ANY($1::int[])
       ORDER BY pergunta_id ASC, ordem ASC, id ASC
     `,
-    [ids]
+    [ids],
   );
 
   const opcoesPorPergunta = new Map();
@@ -868,7 +889,7 @@ async function carregarPesquisaCompleta(client, pesquisaId) {
       WHERE p.id = $1
       LIMIT 1
     `,
-    [pesquisaId]
+    [pesquisaId],
   );
 
   const pesquisa = pesquisaResult.rows?.[0]
@@ -907,7 +928,7 @@ async function inserirPerguntas(client, pesquisaId, perguntas) {
         pergunta.ordem,
         pergunta.obrigatoria,
         pergunta.limite_caracteres,
-      ]
+      ],
     );
 
     const perguntaId = perguntaResult.rows[0].id;
@@ -922,7 +943,7 @@ async function inserirPerguntas(client, pesquisaId, perguntas) {
           )
           VALUES ($1, $2, $3)
         `,
-        [perguntaId, opcao.texto, opcao.ordem]
+        [perguntaId, opcao.texto, opcao.ordem],
       );
     }
   }
@@ -945,7 +966,8 @@ async function validarPodePublicar(client, pesquisaId) {
       return {
         ok: false,
         status: 400,
-        message: "Não foi possível publicar: pesquisa externa exige link válido.",
+        message:
+          "Não foi possível publicar: pesquisa externa exige link válido.",
         code: "PESQUISA_EXTERNA_SEM_LINK",
       };
     }
@@ -1096,7 +1118,7 @@ async function listarAdmin(req, res) {
           p.criado_em DESC,
           p.id DESC
       `,
-      params
+      params,
     );
 
     const data = (result.rows || []).map(decorarPesquisa);
@@ -1203,7 +1225,9 @@ async function criarAdmin(req, res) {
   }
 
   const payload = validacao.data;
-  const perguntasInput = Array.isArray(req.body?.perguntas) ? req.body.perguntas : [];
+  const perguntasInput = Array.isArray(req.body?.perguntas)
+    ? req.body.perguntas
+    : [];
   const perguntasValidacao = validarPerguntas(perguntasInput);
 
   if (!perguntasValidacao.ok) {
@@ -1292,7 +1316,7 @@ async function criarAdmin(req, res) {
           payload.abre_em,
           payload.fecha_em,
           permissao.usuarioId,
-        ]
+        ],
       );
 
       const pesquisaId = result.rows[0].id;
@@ -1357,7 +1381,9 @@ async function atualizarAdmin(req, res) {
   }
 
   const payload = validacao.data;
-  const perguntasInput = Array.isArray(req.body?.perguntas) ? req.body.perguntas : [];
+  const perguntasInput = Array.isArray(req.body?.perguntas)
+    ? req.body.perguntas
+    : [];
   const perguntasValidacao = validarPerguntas(perguntasInput);
 
   if (!perguntasValidacao.ok) {
@@ -1402,7 +1428,7 @@ async function atualizarAdmin(req, res) {
           WHERE id = $1
           LIMIT 1
         `,
-        [id]
+        [id],
       );
 
       if (!existente.rows?.[0]) {
@@ -1459,7 +1485,7 @@ async function atualizarAdmin(req, res) {
           payload.abre_em,
           payload.fecha_em,
           id,
-        ]
+        ],
       );
 
       await client.query(
@@ -1467,7 +1493,7 @@ async function atualizarAdmin(req, res) {
           DELETE FROM ${TABELA_PERGUNTA}
           WHERE pesquisa_id = $1
         `,
-        [id]
+        [id],
       );
 
       if (payload.tipo === TIPO.interna && perguntasValidacao.data.length > 0) {
@@ -1532,7 +1558,8 @@ async function alterarStatusAdmin(req, res) {
       status: 400,
       message: "Status inválido.",
       code: "STATUS_INVALIDO",
-      adminHint: "Status oficiais: rascunho, publicada, encerrada ou arquivada.",
+      adminHint:
+        "Status oficiais: rascunho, publicada, encerrada ou arquivada.",
       details: {
         status: req.body?.status,
       },
@@ -1572,7 +1599,7 @@ async function alterarStatusAdmin(req, res) {
            WHERE id = $2
            RETURNING id
         `,
-        [status, id]
+        [status, id],
       );
 
       if (!result.rows?.[0]) return null;
@@ -1643,7 +1670,7 @@ async function excluirAdmin(req, res) {
         WHERE id = $1
         RETURNING id, titulo
       `,
-      [id]
+      [id],
     );
 
     const removida = result.rows?.[0];
@@ -1727,7 +1754,7 @@ async function listarRespostasAdmin(req, res) {
         WHERE r.pesquisa_id = $1
         ORDER BY r.enviada_em DESC, r.id DESC
       `,
-      [id]
+      [id],
     );
 
     const respostas = respostasResult.rows || [];
@@ -1754,7 +1781,7 @@ async function listarRespostasAdmin(req, res) {
           WHERE ri.resposta_id = ANY($1::int[])
           ORDER BY ri.resposta_id DESC, pp.ordem ASC, ri.id ASC
         `,
-        [respostaIds]
+        [respostaIds],
       );
 
       itens = itensResult.rows || [];
@@ -1833,7 +1860,7 @@ async function resultadoAdmin(req, res) {
         FROM ${TABELA_RESPOSTA}
         WHERE pesquisa_id = $1
       `,
-      [id]
+      [id],
     );
 
     const itensResult = await query(
@@ -1862,7 +1889,7 @@ async function resultadoAdmin(req, res) {
           ri.resposta_numero
         ORDER BY pp.id ASC, total DESC
       `,
-      [id]
+      [id],
     );
 
     const perguntas = new Map();
@@ -1886,7 +1913,8 @@ async function resultadoAdmin(req, res) {
           pergunta_id: row.pergunta_id,
           enunciado: row.enunciado,
           tipo: row.pergunta_tipo,
-          tipo_label: TIPO_PERGUNTA_LABEL[row.pergunta_tipo] || row.pergunta_tipo,
+          tipo_label:
+            TIPO_PERGUNTA_LABEL[row.pergunta_tipo] || row.pergunta_tipo,
           total_respostas: 0,
           opcoes: [],
           textos: [],
@@ -1908,7 +1936,10 @@ async function resultadoAdmin(req, res) {
           texto: row.resposta_texto,
           total: Number(row.total || 0),
         });
-      } else if (row.resposta_numero !== null && row.resposta_numero !== undefined) {
+      } else if (
+        row.resposta_numero !== null &&
+        row.resposta_numero !== undefined
+      ) {
         bucket.numeros.push({
           numero: row.resposta_numero,
           total: Number(row.total || 0),
@@ -2017,7 +2048,7 @@ async function listarPublicadas(req, res) {
           p.criado_em DESC,
           p.id DESC
       `,
-      params
+      params,
     );
 
     const data = (result.rows || []).map(decorarPesquisa);
@@ -2089,7 +2120,7 @@ async function obterPublicadaPorId(req, res) {
             AND usuario_id = $2
         ) AS respondida
       `,
-      [id, usuarioId]
+      [id, usuarioId],
     );
 
     return sucesso(res, {
@@ -2133,7 +2164,9 @@ function validarItensResposta(pesquisa, itensInput = []) {
   }
 
   const perguntas = Array.isArray(pesquisa.perguntas) ? pesquisa.perguntas : [];
-  const perguntaMap = new Map(perguntas.map((pergunta) => [pergunta.id, pergunta]));
+  const perguntaMap = new Map(
+    perguntas.map((pergunta) => [pergunta.id, pergunta]),
+  );
   const itensPorPergunta = new Map();
 
   for (const item of itensInput) {
@@ -2192,7 +2225,8 @@ function validarItensResposta(pesquisa, itensInput = []) {
           : Number(enviado.opcao_id);
       const respostaTexto = cleanStr(enviado.resposta_texto);
       const respostaNumero =
-        enviado.resposta_numero === undefined || enviado.resposta_numero === null
+        enviado.resposta_numero === undefined ||
+        enviado.resposta_numero === null
           ? null
           : Number(enviado.resposta_numero);
 
@@ -2206,7 +2240,7 @@ function validarItensResposta(pesquisa, itensInput = []) {
         }
 
         const existeOpcao = pergunta.opcoes.some(
-          (opcao) => Number(opcao.id) === opcaoId
+          (opcao) => Number(opcao.id) === opcaoId,
         );
 
         if (!existeOpcao) {
@@ -2318,7 +2352,7 @@ async function responderPublicada(req, res) {
 
       if (pesquisa.tipo !== TIPO.interna) {
         const error = new Error(
-          "Pesquisa externa deve ser respondida pelo link externo informado."
+          "Pesquisa externa deve ser respondida pelo link externo informado.",
         );
         error.status = 400;
         error.code = "PESQUISA_EXTERNA_NAO_RESPONDIVEL";
@@ -2343,7 +2377,7 @@ async function responderPublicada(req, res) {
               AND usuario_id = $2
             LIMIT 1
           `,
-          [id, usuarioId]
+          [id, usuarioId],
         );
 
         if (jaRespondeu.rows?.[0]) {
@@ -2354,7 +2388,10 @@ async function responderPublicada(req, res) {
         }
       }
 
-      const itensValidacao = validarItensResposta(pesquisa, req.body?.itens || []);
+      const itensValidacao = validarItensResposta(
+        pesquisa,
+        req.body?.itens || [],
+      );
 
       if (!itensValidacao.ok) {
         const error = new Error(itensValidacao.message);
@@ -2381,7 +2418,7 @@ async function responderPublicada(req, res) {
           req.body?.metadata && typeof req.body.metadata === "object"
             ? req.body.metadata
             : null,
-        ]
+        ],
       );
 
       const respostaCriada = respostaResult.rows[0];
@@ -2404,7 +2441,7 @@ async function responderPublicada(req, res) {
             item.opcao_id,
             item.resposta_texto,
             item.resposta_numero,
-          ]
+          ],
         );
       }
 

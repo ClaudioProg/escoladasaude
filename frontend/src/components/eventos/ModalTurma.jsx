@@ -39,7 +39,14 @@
 // - Fábio Lopez, ID 2474, é assinante opcional e fica por último quando selecionado.
 // - O backend normaliza a ordem final das assinaturas.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -101,11 +108,15 @@ let organizadoresCache = null;
 ────────────────────────────────────────────────────────────── */
 
 function logDev(...args) {
-  if (IS_DEV) console.log("[ModalTurma]", ...args);
+  if (IS_DEV) {
+    console.log("[ModalTurma]", ...args);
+  }
 }
 
 function warnDev(...args) {
-  if (IS_DEV) console.warn("[ModalTurma]", ...args);
+  if (IS_DEV) {
+    console.warn("[ModalTurma]", ...args);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -117,8 +128,12 @@ function cx(...arr) {
 }
 
 function asArray(value) {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (Array.isArray(value?.data)) {
+    return value.data;
+  }
 
   return [];
 }
@@ -126,7 +141,9 @@ function asArray(value) {
 function toPositiveIntOrNull(value) {
   const n = Number(value);
 
-  if (!Number.isInteger(n) || n <= 0) return null;
+  if (!Number.isInteger(n) || n <= 0) {
+    return null;
+  }
 
   return n;
 }
@@ -134,7 +151,9 @@ function toPositiveIntOrNull(value) {
 function normalizeOrganizador(item) {
   const id = toPositiveIntOrNull(item?.id ?? item);
 
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
 
   return {
     id,
@@ -148,7 +167,9 @@ function uniqueOrganizadores(lista = []) {
 
   for (const item of lista) {
     const normalized = normalizeOrganizador(item);
-    if (!normalized) continue;
+    if (!normalized) {
+      continue;
+    }
 
     if (!map.has(normalized.id)) {
       map.set(normalized.id, normalized);
@@ -156,29 +177,41 @@ function uniqueOrganizadores(lista = []) {
   }
 
   return [...map.values()].sort((a, b) =>
-    String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
+    String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"),
   );
 }
 
 function normalizeTime(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const raw = value.trim();
 
-  if (!raw) return fallback;
-  if (/^\d{2}:\d{2}$/.test(raw)) return raw;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) return raw.slice(0, 5);
+  if (!raw) {
+    return fallback;
+  }
+  if (/^\d{2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) {
+    return raw.slice(0, 5);
+  }
 
   return fallback;
 }
 
 function normalizeDateOnly(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (typeof value === "string") {
     const s = value.trim();
 
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return s;
+    }
 
     const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
     return match ? match[1] : "";
@@ -190,14 +223,18 @@ function normalizeDateOnly(value) {
 function formatDateBr(value) {
   const date = normalizeDateOnly(value);
 
-  if (!date) return "—";
+  if (!date) {
+    return "—";
+  }
 
   const [ano, mes, dia] = date.split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
 function extractIds(value) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return [
     ...new Set(
@@ -210,13 +247,15 @@ function extractIds(value) {
           return item;
         })
         .map(Number)
-        .filter((n) => Number.isInteger(n) && n > 0)
+        .filter((n) => Number.isInteger(n) && n > 0),
     ),
   ];
 }
 
 function normalizarPalestrantesFrontend(value = []) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
   return value
     .map((item) => {
@@ -240,7 +279,7 @@ function normalizarAssinantesFrontend(value = []) {
   const pediuFabio = ids.includes(FABIO_LOPEZ_ID);
 
   const extras = ids.filter(
-    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID
+    (id) => id !== RAFAELLA_PITOL_ID && id !== FABIO_LOPEZ_ID,
   );
 
   const base = extras.slice(0, pediuFabio ? 1 : 2);
@@ -261,7 +300,9 @@ function montarOpcoesAssinantes({
   for (const organizador of organizadoresLista || []) {
     const id = toPositiveIntOrNull(organizador?.id);
 
-    if (!id) continue;
+    if (!id) {
+      continue;
+    }
 
     if (organizadoresSelecionadosIds.includes(id)) {
       map.set(id, {
@@ -281,10 +322,18 @@ function montarOpcoesAssinantes({
   }
 
   return [...map.values()].sort((a, b) => {
-    if (a.id === RAFAELLA_PITOL_ID) return 1;
-    if (b.id === RAFAELLA_PITOL_ID) return -1;
-    if (a.id === FABIO_LOPEZ_ID) return 1;
-    if (b.id === FABIO_LOPEZ_ID) return -1;
+    if (a.id === RAFAELLA_PITOL_ID) {
+      return 1;
+    }
+    if (b.id === RAFAELLA_PITOL_ID) {
+      return -1;
+    }
+    if (a.id === FABIO_LOPEZ_ID) {
+      return 1;
+    }
+    if (b.id === FABIO_LOPEZ_ID) {
+      return -1;
+    }
 
     return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
   });
@@ -310,7 +359,10 @@ function normalizeDatasFromTurma(turma = {}) {
     return datasArray
       .map((item) => ({
         data: normalizeDateOnly(item?.data),
-        horario_inicio: normalizeTime(item?.horario_inicio || baseInicio, baseInicio),
+        horario_inicio: normalizeTime(
+          item?.horario_inicio || baseInicio,
+          baseInicio,
+        ),
         horario_fim: normalizeTime(item?.horario_fim || baseFim, baseFim),
       }))
       .filter((item) => item.data)
@@ -403,7 +455,9 @@ function buildPendencias({
 }) {
   const pendencias = [];
 
-  if (!String(nome || "").trim()) pendencias.push("nome");
+  if (!String(nome || "").trim()) {
+    pendencias.push("nome");
+  }
 
   if (!Number.isInteger(Number(vagasTotal)) || Number(vagasTotal) <= 0) {
     pendencias.push("vagas");
@@ -413,10 +467,12 @@ function buildPendencias({
     pendencias.push("datas");
   } else {
     const dataIncompleta = datasOrdenadasValidas.some(
-      (item) => !item.data || !item.horario_inicio || !item.horario_fim
+      (item) => !item.data || !item.horario_inicio || !item.horario_fim,
     );
 
-    if (dataIncompleta) pendencias.push("datas incompletas");
+    if (dataIncompleta) {
+      pendencias.push("datas incompletas");
+    }
   }
 
   if (!organizadoresSelecionadosIds.length) {
@@ -442,20 +498,17 @@ function buildPendencias({
 
 function Chip({ tone = "zinc", children, title }) {
   const tones = {
-    zinc:
-      "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-200 dark:border-zinc-700",
+    zinc: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-200 dark:border-zinc-700",
     emerald:
       "bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-800",
     indigo:
       "bg-indigo-100 text-indigo-900 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800",
     amber:
       "bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800",
-    rose:
-      "bg-rose-100 text-rose-900 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-800",
+    rose: "bg-rose-100 text-rose-900 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-800",
     violet:
       "bg-violet-100 text-violet-900 border-violet-200 dark:bg-violet-900/30 dark:text-violet-200 dark:border-violet-800",
-    sky:
-      "bg-sky-100 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-800",
+    sky: "bg-sky-100 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-800",
   };
 
   return (
@@ -463,7 +516,7 @@ function Chip({ tone = "zinc", children, title }) {
       title={title}
       className={cx(
         "inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-black",
-        tones[tone] || tones.zinc
+        tones[tone] || tones.zinc,
       )}
     >
       {children}
@@ -473,12 +526,10 @@ function Chip({ tone = "zinc", children, title }) {
 
 function MetricTile({ icon: Icon, label, value, tone = "zinc" }) {
   const tones = {
-    zinc:
-      "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
+    zinc: "border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
+    sky: "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100",
     violet:
       "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/50 dark:bg-violet-950/30 dark:text-violet-100",
     amber:
@@ -486,7 +537,9 @@ function MetricTile({ icon: Icon, label, value, tone = "zinc" }) {
   };
 
   return (
-    <div className={`rounded-2xl border p-3 shadow-sm ${tones[tone] || tones.zinc}`}>
+    <div
+      className={`rounded-2xl border p-3 shadow-sm ${tones[tone] || tones.zinc}`}
+    >
       <div className="flex items-center gap-2">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/75 shadow-sm dark:bg-white/5">
           <Icon className="h-4.5 w-4.5" aria-hidden="true" />
@@ -543,7 +596,7 @@ function ActionButton({
         "disabled:cursor-not-allowed disabled:opacity-60",
         toneMap[tone] || toneMap.neutral,
         sizeMap[size] || sizeMap.md,
-        className
+        className,
       )}
       {...props}
     >
@@ -622,7 +675,9 @@ export default function ModalTurma({
 
   const autosizeNome = useCallback(() => {
     const el = nomeRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
@@ -634,7 +689,9 @@ export default function ModalTurma({
       return;
     }
 
-    if (lastHydratedKeyRef.current === turmaKey) return;
+    if (lastHydratedKeyRef.current === turmaKey) {
+      return;
+    }
 
     const normalized = normalizeInitialTurma(turma || {});
 
@@ -642,15 +699,19 @@ export default function ModalTurma({
     setVagasTotal(normalized.vagas_total);
     setDatas(normalized.datas);
     setOrganizadoresSel(
-      normalized.organizadores.length ? normalized.organizadores.map(String) : [""]
+      normalized.organizadores.length
+        ? normalized.organizadores.map(String)
+        : [""],
     );
     setPalestrantes(
       normalized.palestrantes.length
         ? normalized.palestrantes
-        : [{ nome: "", usuario_id: null }]
+        : [{ nome: "", usuario_id: null }],
     );
     setAssinantesSel(
-      normalized.assinantes.length ? normalized.assinantes : [RAFAELLA_PITOL_ID]
+      normalized.assinantes.length
+        ? normalized.assinantes
+        : [RAFAELLA_PITOL_ID],
     );
 
     lastHydratedKeyRef.current = turmaKey;
@@ -668,13 +729,15 @@ export default function ModalTurma({
   }, [autosizeNome, nome]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     let alive = true;
 
     async function carregarOrganizadores() {
       const listaDoPai = uniqueOrganizadores(
-        Array.isArray(organizadores) ? organizadores : []
+        Array.isArray(organizadores) ? organizadores : [],
       );
 
       if (listaDoPai.length) {
@@ -700,7 +763,9 @@ export default function ModalTurma({
 
         organizadoresCache = lista;
 
-        if (!alive) return;
+        if (!alive) {
+          return;
+        }
 
         setOrganizadoresLista(lista);
 
@@ -710,10 +775,14 @@ export default function ModalTurma({
       } catch (error) {
         warnDev("Falha ao carregar organizadores disponíveis.", error);
 
-        if (!alive) return;
+        if (!alive) {
+          return;
+        }
 
         setOrganizadoresLista([]);
-        notifyWarning("Não foi possível carregar os organizadores disponíveis.");
+        notifyWarning(
+          "Não foi possível carregar os organizadores disponíveis.",
+        );
       } finally {
         if (alive) {
           setLoadingOrganizadores(false);
@@ -741,29 +810,28 @@ export default function ModalTurma({
 
   const range = useMemo(
     () => getRangeDatas(datasOrdenadasValidas),
-    [datasOrdenadasValidas]
+    [datasOrdenadasValidas],
   );
 
   const cargaPreview = useMemo(
     () =>
       calcularCargaHoraria(
         datasOrdenadasValidas.filter(
-          (item) => item.data && item.horario_inicio && item.horario_fim
-        )
+          (item) => item.data && item.horario_inicio && item.horario_fim,
+        ),
       ),
-    [datasOrdenadasValidas]
+    [datasOrdenadasValidas],
   );
 
   const organizadoresSelecionadosIds = useMemo(
-    () =>
-      [
-        ...new Set(
-          organizadoresSel
-            .map((value) => Number(String(value).trim()))
-            .filter((n) => Number.isInteger(n) && n > 0)
-        ),
-      ],
-    [organizadoresSel]
+    () => [
+      ...new Set(
+        organizadoresSel
+          .map((value) => Number(String(value).trim()))
+          .filter((n) => Number.isInteger(n) && n > 0),
+      ),
+    ],
+    [organizadoresSel],
   );
 
   const assinanteOpcoes = useMemo(
@@ -772,12 +840,12 @@ export default function ModalTurma({
         organizadoresSelecionadosIds,
         organizadoresLista,
       }),
-    [organizadoresLista, organizadoresSelecionadosIds]
+    [organizadoresLista, organizadoresSelecionadosIds],
   );
 
   const assinantesSelecionadosIds = useMemo(
     () => normalizarAssinantesFrontend(assinantesSel),
-    [assinantesSel]
+    [assinantesSel],
   );
 
   const pendencias = useMemo(
@@ -795,7 +863,7 @@ export default function ModalTurma({
       organizadoresSelecionadosIds,
       nome,
       vagasTotal,
-    ]
+    ],
   );
 
   const turmaPronta = pendencias.length === 0;
@@ -824,7 +892,7 @@ export default function ModalTurma({
         return !selecionados.includes(id) || id === atual;
       });
     },
-    [organizadoresLista, organizadoresSel]
+    [organizadoresLista, organizadoresSel],
   );
 
   const getAssinantesDisponiveisParaLinha = useCallback(
@@ -832,11 +900,15 @@ export default function ModalTurma({
       const atual = assinantesSelecionadosIds[index];
 
       return assinanteOpcoes.filter((item) => {
-        if (item.id === RAFAELLA_PITOL_ID) return item.id === atual;
-        return !assinantesSelecionadosIds.includes(item.id) || item.id === atual;
+        if (item.id === RAFAELLA_PITOL_ID) {
+          return item.id === atual;
+        }
+        return (
+          !assinantesSelecionadosIds.includes(item.id) || item.id === atual
+        );
       });
     },
-    [assinanteOpcoes, assinantesSelecionadosIds]
+    [assinanteOpcoes, assinantesSelecionadosIds],
   );
 
   const updateData = useCallback((index, field, value) => {
@@ -847,8 +919,8 @@ export default function ModalTurma({
               ...item,
               [field]: value,
             }
-          : item
-      )
+          : item,
+      ),
     );
   }, []);
 
@@ -885,7 +957,9 @@ export default function ModalTurma({
 
   const removeData = useCallback((index) => {
     setDatas((prev) => {
-      if (prev.length <= 1) return prev;
+      if (prev.length <= 1) {
+        return prev;
+      }
 
       return prev.filter((_, idx) => idx !== index);
     });
@@ -893,7 +967,7 @@ export default function ModalTurma({
 
   const selecionarOrganizador = useCallback((index, value) => {
     setOrganizadoresSel((prev) =>
-      prev.map((item, idx) => (idx === index ? value : item))
+      prev.map((item, idx) => (idx === index ? value : item)),
     );
   }, []);
 
@@ -916,8 +990,8 @@ export default function ModalTurma({
               ...item,
               [field]: value,
             }
-          : item
-      )
+          : item,
+      ),
     );
   }, []);
 
@@ -1006,7 +1080,9 @@ export default function ModalTurma({
     const vagas = Number(vagasTotal);
 
     if (!Number.isInteger(vagas) || vagas <= 0) {
-      notifyWarning("Quantidade de vagas deve ser número inteiro maior ou igual a 1.");
+      notifyWarning(
+        "Quantidade de vagas deve ser número inteiro maior ou igual a 1.",
+      );
       return false;
     }
 
@@ -1092,7 +1168,9 @@ export default function ModalTurma({
   ]);
 
   const handleSalvar = useCallback(() => {
-    if (!validar()) return;
+    if (!validar()) {
+      return;
+    }
 
     const payload = montarPayload();
 
@@ -1123,7 +1201,7 @@ export default function ModalTurma({
             "h-1.5 bg-gradient-to-r",
             turmaPronta
               ? "from-emerald-500 via-teal-500 to-cyan-500"
-              : "from-amber-500 via-orange-500 to-rose-500"
+              : "from-amber-500 via-orange-500 to-rose-500",
           )}
         />
 
@@ -1167,7 +1245,8 @@ export default function ModalTurma({
 
                 <Chip tone="indigo" title="Período">
                   <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                  {formatDateBr(range.data_inicio)} — {formatDateBr(range.data_fim)}
+                  {formatDateBr(range.data_inicio)} —{" "}
+                  {formatDateBr(range.data_fim)}
                 </Chip>
 
                 <Chip tone="violet" title="Datas">
@@ -1180,9 +1259,15 @@ export default function ModalTurma({
                   {cargaPreview ? `${cargaPreview}h` : "—"}
                 </Chip>
 
-                <Chip tone={loadingOrganizadores ? "amber" : "zinc"} title="Organizadores disponíveis">
+                <Chip
+                  tone={loadingOrganizadores ? "amber" : "zinc"}
+                  title="Organizadores disponíveis"
+                >
                   {loadingOrganizadores ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
                   ) : (
                     <Users className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
@@ -1260,7 +1345,10 @@ export default function ModalTurma({
                   {datas.map((item, index) => {
                     const canRemove = datas.length > 1;
                     const itemData = normalizeDateOnly(item.data);
-                    const itemInicio = normalizeTime(item.horario_inicio || "", "");
+                    const itemInicio = normalizeTime(
+                      item.horario_inicio || "",
+                      "",
+                    );
                     const itemFim = normalizeTime(item.horario_fim || "", "");
                     const completo = Boolean(itemData && itemInicio && itemFim);
 
@@ -1274,7 +1362,7 @@ export default function ModalTurma({
                             "h-1 bg-gradient-to-r",
                             completo
                               ? "from-emerald-500 via-teal-500 to-cyan-500"
-                              : "from-amber-500 via-orange-500 to-rose-500"
+                              : "from-amber-500 via-orange-500 to-rose-500",
                           )}
                         />
 
@@ -1288,17 +1376,27 @@ export default function ModalTurma({
 
                                 <Chip tone={completo ? "emerald" : "amber"}>
                                   {completo ? (
-                                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                    <CheckCircle2
+                                      className="h-3.5 w-3.5"
+                                      aria-hidden="true"
+                                    />
                                   ) : (
-                                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                                    <AlertTriangle
+                                      className="h-3.5 w-3.5"
+                                      aria-hidden="true"
+                                    />
                                   )}
                                   {completo ? "Completa" : "Pendente"}
                                 </Chip>
                               </div>
 
                               <p className="mt-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300">
-                                {itemData ? formatDateBr(itemData) : "Data não informada"}
-                                {itemInicio && itemFim ? ` · ${itemInicio} às ${itemFim}` : ""}
+                                {itemData
+                                  ? formatDateBr(itemData)
+                                  : "Data não informada"}
+                                {itemInicio && itemFim
+                                  ? ` · ${itemInicio} às ${itemFim}`
+                                  : ""}
                               </p>
                             </div>
 
@@ -1310,7 +1408,10 @@ export default function ModalTurma({
                                 onClick={() => removeData(index)}
                                 title="Remover esta data"
                               >
-                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                <Trash2
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
                                 Remover
                               </ActionButton>
                             ) : (
@@ -1322,7 +1423,10 @@ export default function ModalTurma({
 
                           <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
                             <div className="md:col-span-4">
-                              <label className="mb-1 block text-xs font-black text-zinc-700 dark:text-zinc-200">
+                              <label
+                                htmlFor={`data-turma-${uid}-${index}`}
+                                className="mb-1 block text-xs font-black text-zinc-700 dark:text-zinc-200"
+                              >
                                 Data <span className="text-rose-600">*</span>
                               </label>
 
@@ -1334,10 +1438,15 @@ export default function ModalTurma({
                                 />
 
                                 <input
+                                  id={`data-turma-${uid}-${index}`}
                                   type="date"
                                   value={itemData}
                                   onChange={(event) =>
-                                    updateData(index, "data", event.target.value)
+                                    updateData(
+                                      index,
+                                      "data",
+                                      event.target.value,
+                                    )
                                   }
                                   className="w-full rounded-2xl border border-zinc-200 bg-white py-2.5 pl-10 pr-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-950"
                                   required
@@ -1347,7 +1456,10 @@ export default function ModalTurma({
                             </div>
 
                             <div className="md:col-span-4">
-                              <label className="mb-1 block text-xs font-black text-zinc-700 dark:text-zinc-200">
+                              <label
+                                htmlFor={`inicio-turma-${uid}-${index}`}
+                                className="mb-1 block text-xs font-black text-zinc-700 dark:text-zinc-200"
+                              >
                                 Início <span className="text-rose-600">*</span>
                               </label>
 
@@ -1359,10 +1471,15 @@ export default function ModalTurma({
                                 />
 
                                 <input
+                                  id={`inicio-turma-${uid}-${index}`}
                                   type="time"
                                   value={itemInicio}
                                   onChange={(event) =>
-                                    updateData(index, "horario_inicio", event.target.value)
+                                    updateData(
+                                      index,
+                                      "horario_inicio",
+                                      event.target.value,
+                                    )
                                   }
                                   className="w-full rounded-2xl border border-zinc-200 bg-white py-2.5 pl-10 pr-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-950"
                                   required
@@ -1372,7 +1489,10 @@ export default function ModalTurma({
                             </div>
 
                             <div className="md:col-span-4">
-                              <label className="mb-1 block text-xs font-black text-zinc-700 dark:text-zinc-200">
+                              <label
+                                htmlFor={`fim-turma-${uid}-${index}`}
+                                className="mb-1 block text-xs font-black text-zinc-700 dark:text-zinc-200"
+                              >
                                 Fim <span className="text-rose-600">*</span>
                               </label>
 
@@ -1384,10 +1504,15 @@ export default function ModalTurma({
                                 />
 
                                 <input
+                                  id={`fim-turma-${uid}-${index}`}
                                   type="time"
                                   value={itemFim}
                                   onChange={(event) =>
-                                    updateData(index, "horario_fim", event.target.value)
+                                    updateData(
+                                      index,
+                                      "horario_fim",
+                                      event.target.value,
+                                    )
                                   }
                                   className="w-full rounded-2xl border border-zinc-200 bg-white py-2.5 pl-10 pr-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-950"
                                   required
@@ -1408,7 +1533,11 @@ export default function ModalTurma({
                     Adicionar data
                   </ActionButton>
 
-                  <ActionButton type="button" onClick={clonarHorario} tone="ghost">
+                  <ActionButton
+                    type="button"
+                    onClick={clonarHorario}
+                    tone="ghost"
+                  >
                     <Copy className="h-4 w-4" aria-hidden="true" />
                     Clonar horários
                   </ActionButton>
@@ -1426,12 +1555,16 @@ export default function ModalTurma({
 
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-black text-zinc-800 dark:text-zinc-100">
+                    <label
+                      htmlFor={`nome-turma-${uid}`}
+                      className="mb-1 block text-sm font-black text-zinc-800 dark:text-zinc-100"
+                    >
                       Nome da turma <span className="text-rose-600">*</span>
                     </label>
 
                     <div className="relative">
                       <textarea
+                        id={`nome-turma-${uid}`}
                         ref={nomeRef}
                         data-initial-focus
                         value={nome}
@@ -1453,7 +1586,7 @@ export default function ModalTurma({
                           "absolute right-3 top-3 text-xs",
                           nome.length >= NOME_TURMA_MAX * 0.9
                             ? "text-amber-600"
-                            : "text-zinc-500 dark:text-zinc-300"
+                            : "text-zinc-500 dark:text-zinc-300",
                         )}
                       >
                         {nome.length}/{NOME_TURMA_MAX}
@@ -1469,7 +1602,10 @@ export default function ModalTurma({
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-sm font-black text-zinc-800 dark:text-zinc-100">
+                    <label
+                      htmlFor={`vagas-turma-${uid}`}
+                      className="mb-1 block text-sm font-black text-zinc-800 dark:text-zinc-100"
+                    >
                       Vagas <span className="text-rose-600">*</span>
                     </label>
 
@@ -1481,6 +1617,7 @@ export default function ModalTurma({
                       />
 
                       <input
+                        id={`vagas-turma-${uid}`}
                         type="number"
                         value={vagasTotal}
                         onChange={(event) => setVagasTotal(event.target.value)}
@@ -1506,7 +1643,10 @@ export default function ModalTurma({
                 {loadingOrganizadores ? (
                   <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300">
                     <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      <Loader2
+                        className="h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
                       Carregando organizadores disponíveis…
                     </span>
                   </div>
@@ -1571,7 +1711,7 @@ export default function ModalTurma({
                                   >
                                     {organizador.nome}
                                   </option>
-                                )
+                                ),
                               )}
                             </select>
 
@@ -1583,7 +1723,10 @@ export default function ModalTurma({
                                 size="sm"
                                 className="shrink-0"
                               >
-                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                <Trash2
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
                                 Remover
                               </ActionButton>
                             ) : null}
@@ -1600,7 +1743,8 @@ export default function ModalTurma({
                             Palestrantes
                           </h4>
                           <p className="text-xs text-sky-800 dark:text-sky-200">
-                            Campo opcional. Pode ser preenchido com nome externo.
+                            Campo opcional. Pode ser preenchido com nome
+                            externo.
                           </p>
                         </div>
 
@@ -1617,7 +1761,10 @@ export default function ModalTurma({
                       </div>
 
                       {palestrantes.map((item, index) => (
-                        <div key={`palestrante-${index}`} className="flex flex-col gap-2 sm:flex-row">
+                        <div
+                          key={`palestrante-${index}`}
+                          className="flex flex-col gap-2 sm:flex-row"
+                        >
                           <div className="relative w-full">
                             <PenLine
                               className="absolute left-3 top-2.5 text-zinc-400"
@@ -1629,7 +1776,11 @@ export default function ModalTurma({
                               type="text"
                               value={String(item?.nome || "")}
                               onChange={(event) =>
-                                atualizarPalestrante(index, "nome", event.target.value)
+                                atualizarPalestrante(
+                                  index,
+                                  "nome",
+                                  event.target.value,
+                                )
                               }
                               placeholder="Nome do palestrante"
                               className="w-full rounded-2xl border border-sky-200 bg-white py-2.5 pl-10 pr-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-sky-500 dark:border-sky-900/50 dark:bg-zinc-950"
@@ -1671,7 +1822,9 @@ export default function ModalTurma({
                           tone="success"
                           size="xs"
                           className="shrink-0"
-                          disabled={assinantesSelecionadosIds.length >= MAX_ASSINANTES}
+                          disabled={
+                            assinantesSelecionadosIds.length >= MAX_ASSINANTES
+                          }
                         >
                           <PlusCircle className="h-4 w-4" aria-hidden="true" />
                           Incluir
@@ -1728,7 +1881,10 @@ export default function ModalTurma({
                                   size="sm"
                                   className="shrink-0"
                                 >
-                                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                  <Trash2
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                  />
                                   Remover
                                 </ActionButton>
                               ) : null}

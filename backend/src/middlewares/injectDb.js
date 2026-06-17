@@ -51,8 +51,8 @@ function injectDb(req, _res, next) {
 
       return next(
         buildInjectDbError(
-          "DB oficial inválido no middleware injectDb. Verifique src/db/index.js."
-        )
+          "DB oficial inválido no middleware injectDb. Verifique src/db/index.js.",
+        ),
       );
     }
 

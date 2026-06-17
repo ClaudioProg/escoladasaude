@@ -25,12 +25,12 @@
 // - mobile-first;
 // - acessibilidade;
 // - anti-fuso sem new Date("YYYY-MM-DD").
-// 
+//
 // Observação:
 // ModalVerEdital, ModalInscreverTrabalho e ModalConfirmacao devem ser revisados
 // em seguida para garantir contrato v2.0 completo.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -40,17 +40,13 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  ExternalLink,
   FileText,
   Filter,
-  Image as ImageIcon,
-  Layers3,
-  Loader2,
+  Image as Loader2,
   Pencil,
   PlusCircle,
   RefreshCcw,
   Search,
-  ShieldCheck,
   Sparkles,
   Trash2,
   X,
@@ -72,9 +68,15 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
@@ -88,14 +90,18 @@ function getErrorMessage(error, fallback) {
 }
 
 function toBrDateTimeSafe(input) {
-  if (!input) return "—";
+  if (!input) {
+    return "—";
+  }
 
   const text = String(input).trim();
 
-  if (/^\d{2}\/\d{2}\/\d{4}/.test(text)) return text;
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(text)) {
+    return text;
+  }
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -114,12 +120,14 @@ function toBrDateTimeSafe(input) {
 }
 
 function parseSortableTimestamp(input) {
-  if (!input) return 0;
+  if (!input) {
+    return 0;
+  }
 
   const text = String(input).trim();
 
   const dateTime = text.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dateTime) {
@@ -135,7 +143,9 @@ function parseSortableTimestamp(input) {
   }
 
   const asNumber = Number(text);
-  if (Number.isFinite(asNumber) && asNumber > 0) return asNumber;
+  if (Number.isFinite(asNumber) && asNumber > 0) {
+    return asNumber;
+  }
 
   const parsed = Date.parse(text);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -144,11 +154,11 @@ function parseSortableTimestamp(input) {
 function sortSubmissoesRecentes(list = []) {
   return [...list].sort((a, b) => {
     const aDate = parseSortableTimestamp(
-      a?.atualizado_em || a?.updated_at || a?.criado_em || a?.created_at || 0
+      a?.atualizado_em || a?.updated_at || a?.criado_em || a?.created_at || 0,
     );
 
     const bDate = parseSortableTimestamp(
-      b?.atualizado_em || b?.updated_at || b?.criado_em || b?.created_at || 0
+      b?.atualizado_em || b?.updated_at || b?.criado_em || b?.created_at || 0,
     );
 
     return bDate - aDate;
@@ -158,34 +168,32 @@ function sortSubmissoesRecentes(list = []) {
 function normalizarStatus(status) {
   const value = String(status || "").toLowerCase();
 
-  if (value === "rascunho") return "rascunho";
-  if (value === "submetida") return "submetida";
-  if (value === "em_avaliacao") return "em_avaliacao";
-  if (value === "aprovada_exposicao") return "aprovada_exposicao";
-  if (value === "aprovada_oral") return "aprovada_oral";
-  if (value === "aprovada") return "aprovada";
-  if (value === "reprovada") return "reprovada";
-  if (value === "cancelada") return "cancelada";
+  if (value === "rascunho") {
+    return "rascunho";
+  }
+  if (value === "submetida") {
+    return "submetida";
+  }
+  if (value === "em_avaliacao") {
+    return "em_avaliacao";
+  }
+  if (value === "aprovada_exposicao") {
+    return "aprovada_exposicao";
+  }
+  if (value === "aprovada_oral") {
+    return "aprovada_oral";
+  }
+  if (value === "aprovada") {
+    return "aprovada";
+  }
+  if (value === "reprovada") {
+    return "reprovada";
+  }
+  if (value === "cancelada") {
+    return "cancelada";
+  }
 
   return value || "indefinido";
-}
-
-function statusLabel(status) {
-  const value = normalizarStatus(status);
-
-  const labels = {
-    rascunho: "Rascunho",
-    submetida: "Submetida",
-    em_avaliacao: "Em avaliação",
-    aprovada_exposicao: "Aprovada para exposição",
-    aprovada_oral: "Aprovada para oral",
-    aprovada: "Aprovada",
-    reprovada: "Reprovada",
-    cancelada: "Cancelada",
-    indefinido: "Indefinido",
-  };
-
-  return labels[value] || value;
 }
 
 function okEscrita(submissao) {
@@ -236,9 +244,13 @@ function canDelete(row) {
 }
 
 function matchSearch(row, term) {
-  const needle = String(term || "").trim().toLowerCase();
+  const needle = String(term || "")
+    .trim()
+    .toLowerCase();
 
-  if (!needle) return true;
+  if (!needle) {
+    return true;
+  }
 
   return [
     row?.titulo,
@@ -279,7 +291,7 @@ function GlassCard({ children, className = "" }) {
       className={cx(
         "rounded-[1.75rem] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur-xl",
         "dark:border-white/10 dark:bg-slate-900/80 dark:shadow-black/20",
-        className
+        className,
       )}
     >
       {children}
@@ -323,7 +335,7 @@ function Button({
         "focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
         sizes[size],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -342,14 +354,12 @@ function Badge({ children, tone = "slate", icon: Icon }) {
   const tones = {
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
     fuchsia:
@@ -360,7 +370,7 @@ function Badge({ children, tone = "slate", icon: Icon }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -394,12 +404,16 @@ function StatusBadge({ status }) {
 =========================================================================== */
 
 async function baixarModeloBanner(chamadaId) {
-  const { blob, filename } = await apiGetFile(`/chamada/${chamadaId}/modelo-banner`);
+  const { blob, filename } = await apiGetFile(
+    `/chamada/${chamadaId}/modelo-banner`,
+  );
   downloadBlob(filename || `modelo-banner-${chamadaId}.pptx`, blob);
 }
 
 async function baixarModeloOral(chamadaId) {
-  const { blob, filename } = await apiGetFile(`/chamada/${chamadaId}/modelo-oral`);
+  const { blob, filename } = await apiGetFile(
+    `/chamada/${chamadaId}/modelo-oral`,
+  );
   downloadBlob(filename || `modelo-oral-${chamadaId}.pptx`, blob);
 }
 
@@ -419,8 +433,13 @@ async function modeloExiste(chamadaId, tipo) {
 }
 
 async function baixarPosterSubmissao(submissaoId, filenameFallback) {
-  const { blob, filename } = await apiGetFile(`/submissao/${submissaoId}/poster`);
-  downloadBlob(filename || filenameFallback || `poster-submissao-${submissaoId}`, blob);
+  const { blob, filename } = await apiGetFile(
+    `/submissao/${submissaoId}/poster`,
+  );
+  downloadBlob(
+    filename || filenameFallback || `poster-submissao-${submissaoId}`,
+    blob,
+  );
 }
 
 /* =========================================================================
@@ -447,10 +466,14 @@ function ModalRegrasEDicas({ open, onClose }) {
   ];
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
-      if (event.key === "Escape") onClose?.();
+      if (event.key === "Escape") {
+        onClose?.();
+      }
     }
 
     document.body.style.overflow = "hidden";
@@ -462,106 +485,110 @@ function ModalRegrasEDicas({ open, onClose }) {
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
-return createPortal(
-  <div
-    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
-    role="presentation"
-    onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose?.();
-    }}
-  >
+  return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-regras-dicas-title"
-      className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:rounded-[2rem]"
-      style={{
-        maxHeight: "calc(100dvh - 3rem)",
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/65 p-3 pt-6 backdrop-blur-sm sm:p-4 sm:pt-8"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
-      <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-gradient-to-br from-violet-700 via-fuchsia-600 to-indigo-700 p-4 text-white sm:p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.20),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,.16),transparent_35%)]" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-regras-dicas-title"
+        className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-950 sm:rounded-[2rem]"
+        style={{
+          maxHeight: "calc(100dvh - 3rem)",
+        }}
+      >
+        <header className="relative shrink-0 overflow-hidden border-b border-white/10 bg-gradient-to-br from-violet-700 via-fuchsia-600 to-indigo-700 p-4 text-white sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,.20),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,.16),transparent_35%)]" />
 
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              Orientações
-            </div>
-
-            <h2
-              id="modal-regras-dicas-title"
-              className="text-lg font-black leading-tight tracking-tight sm:text-2xl"
-            >
-              Regras & Dicas
-            </h2>
-
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/85">
-              Consulte as principais orientações antes de submeter, editar ou
-              acompanhar seus trabalhos.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white/85 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70"
-            aria-label="Fechar modal"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {itens.map((item, index) => (
-            <div
-              key={item.titulo}
-              className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm dark:border-violet-900 dark:bg-slate-900"
-            >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-700 text-sm font-black text-white">
-                {index + 1}
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
+                <Sparkles className="h-3.5 w-3.5" />
+                Orientações
               </div>
 
-              <h3 className="font-black text-slate-900 dark:text-white">
-                {item.titulo}
-              </h3>
+              <h2
+                id="modal-regras-dicas-title"
+                className="text-lg font-black leading-tight tracking-tight sm:text-2xl"
+              >
+                Regras & Dicas
+              </h2>
 
-              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                {item.texto}
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/85">
+                Consulte as principais orientações antes de submeter, editar ou
+                acompanhar seus trabalhos.
               </p>
             </div>
-          ))}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white/85 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70"
+              aria-label="Fechar modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            {itens.map((item, index) => (
+              <div
+                key={item.titulo}
+                className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm dark:border-violet-900 dark:bg-slate-900"
+              >
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-700 text-sm font-black text-white">
+                  {index + 1}
+                </div>
+
+                <h3 className="font-black text-slate-900 dark:text-white">
+                  {item.titulo}
+                </h3>
+
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  {item.texto}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-black">Atenção ao edital</p>
+            <p className="mt-1 leading-relaxed">
+              As regras específicas da chamada prevalecem sobre as orientações
+              gerais. Antes de enviar seu trabalho, leia o edital completo e
+              confira prazo, formato, critérios de avaliação e modelos oficiais.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
-          <p className="font-black">Atenção ao edital</p>
-          <p className="mt-1 leading-relaxed">
-            As regras específicas da chamada prevalecem sobre as orientações
-            gerais. Antes de enviar seu trabalho, leia o edital completo e
-            confira prazo, formato, critérios de avaliação e modelos oficiais.
-          </p>
-        </div>
+        <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Use estas orientações como apoio antes de realizar sua submissão.
+            </p>
+
+            <Button tone="primary" icon={CheckCircle2} onClick={onClose}>
+              Entendi
+            </Button>
+          </div>
+        </footer>
       </div>
-
-      <footer className="shrink-0 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-            Use estas orientações como apoio antes de realizar sua submissão.
-          </p>
-
-          <Button tone="primary" icon={CheckCircle2} onClick={onClose}>
-            Entendi
-          </Button>
-        </div>
-      </footer>
-    </div>
-  </div>,
-  document.body
-);
+    </div>,
+    document.body,
+  );
 }
 
 /* =========================================================================
@@ -580,7 +607,8 @@ function ChamadaCard({
   onBaixarOral,
 }) {
   const dentro = Boolean(chamada?.dentro_prazo ?? chamada?.dentroPrazo);
-  const prazo = chamada?.prazo_final_br || chamada?.prazo_final || chamada?.prazo || null;
+  const prazo =
+    chamada?.prazo_final_br || chamada?.prazo_final || chamada?.prazo || null;
 
   return (
     <motion.article
@@ -593,9 +621,13 @@ function ChamadaCard({
         <div className="flex-1">
           <div className="mb-3 flex flex-wrap gap-2">
             {dentro ? (
-              <Badge tone="emerald" icon={Clock}>Dentro do prazo</Badge>
+              <Badge tone="emerald" icon={Clock}>
+                Dentro do prazo
+              </Badge>
             ) : (
-              <Badge tone="rose" icon={Clock}>Prazo encerrado</Badge>
+              <Badge tone="rose" icon={Clock}>
+                Prazo encerrado
+              </Badge>
             )}
           </div>
 
@@ -618,7 +650,12 @@ function ChamadaCard({
           </Button>
 
           {dentro ? (
-            <Button tone="primary" size="sm" icon={PlusCircle} onClick={onSubmeter}>
+            <Button
+              tone="primary"
+              size="sm"
+              icon={PlusCircle}
+              onClick={onSubmeter}
+            >
               Submeter
             </Button>
           ) : null}
@@ -661,11 +698,15 @@ function AprovacaoSection({ submissao }) {
       <StatusBadge status={submissao?.status} />
 
       {escrita ? (
-        <Badge tone="emerald" icon={Award}>Exposição</Badge>
+        <Badge tone="emerald" icon={Award}>
+          Exposição
+        </Badge>
       ) : null}
 
       {oral ? (
-        <Badge tone="emerald" icon={CheckCircle2}>Apresentação oral</Badge>
+        <Badge tone="emerald" icon={CheckCircle2}>
+          Apresentação oral
+        </Badge>
       ) : null}
     </div>
   );
@@ -742,7 +783,10 @@ function SubmissionCard({
           <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
             Pôster / arquivo principal
           </p>
-          <PosterCell id={submissao.id} nome={submissao.poster_nome || submissao.banner_nome} />
+          <PosterCell
+            id={submissao.id}
+            nome={submissao.poster_nome || submissao.banner_nome}
+          />
         </div>
 
         {oralAprovada ? (
@@ -814,10 +858,10 @@ export default function SubmissaoTrabalhos() {
   const [baixandoBannerMap, setBaixandoBannerMap] = useState({});
   const [baixandoOralMap, setBaixandoOralMap] = useState({});
 
-const [modalEdital, setModalEdital] = useState(null);
-const [modalInscricao, setModalInscricao] = useState(null);
-const [modalRegras, setModalRegras] = useState(false);
-const [confirmacao, setConfirmacao] = useState(null);
+  const [modalEdital, setModalEdital] = useState(null);
+  const [modalInscricao, setModalInscricao] = useState(null);
+  const [modalRegras, setModalRegras] = useState(false);
+  const [confirmacao, setConfirmacao] = useState(null);
   const [excluindoId, setExcluindoId] = useState(null);
 
   const [q, setQ] = useState("");
@@ -856,7 +900,9 @@ const [confirmacao, setConfirmacao] = useState(null);
   }
 
   const loadData = useCallback(async ({ silent = false } = {}) => {
-    if (!silent) setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
 
     setErro("");
 
@@ -877,11 +923,13 @@ const [confirmacao, setConfirmacao] = useState(null);
       setErro(
         getErrorMessage(
           error,
-          "Não foi possível carregar suas chamadas e submissões agora."
-        )
+          "Não foi possível carregar suas chamadas e submissões agora.",
+        ),
       );
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -937,7 +985,9 @@ const [confirmacao, setConfirmacao] = useState(null);
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindoId(confirmacao.id);
 
@@ -949,8 +999,8 @@ const [confirmacao, setConfirmacao] = useState(null);
       setErro(
         getErrorMessage(
           error,
-          "Não foi possível excluir a submissão. Ela pode estar fora do prazo ou já em avaliação."
-        )
+          "Não foi possível excluir a submissão. Ela pode estar fora do prazo ou já em avaliação.",
+        ),
       );
     } finally {
       setExcluindoId(null);
@@ -959,7 +1009,7 @@ const [confirmacao, setConfirmacao] = useState(null);
 
   const minhasFiltradas = useMemo(
     () => minhas.filter((item) => matchSearch(item, q)),
-    [minhas, q]
+    [minhas, q],
   );
 
   const countByStatus = useMemo(() => {
@@ -1029,48 +1079,52 @@ const [confirmacao, setConfirmacao] = useState(null);
       </ModalConfirmacao>
 
       <ModalRegrasEDicas
-  open={modalRegras}
-  onClose={() => setModalRegras(false)}
-/>
+        open={modalRegras}
+        onClose={() => setModalRegras(false)}
+      />
 
       <HeaderHero
-  icone={FileText}
-  etiqueta="Submissão de trabalhos"
-  titulo="Submissão de Trabalhos"
-  subtitulo="Acompanhe suas submissões, edite rascunhos, baixe modelos oficiais e envie novos trabalhos dentro do prazo da chamada."
-/>
+        icone={FileText}
+        etiqueta="Submissão de trabalhos"
+        titulo="Submissão de Trabalhos"
+        subtitulo="Acompanhe suas submissões, edite rascunhos, baixe modelos oficiais e envie novos trabalhos dentro do prazo da chamada."
+      />
 
-      <main id="conteudo" className="mx-auto w-full max-w-screen-2xl space-y-8 px-4 py-6 sm:px-6 lg:px-8">
-       <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  <div>
-    <h2 className="text-xl font-black text-slate-900 dark:text-white">
-      Acompanhe suas chamadas e submissões
-    </h2>
-    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-      Consulte chamadas abertas, modelos oficiais e o andamento dos seus trabalhos.
-    </p>
-  </div>
+      <main
+        id="conteudo"
+        className="mx-auto w-full max-w-screen-2xl space-y-8 px-4 py-6 sm:px-6 lg:px-8"
+      >
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">
+              Acompanhe suas chamadas e submissões
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Consulte chamadas abertas, modelos oficiais e o andamento dos seus
+              trabalhos.
+            </p>
+          </div>
 
-  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-  <Button
-    tone="success"
-    icon={RefreshCcw}
-    loading={refreshing}
-    onClick={refresh}
-  >
-    {refreshing ? "Atualizando..." : "Atualizar dados"}
-  </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button
+              tone="success"
+              icon={RefreshCcw}
+              loading={refreshing}
+              onClick={refresh}
+            >
+              {refreshing ? "Atualizando..." : "Atualizar dados"}
+            </Button>
 
-  <Button
-    tone="slate"
-    icon={Sparkles}
-    onClick={() => setModalRegras(true)}
-  >
-    Regras & Dicas
-  </Button>
-</div>
-</section>
- {erro ? (
+            <Button
+              tone="slate"
+              icon={Sparkles}
+              onClick={() => setModalRegras(true)}
+            >
+              Regras & Dicas
+            </Button>
+          </div>
+        </section>
+        {erro ? (
           <GlassCard className="p-4">
             <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
@@ -1142,7 +1196,10 @@ const [confirmacao, setConfirmacao] = useState(null);
           <div className="flex flex-col gap-2 text-center">
             <div className="flex items-center justify-center gap-2">
               <BookOpen className="h-5 w-5 text-violet-600" />
-              <h2 id="chamadas-abertas" className="text-xl font-black text-slate-900 dark:text-white">
+              <h2
+                id="chamadas-abertas"
+                className="text-xl font-black text-slate-900 dark:text-white"
+              >
                 Chamadas abertas
               </h2>
             </div>
@@ -1164,12 +1221,16 @@ const [confirmacao, setConfirmacao] = useState(null);
                   <ChamadaCard
                     key={chamada.id}
                     chamada={chamada}
-                    modeloBannerDisponivel={Boolean(modeloBannerMap[chamada.id])}
+                    modeloBannerDisponivel={Boolean(
+                      modeloBannerMap[chamada.id],
+                    )}
                     modeloOralDisponivel={Boolean(modeloOralMap[chamada.id])}
                     baixandoBanner={Boolean(baixandoBannerMap[chamada.id])}
                     baixandoOral={Boolean(baixandoOralMap[chamada.id])}
                     onVerEdital={() => setModalEdital(chamada.id)}
-                    onSubmeter={() => setModalInscricao({ chamadaId: chamada.id })}
+                    onSubmeter={() =>
+                      setModalInscricao({ chamadaId: chamada.id })
+                    }
                     onBaixarBanner={() => handleBaixarModeloBanner(chamada.id)}
                     onBaixarOral={() => handleBaixarModeloOral(chamada.id)}
                   />
@@ -1183,7 +1244,10 @@ const [confirmacao, setConfirmacao] = useState(null);
           <div className="flex flex-col items-center gap-3 text-center">
             <div className="flex items-center justify-center gap-2">
               <FileText className="h-5 w-5 text-indigo-600" />
-              <h2 id="minhas-submissoes" className="text-xl font-black text-slate-900 dark:text-white">
+              <h2
+                id="minhas-submissoes"
+                className="text-xl font-black text-slate-900 dark:text-white"
+              >
                 Minhas submissões
               </h2>
             </div>
@@ -1222,7 +1286,9 @@ const [confirmacao, setConfirmacao] = useState(null);
             >
               {minhasFiltradas.map((submissao) => {
                 const chamadaId =
-                  submissao.chamada_id ?? submissao.chamadaId ?? submissao.chamada?.id;
+                  submissao.chamada_id ??
+                  submissao.chamadaId ??
+                  submissao.chamada?.id;
 
                 return (
                   <SubmissionCard
@@ -1231,7 +1297,9 @@ const [confirmacao, setConfirmacao] = useState(null);
                     podeEditar={canEdit(submissao)}
                     podeExcluir={canDelete(submissao)}
                     excluindo={excluindoId === submissao.id}
-                    onEditar={() => setModalInscricao({ submissaoId: submissao.id })}
+                    onEditar={() =>
+                      setModalInscricao({ submissaoId: submissao.id })
+                    }
                     onExcluir={() => pedirExclusao(submissao)}
                     modeloOralDisponivel={Boolean(modeloOralMap[chamadaId])}
                     baixandoModeloOral={Boolean(baixandoOralMap[chamadaId])}

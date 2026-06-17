@@ -114,9 +114,15 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
@@ -159,12 +165,16 @@ function cleanStr(value) {
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -266,7 +276,9 @@ function readPersistedFilters() {
 }
 
 function normalizeFormFromCurso(curso) {
-  if (!curso) return FORM_INICIAL;
+  if (!curso) {
+    return FORM_INICIAL;
+  }
 
   return {
     titulo: curso.titulo || "",
@@ -305,12 +317,14 @@ export default function CursosOnlineAdmin() {
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
-  const [filtroStatus, setFiltroStatus] = useState(persisted.filtroStatus || "");
+  const [filtroStatus, setFiltroStatus] = useState(
+    persisted.filtroStatus || "",
+  );
   const [filtroPlataforma, setFiltroPlataforma] = useState(
-    persisted.filtroPlataforma || ""
+    persisted.filtroPlataforma || "",
   );
   const [filtroCategoria, setFiltroCategoria] = useState(
-    persisted.filtroCategoria || ""
+    persisted.filtroCategoria || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -341,7 +355,7 @@ export default function CursosOnlineAdmin() {
           filtroPlataforma,
           filtroCategoria,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página.
@@ -365,7 +379,7 @@ export default function CursosOnlineAdmin() {
     try {
       if (typeof api?.cursoOnline?.listarAdmin !== "function") {
         throw new Error(
-          "Facade api.cursoOnline.listarAdmin não encontrada em frontend/src/services/api.js."
+          "Facade api.cursoOnline.listarAdmin não encontrada em frontend/src/services/api.js.",
         );
       }
 
@@ -377,7 +391,7 @@ export default function CursosOnlineAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar os cursos online."
+        "Não foi possível carregar os cursos online.",
       );
 
       setErro(message);
@@ -397,11 +411,13 @@ export default function CursosOnlineAdmin() {
     for (const curso of cursos) {
       const categoria = cleanStr(curso.categoria);
 
-      if (categoria) set.add(categoria);
+      if (categoria) {
+        set.add(categoria);
+      }
     }
 
     return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
     );
   }, [cursos]);
 
@@ -442,21 +458,17 @@ export default function CursosOnlineAdmin() {
             curso.status_label,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [
-    cursos,
-    filtroStatus,
-    filtroPlataforma,
-    filtroCategoria,
-    buscaDebounced,
-  ]);
+  }, [cursos, filtroStatus, filtroPlataforma, filtroCategoria, buscaDebounced]);
 
   const kpis = useMemo(() => {
     const base = {
@@ -471,18 +483,28 @@ export default function CursosOnlineAdmin() {
     for (const curso of cursos) {
       const status = String(curso.status || "").toLowerCase();
 
-      if (status === "rascunho") base.rascunho += 1;
-      if (status === "publicado") base.publicado += 1;
-      if (status === "arquivado") base.arquivado += 1;
-      if (curso.gratuito) base.gratuito += 1;
-      if (curso.certificado_externo) base.certificadoExterno += 1;
+      if (status === "rascunho") {
+        base.rascunho += 1;
+      }
+      if (status === "publicado") {
+        base.publicado += 1;
+      }
+      if (status === "arquivado") {
+        base.arquivado += 1;
+      }
+      if (curso.gratuito) {
+        base.gratuito += 1;
+      }
+      if (curso.certificado_externo) {
+        base.certificadoExterno += 1;
+      }
     }
 
     return base;
   }, [cursos]);
 
   const temFiltrosAtivos = Boolean(
-    filtroStatus || filtroPlataforma || filtroCategoria || buscaDebounced
+    filtroStatus || filtroPlataforma || filtroCategoria || buscaDebounced,
   );
 
   function limparFiltros() {
@@ -495,9 +517,15 @@ export default function CursosOnlineAdmin() {
   }
 
   function removerChip(tipo) {
-    if (tipo === "status") setFiltroStatus("");
-    if (tipo === "plataforma") setFiltroPlataforma("");
-    if (tipo === "categoria") setFiltroCategoria("");
+    if (tipo === "status") {
+      setFiltroStatus("");
+    }
+    if (tipo === "plataforma") {
+      setFiltroPlataforma("");
+    }
+    if (tipo === "categoria") {
+      setFiltroCategoria("");
+    }
 
     if (tipo === "busca") {
       setBusca("");
@@ -525,7 +553,9 @@ export default function CursosOnlineAdmin() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -536,7 +566,7 @@ export default function CursosOnlineAdmin() {
       await api.cursoOnline.excluir(confirmacao.id);
 
       setCursos((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Curso online excluído com sucesso.");
@@ -545,7 +575,7 @@ export default function CursosOnlineAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível excluir o curso online."
+        "Não foi possível excluir o curso online.",
       );
 
       setErro(message);
@@ -556,7 +586,9 @@ export default function CursosOnlineAdmin() {
   }
 
   async function alterarStatus(curso, status) {
-    if (!curso?.id || !status || curso.status === status) return;
+    if (!curso?.id || !status || curso.status === status) {
+      return;
+    }
 
     setAlterandoStatusId(curso.id);
     setErro("");
@@ -572,11 +604,13 @@ export default function CursosOnlineAdmin() {
           String(item.id) === String(curso.id)
             ? {
                 ...item,
-                ...(atualizado && typeof atualizado === "object" ? atualizado : {}),
+                ...(atualizado && typeof atualizado === "object"
+                  ? atualizado
+                  : {}),
                 status,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMensagem("Status do curso online atualizado com sucesso.");
@@ -584,7 +618,7 @@ export default function CursosOnlineAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível alterar o status do curso online."
+        "Não foi possível alterar o status do curso online.",
       );
 
       setErro(message);
@@ -603,7 +637,9 @@ export default function CursosOnlineAdmin() {
         titulo={confirmacao?.titulo}
         loading={excluindo}
         onCancel={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -625,7 +661,12 @@ export default function CursosOnlineAdmin() {
         />
 
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -840,7 +881,12 @@ function PainelOperacionalCursos({
         </div>
 
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <KpiCard label="Total" value={kpis.total} icon={BookOpen} tone="emerald" />
+          <KpiCard
+            label="Total"
+            value={kpis.total}
+            icon={BookOpen}
+            tone="emerald"
+          />
           <KpiCard
             label="Publicados"
             value={kpis.publicado}
@@ -868,18 +914,15 @@ function PainelOperacionalCursos({
 function KpiCard({ label, value, icon: Icon, tone = "emerald" }) {
   const tones = {
     emerald: {
-      wrap:
-        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      wrap: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
       gradient: "from-emerald-600 via-teal-500 to-cyan-500",
     },
     amber: {
-      wrap:
-        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      wrap: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
       gradient: "from-amber-500 via-orange-400 to-yellow-500",
     },
     slate: {
-      wrap:
-        "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+      wrap: "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
       gradient: "from-slate-600 via-zinc-500 to-slate-400",
     },
   };
@@ -887,7 +930,9 @@ function KpiCard({ label, value, icon: Icon, tone = "emerald" }) {
   const cfg = tones[tone] || tones.emerald;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -908,8 +953,7 @@ function KpiCard({ label, value, icon: Icon, tone = "emerald" }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -1027,7 +1071,7 @@ function CursoOnlineCard({
           "absolute inset-x-0 top-0 h-1.5",
           curso.status === "publicado" && "bg-emerald-600",
           curso.status === "rascunho" && "bg-amber-500",
-          curso.status === "arquivado" && "bg-slate-500"
+          curso.status === "arquivado" && "bg-slate-500",
         )}
         aria-hidden="true"
       />
@@ -1210,7 +1254,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}
@@ -1233,7 +1277,7 @@ function InfoBox({ icon: Icon, title, value, truncate = true }) {
         <p
           className={cx(
             "mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200",
-            truncate ? "truncate" : "break-all"
+            truncate ? "truncate" : "break-all",
           )}
           title={value}
         >
@@ -1264,16 +1308,28 @@ function LoadingList() {
   );
 }
 
-function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
-  if (!open) return null;
+function ConfirmarExclusaoModal({
+  open,
+  titulo,
+  loading,
+  onCancel,
+  onConfirm,
+}) {
+  if (!open) {
+    return null;
+  }
 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onCancel?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onCancel?.();
+        }
       }}
     >
       <div
@@ -1348,7 +1404,7 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -1361,7 +1417,9 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     setForm(normalizeFormFromCurso(curso));
     setSalvando(false);
@@ -1458,7 +1516,9 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
   async function salvar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1489,7 +1549,7 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível salvar o curso online."
+        "Não foi possível salvar o curso online.",
       );
 
       setErro(message);
@@ -1499,15 +1559,21 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
     }
   }
 
-  if (!aberto) return null;
+  if (!aberto) {
+    return null;
+  }
 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (salvando) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <div
@@ -1636,7 +1702,9 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
               <Field label="Categoria">
                 <input
                   value={form.categoria}
-                  onChange={(event) => setCampo("categoria", event.target.value)}
+                  onChange={(event) =>
+                    setCampo("categoria", event.target.value)
+                  }
                   className={inputClass()}
                   placeholder="Ex.: Atenção Primária, Urgência, Saúde Mental..."
                   disabled={salvando}
@@ -1781,7 +1849,7 @@ function ModalCursoOnline({ aberto, curso, onClose, onSaved }) {
         </footer>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 

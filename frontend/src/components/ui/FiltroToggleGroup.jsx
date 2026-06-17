@@ -84,7 +84,7 @@ function normalizarOpcoes(opcoes) {
       (opcao) =>
         opcao &&
         typeof opcao.valor === "string" &&
-        ["string", "number"].includes(typeof opcao.rotulo)
+        ["string", "number"].includes(typeof opcao.rotulo),
     )
     .map((opcao) => ({
       valor: opcao.valor,
@@ -120,12 +120,12 @@ export default function FiltroToggleGroup({
       opcoes
         .map((item, index) => (item.disabled ? -1 : index))
         .filter((index) => index !== -1),
-    [opcoes]
+    [opcoes],
   );
 
   const selectedIndex = useMemo(
     () => opcoes.findIndex((item) => item.valor === valorSelecionado),
-    [opcoes, valorSelecionado]
+    [opcoes, valorSelecionado],
   );
 
   const activeRovingIndex = useMemo(() => {
@@ -169,7 +169,7 @@ export default function FiltroToggleGroup({
         window.requestAnimationFrame(() => focusIndex(index));
       }
     },
-    [aoSelecionar, focusIndex, isDisabled, opcoes]
+    [aoSelecionar, focusIndex, isDisabled, opcoes],
   );
 
   const handleKeyDown = useCallback(
@@ -184,7 +184,8 @@ export default function FiltroToggleGroup({
 
       if (event.key === "ArrowRight" || event.key === "ArrowDown") {
         event.preventDefault();
-        const next = enabledIndexes[(currentPosition + 1) % enabledIndexes.length];
+        const next =
+          enabledIndexes[(currentPosition + 1) % enabledIndexes.length];
         selectByIndex(next);
         return;
       }
@@ -193,7 +194,8 @@ export default function FiltroToggleGroup({
         event.preventDefault();
         const next =
           enabledIndexes[
-            (currentPosition - 1 + enabledIndexes.length) % enabledIndexes.length
+            (currentPosition - 1 + enabledIndexes.length) %
+              enabledIndexes.length
           ];
         selectByIndex(next);
         return;
@@ -216,7 +218,7 @@ export default function FiltroToggleGroup({
         selectByIndex(activeRovingIndex, false);
       }
     },
-    [activeRovingIndex, enabledIndexes, isDisabled, selectByIndex]
+    [activeRovingIndex, enabledIndexes, isDisabled, selectByIndex],
   );
 
   if (!hasOptions) {
@@ -224,7 +226,7 @@ export default function FiltroToggleGroup({
       <div
         className={classNames(
           "rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400",
-          className
+          className,
         )}
         role="status"
         aria-live="polite"
@@ -240,13 +242,14 @@ export default function FiltroToggleGroup({
       role="radiogroup"
       aria-label={ariaLabel}
       aria-disabled={isDisabled || undefined}
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
       <div
         className={classNames(
           "flex flex-wrap gap-2",
           alinhamento,
-          fullWidth && "w-full"
+          fullWidth && "w-full",
         )}
       >
         {opcoes.map((opcaoItem, index) => {
@@ -284,7 +287,7 @@ export default function FiltroToggleGroup({
                   ? "border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500"
                   : ativo
                     ? tema.active
-                    : tema.inactive
+                    : tema.inactive,
               )}
             >
               {opcaoItem.rotulo}
@@ -300,10 +303,11 @@ FiltroToggleGroup.propTypes = {
   opcao: PropTypes.arrayOf(
     PropTypes.shape({
       valor: PropTypes.string.isRequired,
-      rotulo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      rotulo: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+        .isRequired,
       disabled: PropTypes.bool,
       title: PropTypes.string,
-    })
+    }),
   ).isRequired,
   valorSelecionado: PropTypes.string,
   aoSelecionar: PropTypes.func.isRequired,

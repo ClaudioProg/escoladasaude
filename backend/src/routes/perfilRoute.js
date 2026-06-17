@@ -45,7 +45,7 @@ if (typeof requireAuth !== "function") {
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[perfilRoute] Handler obrigatório ausente: perfilController.${name}`
+      `[perfilRoute] Handler obrigatório ausente: perfilController.${name}`,
     );
   }
 }
@@ -58,10 +58,8 @@ assertHandler("atualizarMeuPerfil", perfilController.atualizarMeuPerfil);
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -73,7 +71,7 @@ function routeTag(tag) {
 function publicLookupCache(_req, res, next) {
   res.setHeader(
     "Cache-Control",
-    "public, max-age=600, stale-while-revalidate=600"
+    "public, max-age=600, stale-while-revalidate=600",
   );
   return next();
 }
@@ -96,7 +94,7 @@ router.get(
   "/opcao",
   publicLookupCache,
   routeTag("perfilRoute:v2.0:GET /opcao"),
-  asyncHandler(perfilController.listarOpcaoPerfil)
+  asyncHandler(perfilController.listarOpcaoPerfil),
 );
 
 /**
@@ -106,7 +104,7 @@ router.head(
   "/opcao",
   publicLookupCache,
   routeTag("perfilRoute:v2.0:HEAD /opcao"),
-  (_req, res) => res.sendStatus(204)
+  (_req, res) => res.sendStatus(204),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -121,16 +119,14 @@ router.use(requireAuth, privateNoStore);
 router.get(
   "/me",
   routeTag("perfilRoute:v2.0:GET /me"),
-  asyncHandler(perfilController.meuPerfil)
+  asyncHandler(perfilController.meuPerfil),
 );
 
 /**
  * HEAD /api/perfil/me
  */
-router.head(
-  "/me",
-  routeTag("perfilRoute:v2.0:HEAD /me"),
-  (_req, res) => res.sendStatus(204)
+router.head("/me", routeTag("perfilRoute:v2.0:HEAD /me"), (_req, res) =>
+  res.sendStatus(204),
 );
 
 /**
@@ -139,7 +135,7 @@ router.head(
 router.put(
   "/me",
   routeTag("perfilRoute:v2.0:PUT /me"),
-  asyncHandler(perfilController.atualizarMeuPerfil)
+  asyncHandler(perfilController.atualizarMeuPerfil),
 );
 
 module.exports = router;

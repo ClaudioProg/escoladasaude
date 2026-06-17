@@ -42,7 +42,7 @@ const router = express.Router();
 function assertHandler(name, handler) {
   if (typeof handler !== "function") {
     throw new Error(
-      `[authPublicRoute] Handler obrigatório ausente: authUsuarioController.${name}`
+      `[authPublicRoute] Handler obrigatório ausente: authUsuarioController.${name}`,
     );
   }
 }
@@ -55,10 +55,8 @@ assertHandler("redefinirSenha", authUsuarioController.redefinirSenha);
    Helpers
 ────────────────────────────────────────────────────────────── */
 
-const asyncHandler =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function routeTag(tag) {
   return (_req, res, next) => {
@@ -93,7 +91,7 @@ const cadastroLimiter = rateLimit({
   legacyHeaders: false,
   message: rateLimitMessage(
     "AUTH-429-CADASTRO-LIMITE",
-    "Muitas tentativas de cadastro. Aguarde antes de tentar novamente."
+    "Muitas tentativas de cadastro. Aguarde antes de tentar novamente.",
   ),
 });
 
@@ -104,7 +102,7 @@ const recuperarSenhaLimiter = rateLimit({
   legacyHeaders: false,
   message: rateLimitMessage(
     "AUTH-429-RECUPERACAO-SENHA-LIMITE",
-    "Muitas solicitações de recuperação de senha. Aguarde antes de tentar novamente."
+    "Muitas solicitações de recuperação de senha. Aguarde antes de tentar novamente.",
   ),
 });
 
@@ -115,7 +113,7 @@ const redefinirSenhaLimiter = rateLimit({
   legacyHeaders: false,
   message: rateLimitMessage(
     "AUTH-429-REDEFINICAO-SENHA-LIMITE",
-    "Muitas tentativas de redefinição de senha. Aguarde antes de tentar novamente."
+    "Muitas tentativas de redefinição de senha. Aguarde antes de tentar novamente.",
   ),
 });
 
@@ -131,7 +129,7 @@ router.post(
   cadastroLimiter,
   noStore,
   routeTag("authPublicRoute:v2.0:POST /cadastro"),
-  asyncHandler(authUsuarioController.cadastrar)
+  asyncHandler(authUsuarioController.cadastrar),
 );
 
 /**
@@ -142,7 +140,7 @@ router.post(
   recuperarSenhaLimiter,
   noStore,
   routeTag("authPublicRoute:v2.0:POST /esqueci-senha"),
-  asyncHandler(authUsuarioController.recuperarSenha)
+  asyncHandler(authUsuarioController.recuperarSenha),
 );
 
 /**
@@ -159,7 +157,7 @@ router.post(
   redefinirSenhaLimiter,
   noStore,
   routeTag("authPublicRoute:v2.0:POST /redefinir-senha"),
-  asyncHandler(authUsuarioController.redefinirSenha)
+  asyncHandler(authUsuarioController.redefinirSenha),
 );
 
 /* ─────────────────────────────────────────────────────────────

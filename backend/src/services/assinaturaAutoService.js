@@ -55,10 +55,13 @@ function assinaturaToDataUrl(buffer) {
   }
 
   if (buffer.length > MAX_SIGNATURE_BYTES) {
-    console.warn("[assinaturaAutoService] buffer de assinatura acima do limite", {
-      bytes: buffer.length,
-      limite: MAX_SIGNATURE_BYTES,
-    });
+    console.warn(
+      "[assinaturaAutoService] buffer de assinatura acima do limite",
+      {
+        bytes: buffer.length,
+        limite: MAX_SIGNATURE_BYTES,
+      },
+    );
 
     return null;
   }
@@ -67,7 +70,9 @@ function assinaturaToDataUrl(buffer) {
 }
 
 function normalizeNomeAssinatura(usuario) {
-  const nome = String(usuario?.nome || "").replace(/\s+/g, " ").trim();
+  const nome = String(usuario?.nome || "")
+    .replace(/\s+/g, " ")
+    .trim();
   const email = String(usuario?.email || "").trim();
 
   return nome || email || `Usuario_${usuario?.id}`;
@@ -95,7 +100,7 @@ async function getUsuarioById(usuarioId, conn = db) {
       WHERE id = $1
       LIMIT 1
     `,
-    [id]
+    [id],
   );
 }
 
@@ -115,7 +120,7 @@ async function getAssinaturaByUsuarioId(usuarioId, conn = db) {
       WHERE usuario_id = $1
       LIMIT 1
     `,
-    [id]
+    [id],
   );
 }
 
@@ -137,7 +142,7 @@ async function salvarAssinaturaAutomatica(usuarioId, dataUrl, conn = db) {
       DO UPDATE SET
         imagem_base64 = EXCLUDED.imagem_base64
     `,
-    [id, dataUrl]
+    [id, dataUrl],
   );
 
   return dataUrl;
@@ -178,7 +183,7 @@ async function getOrCreateAssinaturaDataUrl(usuarioId, conn = db) {
 
   try {
     const assinaturaRenderizada = renderSignaturePng(
-      normalizeNomeAssinatura(usuario)
+      normalizeNomeAssinatura(usuario),
     );
 
     const dataUrl = assinaturaToDataUrl(assinaturaRenderizada?.buffer);
@@ -195,10 +200,13 @@ async function getOrCreateAssinaturaDataUrl(usuarioId, conn = db) {
 
     return dataUrl;
   } catch (error) {
-    console.warn("[assinaturaAutoService] falha ao gerar assinatura automática", {
-      usuarioId: id,
-      message: error?.message,
-    });
+    console.warn(
+      "[assinaturaAutoService] falha ao gerar assinatura automática",
+      {
+        usuarioId: id,
+        message: error?.message,
+      },
+    );
 
     return null;
   }

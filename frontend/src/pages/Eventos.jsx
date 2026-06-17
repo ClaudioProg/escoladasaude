@@ -102,8 +102,6 @@ function hojeIsoLocal() {
 
 const HOJE_ISO = hojeIsoLocal();
 
-const LIMITE_EVENTOS_COM_TURMAS_ABERTAS = 4;
-
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
@@ -111,7 +109,9 @@ function classNames(...classes) {
 function formatarDataCurtaSeguro(value) {
   const data = ymd(value);
 
-  if (!data) return "";
+  if (!data) {
+    return "";
+  }
 
   const [ano, mes, dia] = data.split("-");
   const idx = Math.max(0, Math.min(11, Number(mes) - 1));
@@ -130,10 +130,16 @@ function rangeDaTurma(turma) {
   const push = (value) => {
     const data = ymd(typeof value === "string" ? value : value?.data);
 
-    if (!data) return;
+    if (!data) {
+      return;
+    }
 
-    if (!dataInicio || data < dataInicio) dataInicio = data;
-    if (!dataFim || data > dataFim) dataFim = data;
+    if (!dataInicio || data < dataInicio) {
+      dataInicio = data;
+    }
+    if (!dataFim || data > dataFim) {
+      dataFim = data;
+    }
   };
 
   if (Array.isArray(turma?.datas) && turma.datas.length) {
@@ -182,9 +188,15 @@ function badgeClasses(status) {
 }
 
 function statusEventoLabel(status) {
-  if (status === "andamento") return "Em andamento";
-  if (status === "encerrado") return "Encerrado";
-  if (status === "sem_datas") return "Datas a definir";
+  if (status === "andamento") {
+    return "Em andamento";
+  }
+  if (status === "encerrado") {
+    return "Encerrado";
+  }
+  if (status === "sem_datas") {
+    return "Datas a definir";
+  }
 
   return "Programado";
 }
@@ -208,15 +220,17 @@ function statusEventoClasses(status) {
 function eventoTemProgramacao(evento) {
   return Boolean(
     evento?.programacao_kind === "blob" ||
-      evento?.programacao_pdf_size ||
-      evento?.tem_programacao
+    evento?.programacao_pdf_size ||
+    evento?.tem_programacao,
   );
 }
 
 function eventMatchesSearch(evento, termo) {
   const query = normalizeTitleSort(termo);
 
-  if (!query) return true;
+  if (!query) {
+    return true;
+  }
 
   const haystack = [
     evento?.titulo,
@@ -267,7 +281,7 @@ function AcaoPrimaria({
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-rose-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition",
         "hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-zinc-900",
-        className
+        className,
       )}
       {...props}
     >
@@ -294,7 +308,7 @@ function AcaoSecundaria({
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-black text-zinc-800 shadow-sm transition",
     "hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 dark:focus-visible:ring-offset-zinc-900",
-    className
+    className,
   );
 
   if (href) {
@@ -335,9 +349,9 @@ function AcaoSecundaria({
 function EventosResumoPremium({ stats }) {
   return (
     <section
-  className="relative z-10 mx-auto mt-4 grid max-w-6xl grid-cols-1 gap-3 px-4 sm:grid-cols-3"
-  aria-label="Resumo dos eventos"
->
+      className="relative z-10 mx-auto mt-4 grid max-w-6xl grid-cols-1 gap-3 px-4 sm:grid-cols-3"
+      aria-label="Resumo dos eventos"
+    >
       <MiniStatPremium
         icon={<Sparkles className="h-5 w-5" aria-hidden="true" />}
         label="Eventos disponíveis"
@@ -367,8 +381,7 @@ function EventosResumoPremium({ stats }) {
 
 function MiniStatPremium({ icon, label, value, description, tone = "rose" }) {
   const toneClasses = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
+    rose: "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
     indigo:
@@ -379,7 +392,7 @@ function MiniStatPremium({ icon, label, value, description, tone = "rose" }) {
     <div
       className={classNames(
         "group overflow-hidden rounded-[1.6rem] border p-4 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-xl dark:ring-white/10",
-        toneClasses[tone] || toneClasses.rose
+        toneClasses[tone] || toneClasses.rose,
       )}
       role="group"
       aria-label={`${label}: ${Number(value) || 0}`}
@@ -432,7 +445,8 @@ function RegrasDicasButton() {
       num: "1",
       titulo: "Como se inscrever em um evento",
       texto:
-"Localize o evento desejado e escolha uma das opções de inscrição exibidas no card. Quando houver muitas turmas, clique em Ver opções de inscrição para visualizar todas. A inscrição só será concluída quando a plataforma exibir a confirmação de sucesso."    },
+        "Localize o evento desejado e escolha uma das opções de inscrição exibidas no card. Quando houver muitas turmas, clique em Ver opções de inscrição para visualizar todas. A inscrição só será concluída quando a plataforma exibir a confirmação de sucesso.",
+    },
     {
       num: "2",
       titulo: "Eventos visíveis nem sempre permitem inscrição",
@@ -490,7 +504,9 @@ function RegrasDicasButton() {
                 />
 
                 <motion.section
-                  initial={reduceMotion ? false : { y: 24, opacity: 0, scale: 0.98 }}
+                  initial={
+                    reduceMotion ? false : { y: 24, opacity: 0, scale: 0.98 }
+                  }
                   animate={reduceMotion ? {} : { y: 0, opacity: 1, scale: 1 }}
                   exit={reduceMotion ? {} : { y: 16, opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
@@ -516,7 +532,9 @@ function RegrasDicasButton() {
                         </h2>
 
                         <p className="mt-1 max-w-xl text-sm font-medium text-slate-600 dark:text-zinc-300">
-                          Orientações essenciais para consultar eventos, escolher turmas, evitar conflitos de horário e acompanhar certificados.
+                          Orientações essenciais para consultar eventos,
+                          escolher turmas, evitar conflitos de horário e
+                          acompanhar certificados.
                         </p>
                       </div>
                     </div>
@@ -533,7 +551,10 @@ function RegrasDicasButton() {
 
                   <div className="max-h-[70vh] overflow-y-auto p-6">
                     <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
-                      <strong>Atenção:</strong> a inscrição depende da disponibilidade da turma, das regras de público-alvo e da ausência de conflito de horário com outras inscrições ativas.
+                      <strong>Atenção:</strong> a inscrição depende da
+                      disponibilidade da turma, das regras de público-alvo e da
+                      ausência de conflito de horário com outras inscrições
+                      ativas.
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -564,7 +585,8 @@ function RegrasDicasButton() {
 
                   <footer className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/80 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                      Consulte esta orientação sempre que tiver dúvida sobre inscrição, presença ou certificado.
+                      Consulte esta orientação sempre que tiver dúvida sobre
+                      inscrição, presença ou certificado.
                     </p>
 
                     <button
@@ -578,32 +600,10 @@ function RegrasDicasButton() {
                 </motion.section>
               </motion.div>
             </AnimatePresence>,
-            document.body
+            document.body,
           )
         : null}
     </>
-  );
-}
-
-function Tip({ num, titulo, children }) {
-  return (
-    <div className="rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50 via-rose-50 to-rose-100 p-4 dark:border-rose-800/40 dark:from-rose-950/40 dark:via-rose-900/40 dark:to-rose-900/30">
-      <div className="flex items-start gap-3">
-        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rose-600 text-sm font-bold text-white">
-          {num}
-        </div>
-
-        <div className="min-w-0">
-          <h4 className="font-semibold text-rose-900 dark:text-rose-200">
-            {titulo}
-          </h4>
-
-          <div className="mt-1.5 text-sm leading-relaxed text-rose-950/90 dark:text-rose-100/90">
-            {children}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -621,7 +621,9 @@ function RestricaoChip({ evento }) {
       evento.unidades_permitidas.length > 0) ||
     Number(evento?.count_registros_permitidos || 0) > 0;
 
-  if (!restrito) return null;
+  if (!restrito) {
+    return null;
+  }
 
   const descricao =
     String(evento?.publico_alvo || "").trim() ||
@@ -663,7 +665,10 @@ function ThumbEvento({ evento, titulo, canStartLoading }) {
 
   if (!src || failed) {
     return (
-      <div ref={inViewRef} className="w-[120px] shrink-0 sm:w-[140px] md:w-[160px]">
+      <div
+        ref={inViewRef}
+        className="w-[120px] shrink-0 sm:w-[140px] md:w-[160px]"
+      >
         <div className="flex aspect-[3/4] items-center justify-center rounded-2xl border border-zinc-200/70 bg-zinc-100 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
           <div className="flex flex-col items-center justify-center gap-2 px-2 text-center text-xs">
             <ImageIcon className="h-4 w-4" aria-hidden="true" />
@@ -675,7 +680,10 @@ function ThumbEvento({ evento, titulo, canStartLoading }) {
   }
 
   return (
-    <div ref={inViewRef} className="w-[120px] shrink-0 sm:w-[140px] md:w-[160px]">
+    <div
+      ref={inViewRef}
+      className="w-[120px] shrink-0 sm:w-[140px] md:w-[160px]"
+    >
       <div className="flex aspect-[3/4] items-center justify-center overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
         {shouldLoad ? (
           <img
@@ -699,11 +707,15 @@ function ThumbEvento({ evento, titulo, canStartLoading }) {
 }
 
 function BotaoProgramacao({ evento }) {
-  if (!eventoTemProgramacao(evento)) return null;
+  if (!eventoTemProgramacao(evento)) {
+    return null;
+  }
 
   const url = getEventoProgramacaoUrl(evento);
 
-  if (!url) return null;
+  if (!url) {
+    return null;
+  }
 
   return (
     <AcaoSecundaria
@@ -787,12 +799,11 @@ export default function Eventos() {
     turmaNome: "",
   });
 
-const liveRef = useRef(null);
-const imageStartTimerRef = useRef(null);
-const abortEventosRef = useRef(null);
-const abortInscricaoRef = useRef(null);
-const mountedRef = useRef(true);
-const turmasPreviewAutoRef = useRef(new Set());
+  const liveRef = useRef(null);
+  const imageStartTimerRef = useRef(null);
+  const abortEventosRef = useRef(null);
+  const abortInscricaoRef = useRef(null);
+  const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
     if (liveRef.current) {
@@ -830,16 +841,20 @@ const turmasPreviewAutoRef = useRef(new Set());
         return !(fimISO && fimISO < HOJE_ISO);
       });
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       setInscricoes(ativas);
       setInscricaoTurmaIds(
         ativas
           .map((item) => Number(item?.turma_id))
-          .filter((n) => Number.isInteger(n) && n > 0)
+          .filter((n) => Number.isInteger(n) && n > 0),
       );
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
       notifyError("Erro ao carregar suas inscrições ativas.");
     }
@@ -872,23 +887,29 @@ const turmasPreviewAutoRef = useRef(new Set());
         })
         .sort(sortEventosPublicos);
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       setEventos(visiveis);
       setErro("");
       setLive("Eventos carregados. Imagens serão exibidas em seguida.");
 
       imageStartTimerRef.current = setTimeout(() => {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
         setImageLoadBudget(4);
       }, 450);
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
       if (Array.isArray(eventos) && eventos.length > 0) {
         setErro("");
         notifyWarning(
-          "Não foi possível atualizar os eventos agora. Mantive a lista atual."
+          "Não foi possível atualizar os eventos agora. Mantive a lista atual.",
         );
         setLive("Falha ao atualizar eventos; mantendo lista atual.");
         return;
@@ -935,60 +956,70 @@ const turmasPreviewAutoRef = useRef(new Set());
     };
   }, [eventos, inscricaoTurmaIds]);
 
-const carregarTurmas = useCallback(
-  async (eventoId, options = {}) => {
-    const id = Number(eventoId);
-    const abrirAutomaticamente = options?.abrirAutomaticamente === true;
+  const carregarTurmas = useCallback(
+    async (eventoId, options = {}) => {
+      const id = Number(eventoId);
+      const abrirAutomaticamente = options?.abrirAutomaticamente === true;
 
-    if (!Number.isInteger(id) || id <= 0) return;
+      if (!Number.isInteger(id) || id <= 0) {
+        return;
+      }
 
-    if (!abrirAutomaticamente && turmasVisiveis[id]) {
+      if (!abrirAutomaticamente && turmasVisiveis[id]) {
+        setTurmasVisiveis((prev) => ({
+          ...prev,
+          [id]: false,
+        }));
+        return;
+      }
+
       setTurmasVisiveis((prev) => ({
         ...prev,
-        [id]: false,
+        [id]: true,
       }));
-      return;
-    }
 
-    setTurmasVisiveis((prev) => ({
-      ...prev,
-      [id]: true,
-    }));
-
-    if (turmasPorEvento[id] || carregandoTurmas === id) return;
-
-    setCarregandoTurmas(id);
-
-    try {
-      const turmas = await EventoService.publico.listarTurmasSimples(id);
-
-      if (!mountedRef.current) return;
-
-      setTurmasPorEvento((prev) => ({
-        ...prev,
-        [id]: Array.isArray(turmas) ? turmas : [],
-      }));
-    } catch {
-      if (!abrirAutomaticamente) {
-        notifyError("Erro ao carregar turmas.");
+      if (turmasPorEvento[id] || carregandoTurmas === id) {
+        return;
       }
-    } finally {
-      if (mountedRef.current) {
-        setCarregandoTurmas(null);
+
+      setCarregandoTurmas(id);
+
+      try {
+        const turmas = await EventoService.publico.listarTurmasSimples(id);
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        setTurmasPorEvento((prev) => ({
+          ...prev,
+          [id]: Array.isArray(turmas) ? turmas : [],
+        }));
+      } catch {
+        if (!abrirAutomaticamente) {
+          notifyError("Erro ao carregar turmas.");
+        }
+      } finally {
+        if (mountedRef.current) {
+          setCarregandoTurmas(null);
+        }
       }
-    }
-  },
-  [carregandoTurmas, turmasPorEvento, turmasVisiveis]
-);
+    },
+    [carregandoTurmas, turmasPorEvento, turmasVisiveis],
+  );
 
   const atualizarTurmasDoEvento = useCallback(async (eventoId) => {
-    if (!eventoId) return;
+    if (!eventoId) {
+      return;
+    }
 
     try {
       const turmasAtualizadas =
         await EventoService.publico.listarTurmasSimples(eventoId);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       setTurmasPorEvento((prev) => ({
         ...prev,
@@ -1000,52 +1031,56 @@ const carregarTurmas = useCallback(
   }, []);
 
   const buildAgendaHref = useCallback(
-  ({
-    titulo,
-    data_inicio,
-    data_fim,
-    horario_inicio,
-    horario_fim,
-    turma_nome,
-    local,
-  }) => {
-    try {
-      const inicio = `${data_inicio} ${horario_inicio}:00`;
-      const fim = `${data_fim || data_inicio} ${horario_fim}:00`;
+    ({
+      titulo,
+      data_inicio,
+      data_fim,
+      horario_inicio,
+      horario_fim,
+      turma_nome,
+      local,
+    }) => {
+      try {
+        const inicio = `${data_inicio} ${horario_inicio}:00`;
+        const fim = `${data_fim || data_inicio} ${horario_fim}:00`;
 
-      return gerarLinkGoogleAgenda({
-        titulo: turma_nome ? `${titulo} — ${turma_nome}` : titulo,
-        dataInicio: inicio,
-        dataFim: fim,
-        local,
-      });
-    } catch (error) {
-      console.warn("[Eventos][GoogleAgenda] falha ao gerar link", {
-        message: error?.message,
-        titulo,
-        data_inicio,
-        data_fim,
-        horario_inicio,
-        horario_fim,
-        turma_nome,
-        local,
-      });
+        return gerarLinkGoogleAgenda({
+          titulo: turma_nome ? `${titulo} — ${turma_nome}` : titulo,
+          dataInicio: inicio,
+          dataFim: fim,
+          local,
+        });
+      } catch (error) {
+        console.warn("[Eventos][GoogleAgenda] falha ao gerar link", {
+          message: error?.message,
+          titulo,
+          data_inicio,
+          data_fim,
+          horario_inicio,
+          horario_fim,
+          turma_nome,
+          local,
+        });
 
-      return null;
-    }
-  },
-  []
-);
+        return null;
+      }
+    },
+    [],
+  );
 
   const inscrever = useCallback(
     async (turmaId, eventoId) => {
-      if (inscrevendo) return;
+      if (inscrevendo) {
+        return;
+      }
 
       const eventoRef = eventos.find(
-        (evento) => Number(evento.id) === Number(eventoId)
+        (evento) => Number(evento.id) === Number(eventoId),
       );
 
-      if (!eventoRef) return;
+      if (!eventoRef) {
+        return;
+      }
 
       const { podeSeInscrever, motivoBloqueio } =
         getEventoElegibilidade(eventoRef);
@@ -1053,14 +1088,14 @@ const carregarTurmas = useCallback(
       if (!podeSeInscrever) {
         notifyWarning(
           motivoBloqueio ||
-            "Este evento está visível para você, mas a inscrição não está disponível para seu perfil."
+            "Este evento está visível para você, mas a inscrição não está disponível para seu perfil.",
         );
         return;
       }
 
       if (eventoRef?.ja_organizador) {
         notifyWarning(
-          "Você é organizador deste evento e não pode se inscrever como participante."
+          "Você é organizador deste evento e não pode se inscrever como participante.",
         );
         return;
       }
@@ -1088,12 +1123,7 @@ const carregarTurmas = useCallback(
         setInscrevendo(null);
       }
     },
-    [
-      atualizarTurmasDoEvento,
-      carregarInscricoes,
-      eventos,
-      inscrevendo,
-    ]
+    [atualizarTurmasDoEvento, carregarInscricoes, eventos, inscrevendo],
   );
 
   const cancelarInscricaoByTurmaId = useCallback(
@@ -1114,11 +1144,13 @@ const carregarTurmas = useCallback(
         turmaNome: String(turmaNome || registro?.turma_nome || "").trim(),
       });
     },
-    [inscricoes]
+    [inscricoes],
   );
 
   const fecharConfirmCancel = useCallback(() => {
-    if (cancelandoId) return;
+    if (cancelandoId) {
+      return;
+    }
 
     setConfirmCancel({
       open: false,
@@ -1155,7 +1187,7 @@ const carregarTurmas = useCallback(
         "Não foi possível cancelar a inscrição agora.";
 
       notifyError(
-        `Erro ao cancelar inscrição${status ? ` (${status})` : ""}. ${msg}`
+        `Erro ao cancelar inscrição${status ? ` (${status})` : ""}. ${msg}`,
       );
     } finally {
       setCancelandoId(null);
@@ -1197,48 +1229,48 @@ const carregarTurmas = useCallback(
       />
 
       <div className="mx-auto max-w-6xl px-4 pt-5">
-  <HeaderHero
-  titulo="Eventos disponíveis"
-  subtitulo="Consulte os eventos abertos, acompanhe suas inscrições e acesse as turmas disponíveis para o seu perfil."
-  icone={CalendarDays}
-  tamanho="lg"
-  raio="xl"
-/>
-</div>
-
-<section className="mx-auto mt-4 flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
-  <div>
-    <p className="text-sm font-black text-zinc-900 dark:text-white">
-      Acompanhe os eventos ativos
-    </p>
-    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-      Atualize a lista ou consulte as regras de inscrição.
-    </p>
-  </div>
-
-  <div className="flex flex-col gap-2 sm:flex-row">
-    <AcaoPrimaria
-      onClick={atualizarTudo}
-      disabled={carregandoEventos}
-      icon={
-        <RefreshCw
-          className={classNames(
-            "h-4 w-4",
-            carregandoEventos && "animate-spin"
-          )}
-          aria-hidden="true"
+        <HeaderHero
+          titulo="Eventos disponíveis"
+          subtitulo="Consulte os eventos abertos, acompanhe suas inscrições e acesse as turmas disponíveis para o seu perfil."
+          icone={CalendarDays}
+          tamanho="lg"
+          raio="xl"
         />
-      }
-      aria-label="Atualizar lista de eventos"
-    >
-      {carregandoEventos ? "Atualizando..." : "Atualizar"}
-    </AcaoPrimaria>
+      </div>
 
-    <RegrasDicasButton />
-  </div>
-</section>
+      <section className="mx-auto mt-4 flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-black text-zinc-900 dark:text-white">
+            Acompanhe os eventos ativos
+          </p>
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            Atualize a lista ou consulte as regras de inscrição.
+          </p>
+        </div>
 
-<EventosResumoPremium stats={stats} />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <AcaoPrimaria
+            onClick={atualizarTudo}
+            disabled={carregandoEventos}
+            icon={
+              <RefreshCw
+                className={classNames(
+                  "h-4 w-4",
+                  carregandoEventos && "animate-spin",
+                )}
+                aria-hidden="true"
+              />
+            }
+            aria-label="Atualizar lista de eventos"
+          >
+            {carregandoEventos ? "Atualizando..." : "Atualizar"}
+          </AcaoPrimaria>
+
+          <RegrasDicasButton />
+        </div>
+      </section>
+
+      <EventosResumoPremium stats={stats} />
 
       {carregandoEventos && (
         <>
@@ -1252,7 +1284,7 @@ const carregarTurmas = useCallback(
             <div
               className={classNames(
                 "h-full w-1/3 bg-fuchsia-600",
-                !reduceMotion && "animate-pulse"
+                !reduceMotion && "animate-pulse",
               )}
             />
           </div>
@@ -1418,7 +1450,7 @@ const carregarTurmas = useCallback(
 
                           <span
                             className={`rounded-full px-2 py-1 text-xs ${statusEventoClasses(
-                              statusEvt
+                              statusEvt,
                             )}`}
                             role="status"
                           >
@@ -1457,14 +1489,17 @@ const carregarTurmas = useCallback(
                         </div>
 
                         <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                          <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                          <CalendarDays
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
 
                           <span>
                             {evento.data_inicio_geral && evento.data_fim_geral
                               ? `${formatarDataCurtaSeguro(
-                                  evento.data_inicio_geral
+                                  evento.data_inicio_geral,
                                 )} até ${formatarDataCurtaSeguro(
-                                  evento.data_fim_geral
+                                  evento.data_fim_geral,
                                 )}`
                               : "Datas a definir"}
                           </span>
@@ -1483,8 +1518,9 @@ const carregarTurmas = useCallback(
                               aria-hidden="true"
                             />
                             <span>
-                              Este evento está visível para você, mas a inscrição
-                              está restrita. <strong>{motivoBloqueio}</strong>
+                              Este evento está visível para você, mas a
+                              inscrição está restrita.{" "}
+                              <strong>{motivoBloqueio}</strong>
                             </span>
                           </div>
                         )}
@@ -1502,10 +1538,10 @@ const carregarTurmas = useCallback(
                             className="sm:min-w-[160px]"
                           >
                             {carregandoTurmas === evento.id
-  ? "Carregando opções..."
-  : turmasVisiveis[evento.id]
-    ? "Ocultar opções"
-    : "Inscreva-se"}
+                              ? "Carregando opções..."
+                              : turmasVisiveis[evento.id]
+                                ? "Ocultar opções"
+                                : "Inscreva-se"}
                           </AcaoPrimaria>
                         </div>
                       </div>
@@ -1528,7 +1564,7 @@ const carregarTurmas = useCallback(
                               jaInscritoNoEvento={(() => {
                                 const ids = new Set(inscricaoTurmaIds);
                                 return turmasDoEvento.some((turma) =>
-                                  ids.has(Number(turma.id))
+                                  ids.has(Number(turma.id)),
                                 );
                               })()}
                               jaorganizadorDoEvento={!!evento.ja_organizador}
@@ -1599,14 +1635,18 @@ function InscricaoAcoesRapidas({
   buildAgendaHref,
   cancelandoId,
 }) {
-  if (!Array.isArray(turmas) || turmas.length === 0) return null;
+  if (!Array.isArray(turmas) || turmas.length === 0) {
+    return null;
+  }
 
   const porTurma = new Map();
 
   for (const inscricao of inscricoes || []) {
     const turmaId = Number(inscricao?.turma_id);
 
-    if (!Number.isFinite(turmaId)) continue;
+    if (!Number.isFinite(turmaId)) {
+      continue;
+    }
 
     if (turmas.some((turma) => Number(turma.id) === turmaId)) {
       porTurma.set(turmaId, inscricao);
@@ -1615,7 +1655,9 @@ function InscricaoAcoesRapidas({
 
   const minhasTurmas = turmas.filter((turma) => porTurma.has(Number(turma.id)));
 
-  if (!minhasTurmas.length) return null;
+  if (!minhasTurmas.length) {
+    return null;
+  }
 
   return (
     <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -1654,7 +1696,7 @@ function InscricaoAcoesRapidas({
 
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] ${badgeClasses(
-                        status
+                        status,
                       )}`}
                     >
                       {status}
@@ -1666,7 +1708,7 @@ function InscricaoAcoesRapidas({
                       <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                       {turma.horario_inicio && turma.horario_fim
                         ? `${hhmm(turma.horario_inicio)} às ${hhmm(
-                            turma.horario_fim
+                            turma.horario_fim,
                           )}`
                         : "Horário a definir"}
                     </span>
@@ -1684,39 +1726,44 @@ function InscricaoAcoesRapidas({
 
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <AcaoSecundaria
-  href={agendaHref || undefined}
-  onClick={(event) => {
-    if (!agendaHref) {
-      event.preventDefault();
+                    href={agendaHref || undefined}
+                    onClick={(event) => {
+                      if (!agendaHref) {
+                        event.preventDefault();
 
-      console.warn("[Eventos][GoogleAgenda] link não gerado", {
-        evento_id: evento?.id,
-        evento_titulo: evento?.titulo,
-        turma_id: turma?.id,
-        turma_nome: turma?.nome,
-        data_inicio: turma?.data_inicio,
-        data_fim: turma?.data_fim,
-        horario_inicio: turma?.horario_inicio,
-        horario_fim: turma?.horario_fim,
-        local: evento?.local,
-      });
+                        console.warn(
+                          "[Eventos][GoogleAgenda] link não gerado",
+                          {
+                            evento_id: evento?.id,
+                            evento_titulo: evento?.titulo,
+                            turma_id: turma?.id,
+                            turma_nome: turma?.nome,
+                            data_inicio: turma?.data_inicio,
+                            data_fim: turma?.data_fim,
+                            horario_inicio: turma?.horario_inicio,
+                            horario_fim: turma?.horario_fim,
+                            local: evento?.local,
+                          },
+                        );
 
-      notifyInfo(
-        "Não foi possível gerar o link do Google Agenda porque a turma não possui data e horário completos."
-      );
-    }
-  }}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="sm:min-w-[180px]"
-  icon={<CalendarPlus className="h-4 w-4" aria-hidden="true" />}
-  aria-label="Adicionar turma ao Google Agenda"
-  title={
-    agendaHref
-      ? "Adicionar ao Google Agenda"
-      : "Datas insuficientes para agendar"
-  }
->
+                        notifyInfo(
+                          "Não foi possível gerar o link do Google Agenda porque a turma não possui data e horário completos.",
+                        );
+                      }
+                    }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="sm:min-w-[180px]"
+                    icon={
+                      <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                    }
+                    aria-label="Adicionar turma ao Google Agenda"
+                    title={
+                      agendaHref
+                        ? "Adicionar ao Google Agenda"
+                        : "Datas insuficientes para agendar"
+                    }
+                  >
                     Google Agenda
                   </AcaoSecundaria>
 
@@ -1727,10 +1774,12 @@ function InscricaoAcoesRapidas({
                       cancelarInscricaoByTurmaId(
                         turma.id,
                         turma.nome,
-                        evento.id
+                        evento.id,
                       )
                     }
-                    disabled={status !== "Programado" || cancelandoId === inscricaoId}
+                    disabled={
+                      status !== "Programado" || cancelandoId === inscricaoId
+                    }
                     icon={<XCircle className="h-4 w-4" aria-hidden="true" />}
                   >
                     {cancelandoId === inscricaoId

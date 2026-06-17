@@ -74,7 +74,9 @@ function cx(...classes) {
 }
 
 function safeDecodeURIComponent(input) {
-  if (!input) return "";
+  if (!input) {
+    return "";
+  }
 
   try {
     return decodeURIComponent(input);
@@ -83,7 +85,10 @@ function safeDecodeURIComponent(input) {
   }
 }
 
-function unwrapResponseMessage(response, fallback = "Presença confirmada com sucesso.") {
+function unwrapResponseMessage(
+  response,
+  fallback = "Presença confirmada com sucesso.",
+) {
   const payload =
     response?.data && typeof response.data === "object" && "ok" in response.data
       ? response.data
@@ -119,16 +124,26 @@ function extrairTurmaIdDeUrlOficial(rawUrl) {
 
   const turmaId = url.searchParams.get("turma_id");
 
-  if (!turmaId) return "";
+  if (!turmaId) {
+    return "";
+  }
 
   return String(turmaId).trim();
 }
 
 function detectarTipoCodigo(codigo) {
-  if (!codigo) return "ausente";
-  if (/^https?:\/\//i.test(codigo)) return "url";
-  if (/^\d+$/.test(codigo)) return "turma_id";
-  if (JWT_REGEX.test(codigo)) return "token";
+  if (!codigo) {
+    return "ausente";
+  }
+  if (/^https?:\/\//i.test(codigo)) {
+    return "url";
+  }
+  if (/^\d+$/.test(codigo)) {
+    return "turma_id";
+  }
+  if (JWT_REGEX.test(codigo)) {
+    return "token";
+  }
 
   return "desconhecido";
 }
@@ -215,7 +230,7 @@ function ActionButton({
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
         "disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant] || variants.primary,
-        className
+        className,
       )}
     >
       {loading ? (
@@ -230,7 +245,10 @@ function ActionButton({
 
 function HeaderHero() {
   return (
-    <header className="relative isolate overflow-hidden text-white" role="banner">
+    <header
+      className="relative isolate overflow-hidden text-white"
+      role="banner"
+    >
       <div
         className="absolute inset-0 bg-gradient-to-br from-slate-950 via-orange-800 to-amber-700"
         aria-hidden="true"
@@ -258,7 +276,10 @@ function HeaderHero() {
       <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5 text-amber-200" aria-hidden="true" />
+            <Sparkles
+              className="h-3.5 w-3.5 text-amber-200"
+              aria-hidden="true"
+            />
             Registro de presença • QR Code
           </div>
 
@@ -273,7 +294,8 @@ function HeaderHero() {
           </div>
 
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base">
-            Estamos conferindo o QR Code e registrando sua presença conforme as regras da turma.
+            Estamos conferindo o QR Code e registrando sua presença conforme as
+            regras da turma.
           </p>
         </div>
       </div>
@@ -314,7 +336,9 @@ function StatusBadge({ status }) {
 }
 
 function DebugPanel({ codigo, turmaId, tipoCodigo, requestId, visible }) {
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
   return (
     <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
@@ -381,9 +405,11 @@ export default function ValidarPresenca() {
   const [requestId, setRequestId] = useState("");
 
   const linkValidacao = useMemo(() => {
-    if (typeof window === "undefined") return "";
+    if (typeof window === "undefined") {
+      return "";
+    }
     return window.location.href;
-  }, [search]);
+  }, []);
 
   function setLive(text) {
     if (liveRef.current) {
@@ -404,7 +430,9 @@ export default function ValidarPresenca() {
   }, []);
 
   function safeSet(fn) {
-    if (mountedRef.current) fn();
+    if (mountedRef.current) {
+      fn();
+    }
   }
 
   const copiarLink = useCallback(async () => {
@@ -415,7 +443,8 @@ export default function ValidarPresenca() {
         setMensagemLocal({
           type: "success",
           title: "Link copiado",
-          message: "O link de validação foi copiado para a área de transferência.",
+          message:
+            "O link de validação foi copiado para a área de transferência.",
         });
       });
     } catch {
@@ -437,7 +466,7 @@ export default function ValidarPresenca() {
         replace: true,
       });
     },
-    [navigate]
+    [navigate],
   );
 
   const goHome = useCallback(() => {
@@ -461,7 +490,9 @@ export default function ValidarPresenca() {
     async ({ force = false } = {}) => {
       const myRunId = ++runIdRef.current;
 
-      if (lockRef.current && !force) return;
+      if (lockRef.current && !force) {
+        return;
+      }
 
       lockRef.current = true;
 
@@ -486,7 +517,9 @@ export default function ValidarPresenca() {
 
       try {
         if (!codigo) {
-          throw new Error("Código ausente. Abra novamente pelo QR Code ou confira o link.");
+          throw new Error(
+            "Código ausente. Abra novamente pelo QR Code ou confira o link.",
+          );
         }
 
         let message = "";
@@ -499,7 +532,7 @@ export default function ValidarPresenca() {
 
           if (!/^\d+$/.test(String(turmaIdDetectado || ""))) {
             throw new Error(
-              "QR Code inválido. O link não contém o parâmetro oficial turma_id."
+              "QR Code inválido. O link não contém o parâmetro oficial turma_id.",
             );
           }
 
@@ -516,13 +549,15 @@ export default function ValidarPresenca() {
           throw new Error("Formato de código não reconhecido.");
         }
 
-        if (myRunId !== runIdRef.current) return;
+        if (myRunId !== runIdRef.current) {
+          return;
+        }
 
         safeSet(() => {
           setStatus("ok");
           setMensagem(message || "Presença confirmada com sucesso.");
           setDetalhe(
-            "Registro concluído. Você pode retornar à página inicial ou fechar esta tela."
+            "Registro concluído. Você pode retornar à página inicial ou fechar esta tela.",
           );
         });
 
@@ -538,12 +573,12 @@ export default function ValidarPresenca() {
               setStatus("erro");
               setMensagem("Login necessário.");
               setDetalhe(
-                "Você precisa estar autenticado para confirmar presença nesta turma."
+                "Você precisa estar autenticado para confirmar presença nesta turma.",
               );
               setRequestId(
                 error?.response?.data?.requestId ||
                   error?.data?.requestId ||
-                  ""
+                  "",
               );
             });
 
@@ -554,23 +589,20 @@ export default function ValidarPresenca() {
           return irParaLogin(codigo);
         }
 
-        if (myRunId !== runIdRef.current) return;
+        if (myRunId !== runIdRef.current) {
+          return;
+        }
 
         safeSet(() => {
           setStatus("erro");
           setMensagem(
-            getErrorMessage(
-              error,
-              "Não foi possível confirmar sua presença."
-            )
+            getErrorMessage(error, "Não foi possível confirmar sua presença."),
           );
           setDetalhe(
-            "Confira se você está inscrito na turma, se a janela de confirmação está aberta e se o QR Code corresponde ao evento correto."
+            "Confira se você está inscrito na turma, se a janela de confirmação está aberta e se o QR Code corresponde ao evento correto.",
           );
           setRequestId(
-            error?.response?.data?.requestId ||
-              error?.data?.requestId ||
-              ""
+            error?.response?.data?.requestId || error?.data?.requestId || "",
           );
         });
 
@@ -581,13 +613,7 @@ export default function ValidarPresenca() {
         }
       }
     },
-    [
-      rawCodigo,
-      confirmarPorTurmaId,
-      confirmarPorToken,
-      irParaLogin,
-      isDebug,
-    ]
+    [rawCodigo, confirmarPorTurmaId, confirmarPorToken, irParaLogin, isDebug],
   );
 
   useEffect(() => {
@@ -614,7 +640,12 @@ export default function ValidarPresenca() {
 
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       <HeaderHero />
 
@@ -627,7 +658,7 @@ export default function ValidarPresenca() {
           <div
             className={cx(
               "h-full w-1/3 bg-orange-600",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
@@ -665,7 +696,7 @@ export default function ValidarPresenca() {
                   ? "bg-gradient-to-r from-emerald-700 via-emerald-500 to-teal-400"
                   : status === "erro"
                     ? "bg-gradient-to-r from-rose-700 via-rose-500 to-orange-400"
-                    : "bg-gradient-to-r from-orange-700 via-orange-500 to-amber-400"
+                    : "bg-gradient-to-r from-orange-700 via-orange-500 to-amber-400",
               )}
               aria-hidden="true"
             />
@@ -695,11 +726,14 @@ export default function ValidarPresenca() {
                         "grid h-20 w-20 place-items-center rounded-3xl",
                         status === "ok"
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-200"
-                          : "bg-rose-100 text-rose-700 dark:bg-rose-950/35 dark:text-rose-200"
+                          : "bg-rose-100 text-rose-700 dark:bg-rose-950/35 dark:text-rose-200",
                       )}
                     >
                       {status === "ok" ? (
-                        <CheckCircle2 className="h-10 w-10" aria-hidden="true" />
+                        <CheckCircle2
+                          className="h-10 w-10"
+                          aria-hidden="true"
+                        />
                       ) : (
                         <XCircle className="h-10 w-10" aria-hidden="true" />
                       )}
@@ -709,7 +743,7 @@ export default function ValidarPresenca() {
                   <h2
                     className={cx(
                       "mt-5 text-center text-2xl font-black tracking-tight sm:text-3xl",
-                      tone
+                      tone,
                     )}
                     role={status === "erro" ? "alert" : "status"}
                   >
@@ -726,7 +760,7 @@ export default function ValidarPresenca() {
                         "mt-5 rounded-2xl border p-4 text-sm leading-relaxed",
                         status === "ok"
                           ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-100"
-                          : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100"
+                          : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100",
                       )}
                     >
                       <div className="flex items-start gap-2">

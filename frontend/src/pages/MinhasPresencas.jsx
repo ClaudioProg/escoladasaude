@@ -31,7 +31,6 @@ import {
   CheckCircle2,
   Clock,
   Filter,
-  Home,
   Layers,
   RefreshCw,
   Search,
@@ -79,8 +78,12 @@ function normalizarTexto(value) {
 function ymd(value) {
   const safe = String(value || "").trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) return safe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) return safe.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(safe)) {
+    return safe.slice(0, 10);
+  }
 
   return "";
 }
@@ -88,7 +91,9 @@ function ymd(value) {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "—";
+  if (!data) {
+    return "—";
+  }
 
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
@@ -97,28 +102,42 @@ function formatarDataBR(value) {
 function formatarHora(value) {
   const safe = String(value || "").trim();
 
-  if (/^\d{2}:\d{2}$/.test(safe)) return safe;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) return safe.slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(safe)) {
+    return safe;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(safe)) {
+    return safe.slice(0, 5);
+  }
 
   return "";
 }
 
 function cmpYmdDesc(a, b) {
-  if (a < b) return 1;
-  if (a > b) return -1;
+  if (a < b) {
+    return 1;
+  }
+  if (a > b) {
+    return -1;
+  }
   return 0;
 }
 
 function cmpYmdAsc(a, b) {
-  if (a > b) return 1;
-  if (a < b) return -1;
+  if (a > b) {
+    return 1;
+  }
+  if (a < b) {
+    return -1;
+  }
   return 0;
 }
 
 function clampPercent(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) return 0;
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
 
   return Math.max(0, Math.min(100, number));
 }
@@ -148,14 +167,20 @@ function isAbortLike(error) {
 function unwrapTurmas(response) {
   const data = response?.data !== undefined ? response.data : response;
 
-  if (Array.isArray(data?.turmas)) return data.turmas;
-  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.turmas)) {
+    return data.turmas;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
 
   return [];
 }
 
 function statusInfo(status) {
-  const safe = String(status || "").trim().toLowerCase();
+  const safe = String(status || "")
+    .trim()
+    .toLowerCase();
 
   if (safe === STATUS_FILTRO.PROGRAMADO) {
     return {
@@ -255,13 +280,19 @@ function getPeriodoFim(turma) {
 function getPeriodoLabel(turma) {
   const inicio = getPeriodoInicio(turma);
   const fim = getPeriodoFim(turma);
-  const horaInicio = formatarHora(turma?.periodo?.horario_inicio || turma?.horario_inicio);
-  const horaFim = formatarHora(turma?.periodo?.horario_fim || turma?.horario_fim);
+  const horaInicio = formatarHora(
+    turma?.periodo?.horario_inicio || turma?.horario_inicio,
+  );
+  const horaFim = formatarHora(
+    turma?.periodo?.horario_fim || turma?.horario_fim,
+  );
 
   const inicioLabel = `${formatarDataBR(inicio)}${horaInicio ? ` às ${horaInicio}` : ""}`;
   const fimLabel = `${formatarDataBR(fim)}${horaFim ? ` às ${horaFim}` : ""}`;
 
-  if (!inicio && !fim) return "Período a definir";
+  if (!inicio && !fim) {
+    return "Período a definir";
+  }
   if (inicio && fim && inicio === fim) {
     return `${formatarDataBR(inicio)}${horaInicio ? ` • ${horaInicio}` : ""}${horaFim ? ` às ${horaFim}` : ""}`;
   }
@@ -334,19 +365,17 @@ function MiniStatCard({
   const toneMap = {
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-100",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-100",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-100",
     amber:
       "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-100",
+    rose: "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-100",
   };
 
   return (
     <article
       className={classNames(
         "rounded-[1.75rem] border p-4 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-lg dark:ring-white/10",
-        toneMap[tone] || toneMap.emerald
+        toneMap[tone] || toneMap.emerald,
       )}
     >
       <div className="flex items-start gap-3">
@@ -363,9 +392,7 @@ function MiniStatCard({
             {value}
           </p>
 
-          <p className="mt-1 text-xs font-semibold opacity-70">
-            {description}
-          </p>
+          <p className="mt-1 text-xs font-semibold opacity-70">{description}</p>
         </div>
       </div>
     </article>
@@ -378,10 +405,8 @@ function Badge({ children, tone = "default", title }) {
       "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
     success:
       "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
-    warn:
-      "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200",
-    danger:
-      "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200",
+    warn: "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200",
+    danger: "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200",
     info: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200",
   };
 
@@ -390,7 +415,7 @@ function Badge({ children, tone = "default", title }) {
       title={title}
       className={classNames(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black",
-        map[tone] || map.default
+        map[tone] || map.default,
       )}
     >
       {children}
@@ -414,7 +439,9 @@ function ProgressBar({ value = 0, threshold = CERT_THRESHOLD }) {
       <div
         className={classNames(
           "h-full rounded-full transition-[width] duration-500",
-          ok ? "bg-emerald-600 dark:bg-emerald-500" : "bg-rose-600 dark:bg-rose-500"
+          ok
+            ? "bg-emerald-600 dark:bg-emerald-500"
+            : "bg-rose-600 dark:bg-rose-500",
         )}
         style={{ width: `${pct}%` }}
       />
@@ -502,7 +529,8 @@ function ToolbarFiltros({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
         <span>
-          {totalVisualizado} turma{totalVisualizado === 1 ? "" : "s"} na visualização
+          {totalVisualizado} turma{totalVisualizado === 1 ? "" : "s"} na
+          visualização
         </span>
 
         <span className="inline-flex items-center gap-1">
@@ -553,9 +581,9 @@ function PresencaCard({ turma, index, reduceMotion }) {
   const status = statusInfo(turma?.status);
   const StatusIcon = status.icon;
 
- const total = Number(turma?.total_encontros || 0);
-const presentes = Number(turma?.presentes || 0);
-const ausencias = calcularAusencias(turma);
+  const total = Number(turma?.total_encontros || 0);
+  const presentes = Number(turma?.presentes || 0);
+  const ausencias = calcularAusencias(turma);
 
   const freq = clampPercent(turma?.frequencia);
   const encerrado = String(turma?.status || "").toLowerCase() === "encerrado";
@@ -580,7 +608,10 @@ const ausencias = calcularAusencias(turma);
       className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6"
     >
       <div
-        className={classNames("absolute left-0 right-0 top-0 h-1.5", status.bar)}
+        className={classNames(
+          "absolute left-0 right-0 top-0 h-1.5",
+          status.bar,
+        )}
         aria-hidden="true"
       />
 
@@ -614,7 +645,10 @@ const ausencias = calcularAusencias(turma);
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-        <CalendarDays className="h-4 w-4 text-emerald-700 dark:text-emerald-300" aria-hidden="true" />
+        <CalendarDays
+          className="h-4 w-4 text-emerald-700 dark:text-emerald-300"
+          aria-hidden="true"
+        />
         <span>{getPeriodoLabel(turma)}</span>
       </div>
 
@@ -658,7 +692,7 @@ const ausencias = calcularAusencias(turma);
               "font-black",
               freq >= CERT_THRESHOLD
                 ? "text-emerald-700 dark:text-emerald-300"
-                : "text-rose-700 dark:text-rose-300"
+                : "text-rose-700 dark:text-rose-300",
             )}
           >
             {freq.toFixed(1)}%
@@ -751,8 +785,8 @@ export default function MinhasPresencas() {
   const liveRef = useRef(null);
   const erroRef = useRef(null);
   const abortRef = useRef(null);
-const requestIdRef = useRef(0);
-const mountedRef = useRef(true);
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
     if (liveRef.current) {
@@ -775,12 +809,12 @@ const mountedRef = useRef(true);
   }, []);
 
   const carregar = useCallback(async () => {
-  const requestId = requestIdRef.current + 1;
-  requestIdRef.current = requestId;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
 
-  try {
-    setErro("");
-    setLoading(true);
+    try {
+      setErro("");
+      setLoading(true);
       setLive("Carregando suas presenças.");
 
       try {
@@ -799,28 +833,35 @@ const mountedRef = useRef(true);
 
       const lista = unwrapTurmas(response);
 
-      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      if (!mountedRef.current || requestId !== requestIdRef.current) {
+        return;
+      }
 
       setTurmas(lista);
       setLive(`Presenças carregadas: ${lista.length} turma(s).`);
     } catch (error) {
       if (isAbortLike(error)) {
-  return;
-}
+        return;
+      }
 
-      const message = getErrorMessage(error, "Falha ao carregar suas presenças.");
+      const message = getErrorMessage(
+        error,
+        "Falha ao carregar suas presenças.",
+      );
 
-      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      if (!mountedRef.current || requestId !== requestIdRef.current) {
+        return;
+      }
 
-setErro(message);
+      setErro(message);
       setTurmas([]);
       setLive("Falha ao carregar suas presenças.");
 
       window.setTimeout(() => erroRef.current?.focus?.(), 0);
     } finally {
       if (mountedRef.current && requestId === requestIdRef.current) {
-  setLoading(false);
-}
+        setLoading(false);
+      }
     }
   }, [setLive]);
 
@@ -838,8 +879,12 @@ setErro(message);
       const freq = clampPercent(turma?.frequencia);
       const encerrado = status === STATUS_FILTRO.ENCERRADO;
 
-      if (encerrado) encerradas += 1;
-      if (freq >= CERT_THRESHOLD) acima75 += 1;
+      if (encerrado) {
+        encerradas += 1;
+      }
+      if (freq >= CERT_THRESHOLD) {
+        acima75 += 1;
+      }
 
       if (
         turma?.elegivel_avaliacao === true ||
@@ -868,12 +913,16 @@ setErro(message);
         return false;
       }
 
-      if (!q) return true;
+      if (!q) {
+        return true;
+      }
 
       return (
         normalizarTexto(turma?.evento_titulo).includes(q) ||
         normalizarTexto(turma?.turma_nome).includes(q) ||
-        String(turma?.turma_id ?? "").toLowerCase().includes(q)
+        String(turma?.turma_id ?? "")
+          .toLowerCase()
+          .includes(q)
       );
     });
 
@@ -882,16 +931,20 @@ setErro(message);
         const byTitle = String(a?.evento_titulo || "").localeCompare(
           String(b?.evento_titulo || ""),
           "pt-BR",
-          { sensitivity: "base" }
+          { sensitivity: "base" },
         );
 
-        if (byTitle !== 0) return byTitle;
+        if (byTitle !== 0) {
+          return byTitle;
+        }
       }
 
       const aFim = getPeriodoFim(a) || getPeriodoInicio(a) || "";
       const bFim = getPeriodoFim(b) || getPeriodoInicio(b) || "";
 
-      if (ordenarPor === ORDENACAO.ANTIGOS) return cmpYmdAsc(aFim, bFim);
+      if (ordenarPor === ORDENACAO.ANTIGOS) {
+        return cmpYmdAsc(aFim, bFim);
+      }
 
       return cmpYmdDesc(aFim, bFim);
     });
@@ -918,48 +971,48 @@ setErro(message);
       />
 
       <div className="mx-auto w-full max-w-7xl px-3 pt-5 sm:px-4 lg:px-6">
-  <HeaderHero
-    titulo="Minhas presenças"
-    subtitulo="Consulte sua frequência por turma, acompanhe ausências e veja se você atingiu o requisito mínimo para avaliação e certificado."
-    icone={CheckCircle2}
-    tamanho="lg"
-    raio="xl"
-  />
-</div>
+        <HeaderHero
+          titulo="Minhas presenças"
+          subtitulo="Consulte sua frequência por turma, acompanhe ausências e veja se você atingiu o requisito mínimo para avaliação e certificado."
+          icone={CheckCircle2}
+          tamanho="lg"
+          raio="xl"
+        />
+      </div>
 
-<section className="mx-auto mt-4 flex w-full max-w-7xl flex-col gap-3 px-3 sm:px-4 lg:flex-row lg:items-center lg:justify-between lg:px-6">
-  <div>
-    <h2 className="text-base font-black text-slate-950 dark:text-white">
-      Acompanhe suas frequências
-    </h2>
+      <section className="mx-auto mt-4 flex w-full max-w-7xl flex-col gap-3 px-3 sm:px-4 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div>
+          <h2 className="text-base font-black text-slate-950 dark:text-white">
+            Acompanhe suas frequências
+          </h2>
 
-    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-      Consulte presenças, ausências e elegibilidade para certificado.
-    </p>
-  </div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            Consulte presenças, ausências e elegibilidade para certificado.
+          </p>
+        </div>
 
-  <div className="flex flex-wrap items-center gap-2">
-    <button
-      type="button"
-      onClick={carregar}
-      disabled={loading}
-      className={classNames(
-        "inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-        loading && "cursor-not-allowed opacity-70"
-      )}
-    >
-      <RefreshCw
-        className={classNames("h-4 w-4", loading && "animate-spin")}
-        aria-hidden="true"
-      />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={carregar}
+            disabled={loading}
+            className={classNames(
+              "inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+              loading && "cursor-not-allowed opacity-70",
+            )}
+          >
+            <RefreshCw
+              className={classNames("h-4 w-4", loading && "animate-spin")}
+              aria-hidden="true"
+            />
 
-      {loading ? "Atualizando..." : "Atualizar dados"}
-    </button>
-  </div>
-</section>
+            {loading ? "Atualizando..." : "Atualizar dados"}
+          </button>
+        </div>
+      </section>
 
-<PresencaResumoPremium kpis={kpis} />
+      <PresencaResumoPremium kpis={kpis} />
 
       {loading && (
         <div
@@ -1057,7 +1110,9 @@ setErro(message);
                 <AnimatePresence>
                   {turmasFiltradas.map((turma, index) => (
                     <PresencaCard
-                      key={turma?.turma_id ?? `${turma?.evento_titulo}-${index}`}
+                      key={
+                        turma?.turma_id ?? `${turma?.evento_titulo}-${index}`
+                      }
                       turma={turma}
                       index={index}
                       reduceMotion={reduceMotion}

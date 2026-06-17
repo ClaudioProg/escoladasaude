@@ -102,7 +102,7 @@ function obterAgoraSaoPaulo() {
   const mapa = Object.fromEntries(
     partes
       .filter((parte) => parte.type !== "literal")
-      .map((parte) => [parte.type, parte.value])
+      .map((parte) => [parte.type, parte.value]),
   );
 
   return {
@@ -199,14 +199,17 @@ async function executarTickLembreteEventoJob(origem = "intervalo") {
   running = true;
 
   try {
-    console.log("[lembreteEventoJob] Executando lembretes de início de evento.", {
-      origem,
-      dia_execucao: decisao.agora.ymd,
-      hora_execucao: `${String(decisao.agora.hora).padStart(2, "0")}:${String(
-        decisao.agora.minuto
-      ).padStart(2, "0")}`,
-      timezone: TIMEZONE_OFICIAL,
-    });
+    console.log(
+      "[lembreteEventoJob] Executando lembretes de início de evento.",
+      {
+        origem,
+        dia_execucao: decisao.agora.ymd,
+        hora_execucao: `${String(decisao.agora.hora).padStart(2, "0")}:${String(
+          decisao.agora.minuto,
+        ).padStart(2, "0")}`,
+        timezone: TIMEZONE_OFICIAL,
+      },
+    );
 
     const resultado = await executarLembretesInicioEvento({
       timezone: TIMEZONE_OFICIAL,
@@ -265,7 +268,7 @@ function iniciarLembreteEventoJob() {
     {
       min: 60_000,
       max: 24 * 60 * 60 * 1000,
-    }
+    },
   );
 
   console.log("[lembreteEventoJob] Job iniciado.", {

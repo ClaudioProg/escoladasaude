@@ -56,7 +56,8 @@ const QUESTIONARIO_BASE = "/questionario";
 
 const QUESTIONARIO_PADRAO = Object.freeze({
   titulo: "Questionário de Aprendizagem",
-  descricao: "Verificação de absorção do conteúdo antes da avaliação institucional.",
+  descricao:
+    "Verificação de absorção do conteúdo antes da avaliação institucional.",
   obrigatorio: true,
   minNota10: 7,
   tentativasMax: 1,
@@ -78,7 +79,6 @@ function classNames(...classes) {
 
 function devLog(contexto, erro) {
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
     console.error(contexto, erro);
   }
 }
@@ -142,7 +142,7 @@ function questaoCollectionPath(questionarioId) {
 
 function questaoPath(questionarioId, questaoId) {
   return `${QUESTIONARIO_BASE}/${encodeId(questionarioId)}/questao/${encodeId(
-    questaoId
+    questaoId,
   )}`;
 }
 
@@ -178,8 +178,8 @@ function somarPesos(questoes = []) {
   return round2(
     (Array.isArray(questoes) ? questoes : []).reduce(
       (total, questao) => total + (Number(questao?.peso) || 0),
-      0
-    )
+      0,
+    ),
   );
 }
 
@@ -315,18 +315,18 @@ function validarPublicacao(questoes, pesoTotal) {
     if (alternativas.length < 2) {
       return `A questão "${String(questao?.enunciado || "").slice(
         0,
-        48
+        48,
       )}..." precisa de pelo menos 2 alternativas.`;
     }
 
     const corretas = alternativas.filter((alternativa) =>
-      Boolean(alternativa?.correta)
+      Boolean(alternativa?.correta),
     ).length;
 
     if (corretas !== 1) {
       return `A questão "${String(questao?.enunciado || "").slice(
         0,
-        48
+        48,
       )}..." precisa ter exatamente 1 alternativa correta.`;
     }
   }
@@ -357,13 +357,15 @@ export default function ModalQuestionarioEvento({
 
   const [titulo, setTitulo] = useState(QUESTIONARIO_PADRAO.titulo);
   const [descricao, setDescricao] = useState(QUESTIONARIO_PADRAO.descricao);
-  const [obrigatorio, setObrigatorio] = useState(QUESTIONARIO_PADRAO.obrigatorio);
+  const [obrigatorio, setObrigatorio] = useState(
+    QUESTIONARIO_PADRAO.obrigatorio,
+  );
   const [minNota10, setMinNota10] = useState(QUESTIONARIO_PADRAO.minNota10);
   const [tentativasMax, setTentativasMax] = useState(
-    QUESTIONARIO_PADRAO.tentativasMax
+    QUESTIONARIO_PADRAO.tentativasMax,
   );
   const [tempoMinutos, setTempoMinutos] = useState(
-    QUESTIONARIO_PADRAO.tempoMinutos
+    QUESTIONARIO_PADRAO.tempoMinutos,
   );
 
   const [novoTipo, setNovoTipo] = useState("multipla_escolha");
@@ -387,7 +389,7 @@ export default function ModalQuestionarioEvento({
 
   const publicacaoBloqueio = useMemo(
     () => validarPublicacao(questoes, pesoTotal),
-    [questoes, pesoTotal]
+    [questoes, pesoTotal],
   );
 
   const metadadosInvalidos = useMemo(
@@ -398,7 +400,7 @@ export default function ModalQuestionarioEvento({
         tentativasMax,
         tempoMinutos,
       }),
-    [titulo, minNota10, tentativasMax, tempoMinutos]
+    [titulo, minNota10, tentativasMax, tempoMinutos],
   );
 
   const podeSalvarMetadados = Object.keys(metadadosInvalidos).length === 0;
@@ -434,7 +436,7 @@ export default function ModalQuestionarioEvento({
       tempoMinutos,
       tentativasMax,
       titulo,
-    ]
+    ],
   );
 
   const announce = useCallback((message) => {
@@ -460,7 +462,9 @@ export default function ModalQuestionarioEvento({
           : QUESTIONARIO_PADRAO.obrigatorio;
 
       const minNotaBackend =
-        q?.min_nota == null ? minNota10ToBackend(QUESTIONARIO_PADRAO.minNota10) : Number(q.min_nota);
+        q?.min_nota == null
+          ? minNota10ToBackend(QUESTIONARIO_PADRAO.minNota10)
+          : Number(q.min_nota);
 
       const tentativasSeguras =
         q?.tentativas_max == null
@@ -498,7 +502,7 @@ export default function ModalQuestionarioEvento({
         carregado: true,
       });
     },
-    [eventoIdValido, onConfigSaved]
+    [eventoIdValido, onConfigSaved],
   );
 
   const carregar = useCallback(
@@ -530,7 +534,9 @@ export default function ModalQuestionarioEvento({
         hydrateQuestionario(q);
         announce("Questionário carregado.");
       } catch (error) {
-        if (isAbortLike(error)) return;
+        if (isAbortLike(error)) {
+          return;
+        }
 
         devLog("Erro ao carregar/gerar questionário:", error);
         notifyError("Erro ao carregar ou gerar questionário.");
@@ -541,7 +547,7 @@ export default function ModalQuestionarioEvento({
         }
       }
     },
-    [announce, eventoIdValido, hydrateQuestionario]
+    [announce, eventoIdValido, hydrateQuestionario],
   );
 
   useEffect(() => {
@@ -609,11 +615,15 @@ export default function ModalQuestionarioEvento({
       setSaving(true);
 
       try {
-        const response = await apiPut(questionarioPath(questionario.id), payload, {
-          auth: true,
-          on401: "redirect",
-          on403: "silent",
-        });
+        const response = await apiPut(
+          questionarioPath(questionario.id),
+          payload,
+          {
+            auth: true,
+            on401: "redirect",
+            on403: "silent",
+          },
+        );
 
         const atualizado = unwrapObject(response) || {};
 
@@ -664,7 +674,7 @@ export default function ModalQuestionarioEvento({
       tempoMinutos,
       tentativasMax,
       titulo,
-    ]
+    ],
   );
 
   const adicionarQuestao = useCallback(async () => {
@@ -696,7 +706,7 @@ export default function ModalQuestionarioEvento({
           auth: true,
           on401: "redirect",
           on403: "silent",
-        }
+        },
       );
 
       const inserida = unwrapObject(response);
@@ -710,7 +720,7 @@ export default function ModalQuestionarioEvento({
           ...inserida,
           alternativas: unwrapArray(inserida.alternativas),
         },
-        questoes.length
+        questoes.length,
       );
 
       const nextQuestoes = [...questoes, novaQuestao];
@@ -775,7 +785,7 @@ export default function ModalQuestionarioEvento({
             auth: true,
             on401: "redirect",
             on403: "silent",
-          }
+          },
         );
 
         const atualizada = unwrapObject(response) || {};
@@ -792,7 +802,7 @@ export default function ModalQuestionarioEvento({
                 enunciado,
                 peso,
               })
-            : item
+            : item,
         );
 
         setQuestoes(nextQuestoes);
@@ -814,7 +824,7 @@ export default function ModalQuestionarioEvento({
         }
       }
     },
-    [announce, emitirConfig, questionario?.id, questoes, saving]
+    [announce, emitirConfig, questionario?.id, questoes, saving],
   );
 
   const removerQuestao = useCallback(
@@ -861,7 +871,7 @@ export default function ModalQuestionarioEvento({
         }
       }
     },
-    [announce, emitirConfig, questionario?.id, questoes, saving]
+    [announce, emitirConfig, questionario?.id, questoes, saving],
   );
 
   const abrirModalAlternativa = useCallback((questaoId) => {
@@ -911,7 +921,7 @@ export default function ModalQuestionarioEvento({
           auth: true,
           on401: "redirect",
           on403: "silent",
-        }
+        },
       );
 
       const inserida = unwrapObject(response);
@@ -1010,9 +1020,9 @@ export default function ModalQuestionarioEvento({
                   auth: true,
                   on401: "redirect",
                   on403: "silent",
-                }
-              )
-            )
+                },
+              ),
+            ),
         );
 
         notifySuccess("Alternativa correta definida.");
@@ -1032,7 +1042,7 @@ export default function ModalQuestionarioEvento({
         }
       }
     },
-    [announce, emitirConfig, questoes, saving]
+    [announce, emitirConfig, questoes, saving],
   );
 
   const removerAlternativa = useCallback(
@@ -1062,7 +1072,7 @@ export default function ModalQuestionarioEvento({
           return normalizarQuestao({
             ...questao,
             alternativas: questao.alternativas.filter(
-              (alternativa) => alternativa.id !== alternativaId
+              (alternativa) => alternativa.id !== alternativaId,
             ),
           });
         });
@@ -1085,7 +1095,7 @@ export default function ModalQuestionarioEvento({
         }
       }
     },
-    [announce, emitirConfig, questoes, saving]
+    [announce, emitirConfig, questoes, saving],
   );
 
   const publicar = useCallback(async () => {
@@ -1128,7 +1138,7 @@ export default function ModalQuestionarioEvento({
           auth: true,
           on401: "redirect",
           on403: "silent",
-        }
+        },
       );
 
       const publicado = unwrapObject(response) || {};
@@ -1218,9 +1228,9 @@ export default function ModalQuestionarioEvento({
                   id="questionario-evento-desc"
                   className="mt-1 max-w-3xl text-sm text-emerald-50/90"
                 >
-                  Configure regras, questões e alternativas. Para publicar, o peso
-                  total precisa fechar 10 e cada questão objetiva precisa ter
-                  exatamente uma alternativa correta.
+                  Configure regras, questões e alternativas. Para publicar, o
+                  peso total precisa fechar 10 e cada questão objetiva precisa
+                  ter exatamente uma alternativa correta.
                 </p>
               </div>
 
@@ -1382,7 +1392,10 @@ export default function ModalQuestionarioEvento({
               <input
                 value={altModal.texto}
                 onChange={(event) =>
-                  setAltModal((prev) => ({ ...prev, texto: event.target.value }))
+                  setAltModal((prev) => ({
+                    ...prev,
+                    texto: event.target.value,
+                  }))
                 }
                 placeholder="Ex.: Comunicar-se de forma clara e respeitosa"
                 className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-slate-800 dark:bg-slate-900"
@@ -1469,7 +1482,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "neutral" }) {
     <article
       className={classNames(
         "rounded-3xl border p-4 shadow-sm",
-        toneClass[tone] || toneClass.neutral
+        toneClass[tone] || toneClass.neutral,
       )}
     >
       <div className="flex items-start gap-3">
@@ -1596,7 +1609,9 @@ function ConfigSection({
             disabled={saving}
           />
 
-          {errors?.tentativasMax && <FieldError>{errors.tentativasMax}</FieldError>}
+          {errors?.tentativasMax && (
+            <FieldError>{errors.tentativasMax}</FieldError>
+          )}
         </label>
 
         <label className="block">
@@ -1620,11 +1635,17 @@ function ConfigSection({
             Contrato oficial: campo enviado como tempo_minutos.
           </p>
 
-          {errors?.tempoMinutos && <FieldError>{errors.tempoMinutos}</FieldError>}
+          {errors?.tempoMinutos && (
+            <FieldError>{errors.tempoMinutos}</FieldError>
+          )}
         </label>
 
-        <label className="flex min-h-[76px] cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/50">
+        <label
+          htmlFor="checkbox-obrigatorio"
+          className="flex min-h-[76px] cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/50"
+        >
           <input
+            id="checkbox-obrigatorio"
             type="checkbox"
             checked={obrigatorio}
             onChange={(event) => setObrigatorio(event.target.checked)}
@@ -1798,8 +1819,8 @@ function QuestionsSection({
                             prev.map((item) =>
                               item.id === questao.id
                                 ? { ...item, enunciado: event.target.value }
-                                : item
-                            )
+                                : item,
+                            ),
                           )
                         }
                         className={inputClass(false)}
@@ -1825,11 +1846,11 @@ function QuestionsSection({
                                     peso: clamp(
                                       toNumber(event.target.value) ?? 1,
                                       0.1,
-                                      10
+                                      10,
                                     ),
                                   }
-                                : item
-                            )
+                                : item,
+                            ),
                           )
                         }
                         className={inputClass(false)}
@@ -1951,7 +1972,7 @@ function AlternativasSection({
                 "flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-start sm:justify-between",
                 alternativa.correta
                   ? "border-emerald-300 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30"
-                  : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                  : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900",
               )}
             >
               <label className="flex min-w-0 cursor-pointer items-start gap-3">
@@ -1985,7 +2006,12 @@ function AlternativasSection({
   );
 }
 
-function FooterActions({ saving, podePublicar, publicacaoBloqueio, onPublicar }) {
+function FooterActions({
+  saving,
+  podePublicar,
+  publicacaoBloqueio,
+  onPublicar,
+}) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1995,7 +2021,7 @@ function FooterActions({ saving, podePublicar, publicacaoBloqueio, onPublicar })
               "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl",
               publicacaoBloqueio
                 ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
-                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
             )}
           >
             {publicacaoBloqueio ? (
@@ -2063,7 +2089,7 @@ function Button({
       className={classNames(
         "inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant] || variants.neutral,
-        className
+        className,
       )}
     >
       {RenderIcon && (
@@ -2083,7 +2109,7 @@ function inputClass(hasError) {
     "mt-1 w-full rounded-2xl border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition dark:bg-slate-950 dark:text-slate-100",
     hasError
       ? "border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15 dark:border-rose-700"
-      : "border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-slate-800"
+      : "border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-slate-800",
   );
 }
 
@@ -2102,7 +2128,8 @@ function FieldError({ children }) {
 ModalQuestionarioEvento.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func,
-  eventoId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  eventoId: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   onlyAdmin: PropTypes.bool,
   onConfigSaved: PropTypes.func,
 };
@@ -2122,11 +2149,14 @@ ConfigSection.propTypes = {
   setDescricao: PropTypes.func.isRequired,
   obrigatorio: PropTypes.bool.isRequired,
   setObrigatorio: PropTypes.func.isRequired,
-  minNota10: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  minNota10: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   setMinNota10: PropTypes.func.isRequired,
-  tentativasMax: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  tentativasMax: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   setTentativasMax: PropTypes.func.isRequired,
-  tempoMinutos: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  tempoMinutos: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   setTempoMinutos: PropTypes.func.isRequired,
   errors: PropTypes.object,
   saving: PropTypes.bool.isRequired,
@@ -2139,7 +2169,8 @@ QuestionCreateSection.propTypes = {
   setNovoTipo: PropTypes.func.isRequired,
   novoEnunciado: PropTypes.string.isRequired,
   setNovoEnunciado: PropTypes.func.isRequired,
-  novoPeso: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  novoPeso: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   setNovoPeso: PropTypes.func.isRequired,
   saving: PropTypes.bool.isRequired,
   onAdicionar: PropTypes.func.isRequired,

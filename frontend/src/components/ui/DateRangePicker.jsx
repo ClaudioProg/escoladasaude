@@ -24,16 +24,22 @@ function classNames(...classes) {
 }
 
 function isValidYMD(value) {
-  if (typeof value !== "string") return false;
+  if (typeof value !== "string") {
+    return false;
+  }
 
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
+  if (!match) {
+    return false;
+  }
 
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
 
-  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return false;
+  }
 
   const date = new Date(year, month - 1, day, 12, 0, 0, 0);
 
@@ -57,7 +63,9 @@ function dateToLocalYMD(date) {
 }
 
 function toYMD(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (value instanceof Date) {
     return dateToLocalYMD(value);
@@ -74,7 +82,9 @@ function toYMD(value) {
 
 function parseYMDToLocalDate(value) {
   const ymd = toYMD(value);
-  if (!ymd) return null;
+  if (!ymd) {
+    return null;
+  }
 
   const [year, month, day] = ymd.split("-").map(Number);
 
@@ -83,7 +93,9 @@ function parseYMDToLocalDate(value) {
 
 function addDaysYMD(ymd, amount) {
   const date = parseYMDToLocalDate(ymd);
-  if (!date) return "";
+  if (!date) {
+    return "";
+  }
 
   date.setDate(date.getDate() + Number(amount || 0));
 
@@ -96,7 +108,9 @@ function todayYMD() {
 
 function monthBoundsYMD(ymd) {
   const date = parseYMDToLocalDate(ymd);
-  if (!date) return ["", ""];
+  if (!date) {
+    return ["", ""];
+  }
 
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -109,7 +123,9 @@ function monthBoundsYMD(ymd) {
 
 function previousMonthBoundsYMD(ymd) {
   const date = parseYMDToLocalDate(ymd);
-  if (!date) return ["", ""];
+  if (!date) {
+    return ["", ""];
+  }
 
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -125,10 +141,16 @@ function clampYMD(value, minDate, maxDate) {
   const min = toYMD(minDate);
   const max = toYMD(maxDate);
 
-  if (!ymd) return "";
+  if (!ymd) {
+    return "";
+  }
 
-  if (min && ymd < min) return min;
-  if (max && ymd > max) return max;
+  if (min && ymd < min) {
+    return min;
+  }
+  if (max && ymd > max) {
+    return max;
+  }
 
   return ymd;
 }
@@ -140,7 +162,9 @@ function normalizePair(value) {
 }
 
 function buildDefaultPresets(enabled) {
-  if (!enabled) return [];
+  if (!enabled) {
+    return [];
+  }
 
   const today = todayYMD();
   const [monthStart, monthEnd] = monthBoundsYMD(today);
@@ -219,7 +243,7 @@ export default function DateRangePicker({
       live: `${reactId}-status`,
       presets: `${reactId}-presets`,
     }),
-    [reactId]
+    [reactId],
   );
 
   const min = toYMD(minDate);
@@ -233,11 +257,13 @@ export default function DateRangePicker({
         minDate: min,
         maxDate: max,
       }),
-    [max, min, presets, showPresets]
+    [max, min, presets, showPresets],
   );
 
   const hasValue = Boolean(startValue || endValue);
-  const isInvalidRange = Boolean(startValue && endValue && startValue > endValue);
+  const isInvalidRange = Boolean(
+    startValue && endValue && startValue > endValue,
+  );
 
   const announce = useCallback((message) => {
     setStatusMessage("");
@@ -259,30 +285,36 @@ export default function DateRangePicker({
       if (nextStart && nextEnd && nextStart > nextEnd) {
         if (!allowSwap) {
           onInvalidRange?.(nextStart, nextEnd);
-          announce("Período inválido: a data inicial não pode ser maior que a data final.");
+          announce(
+            "Período inválido: a data inicial não pode ser maior que a data final.",
+          );
           return;
         }
 
         [nextStart, nextEnd] = [nextEnd, nextStart];
 
         if (shouldAnnounce) {
-          announce("As datas foram invertidas automaticamente para manter o período válido.");
+          announce(
+            "As datas foram invertidas automaticamente para manter o período válido.",
+          );
         }
       }
 
       onChange?.([nextStart || null, nextEnd || null]);
     },
-    [allowSwap, announce, max, min, onChange, onInvalidRange]
+    [allowSwap, announce, max, min, onChange, onInvalidRange],
   );
 
   const applyPreset = useCallback(
     (preset) => {
-      if (!preset || preset.disabled) return;
+      if (!preset || preset.disabled) {
+        return;
+      }
 
       emitChange(preset.range[0], preset.range[1]);
       announce(`Preset aplicado: ${preset.label}.`);
     },
-    [announce, emitChange]
+    [announce, emitChange],
   );
 
   const clearRange = useCallback(() => {
@@ -297,7 +329,7 @@ export default function DateRangePicker({
     "dark:bg-slate-950 dark:text-slate-100",
     isInvalidRange
       ? "border-rose-300 dark:border-rose-800"
-      : "border-slate-200 dark:border-slate-800"
+      : "border-slate-200 dark:border-slate-800",
   );
 
   return (
@@ -306,14 +338,17 @@ export default function DateRangePicker({
         "w-full rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900",
         compact && "p-3",
         disabled && "opacity-75",
-        className
+        className,
       )}
       disabled={disabled}
       aria-describedby={`${ids.hint} ${ids.live}`}
     >
       {label && (
         <legend className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white">
-          <CalendarDays className="h-4 w-4 text-emerald-700 dark:text-emerald-300" aria-hidden="true" />
+          <CalendarDays
+            className="h-4 w-4 text-emerald-700 dark:text-emerald-300"
+            aria-hidden="true"
+          />
           {label}
           {required && (
             <span className="text-rose-600" aria-label="obrigatório">
@@ -415,7 +450,7 @@ export default function DateRangePicker({
           "mt-3 text-xs font-medium",
           isInvalidRange
             ? "text-rose-700 dark:text-rose-300"
-            : "text-slate-500 dark:text-slate-400"
+            : "text-slate-500 dark:text-slate-400",
         )}
       >
         {isInvalidRange
@@ -423,7 +458,13 @@ export default function DateRangePicker({
           : helperText}
       </p>
 
-      <p id={ids.live} ref={liveRef} role="status" aria-live="polite" className="sr-only">
+      <p
+        id={ids.live}
+        ref={liveRef}
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+      >
         {statusMessage}
       </p>
     </fieldset>
@@ -433,7 +474,7 @@ export default function DateRangePicker({
 DateRangePicker.propTypes = {
   label: PropTypes.string,
   value: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)])
+    PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
   ),
   onChange: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
@@ -445,9 +486,9 @@ DateRangePicker.propTypes = {
     PropTypes.shape({
       label: PropTypes.string.isRequired,
       range: PropTypes.arrayOf(
-        PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)])
+        PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
       ).isRequired,
-    })
+    }),
   ),
   allowSwap: PropTypes.bool,
   onInvalidRange: PropTypes.func,

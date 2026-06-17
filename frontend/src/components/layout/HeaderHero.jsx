@@ -121,14 +121,14 @@ export default function HeaderHero({
         campanha.bordaHero,
         sombra &&
           "shadow-[0_20px_64px_-50px_rgba(2,6,23,.55)] dark:shadow-[0_24px_80px_-50px_rgba(0,0,0,.75)]",
-        className
+        className,
       )}
       aria-labelledby="header-hero-titulo"
     >
       <div
         className={classNames(
           "absolute inset-0 bg-gradient-to-br",
-          campanha.gradienteHero
+          campanha.gradienteHero,
         )}
         aria-hidden="true"
       />
@@ -165,7 +165,7 @@ export default function HeaderHero({
             aria-hidden="true"
             className={classNames(
               "absolute -left-20 -top-24 h-56 w-56 rounded-full blur-3xl",
-              campanha.brilhoPrimario
+              campanha.brilhoPrimario,
             )}
           />
 
@@ -173,7 +173,7 @@ export default function HeaderHero({
             aria-hidden="true"
             className={classNames(
               "absolute -bottom-24 -right-24 h-64 w-64 rounded-full blur-3xl",
-              campanha.brilhoSecundario
+              campanha.brilhoSecundario,
             )}
           />
 
@@ -190,7 +190,7 @@ export default function HeaderHero({
         <div
           className={classNames(
             "mx-auto max-w-7xl px-4 sm:px-6",
-            tamanhoClasse.padding
+            tamanhoClasse.padding,
           )}
         >
           {trilha && (
@@ -198,7 +198,7 @@ export default function HeaderHero({
               <div
                 className={classNames(
                   "inline-flex max-w-full items-center gap-2 rounded-2xl border px-3 py-1.5 text-[11px] font-black",
-                  chipClass
+                  chipClass,
                 )}
               >
                 {trilha}
@@ -222,7 +222,7 @@ export default function HeaderHero({
                         ? "bg-white/62 text-slate-950"
                         : "bg-white/16 text-white",
                       campanha.anelHero,
-                      tamanhoClasse.iconeBox
+                      tamanhoClasse.iconeBox,
                     )}
                   >
                     <Icone className={tamanhoClasse.icone} aria-hidden="true" />
@@ -236,7 +236,7 @@ export default function HeaderHero({
                   className={classNames(
                     "font-black leading-tight tracking-tight",
                     campanha.textoHero,
-                    tamanhoClasse.titulo
+                    tamanhoClasse.titulo,
                   )}
                 >
                   {titulo}
@@ -247,7 +247,7 @@ export default function HeaderHero({
                     className={classNames(
                       "mt-1.5 max-w-3xl font-medium leading-relaxed",
                       campanha.textoSuaveHero,
-                      tamanhoClasse.subtitulo
+                      tamanhoClasse.subtitulo,
                     )}
                   >
                     {subtitulo}
@@ -260,7 +260,9 @@ export default function HeaderHero({
 
             {acoes && (
               <div className="w-full shrink-0 sm:w-auto">
-                <div className={classNames("rounded-3xl border p-2", acoesClass)}>
+                <div
+                  className={classNames("rounded-3xl border p-2", acoesClass)}
+                >
                   {acoes}
                 </div>
               </div>

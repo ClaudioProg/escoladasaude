@@ -40,12 +40,10 @@ const NOTA_PONTUACAO = {
 const NOTA_STYLE = {
   Ótimo:
     "border-emerald-300 bg-emerald-50 text-emerald-900 ring-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-900",
-  Bom:
-    "border-lime-300 bg-lime-50 text-lime-900 ring-lime-100 dark:border-lime-800 dark:bg-lime-950/40 dark:text-lime-100 dark:ring-lime-900",
+  Bom: "border-lime-300 bg-lime-50 text-lime-900 ring-lime-100 dark:border-lime-800 dark:bg-lime-950/40 dark:text-lime-100 dark:ring-lime-900",
   Regular:
     "border-amber-300 bg-amber-50 text-amber-900 ring-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-900",
-  Ruim:
-    "border-orange-300 bg-orange-50 text-orange-900 ring-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-100 dark:ring-orange-900",
+  Ruim: "border-orange-300 bg-orange-50 text-orange-900 ring-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-100 dark:ring-orange-900",
   Péssimo:
     "border-rose-300 bg-rose-50 text-rose-900 ring-rose-100 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-100 dark:ring-rose-900",
 };
@@ -120,12 +118,18 @@ function isNotaOficial(value) {
 }
 
 function tipoEventoPermiteExposicao(tipoEvento) {
-  const tipo = String(tipoEvento || "").trim().toLowerCase();
+  const tipo = String(tipoEvento || "")
+    .trim()
+    .toLowerCase();
   return tipo === "congresso" || tipo === "simpósio" || tipo === "simposio";
 }
 
 function tipoEventoPermiteCongresso(tipoEvento) {
-  return String(tipoEvento || "").trim().toLowerCase() === "congresso";
+  return (
+    String(tipoEvento || "")
+      .trim()
+      .toLowerCase() === "congresso"
+  );
 }
 
 function normalizarTexto(value, max = 4000) {
@@ -163,8 +167,7 @@ function MiniCard({ icon: Icon, title, children, tone = "violet" }) {
   const tones = {
     violet:
       "border-violet-100 bg-white dark:border-violet-900 dark:bg-zinc-900",
-    amber:
-      "border-amber-200 bg-white dark:border-amber-900 dark:bg-zinc-900",
+    amber: "border-amber-200 bg-white dark:border-amber-900 dark:bg-zinc-900",
     emerald:
       "border-emerald-100 bg-white dark:border-emerald-900 dark:bg-zinc-900",
     rose: "border-rose-200 bg-white dark:border-rose-900 dark:bg-zinc-900",
@@ -212,7 +215,7 @@ function RatingField({
         "rounded-3xl p-4 ring-1 transition",
         invalid
           ? "bg-rose-50 ring-rose-200 dark:bg-rose-950/30 dark:ring-rose-800/70"
-          : "bg-white ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800"
+          : "bg-white ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800",
       )}
       aria-required={obrigatorio ? "true" : "false"}
       aria-invalid={invalid ? "true" : "false"}
@@ -246,7 +249,7 @@ function RatingField({
           "mb-3 text-xs font-semibold",
           invalid
             ? "text-rose-700 dark:text-rose-300"
-            : "text-slate-500 dark:text-zinc-400"
+            : "text-slate-500 dark:text-zinc-400",
         )}
       >
         {invalid ? "Selecione uma nota para continuar." : "Escolha uma opção."}
@@ -272,7 +275,7 @@ function RatingField({
                 "rounded-2xl border px-3 py-3 text-center text-xs font-black ring-1 transition focus:outline-none focus:ring-4",
                 checked
                   ? NOTA_STYLE[opcao]
-                  : `${NOTA_STYLE_INATIVA} focus:ring-violet-100 dark:focus:ring-violet-950`
+                  : `${NOTA_STYLE_INATIVA} focus:ring-violet-100 dark:focus:ring-violet-950`,
               )}
             >
               <span>{opcao}</span>
@@ -395,7 +398,7 @@ export default function ModalAvaliacaoFormulario({
   }, [notas]);
 
   const percentualObrigatorios = Math.round(
-    (preenchidosObrigatorios / totalObrigatorios) * 100
+    (preenchidosObrigatorios / totalObrigatorios) * 100,
   );
 
   const faltandoObrigatorios = useMemo(() => {
@@ -407,12 +410,14 @@ export default function ModalAvaliacaoFormulario({
       .filter(isNotaOficial)
       .map((nota) => NOTA_PONTUACAO[nota]);
 
-    if (!valores.length) return null;
+    if (!valores.length) {
+      return null;
+    }
 
     return Number(
       (valores.reduce((acc, value) => acc + value, 0) / valores.length).toFixed(
-        2
-      )
+        2,
+      ),
     );
   }, [notas]);
 
@@ -427,7 +432,9 @@ export default function ModalAvaliacaoFormulario({
   const focusPrimeiroPendente = useCallback(() => {
     const primeiro = faltandoObrigatorios[0];
 
-    if (!primeiro) return;
+    if (!primeiro) {
+      return;
+    }
 
     window.requestAnimationFrame(() => {
       fieldRefs.current[primeiro]?.focus?.();
@@ -439,7 +446,9 @@ export default function ModalAvaliacaoFormulario({
   }, [faltandoObrigatorios]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     setNotas({});
     setTextos({
@@ -461,12 +470,15 @@ export default function ModalAvaliacaoFormulario({
     }));
   }, []);
 
-  const handleTextoChange = useCallback((campo) => (event) => {
-    setTextos((prev) => ({
-      ...prev,
-      [campo]: event.target.value,
-    }));
-  }, []);
+  const handleTextoChange = useCallback(
+    (campo) => (event) => {
+      setTextos((prev) => ({
+        ...prev,
+        [campo]: event.target.value,
+      }));
+    },
+    [],
+  );
 
   async function enviarAvaliacao() {
     setTentouEnviar(true);
@@ -497,7 +509,7 @@ export default function ModalAvaliacaoFormulario({
 
       if (typeof api?.avaliacao?.enviar !== "function") {
         throw new Error(
-          "Facade api.avaliacao.enviar não encontrada em frontend/src/services/api.js."
+          "Facade api.avaliacao.enviar não encontrada em frontend/src/services/api.js.",
         );
       }
 
@@ -505,7 +517,7 @@ export default function ModalAvaliacaoFormulario({
         turma_id: turmaId,
         evento_id: eventoId,
         ...Object.fromEntries(
-          Object.entries(notas).filter(([, value]) => isNotaOficial(value))
+          Object.entries(notas).filter(([, value]) => isNotaOficial(value)),
         ),
         gostou_mais: normalizarTexto(textos.gostou_mais),
         sugestoes_melhoria: normalizarTexto(textos.sugestoes_melhoria),
@@ -516,7 +528,7 @@ export default function ModalAvaliacaoFormulario({
 
       setMsgA11y("Avaliação enviada com sucesso.");
       notifySuccess(
-        "Avaliação enviada com sucesso. Se elegível, seu certificado será liberado."
+        "Avaliação enviada com sucesso. Se elegível, seu certificado será liberado.",
       );
 
       onClose?.();
@@ -526,7 +538,7 @@ export default function ModalAvaliacaoFormulario({
 
       const message = obterMensagemErro(
         error,
-        "Não foi possível enviar a avaliação. Verifique os dados e tente novamente."
+        "Não foi possível enviar a avaliação. Verifique os dados e tente novamente.",
       );
 
       setMsgA11y(message);
@@ -536,7 +548,9 @@ export default function ModalAvaliacaoFormulario({
     }
   }
 
-  if (!isOpen || !evento) return null;
+  if (!isOpen || !evento) {
+    return null;
+  }
 
   return (
     <Modal
@@ -710,7 +724,7 @@ export default function ModalAvaliacaoFormulario({
               <ChevronDown
                 className={cls(
                   "h-5 w-5 text-slate-500 transition-transform",
-                  showExtras ? "rotate-180" : ""
+                  showExtras ? "rotate-180" : "",
                 )}
                 aria-hidden="true"
               />

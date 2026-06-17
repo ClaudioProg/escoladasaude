@@ -57,7 +57,7 @@ const query =
 
 if (typeof query !== "function") {
   throw new Error(
-    "[calendarioController] DB inválido. O export oficial de ../db deve expor query."
+    "[calendarioController] DB inválido. O export oficial de ../db deve expor query.",
   );
 }
 
@@ -86,13 +86,7 @@ function gerarRequestId(prefix = "calendario") {
 
 function sucesso(
   res,
-  {
-    status = 200,
-    data = null,
-    message = "OK",
-    code = "OK",
-    meta = null,
-  } = {}
+  { status = 200, data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(status).json({
     ok: true,
@@ -112,7 +106,7 @@ function falha(
     adminHint = null,
     details = null,
     requestId,
-  }
+  },
 ) {
   return res.status(status).json({
     ok: false,
@@ -386,7 +380,7 @@ async function criar(req, res) {
           criado_em,
           atualizado_em
       `,
-      [data, tipo, descricao]
+      [data, tipo, descricao],
     );
 
     return sucesso(res, {
@@ -491,7 +485,7 @@ async function atualizar(req, res) {
           criado_em,
           atualizado_em
       `,
-      params
+      params,
     );
 
     const row = result.rows?.[0] || null;
@@ -546,7 +540,7 @@ async function excluir(req, res) {
           criado_em,
           atualizado_em
       `,
-      [id]
+      [id],
     );
 
     const row = result.rows?.[0] || null;

@@ -56,9 +56,7 @@ import {
   Eye,
   FileQuestion,
   Filter,
-  Globe2,
   Layers3,
-  Link2,
   ListChecks,
   Loader2,
   MessageSquareText,
@@ -139,15 +137,25 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
 function unwrapData(response) {
-  if (response?.data?.data !== undefined) return response.data.data;
-  if (response?.data !== undefined) return response.data;
+  if (response?.data?.data !== undefined) {
+    return response.data.data;
+  }
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -182,17 +190,21 @@ function isHttpUrl(value) {
 }
 
 function inputDateTimeLocal(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   try {
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
     const pad = (number) => String(number).padStart(2, "0");
 
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-      date.getDate()
+      date.getDate(),
     )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   } catch {
     return "";
@@ -200,12 +212,16 @@ function inputDateTimeLocal(value) {
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -306,10 +322,7 @@ function criarPerguntaVazia() {
     ordem: 0,
     obrigatoria: true,
     limite_caracteres: "",
-    opcoes: [
-      criarOpcaoVazia(0),
-      criarOpcaoVazia(1),
-    ],
+    opcoes: [criarOpcaoVazia(0), criarOpcaoVazia(1)],
   };
 }
 
@@ -322,7 +335,9 @@ function criarOpcaoVazia(ordem = 0) {
 }
 
 function normalizeFormFromPesquisa(pesquisa) {
-  if (!pesquisa) return FORM_INICIAL;
+  if (!pesquisa) {
+    return FORM_INICIAL;
+  }
 
   return {
     titulo: pesquisa.titulo || "",
@@ -399,10 +414,12 @@ export default function PesquisasAdmin() {
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
-  const [filtroStatus, setFiltroStatus] = useState(persisted.filtroStatus || "");
+  const [filtroStatus, setFiltroStatus] = useState(
+    persisted.filtroStatus || "",
+  );
   const [filtroTipo, setFiltroTipo] = useState(persisted.filtroTipo || "");
   const [filtroContexto, setFiltroContexto] = useState(
-    persisted.filtroContexto || ""
+    persisted.filtroContexto || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -436,7 +453,7 @@ export default function PesquisasAdmin() {
           filtroTipo,
           filtroContexto,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página
@@ -467,7 +484,7 @@ export default function PesquisasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as pesquisas."
+        "Não foi possível carregar as pesquisas.",
       );
 
       setErro(message);
@@ -517,10 +534,12 @@ export default function PesquisasAdmin() {
             pesquisa.turma_nome,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -543,12 +562,24 @@ export default function PesquisasAdmin() {
       const status = String(pesquisa.status || "").toLowerCase();
       const tipo = String(pesquisa.tipo || "").toLowerCase();
 
-      if (status === "rascunho") base.rascunho += 1;
-      if (status === "publicada") base.publicada += 1;
-      if (status === "encerrada") base.encerrada += 1;
-      if (status === "arquivada") base.arquivada += 1;
-      if (tipo === "interna") base.interna += 1;
-      if (tipo === "externa") base.externa += 1;
+      if (status === "rascunho") {
+        base.rascunho += 1;
+      }
+      if (status === "publicada") {
+        base.publicada += 1;
+      }
+      if (status === "encerrada") {
+        base.encerrada += 1;
+      }
+      if (status === "arquivada") {
+        base.arquivada += 1;
+      }
+      if (tipo === "interna") {
+        base.interna += 1;
+      }
+      if (tipo === "externa") {
+        base.externa += 1;
+      }
 
       base.respostas += Number(pesquisa.total_respostas || 0);
     }
@@ -557,7 +588,7 @@ export default function PesquisasAdmin() {
   }, [pesquisas]);
 
   const temFiltrosAtivos = Boolean(
-    filtroStatus || filtroTipo || filtroContexto || buscaDebounced
+    filtroStatus || filtroTipo || filtroContexto || buscaDebounced,
   );
 
   function limparFiltros() {
@@ -570,9 +601,15 @@ export default function PesquisasAdmin() {
   }
 
   function removerChip(tipo) {
-    if (tipo === "status") setFiltroStatus("");
-    if (tipo === "tipo") setFiltroTipo("");
-    if (tipo === "contexto") setFiltroContexto("");
+    if (tipo === "status") {
+      setFiltroStatus("");
+    }
+    if (tipo === "tipo") {
+      setFiltroTipo("");
+    }
+    if (tipo === "contexto") {
+      setFiltroContexto("");
+    }
 
     if (tipo === "busca") {
       setBusca("");
@@ -602,7 +639,7 @@ export default function PesquisasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a pesquisa para edição."
+        "Não foi possível carregar a pesquisa para edição.",
       );
 
       setErro(message);
@@ -618,7 +655,9 @@ export default function PesquisasAdmin() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -629,14 +668,17 @@ export default function PesquisasAdmin() {
       await api.pesquisa.excluir(confirmacao.id);
 
       setPesquisas((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Pesquisa excluída com sucesso.");
       setLive("Pesquisa excluída com sucesso.");
       setConfirmacao(null);
     } catch (error) {
-      const message = getErrorMessage(error, "Não foi possível excluir a pesquisa.");
+      const message = getErrorMessage(
+        error,
+        "Não foi possível excluir a pesquisa.",
+      );
 
       setErro(message);
       setLive("Falha ao excluir pesquisa.");
@@ -646,7 +688,9 @@ export default function PesquisasAdmin() {
   }
 
   async function alterarStatus(pesquisa, status) {
-    if (!pesquisa?.id || !status || pesquisa.status === status) return;
+    if (!pesquisa?.id || !status || pesquisa.status === status) {
+      return;
+    }
 
     setAlterandoStatusId(pesquisa.id);
     setErro("");
@@ -667,8 +711,8 @@ export default function PesquisasAdmin() {
                   : {}),
                 status,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMensagem("Status da pesquisa atualizado com sucesso.");
@@ -676,7 +720,7 @@ export default function PesquisasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível alterar o status da pesquisa."
+        "Não foi possível alterar o status da pesquisa.",
       );
 
       setErro(message);
@@ -713,7 +757,7 @@ export default function PesquisasAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar o resultado da pesquisa."
+        "Não foi possível carregar o resultado da pesquisa.",
       );
 
       setPainelResultado({
@@ -738,7 +782,9 @@ export default function PesquisasAdmin() {
         titulo={confirmacao?.titulo}
         loading={excluindo}
         onCancel={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -748,7 +794,9 @@ export default function PesquisasAdmin() {
         painel={painelResultado}
         loading={carregandoResultado}
         onClose={() => {
-          if (carregandoResultado) return;
+          if (carregandoResultado) {
+            return;
+          }
           setPainelResultado(null);
         }}
       />
@@ -768,7 +816,12 @@ export default function PesquisasAdmin() {
           kpis={kpis}
         />
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -894,7 +947,9 @@ export default function PesquisasAdmin() {
                 key={pesquisa.id}
                 pesquisa={pesquisa}
                 reduceMotion={reduceMotion}
-                alterandoStatus={String(alterandoStatusId) === String(pesquisa.id)}
+                alterandoStatus={
+                  String(alterandoStatusId) === String(pesquisa.id)
+                }
                 onEditar={() => handleEditar(pesquisa)}
                 onExcluir={() => pedirExclusao(pesquisa)}
                 onResultado={() => abrirResultado(pesquisa)}
@@ -1011,23 +1066,19 @@ function PainelOperacionalPesquisas({
 function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
   const tones = {
     emerald: {
-      wrap:
-        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      wrap: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
       gradient: "from-emerald-600 via-teal-500 to-cyan-500",
     },
     blue: {
-      wrap:
-        "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/25 dark:text-blue-100",
+      wrap: "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/25 dark:text-blue-100",
       gradient: "from-blue-600 via-sky-500 to-cyan-500",
     },
     violet: {
-      wrap:
-        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      wrap: "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
       gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
     },
     slate: {
-      wrap:
-        "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+      wrap: "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
       gradient: "from-slate-600 via-zinc-500 to-slate-400",
     },
   };
@@ -1035,7 +1086,9 @@ function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
   const cfg = tones[tone] || tones.emerald;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -1056,8 +1109,7 @@ function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -1176,7 +1228,7 @@ function PesquisaCard({
           pesquisa.status === "publicada" && "bg-emerald-600",
           pesquisa.status === "rascunho" && "bg-amber-500",
           pesquisa.status === "encerrada" && "bg-blue-600",
-          pesquisa.status === "arquivada" && "bg-slate-500"
+          pesquisa.status === "arquivada" && "bg-slate-500",
         )}
         aria-hidden="true"
       />
@@ -1230,7 +1282,7 @@ function PesquisaCard({
               icon={Clock}
               title="Período"
               value={`${brDateTime(pesquisa.abre_em)} → ${brDateTime(
-                pesquisa.fecha_em
+                pesquisa.fecha_em,
               )}`}
             />
             <InfoBox
@@ -1374,8 +1426,7 @@ function StatusBadge({ status }) {
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
   };
@@ -1384,7 +1435,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}
@@ -1447,7 +1498,9 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     setForm(normalizeFormFromPesquisa(pesquisa));
     setSalvando(false);
@@ -1468,10 +1521,10 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
-  window.clearTimeout(timer);
-  document.body.style.overflow = "";
-  window.removeEventListener("keydown", onKeyDown);
-};
+      window.clearTimeout(timer);
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [aberto, pesquisa, onClose, salvando]);
 
   function setCampo(campo, valor) {
@@ -1486,7 +1539,9 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
           next.perguntas = [];
         } else {
           next.link_externo = "";
-          if (!Array.isArray(next.perguntas)) next.perguntas = [];
+          if (!Array.isArray(next.perguntas)) {
+            next.perguntas = [];
+          }
         }
       }
 
@@ -1534,7 +1589,9 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== localId) return pergunta;
+        if (pergunta.local_id !== localId) {
+          return pergunta;
+        }
 
         const next = {
           ...pergunta,
@@ -1573,7 +1630,9 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== perguntaLocalId) return pergunta;
+        if (pergunta.local_id !== perguntaLocalId) {
+          return pergunta;
+        }
 
         return {
           ...pergunta,
@@ -1590,12 +1649,16 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== perguntaLocalId) return pergunta;
+        if (pergunta.local_id !== perguntaLocalId) {
+          return pergunta;
+        }
 
         return {
           ...pergunta,
           opcoes: (pergunta.opcoes || []).map((opcao) =>
-            opcao.local_id === opcaoLocalId ? { ...opcao, [campo]: valor } : opcao
+            opcao.local_id === opcaoLocalId
+              ? { ...opcao, [campo]: valor }
+              : opcao,
           ),
         };
       }),
@@ -1606,7 +1669,9 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== perguntaLocalId) return pergunta;
+        if (pergunta.local_id !== perguntaLocalId) {
+          return pergunta;
+        }
 
         return {
           ...pergunta,
@@ -1676,7 +1741,10 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
           return `Tipo inválido na pergunta ${index + 1}.`;
         }
 
-        if (!cleanStr(pergunta.enunciado) || cleanStr(pergunta.enunciado).length < 3) {
+        if (
+          !cleanStr(pergunta.enunciado) ||
+          cleanStr(pergunta.enunciado).length < 3
+        ) {
           return `Informe o enunciado da pergunta ${index + 1}.`;
         }
 
@@ -1695,7 +1763,11 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
             return `A pergunta ${index + 1} precisa ter pelo menos duas opções.`;
           }
 
-          for (let optionIndex = 0; optionIndex < opcoes.length; optionIndex += 1) {
+          for (
+            let optionIndex = 0;
+            optionIndex < opcoes.length;
+            optionIndex += 1
+          ) {
             if (!cleanStr(opcoes[optionIndex].texto)) {
               return `Informe o texto da opção ${optionIndex + 1} da pergunta ${
                 index + 1
@@ -1753,7 +1825,8 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
       contexto: form.contexto,
       evento_id: form.contexto === "evento" ? Number(form.evento_id) : null,
       turma_id: form.contexto === "turma" ? Number(form.turma_id) : null,
-      link_externo: form.tipo === "externa" ? cleanStr(form.link_externo) : null,
+      link_externo:
+        form.tipo === "externa" ? cleanStr(form.link_externo) : null,
       exibir_inicio: Boolean(form.exibir_inicio),
       destaque: Boolean(form.destaque),
       obrigatoria: Boolean(form.obrigatoria),
@@ -1768,7 +1841,9 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
   async function salvar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1797,7 +1872,10 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
       await onSaved?.();
       onClose?.();
     } catch (error) {
-      const message = getErrorMessage(error, "Não foi possível salvar a pesquisa.");
+      const message = getErrorMessage(
+        error,
+        "Não foi possível salvar a pesquisa.",
+      );
 
       setErro(message);
       setA11y(message);
@@ -1806,15 +1884,21 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
     }
   }
 
-  if (!aberto) return null;
+  if (!aberto) {
+    return null;
+  }
 
   return createPortal(
-  <div
-    className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-    role="presentation"
-    onMouseDown={(event) => {
-      if (salvando) return;
-      if (event.target === event.currentTarget) onClose?.();
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <div
@@ -1822,7 +1906,8 @@ function ModalPesquisa({ aberto, pesquisa, onClose, onSaved }) {
         aria-modal="true"
         aria-labelledby="modal-pesquisa-title"
         aria-describedby="modal-pesquisa-desc"
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"      >
+        className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
+      >
         <header className="relative overflow-hidden border-b border-white/10 bg-slate-950 p-5 text-white sm:p-6">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,.30),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(20,184,166,.25),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(6,182,212,.22),transparent_35%)]" />
 
@@ -1868,7 +1953,8 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
 
         <form
           onSubmit={salvar}
-className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"        >
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"
+        >
           {erro ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">
               <div className="flex gap-2">
@@ -1947,7 +2033,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                     type="number"
                     min="1"
                     value={form.evento_id}
-                    onChange={(event) => setCampo("evento_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("evento_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID do evento"
                     disabled={salvando}
@@ -1961,7 +2049,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                     type="number"
                     min="1"
                     value={form.turma_id}
-                    onChange={(event) => setCampo("turma_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("turma_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID da turma"
                     disabled={salvando}
@@ -2009,7 +2099,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                 <Field label="Descrição">
                   <textarea
                     value={form.descricao}
-                    onChange={(event) => setCampo("descricao", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("descricao", event.target.value)
+                    }
                     rows={4}
                     className={textareaClass()}
                     placeholder="Explique o objetivo da pesquisa."
@@ -2105,7 +2197,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                           pergunta.local_id,
                           opcaoLocalId,
                           campo,
-                          valor
+                          valor,
                         )
                       }
                       onRemoveOpcao={(opcaoLocalId) =>
@@ -2119,11 +2211,12 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
           ) : null}
         </form>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          {" "}
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             Campos com <span className="font-bold text-rose-500">*</span> são
             obrigatórios.
           </p>
-
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             <button
               type="button"
@@ -2156,7 +2249,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
         </footer>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -2216,10 +2309,16 @@ function PerguntaEditor({
             type="number"
             min="1"
             value={pergunta.limite_caracteres}
-            onChange={(event) => onChange("limite_caracteres", event.target.value)}
+            onChange={(event) =>
+              onChange("limite_caracteres", event.target.value)
+            }
             className={inputClass()}
             disabled={salvando || pergunta.tipo === "escala" || exigeOpcoes}
-            placeholder={exigeOpcoes || pergunta.tipo === "escala" ? "Não se aplica" : "Ex.: 200"}
+            placeholder={
+              exigeOpcoes || pergunta.tipo === "escala"
+                ? "Não se aplica"
+                : "Ex.: 200"
+            }
           />
         </Field>
 
@@ -2303,7 +2402,9 @@ function PerguntaEditor({
 =========================================================================== */
 
 function ResultadoDrawer({ painel, loading, onClose }) {
-  if (!painel) return null;
+  if (!painel) {
+    return null;
+  }
 
   const resultado = painel.resultado || null;
   const respostas = painel.respostas || [];
@@ -2313,8 +2414,12 @@ function ResultadoDrawer({ painel, loading, onClose }) {
       className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-sm"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <aside
@@ -2436,7 +2541,7 @@ function ResultadoDrawer({ painel, loading, onClose }) {
         </div>
       </aside>
     </div>,
-        document.body
+    document.body,
   );
 }
 
@@ -2450,14 +2555,16 @@ function ResultadoPergunta({ pergunta }) {
           {pergunta.enunciado}
         </p>
         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-          {pergunta.tipo_label || tipoPerguntaLabel(pergunta.tipo)} · {total} resposta(s)
+          {pergunta.tipo_label || tipoPerguntaLabel(pergunta.tipo)} · {total}{" "}
+          resposta(s)
         </p>
       </div>
 
       {pergunta.opcoes?.length ? (
         <div className="mt-4 space-y-2">
           {pergunta.opcoes.map((opcao) => {
-            const percentual = total > 0 ? Math.round((Number(opcao.total) / total) * 100) : 0;
+            const percentual =
+              total > 0 ? Math.round((Number(opcao.total) / total) * 100) : 0;
 
             return (
               <div key={opcao.opcao_id} className="space-y-1">
@@ -2519,7 +2626,9 @@ function RespostaItem({ resposta }) {
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div>
           <p className="font-black text-slate-900 dark:text-white">
-            {resposta.anonima ? "Resposta anônima" : resposta.usuario_nome || "Usuário"}
+            {resposta.anonima
+              ? "Resposta anônima"
+              : resposta.usuario_nome || "Usuário"}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Enviada em {brDateTime(resposta.enviada_em)}
@@ -2555,16 +2664,28 @@ function RespostaItem({ resposta }) {
    Confirmação / campos
 =========================================================================== */
 
-function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
-  if (!open) return null;
+function ConfirmarExclusaoModal({
+  open,
+  titulo,
+  loading,
+  onCancel,
+  onConfirm,
+}) {
+  if (!open) {
+    return null;
+  }
 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onCancel?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onCancel?.();
+        }
       }}
     >
       <div
@@ -2590,8 +2711,8 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
                 className="mt-2 text-sm leading-relaxed text-white/90"
               >
                 Tem certeza que deseja excluir{" "}
-                {titulo ? <strong>“{titulo}”</strong> : "esta pesquisa"}?
-                Esta ação remove perguntas, opções e respostas vinculadas.
+                {titulo ? <strong>“{titulo}”</strong> : "esta pesquisa"}? Esta
+                ação remove perguntas, opções e respostas vinculadas.
               </p>
             </div>
 
@@ -2639,7 +2760,7 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 

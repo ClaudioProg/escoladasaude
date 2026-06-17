@@ -62,13 +62,13 @@ if (
   typeof db.result !== "function"
 ) {
   throw new Error(
-    "[notificacaoController] db deve exportar query(), oneOrNone(), one() e result()."
+    "[notificacaoController] db deve exportar query(), oneOrNone(), one() e result().",
   );
 }
 
 if (typeof buscarAvaliacaoPendentes !== "function") {
   throw new Error(
-    "[notificacaoController] buscarAvaliacaoPendentes deve ser uma função."
+    "[notificacaoController] buscarAvaliacaoPendentes deve ser uma função.",
   );
 }
 
@@ -152,7 +152,7 @@ function exigirUsuarioId(req, res) {
       res,
       401,
       "NOTIFICACAO-401-NAO-AUTENTICADO",
-      "Usuário não autenticado."
+      "Usuário não autenticado.",
     );
 
     return null;
@@ -190,7 +190,7 @@ function normalizeText(value, { max = 500, required = false } = {}) {
     if (required) {
       throw criarErroNotificacao(
         "Campo textual obrigatório ausente.",
-        "NOTIFICACAO-400-TEXTO-OBRIGATORIO"
+        "NOTIFICACAO-400-TEXTO-OBRIGATORIO",
       );
     }
 
@@ -201,7 +201,9 @@ function normalizeText(value, { max = 500, required = false } = {}) {
 }
 
 function normalizeTipo(value) {
-  const tipo = String(value || "").trim().toLowerCase();
+  const tipo = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!tipo) {
     return null;
@@ -211,7 +213,7 @@ function normalizeTipo(value) {
     throw criarErroNotificacao(
       `Tipo de notificação inválido: ${tipo}.`,
       "NOTIFICACAO-400-TIPO-INVALIDO",
-      { tipo }
+      { tipo },
     );
   }
 
@@ -219,7 +221,9 @@ function normalizeTipo(value) {
 }
 
 function normalizeBooleanQuery(value) {
-  const text = String(value ?? "").trim().toLowerCase();
+  const text = String(value ?? "")
+    .trim()
+    .toLowerCase();
 
   return text === "1" || text === "true";
 }
@@ -350,7 +354,7 @@ async function existeNotificacaoDuplicada({
       evento_id ? Number(evento_id) : null,
       reserva_id ? Number(reserva_id) : null,
       Boolean(somente_nao_lida),
-    ]
+    ],
   );
 
   return rows.length > 0;
@@ -366,7 +370,7 @@ async function criarNotificacao(usuario_id, mensagem, extra = {}) {
   if (!usuarioId) {
     throw criarErroNotificacao(
       "Usuário da notificação é obrigatório.",
-      "NOTIFICACAO-400-USUARIO-OBRIGATORIO"
+      "NOTIFICACAO-400-USUARIO-OBRIGATORIO",
     );
   }
 
@@ -458,7 +462,7 @@ async function criarNotificacao(usuario_id, mensagem, extra = {}) {
       reservaId,
       link,
       metadata ? JSON.stringify(metadata) : null,
-    ]
+    ],
   );
 
   return mapNotificacao(row);
@@ -496,7 +500,7 @@ async function listarNotificacao(req, res) {
       FROM notificacoes
       WHERE ${where.join(" AND ")}
       `,
-      values
+      values,
     );
 
     values.push(params.limite);
@@ -525,7 +529,7 @@ async function listarNotificacao(req, res) {
       LIMIT ${limiteParam}
       OFFSET ${deslocamentoParam}
       `,
-      values
+      values,
     );
 
     const linhas = Array.isArray(rows) ? rows : rows?.rows || [];
@@ -533,18 +537,18 @@ async function listarNotificacao(req, res) {
     const total = Number(countResult.total || 0);
 
     return respostaOk(res, 200, data, {
-  message: "Notificações carregadas com sucesso.",
-  code: "NOTIFICACAO-200-LISTAR",
-  meta: {
-    total,
-    count: data.length,
-    limite: params.limite,
-    deslocamento: params.deslocamento,
-    tem_mais: params.deslocamento + data.length < total,
-    apenas_nao_lida: params.apenas_nao_lida,
-    tipo: params.tipo,
-  },
-});
+      message: "Notificações carregadas com sucesso.",
+      code: "NOTIFICACAO-200-LISTAR",
+      meta: {
+        total,
+        count: data.length,
+        limite: params.limite,
+        deslocamento: params.deslocamento,
+        tem_mais: params.deslocamento + data.length < total,
+        apenas_nao_lida: params.apenas_nao_lida,
+        tipo: params.tipo,
+      },
+    });
   } catch (error) {
     logErro("listarNotificacao", error, {
       usuarioId,
@@ -555,7 +559,7 @@ async function listarNotificacao(req, res) {
       res,
       getErrorStatus(error),
       error?.code || "NOTIFICACAO-500-LISTAR",
-      error?.message || "Erro ao buscar notificações."
+      error?.message || "Erro ao buscar notificações.",
     );
   }
 }
@@ -581,7 +585,7 @@ async function resumoNotificacoes(req, res) {
       GROUP BY tipo
       ORDER BY tipo ASC
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const por_tipo = {};
@@ -590,38 +594,38 @@ async function resumoNotificacoes(req, res) {
 
     const linhas = Array.isArray(rows) ? rows : rows?.rows || [];
 
-for (const row of linhas) {
-  const tipo = normalizeTipo(row.tipo);
+    for (const row of linhas) {
+      const tipo = normalizeTipo(row.tipo);
 
-  if (!tipo) {
-    continue;
-  }
+      if (!tipo) {
+        continue;
+      }
 
-  const subtotal = Number(row.total || 0);
-  const subNaoLida = Number(row.nao_lida || 0);
+      const subtotal = Number(row.total || 0);
+      const subNaoLida = Number(row.nao_lida || 0);
 
-  por_tipo[tipo] = {
-    total: subtotal,
-    nao_lida: subNaoLida,
-  };
+      por_tipo[tipo] = {
+        total: subtotal,
+        nao_lida: subNaoLida,
+      };
 
-  total += subtotal;
-  nao_lida += subNaoLida;
-}
+      total += subtotal;
+      nao_lida += subNaoLida;
+    }
 
     return respostaOk(
-  res,
-  200,
-  {
-    total,
-    nao_lida,
-    por_tipo,
-  },
-  {
-    message: "Resumo de notificações carregado com sucesso.",
-    code: "NOTIFICACAO-200-RESUMO",
-  }
-);
+      res,
+      200,
+      {
+        total,
+        nao_lida,
+        por_tipo,
+      },
+      {
+        message: "Resumo de notificações carregado com sucesso.",
+        code: "NOTIFICACAO-200-RESUMO",
+      },
+    );
   } catch (error) {
     logErro("resumoNotificacoes", error, {
       usuarioId,
@@ -631,7 +635,7 @@ for (const row of linhas) {
       res,
       500,
       "NOTIFICACAO-500-RESUMO",
-      "Erro ao buscar resumo das notificações."
+      "Erro ao buscar resumo das notificações.",
     );
   }
 }
@@ -654,7 +658,7 @@ async function contarNaoLidas(req, res) {
       FROM notificacoes
       WHERE usuario_id = $1
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     return respostaOk(res, 200, {
@@ -670,7 +674,7 @@ async function contarNaoLidas(req, res) {
       res,
       500,
       "NOTIFICACAO-500-CONTAR-NAO-LIDA",
-      "Erro ao contar notificações."
+      "Erro ao contar notificações.",
     );
   }
 }
@@ -691,7 +695,7 @@ async function marcarComoLida(req, res) {
       res,
       400,
       "NOTIFICACAO-400-ID-INVALIDO",
-      "ID de notificação inválido."
+      "ID de notificação inválido.",
     );
   }
 
@@ -703,7 +707,7 @@ async function marcarComoLida(req, res) {
       WHERE id = $1
         AND usuario_id = $2
       `,
-      [id, usuarioId]
+      [id, usuarioId],
     );
 
     if (result.rowCount === 0) {
@@ -711,7 +715,7 @@ async function marcarComoLida(req, res) {
         res,
         404,
         "NOTIFICACAO-404-NAO-ENCONTRADA",
-        "Notificação não encontrada."
+        "Notificação não encontrada.",
       );
     }
 
@@ -724,7 +728,7 @@ async function marcarComoLida(req, res) {
       },
       {
         message: "Notificação marcada como lida.",
-      }
+      },
     );
   } catch (error) {
     logErro("marcarComoLida", error, {
@@ -736,7 +740,7 @@ async function marcarComoLida(req, res) {
       res,
       500,
       "NOTIFICACAO-500-MARCAR-LIDA",
-      "Erro ao atualizar notificação."
+      "Erro ao atualizar notificação.",
     );
   }
 }
@@ -758,7 +762,7 @@ async function marcarTodasComoLidas(req, res) {
       WHERE usuario_id = $1
         AND lida = false
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     return respostaOk(
@@ -769,7 +773,7 @@ async function marcarTodasComoLidas(req, res) {
       },
       {
         message: "Todas as notificações foram marcadas como lidas.",
-      }
+      },
     );
   } catch (error) {
     logErro("marcarTodasComoLidas", error, {
@@ -780,7 +784,7 @@ async function marcarTodasComoLidas(req, res) {
       res,
       500,
       "NOTIFICACAO-500-MARCAR-TODAS-LIDAS",
-      "Erro ao atualizar notificações."
+      "Erro ao atualizar notificações.",
     );
   }
 }
@@ -839,7 +843,7 @@ async function gerarNotificacaoDeAvaliacao(usuario_id, contexto = {}) {
           turma_id: turmaId,
           evento_id: eventoId,
           link: "/avaliacao",
-        }
+        },
       );
 
       criadas.push(notificacao);
@@ -866,7 +870,9 @@ async function gerarNotificacaoDeCertificado(usuario_id, contexto = {}) {
   if (!usuarioId) return null;
 
   try {
-    const turmaId = contexto?.turma_id ? toPositiveInt(contexto.turma_id) : null;
+    const turmaId = contexto?.turma_id
+      ? toPositiveInt(contexto.turma_id)
+      : null;
     const eventoId = contexto?.evento_id
       ? toPositiveInt(contexto.evento_id)
       : null;
@@ -878,7 +884,7 @@ async function gerarNotificacaoDeCertificado(usuario_id, contexto = {}) {
     if (!turmaId || !eventoId || !eventoTitulo) {
       throw criarErroNotificacao(
         "Contexto de certificado incompleto.",
-        "NOTIFICACAO-400-CERTIFICADO-CONTEXTO-INCOMPLETO"
+        "NOTIFICACAO-400-CERTIFICADO-CONTEXTO-INCOMPLETO",
       );
     }
 
@@ -901,7 +907,7 @@ async function gerarNotificacaoDeCertificado(usuario_id, contexto = {}) {
         turma_id: turmaId,
         evento_id: eventoId,
         link: "/certificado",
-      }
+      },
     );
   } catch (error) {
     logErro("gerarNotificacaoDeCertificado", error, {
@@ -1055,7 +1061,7 @@ async function notificarSubmissaoCriada({
       tipo: "submissao",
       titulo: `Submissão criada: ${trabalhoTitulo}`,
       link: "/trabalho",
-    }
+    },
   );
 }
 
@@ -1091,7 +1097,7 @@ async function notificarPosterAtualizado({
       tipo: "submissao",
       titulo: `Pôster anexado: ${trabalhoTitulo}`,
       link: "/trabalho",
-    }
+    },
   );
 }
 
@@ -1143,7 +1149,7 @@ async function notificarStatusSubmissao({
     throw criarErroNotificacao(
       "Status de submissão inválido.",
       "NOTIFICACAO-400-SUBMISSAO-STATUS-INVALIDO",
-      { status: statusOficial }
+      { status: statusOficial },
     );
   }
 
@@ -1176,7 +1182,7 @@ async function notificarClassificacaoDaChamada(chamada_id) {
       WHERE s.chamada_id = $1
       ORDER BY s.id ASC
       `,
-      [chamadaId]
+      [chamadaId],
     );
 
     const criadas = [];

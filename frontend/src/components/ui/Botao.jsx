@@ -22,8 +22,7 @@ const VARIANTES_FIXAS = {
     "border-slate-300 bg-white text-slate-800 hover:bg-slate-50 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900",
   fantasma:
     "border-transparent bg-transparent text-slate-800 shadow-none hover:bg-slate-100 focus-visible:ring-slate-400 dark:text-slate-100 dark:hover:bg-white/10",
-  link:
-    "border-transparent bg-transparent px-0 text-slate-800 underline underline-offset-4 shadow-none hover:opacity-80 focus-visible:ring-slate-400 dark:text-white",
+  link: "border-transparent bg-transparent px-0 text-slate-800 underline underline-offset-4 shadow-none hover:opacity-80 focus-visible:ring-slate-400 dark:text-white",
 };
 
 const SIZE_CLASSES = {
@@ -58,13 +57,19 @@ const ELEVATION_CLASSES = {
 };
 
 function getRel({ rel, target }) {
-  if (rel) return rel;
+  if (rel) {
+    return rel;
+  }
   return target === "_blank" ? "noopener noreferrer" : undefined;
 }
 
 function getVariantClass({ variant, campanha }) {
-  if (variant === "mensal") return campanha.botao;
-  if (variant === "contraste") return campanha.botaoContraste;
+  if (variant === "mensal") {
+    return campanha.botao;
+  }
+  if (variant === "contraste") {
+    return campanha.botaoContraste;
+  }
 
   return VARIANTES_FIXAS[variant] || campanha.botao;
 }
@@ -96,7 +101,7 @@ const Botao = forwardRef(function Botao(
     preventWhileLoading = true,
     ...props
   },
-  ref
+  ref,
 ) {
   const campanha = getCampanhaSaudeVisual(campanhaMes);
 
@@ -120,7 +125,7 @@ const Botao = forwardRef(function Botao(
 
       onClick?.(event);
     },
-    [isDisabled, loading, onClick, preventWhileLoading]
+    [isDisabled, loading, onClick, preventWhileLoading],
   );
 
   const commonClassName = classNames(
@@ -137,7 +142,7 @@ const Botao = forwardRef(function Botao(
     ELEVATION_CLASSES[elevation] || ELEVATION_CLASSES.md,
     getVariantClass({ variant, campanha }),
     destructive && "ring-1 ring-rose-300/60 dark:ring-rose-900/60",
-    className
+    className,
   );
 
   const content = (
@@ -170,7 +175,7 @@ const Botao = forwardRef(function Botao(
         <span
           className={classNames(
             "inline-flex min-w-0 items-center",
-            loading && "opacity-95"
+            loading && "opacity-95",
           )}
         >
           {loading ? loadingText : children}

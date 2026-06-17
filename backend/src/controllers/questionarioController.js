@@ -96,7 +96,7 @@ function logWarn(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[${rid}] ${message}`,
-    error?.stack || error?.message || error || ""
+    error?.stack || error?.message || error || "",
   );
 }
 
@@ -104,7 +104,12 @@ function logError(rid, message, error) {
  * Envelope
  * ───────────────────────────────────────────────────────────── */
 
-function ok(res, data = null, message = "Operação realizada com sucesso.", status = 200) {
+function ok(
+  res,
+  data = null,
+  message = "Operação realizada com sucesso.",
+  status = 200,
+) {
   return res.status(status).json({
     ok: true,
     data,
@@ -236,7 +241,11 @@ function isAdmin(req) {
 function isGestorQuestionario(req) {
   const perfil = getUserPerfil(req);
 
-  return perfil === "administrador" || perfil === "organizador" || perfil === "coordenador";
+  return (
+    perfil === "administrador" ||
+    perfil === "organizador" ||
+    perfil === "coordenador"
+  );
 }
 
 function round2(value) {
@@ -266,7 +275,7 @@ async function carregarQuestionarioPorId(q, questionarioId) {
     WHERE id = $1
     LIMIT 1
     `,
-    [questionarioId]
+    [questionarioId],
   );
 
   return result.rows?.[0] || null;
@@ -280,7 +289,7 @@ async function carregarQuestionarioPorEvento(q, eventoId) {
     WHERE evento_id = $1
     LIMIT 1
     `,
-    [eventoId]
+    [eventoId],
   );
 
   return result.rows?.[0] || null;
@@ -294,7 +303,7 @@ async function carregarQuestoes(q, questionarioId) {
     WHERE questionario_id = $1
     ORDER BY ordem ASC, id ASC
     `,
-    [questionarioId]
+    [questionarioId],
   );
 
   return result.rows || [];
@@ -314,7 +323,7 @@ async function carregarAlternativasPorQuestoes(q, questaoIds = []) {
     WHERE questao_id = ANY($1::int[])
     ORDER BY questao_id ASC, ordem ASC, id ASC
     `,
-    [ids]
+    [ids],
   );
 
   return result.rows || [];
@@ -328,7 +337,7 @@ async function carregarQuestionarioCompleto(q, questionarioId) {
   const questoes = await carregarQuestoes(q, questionario.id);
   const alternativas = await carregarAlternativasPorQuestoes(
     q,
-    questoes.map((questao) => questao.id)
+    questoes.map((questao) => questao.id),
   );
 
   return {
@@ -336,7 +345,7 @@ async function carregarQuestionarioCompleto(q, questionarioId) {
     questoes: questoes.map((questao) => ({
       ...questao,
       alternativas: alternativas.filter(
-        (alternativa) => Number(alternativa.questao_id) === Number(questao.id)
+        (alternativa) => Number(alternativa.questao_id) === Number(questao.id),
       ),
     })),
   };
@@ -359,7 +368,7 @@ async function questionarioPertenceATurma(q, questionarioId, turmaId) {
       AND t.id = $2
     LIMIT 1
     `,
-    [questionarioId, turmaId]
+    [questionarioId, turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -394,7 +403,7 @@ async function fimRealTurmaStr(q, turmaId) {
       (SELECT fim_real FROM fim_turma)
     ) AS fim_real
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0]?.fim_real || null;
@@ -424,7 +433,7 @@ async function totalDatasTurma(q, turmaId) {
         ELSE COALESCE((SELECT total FROM fallback_turma), 0)
       END AS total
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return Number(result.rows?.[0]?.total || 0);
@@ -439,7 +448,7 @@ async function presentesUsuarioTurma(q, usuarioId, turmaId) {
       AND turma_id = $2
       AND presente = TRUE
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rows?.[0]?.presentes || 0);
@@ -454,7 +463,7 @@ async function usuarioEstaInscrito(q, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return result.rowCount > 0;
@@ -599,7 +608,7 @@ async function criarOuObterRascunhoPorEvento(req, res) {
           true,
           QUESTIONARIO_STATUS.RASCUNHO,
           userId || null,
-        ]
+        ],
       );
 
       return {
@@ -663,7 +672,9 @@ async function atualizarQuestionario(req, res) {
 
     const titulo = normalizeText(req.body?.titulo);
     const descricao =
-      req.body?.descricao === undefined ? undefined : normalizeText(req.body.descricao);
+      req.body?.descricao === undefined
+        ? undefined
+        : normalizeText(req.body.descricao);
     const obrigatorio = normalizeBool(req.body?.obrigatorio, undefined);
     const minNota = validarMinNota(req.body?.min_nota);
     const tentativasMax = validarTentativasMax(req.body?.tentativas_max);
@@ -700,7 +711,7 @@ async function atualizarQuestionario(req, res) {
         obrigatorio === undefined ? null : obrigatorio,
         req.body?.min_nota === undefined ? null : minNota,
         req.body?.tentativas_max === undefined ? null : tentativasMax,
-      ]
+      ],
     );
 
     if (!result.rowCount) {
@@ -733,7 +744,12 @@ async function adicionarQuestao(req, res) {
     if (!questionarioId) return fail(res, 400, "questionario_id inválido.");
     if (!tipo) return fail(res, 400, "tipo inválido.");
     if (!enunciado) return fail(res, 400, "enunciado é obrigatório.");
-    if (peso === null) return fail(res, 400, "peso inválido. Use valor maior que 0 e menor ou igual a 10.");
+    if (peso === null)
+      return fail(
+        res,
+        400,
+        "peso inválido. Use valor maior que 0 e menor ou igual a 10.",
+      );
 
     const questionario = await carregarQuestionarioPorId(query, questionarioId);
 
@@ -742,7 +758,11 @@ async function adicionarQuestao(req, res) {
     }
 
     if (questionario.status === QUESTIONARIO_STATUS.PUBLICADO) {
-      return fail(res, 409, "Questionário publicado não pode receber novas questões.");
+      return fail(
+        res,
+        409,
+        "Questionário publicado não pode receber novas questões.",
+      );
     }
 
     const result = await query(
@@ -757,7 +777,7 @@ async function adicionarQuestao(req, res) {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
       `,
-      [questionarioId, tipo, enunciado, ordem, peso]
+      [questionarioId, tipo, enunciado, ordem, peso],
     );
 
     logDev(rid, "adicionarQuestao OK", {
@@ -783,21 +803,31 @@ async function atualizarQuestao(req, res) {
     if (!questaoId) return fail(res, 400, "questao_id inválido.");
 
     const tipo =
-      req.body?.tipo === undefined ? undefined : normalizeTipoQuestao(req.body.tipo);
+      req.body?.tipo === undefined
+        ? undefined
+        : normalizeTipoQuestao(req.body.tipo);
     const enunciado =
-      req.body?.enunciado === undefined ? undefined : normalizeText(req.body.enunciado);
+      req.body?.enunciado === undefined
+        ? undefined
+        : normalizeText(req.body.enunciado);
     const ordem =
       req.body?.ordem === undefined ? undefined : toPositiveInt(req.body.ordem);
     const peso =
       req.body?.peso === undefined ? undefined : validarPeso(req.body.peso);
 
-    if (req.body?.tipo !== undefined && !tipo) return fail(res, 400, "tipo inválido.");
+    if (req.body?.tipo !== undefined && !tipo)
+      return fail(res, 400, "tipo inválido.");
     if (req.body?.enunciado !== undefined && !enunciado) {
       return fail(res, 400, "enunciado é obrigatório.");
     }
-    if (req.body?.ordem !== undefined && !ordem) return fail(res, 400, "ordem inválida.");
+    if (req.body?.ordem !== undefined && !ordem)
+      return fail(res, 400, "ordem inválida.");
     if (req.body?.peso !== undefined && peso === null) {
-      return fail(res, 400, "peso inválido. Use valor maior que 0 e menor ou igual a 10.");
+      return fail(
+        res,
+        400,
+        "peso inválido. Use valor maior que 0 e menor ou igual a 10.",
+      );
     }
 
     const result = await query(
@@ -819,7 +849,7 @@ async function atualizarQuestao(req, res) {
         enunciado === undefined ? null : enunciado,
         ordem === undefined ? null : ordem,
         peso === undefined ? null : peso,
-      ]
+      ],
     );
 
     if (!result.rowCount) {
@@ -852,7 +882,7 @@ async function removerQuestao(req, res) {
         AND questionario_id = $2
       RETURNING id
       `,
-      [questaoId, questionarioId]
+      [questaoId, questionarioId],
     );
 
     if (!result.rowCount) {
@@ -895,7 +925,7 @@ async function adicionarAlternativa(req, res) {
       VALUES ($1, $2, $3, $4)
       RETURNING *
       `,
-      [questaoId, texto, correta, ordem]
+      [questaoId, texto, correta, ordem],
     );
 
     logDev(rid, "adicionarAlternativa OK", {
@@ -923,15 +953,19 @@ async function atualizarAlternativa(req, res) {
     const texto =
       req.body?.texto === undefined ? undefined : normalizeText(req.body.texto);
     const correta =
-      req.body?.correta === undefined ? undefined : normalizeBool(req.body.correta, undefined);
+      req.body?.correta === undefined
+        ? undefined
+        : normalizeBool(req.body.correta, undefined);
     const ordem =
       req.body?.ordem === undefined ? undefined : toPositiveInt(req.body.ordem);
 
-    if (req.body?.texto !== undefined && !texto) return fail(res, 400, "texto é obrigatório.");
+    if (req.body?.texto !== undefined && !texto)
+      return fail(res, 400, "texto é obrigatório.");
     if (req.body?.correta !== undefined && typeof correta !== "boolean") {
       return fail(res, 400, "correta deve ser boolean.");
     }
-    if (req.body?.ordem !== undefined && !ordem) return fail(res, 400, "ordem inválida.");
+    if (req.body?.ordem !== undefined && !ordem)
+      return fail(res, 400, "ordem inválida.");
 
     const result = await query(
       `
@@ -948,7 +982,7 @@ async function atualizarAlternativa(req, res) {
         texto === undefined ? null : texto,
         correta === undefined ? null : correta,
         ordem === undefined ? null : ordem,
-      ]
+      ],
     );
 
     if (!result.rowCount) {
@@ -980,7 +1014,7 @@ async function removerAlternativa(req, res) {
       WHERE id = $1
       RETURNING id
       `,
-      [alternativaId]
+      [alternativaId],
     );
 
     if (!result.rowCount) {
@@ -1019,21 +1053,30 @@ async function publicarQuestionario(req, res) {
     const questoes = await carregarQuestoes(query, questionarioId);
 
     if (!questoes.length) {
-      return fail(res, 400, "Não é possível publicar: adicione ao menos uma questão.");
+      return fail(
+        res,
+        400,
+        "Não é possível publicar: adicione ao menos uma questão.",
+      );
     }
 
     const somaPesos = round2(
-      questoes.reduce((total, questao) => total + Number(questao.peso || 0), 0)
+      questoes.reduce((total, questao) => total + Number(questao.peso || 0), 0),
     );
 
     if (somaPesos !== 10) {
-      return fail(res, 400, "Não é possível publicar: a soma dos pesos deve fechar exatamente 10.", {
-        soma_pesos: somaPesos,
-      });
+      return fail(
+        res,
+        400,
+        "Não é possível publicar: a soma dos pesos deve fechar exatamente 10.",
+        {
+          soma_pesos: somaPesos,
+        },
+      );
     }
 
     const questoesObjetivas = questoes.filter(
-      (questao) => questao.tipo === "multipla_escolha"
+      (questao) => questao.tipo === "multipla_escolha",
     );
 
     if (questoesObjetivas.length) {
@@ -1047,11 +1090,11 @@ async function publicarQuestionario(req, res) {
         WHERE questao_id = ANY($1::int[])
         GROUP BY questao_id
         `,
-        [questoesObjetivas.map((questao) => questao.id)]
+        [questoesObjetivas.map((questao) => questao.id)],
       );
 
       const mapa = new Map(
-        alternativas.rows.map((row) => [Number(row.questao_id), row])
+        alternativas.rows.map((row) => [Number(row.questao_id), row]),
       );
 
       for (const questao of questoesObjetivas) {
@@ -1063,7 +1106,7 @@ async function publicarQuestionario(req, res) {
           return fail(
             res,
             400,
-            `Questão ${questao.id}: múltipla escolha precisa de pelo menos 2 alternativas.`
+            `Questão ${questao.id}: múltipla escolha precisa de pelo menos 2 alternativas.`,
           );
         }
 
@@ -1071,7 +1114,7 @@ async function publicarQuestionario(req, res) {
           return fail(
             res,
             400,
-            `Questão ${questao.id}: múltipla escolha precisa ter exatamente 1 alternativa correta.`
+            `Questão ${questao.id}: múltipla escolha precisa ter exatamente 1 alternativa correta.`,
           );
         }
       }
@@ -1085,7 +1128,7 @@ async function publicarQuestionario(req, res) {
       WHERE id = $1
       RETURNING *
       `,
-      [questionarioId, QUESTIONARIO_STATUS.PUBLICADO]
+      [questionarioId, QUESTIONARIO_STATUS.PUBLICADO],
     );
 
     logDev(rid, "publicarQuestionario OK", {
@@ -1144,7 +1187,7 @@ async function listarDisponiveisParaUsuario(req, res) {
         AND q.obrigatorio = TRUE
       ORDER BY t.data_fim DESC, COALESCE(t.horario_fim, '23:59'::time) DESC, t.id DESC
       `,
-      [usuarioId, QUESTIONARIO_STATUS.PUBLICADO]
+      [usuarioId, QUESTIONARIO_STATUS.PUBLICADO],
     );
 
     const disponiveis = [];
@@ -1173,7 +1216,7 @@ async function listarDisponiveisParaUsuario(req, res) {
           usuarioId,
           Number(row.turma_id),
           TENTATIVA_STATUS.ENVIADA,
-        ]
+        ],
       );
 
       const enviadas = Number(tentativas.rows?.[0]?.enviadas || 0);
@@ -1222,7 +1265,11 @@ async function obterQuestionarioParaResponder(req, res) {
       return fail(res, 400, "Parâmetros inválidos.");
     }
 
-    const ctx = await questionarioPertenceATurma(query, questionarioId, turmaId);
+    const ctx = await questionarioPertenceATurma(
+      query,
+      questionarioId,
+      turmaId,
+    );
 
     if (!ctx) {
       return fail(res, 404, "Questionário não pertence a esta turma.");
@@ -1263,7 +1310,7 @@ async function obterQuestionarioParaResponder(req, res) {
     const questoes = await carregarQuestoes(query, questionarioId);
     const alternativas = await carregarAlternativasPorQuestoes(
       query,
-      questoes.map((questao) => questao.id)
+      questoes.map((questao) => questao.id),
     );
 
     const questoesMix = shuffle(questoes).map((questao) => {
@@ -1271,8 +1318,9 @@ async function obterQuestionarioParaResponder(req, res) {
         questao.tipo === "multipla_escolha"
           ? shuffle(
               alternativas.filter(
-                (alternativa) => Number(alternativa.questao_id) === Number(questao.id)
-              )
+                (alternativa) =>
+                  Number(alternativa.questao_id) === Number(questao.id),
+              ),
             )
           : [];
 
@@ -1302,7 +1350,7 @@ async function obterQuestionarioParaResponder(req, res) {
         turma_id: turmaId,
         questoes: questoesMix,
       },
-      "Questionário carregado para resposta."
+      "Questionário carregado para resposta.",
     );
   } catch (error) {
     logError(rid, "Erro em obterQuestionarioParaResponder", error);
@@ -1322,7 +1370,11 @@ async function iniciarTentativa(req, res) {
       return fail(res, 400, "Parâmetros inválidos.");
     }
 
-    const ctx = await questionarioPertenceATurma(query, questionarioId, turmaId);
+    const ctx = await questionarioPertenceATurma(
+      query,
+      questionarioId,
+      turmaId,
+    );
 
     if (!ctx) {
       return fail(res, 404, "Questionário não pertence a esta turma.");
@@ -1368,10 +1420,13 @@ async function iniciarTentativa(req, res) {
         LIMIT 1
         FOR UPDATE
         `,
-        [questionarioId, usuarioId, turmaId]
+        [questionarioId, usuarioId, turmaId],
       );
 
-      if (ultima.rowCount && ultima.rows[0].status === TENTATIVA_STATUS.INICIADA) {
+      if (
+        ultima.rowCount &&
+        ultima.rows[0].status === TENTATIVA_STATUS.INICIADA
+      ) {
         return {
           status: 200,
           data: ultima.rows[0],
@@ -1389,7 +1444,7 @@ async function iniciarTentativa(req, res) {
             AND turma_id = $3
             AND status = $4
           `,
-          [questionarioId, usuarioId, turmaId, TENTATIVA_STATUS.ENVIADA]
+          [questionarioId, usuarioId, turmaId, TENTATIVA_STATUS.ENVIADA],
         );
 
         const enviadas = Number(total.rows?.[0]?.enviadas || 0);
@@ -1419,7 +1474,7 @@ async function iniciarTentativa(req, res) {
         VALUES ($1, $2, $3, $4, NOW())
         RETURNING *
         `,
-        [questionarioId, usuarioId, turmaId, TENTATIVA_STATUS.INICIADA]
+        [questionarioId, usuarioId, turmaId, TENTATIVA_STATUS.INICIADA],
       );
 
       return {
@@ -1454,13 +1509,19 @@ async function enviarTentativa(req, res) {
     const questionarioId = toPositiveInt(req.params.questionario_id);
     const turmaId = toPositiveInt(req.params.turma_id);
     const usuarioId = getUserId(req);
-    const respostas = Array.isArray(req.body?.respostas) ? req.body.respostas : [];
+    const respostas = Array.isArray(req.body?.respostas)
+      ? req.body.respostas
+      : [];
 
     if (!questionarioId || !turmaId || !usuarioId) {
       return fail(res, 400, "Parâmetros inválidos.");
     }
 
-    const ctx = await questionarioPertenceATurma(query, questionarioId, turmaId);
+    const ctx = await questionarioPertenceATurma(
+      query,
+      questionarioId,
+      turmaId,
+    );
 
     if (!ctx) {
       return fail(res, 404, "Questionário não pertence a esta turma.");
@@ -1501,7 +1562,7 @@ async function enviarTentativa(req, res) {
         LIMIT 1
         FOR UPDATE
         `,
-        [questionarioId, usuarioId, turmaId]
+        [questionarioId, usuarioId, turmaId],
       );
 
       if (!tentativa.rowCount) {
@@ -1534,15 +1595,17 @@ async function enviarTentativa(req, res) {
       }
 
       const questoes = await carregarQuestoes(q, questionarioId);
-      const questaoMap = new Map(questoes.map((questao) => [Number(questao.id), questao]));
+      const questaoMap = new Map(
+        questoes.map((questao) => [Number(questao.id), questao]),
+      );
 
       const questoesObjetivas = questoes.filter(
-        (questao) => questao.tipo === "multipla_escolha"
+        (questao) => questao.tipo === "multipla_escolha",
       );
 
       const alternativas = await carregarAlternativasPorQuestoes(
         q,
-        questoesObjetivas.map((questao) => questao.id)
+        questoesObjetivas.map((questao) => questao.id),
       );
 
       const alternativaMap = new Map(
@@ -1552,7 +1615,7 @@ async function enviarTentativa(req, res) {
             questao_id: Number(alternativa.questao_id),
             correta: alternativa.correta === true,
           },
-        ])
+        ]),
       );
 
       const respostasValidas = [];
@@ -1609,7 +1672,9 @@ async function enviarTentativa(req, res) {
         if (questao?.tipo === "multipla_escolha") {
           totalPesoObjetivo += peso;
 
-          const alternativa = alternativaMap.get(Number(resposta.alternativa_id));
+          const alternativa = alternativaMap.get(
+            Number(resposta.alternativa_id),
+          );
           const acertou =
             alternativa &&
             alternativa.questao_id === Number(resposta.questao_id) &&
@@ -1639,7 +1704,7 @@ async function enviarTentativa(req, res) {
             resposta.resposta_texto,
             correta,
             pontuacao,
-          ]
+          ],
         );
       }
 
@@ -1657,7 +1722,7 @@ async function enviarTentativa(req, res) {
         WHERE id = $1
         RETURNING *
         `,
-        [tentativaId, TENTATIVA_STATUS.ENVIADA, nota]
+        [tentativaId, TENTATIVA_STATUS.ENVIADA, nota],
       );
 
       const minNota =
@@ -1665,7 +1730,8 @@ async function enviarTentativa(req, res) {
           ? null
           : Number(questionario.min_nota);
 
-      const aprovado = minNota !== null && nota !== null ? nota >= minNota : null;
+      const aprovado =
+        minNota !== null && nota !== null ? nota >= minNota : null;
 
       return {
         status: 200,
@@ -1694,9 +1760,13 @@ async function enviarTentativa(req, res) {
           evento_id: ctx.evento_id,
         });
       } catch (error) {
-        logWarn(rid, "Falha ao gerar notificação de avaliação pós-questionário.", {
-          message: error?.message || String(error),
-        });
+        logWarn(
+          rid,
+          "Falha ao gerar notificação de avaliação pós-questionário.",
+          {
+            message: error?.message || String(error),
+          },
+        );
       }
     }
 
@@ -1727,7 +1797,11 @@ async function obterMinhaTentativaPorTurma(req, res) {
       return fail(res, 400, "Parâmetros inválidos.");
     }
 
-    const ctx = await questionarioPertenceATurma(query, questionarioId, turmaId);
+    const ctx = await questionarioPertenceATurma(
+      query,
+      questionarioId,
+      turmaId,
+    );
 
     if (!ctx) {
       return fail(res, 404, "Questionário não pertence a esta turma.");
@@ -1751,7 +1825,7 @@ async function obterMinhaTentativaPorTurma(req, res) {
       ORDER BY id DESC
       LIMIT 1
       `,
-      [questionarioId, usuarioId, turmaId]
+      [questionarioId, usuarioId, turmaId],
     );
 
     if (!result.rowCount) {

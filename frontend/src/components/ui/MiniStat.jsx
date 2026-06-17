@@ -17,59 +17,42 @@
 import { cloneElement, createElement, isValidElement } from "react";
 import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  Info,
-} from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Info } from "lucide-react";
 
 const TONE_CLASSES = {
   default: {
-    card:
-      "border-slate-200 bg-white/85 text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100",
-    icon:
-      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200",
+    card: "border-slate-200 bg-white/85 text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100",
+    icon: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200",
     badge:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200",
   },
   emerald: {
-    card:
-      "border-emerald-200 bg-emerald-50/80 text-emerald-950 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100",
-    icon:
-      "border-emerald-200 bg-white/75 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-200",
+    card: "border-emerald-200 bg-emerald-50/80 text-emerald-950 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100",
+    icon: "border-emerald-200 bg-white/75 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-200",
     badge:
       "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-200",
   },
   amber: {
-    card:
-      "border-amber-200 bg-amber-50/80 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
-    icon:
-      "border-amber-200 bg-white/75 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950 dark:text-amber-200",
+    card: "border-amber-200 bg-amber-50/80 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
+    icon: "border-amber-200 bg-white/75 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950 dark:text-amber-200",
     badge:
       "border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950 dark:text-amber-200",
   },
   rose: {
-    card:
-      "border-rose-200 bg-rose-50/80 text-rose-950 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100",
-    icon:
-      "border-rose-200 bg-white/75 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950 dark:text-rose-200",
+    card: "border-rose-200 bg-rose-50/80 text-rose-950 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100",
+    icon: "border-rose-200 bg-white/75 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950 dark:text-rose-200",
     badge:
       "border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950 dark:text-rose-200",
   },
   sky: {
-    card:
-      "border-sky-200 bg-sky-50/80 text-sky-950 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100",
-    icon:
-      "border-sky-200 bg-white/75 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950 dark:text-sky-200",
+    card: "border-sky-200 bg-sky-50/80 text-sky-950 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100",
+    icon: "border-sky-200 bg-white/75 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950 dark:text-sky-200",
     badge:
       "border-sky-200 bg-sky-100 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950 dark:text-sky-200",
   },
   lousa: {
-    card:
-      "border-emerald-900/15 bg-gradient-to-br from-white via-emerald-50/80 to-emerald-100/70 text-emerald-950 shadow-sm dark:border-emerald-800/40 dark:from-slate-950 dark:via-emerald-950/35 dark:to-slate-900 dark:text-emerald-100",
-    icon:
-      "border-emerald-200 bg-white/80 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-200",
+    card: "border-emerald-900/15 bg-gradient-to-br from-white via-emerald-50/80 to-emerald-100/70 text-emerald-950 shadow-sm dark:border-emerald-800/40 dark:from-slate-950 dark:via-emerald-950/35 dark:to-slate-900 dark:text-emerald-100",
+    icon: "border-emerald-200 bg-white/80 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-200",
     badge:
       "border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-200",
   },
@@ -128,7 +111,9 @@ function classNames(...classes) {
 }
 
 function renderIcon(icon, className) {
-  if (!icon) return null;
+  if (!icon) {
+    return null;
+  }
 
   if (isValidElement(icon)) {
     return cloneElement(icon, {
@@ -208,7 +193,7 @@ export default function MiniStat({
         "supports-[backdrop-filter]:backdrop-blur",
         theme.card,
         sizeClass.card,
-        className
+        className,
       )}
       role={clickable ? undefined : "group"}
       aria-label={
@@ -228,7 +213,7 @@ export default function MiniStat({
           <div
             className={classNames(
               "font-black uppercase tracking-wide opacity-70",
-              sizeClass.title
+              sizeClass.title,
             )}
           >
             {title}
@@ -244,7 +229,7 @@ export default function MiniStat({
               <div
                 className={classNames(
                   "min-w-0 truncate font-black leading-tight tracking-tight",
-                  sizeClass.value
+                  sizeClass.value,
                 )}
               >
                 {value}
@@ -255,7 +240,7 @@ export default function MiniStat({
               <span
                 className={classNames(
                   "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-black",
-                  theme.badge
+                  theme.badge,
                 )}
               >
                 {badge}
@@ -267,7 +252,7 @@ export default function MiniStat({
             <div
               className={classNames(
                 "mt-1 font-medium leading-snug opacity-75",
-                sizeClass.hint
+                sizeClass.hint,
               )}
             >
               {hint}
@@ -281,7 +266,7 @@ export default function MiniStat({
               <span
                 className={classNames(
                   "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-black",
-                  trendConfig.className
+                  trendConfig.className,
                 )}
                 aria-label={`Tendência: ${trendLabel || trendConfig.label}`}
                 title={`Tendência: ${trendLabel || trendConfig.label}`}
@@ -296,7 +281,7 @@ export default function MiniStat({
                 className={classNames(
                   "grid shrink-0 place-items-center border transition-transform group-hover:scale-[1.03]",
                   theme.icon,
-                  sizeClass.iconBox
+                  sizeClass.iconBox,
                 )}
                 aria-hidden="true"
               >
@@ -320,7 +305,14 @@ MiniStat.propTypes = {
   trendLabel: PropTypes.string,
   loading: PropTypes.bool,
   className: PropTypes.string,
-  tone: PropTypes.oneOf(["default", "emerald", "amber", "rose", "sky", "lousa"]),
+  tone: PropTypes.oneOf([
+    "default",
+    "emerald",
+    "amber",
+    "rose",
+    "sky",
+    "lousa",
+  ]),
   size: PropTypes.oneOf(["sm", "md", "lg"]),
   onClick: PropTypes.func,
   titleAttr: PropTypes.string,

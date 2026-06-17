@@ -105,7 +105,7 @@ function formatarCPF(cpf, { completo = false } = {}) {
 
   const formatado = `${digitos.slice(0, 3)}.${digitos.slice(
     3,
-    6
+    6,
   )}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
 
   if (completo) {
@@ -154,7 +154,9 @@ function chaveInscrito(inscrito, index) {
   const inscricao_id = inscrito?.inscricao_id ?? null;
   const usuario_id = inscrito?.usuario_id ?? null;
   const cpf = somenteDigitos(inscrito?.cpf);
-  const email = String(inscrito?.email || "").trim().toLowerCase();
+  const email = String(inscrito?.email || "")
+    .trim()
+    .toLowerCase();
 
   return (
     (inscricao_id != null && `inscricao:${inscricao_id}`) ||
@@ -196,7 +198,7 @@ function gerarCSV(linhas) {
     .map((linha) =>
       linha
         .map((celula) => `"${String(celula ?? "").replace(/"/g, '""')}"`)
-        .join(";")
+        .join(";"),
     )
     .join("\n");
 }
@@ -225,7 +227,6 @@ async function copiarTexto(texto) {
 
 function registrarErroDev(contexto, erro) {
   if (import.meta?.env?.DEV) {
-    // eslint-disable-next-line no-console
     console.error(contexto, erro);
   }
 }
@@ -291,12 +292,16 @@ export default function InscritosTurma() {
           }),
         ]);
 
-        if (signal?.aborted) return;
+        if (signal?.aborted) {
+          return;
+        }
 
         setTurma(unwrapDataObject(turmaResponse));
         setInscritos(deduplicarInscritos(unwrapDataArray(inscritosResponse)));
       } catch (error) {
-        if (isAbortLike(error)) return;
+        if (isAbortLike(error)) {
+          return;
+        }
 
         registrarErroDev("Erro ao carregar inscritos da turma:", error);
 
@@ -310,7 +315,7 @@ export default function InscritosTurma() {
         }
       }
     },
-    [id, turmaIdValido]
+    [id, turmaIdValido],
   );
 
   useEffect(() => {
@@ -338,7 +343,7 @@ export default function InscritosTurma() {
       const email = normalizarTexto(inscrito?.email);
       const cpfDigitos = somenteDigitos(inscrito?.cpf);
       const cpfFormatado = normalizarTexto(
-        formatarCPF(inscrito?.cpf, { completo: true })
+        formatarCPF(inscrito?.cpf, { completo: true }),
       );
 
       return (
@@ -353,7 +358,7 @@ export default function InscritosTurma() {
       String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR", {
         sensitivity: "base",
         ignorePunctuation: true,
-      })
+      }),
     );
 
     return ordenacao === "az" ? ordenados : ordenados.reverse();
@@ -366,15 +371,15 @@ export default function InscritosTurma() {
     () =>
       inscritos.filter((inscrito) => String(inscrito?.email || "").trim())
         .length,
-    [inscritos]
+    [inscritos],
   );
 
   const totalFiltradoComEmail = useMemo(
     () =>
       inscritosFiltrados.filter((inscrito) =>
-        String(inscrito?.email || "").trim()
+        String(inscrito?.email || "").trim(),
       ).length,
-    [inscritosFiltrados]
+    [inscritosFiltrados],
   );
 
   const nomeTurma = turma?.nome || `Turma ${id || ""}`.trim();
@@ -383,7 +388,9 @@ export default function InscritosTurma() {
   }`;
 
   useEffect(() => {
-    if (!liveRef.current) return;
+    if (!liveRef.current) {
+      return;
+    }
 
     liveRef.current.textContent = `${totalFiltrado} de ${totalInscritos} inscrito${
       totalInscritos === 1 ? "" : "s"
@@ -394,7 +401,7 @@ export default function InscritosTurma() {
     try {
       const linhas = montarLinhasExportacao(
         inscritosFiltrados,
-        incluirCpfCompletoNasExportacoes
+        incluirCpfCompletoNasExportacoes,
       );
 
       const csv = gerarCSV(linhas);
@@ -413,11 +420,7 @@ export default function InscritosTurma() {
       registrarErroDev("Falha ao exportar CSV:", error);
       notifyError("Falha ao exportar CSV.");
     }
-  }, [
-    incluirCpfCompletoNasExportacoes,
-    inscritosFiltrados,
-    nomeBaseArquivo,
-  ]);
+  }, [incluirCpfCompletoNasExportacoes, inscritosFiltrados, nomeBaseArquivo]);
 
   const exportarXLSX = useCallback(async () => {
     try {
@@ -444,7 +447,7 @@ export default function InscritosTurma() {
           nome: inscrito?.nome || "",
           cpf: cpfParaExportacao(
             inscrito?.cpf,
-            incluirCpfCompletoNasExportacoes
+            incluirCpfCompletoNasExportacoes,
           ),
           email: inscrito?.email || "",
         });
@@ -464,11 +467,7 @@ export default function InscritosTurma() {
       registrarErroDev("Falha ao exportar XLSX:", error);
       notifyError("Falha ao exportar XLSX.");
     }
-  }, [
-    incluirCpfCompletoNasExportacoes,
-    inscritosFiltrados,
-    nomeBaseArquivo,
-  ]);
+  }, [incluirCpfCompletoNasExportacoes, inscritosFiltrados, nomeBaseArquivo]);
 
   const exportarPDF = useCallback(async () => {
     try {
@@ -492,7 +491,7 @@ export default function InscritosTurma() {
       documento.text(
         `Total exibido: ${totalFiltrado} de ${totalInscritos}`,
         14,
-        31
+        31,
       );
 
       autoTable(documento, {
@@ -500,10 +499,8 @@ export default function InscritosTurma() {
         head: [["Nome", "CPF", "E-mail"]],
         body: inscritosFiltrados.map((inscrito) => [
           inscrito?.nome || "—",
-          cpfParaExportacao(
-            inscrito?.cpf,
-            incluirCpfCompletoNasExportacoes
-          ) || "—",
+          cpfParaExportacao(inscrito?.cpf, incluirCpfCompletoNasExportacoes) ||
+            "—",
           inscrito?.email || "—",
         ]),
         styles: {
@@ -526,7 +523,7 @@ export default function InscritosTurma() {
           documento.text(
             "Documento gerado pela Plataforma Escola da Saúde.",
             14,
-            alturaPagina - 8
+            alturaPagina - 8,
           );
         },
       });
@@ -569,7 +566,7 @@ export default function InscritosTurma() {
     try {
       const linhas = montarLinhasExportacao(
         inscritosFiltrados,
-        incluirCpfCompletoNasExportacoes
+        incluirCpfCompletoNasExportacoes,
       );
 
       const csv = gerarCSV(linhas);
@@ -1029,7 +1026,7 @@ function ActionButton({
       aria-pressed={ariaPressed}
       className={classNames(
         "inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-black shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50",
-        styles[variant] || styles.neutral
+        styles[variant] || styles.neutral,
       )}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
@@ -1047,7 +1044,7 @@ function TogglePill({ checked, onChange, label, danger = false }) {
           ? danger
             ? "border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-100"
             : "border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-100"
-          : "border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          : "border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200",
       )}
     >
       <input
@@ -1113,7 +1110,11 @@ function InscritoCard({ inscrito, mostrarCpfCompleto }) {
 }
 
 function Avatar({ nome }) {
-  const inicial = String(nome || "?").trim().charAt(0).toUpperCase() || "?";
+  const inicial =
+    String(nome || "?")
+      .trim()
+      .charAt(0)
+      .toUpperCase() || "?";
 
   return (
     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-sm font-black text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900">

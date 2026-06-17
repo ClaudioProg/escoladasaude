@@ -105,24 +105,38 @@ function onlyDigits(value) {
 }
 
 function ymd(value) {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") {
+    return "";
+  }
 
   const valueSafe = value.trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(valueSafe)) return valueSafe;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(valueSafe)) return valueSafe.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valueSafe)) {
+    return valueSafe;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(valueSafe)) {
+    return valueSafe.slice(0, 10);
+  }
 
   return "";
 }
 
 function hhmm(value, fallback = "") {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const valueSafe = value.trim();
 
-  if (!valueSafe) return fallback;
-  if (/^\d{2}:\d{2}$/.test(valueSafe)) return valueSafe;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(valueSafe)) return valueSafe.slice(0, 5);
+  if (!valueSafe) {
+    return fallback;
+  }
+  if (/^\d{2}:\d{2}$/.test(valueSafe)) {
+    return valueSafe;
+  }
+  if (/^\d{2}:\d{2}:\d{2}$/.test(valueSafe)) {
+    return valueSafe.slice(0, 5);
+  }
 
   return fallback;
 }
@@ -131,7 +145,9 @@ function toLocalDateTime(dateOnly, time = "00:00") {
   const data = ymd(dateOnly);
   const hora = hhmm(time, "00:00");
 
-  if (!data || !hora) return null;
+  if (!data || !hora) {
+    return null;
+  }
 
   const [year, month, day] = data.split("-").map(Number);
   const [hour, minute] = hora.split(":").map(Number);
@@ -142,7 +158,9 @@ function toLocalDateTime(dateOnly, time = "00:00") {
 function formatarDataBR(value) {
   const data = ymd(value);
 
-  if (!data) return "";
+  if (!data) {
+    return "";
+  }
 
   const [year, month, day] = data.split("-");
   return `${day}/${month}/${year}`;
@@ -159,47 +177,71 @@ function cpfProtegido(value) {
 }
 
 function deduzStatusEvento(evento) {
-  const raw = String(evento?.status || "").trim().toLowerCase();
+  const raw = String(evento?.status || "")
+    .trim()
+    .toLowerCase();
 
-  if (raw === STATUS_EVENTO.PROGRAMADO) return STATUS_EVENTO.PROGRAMADO;
-  if (raw === STATUS_EVENTO.ANDAMENTO) return STATUS_EVENTO.ANDAMENTO;
-  if (raw === STATUS_EVENTO.ENCERRADO) return STATUS_EVENTO.ENCERRADO;
-  if (raw === STATUS_EVENTO.SEM_DATAS) return STATUS_EVENTO.SEM_DATAS;
+  if (raw === STATUS_EVENTO.PROGRAMADO) {
+    return STATUS_EVENTO.PROGRAMADO;
+  }
+  if (raw === STATUS_EVENTO.ANDAMENTO) {
+    return STATUS_EVENTO.ANDAMENTO;
+  }
+  if (raw === STATUS_EVENTO.ENCERRADO) {
+    return STATUS_EVENTO.ENCERRADO;
+  }
+  if (raw === STATUS_EVENTO.SEM_DATAS) {
+    return STATUS_EVENTO.SEM_DATAS;
+  }
 
   const dataInicio = ymd(
-    evento?.data_inicio_geral || evento?.data_inicio || evento?.data
+    evento?.data_inicio_geral || evento?.data_inicio || evento?.data,
   );
 
   const dataFim = ymd(
-    evento?.data_fim_geral || evento?.data_fim || evento?.data
+    evento?.data_fim_geral || evento?.data_fim || evento?.data,
   );
 
-  if (!dataInicio || !dataFim) return STATUS_EVENTO.SEM_DATAS;
+  if (!dataInicio || !dataFim) {
+    return STATUS_EVENTO.SEM_DATAS;
+  }
 
   const inicio = toLocalDateTime(
     dataInicio,
-    evento?.horario_inicio_geral || evento?.horario_inicio || "00:00"
+    evento?.horario_inicio_geral || evento?.horario_inicio || "00:00",
   );
 
   const fim = toLocalDateTime(
     dataFim,
-    evento?.horario_fim_geral || evento?.horario_fim || "23:59"
+    evento?.horario_fim_geral || evento?.horario_fim || "23:59",
   );
 
-  if (!inicio || !fim) return STATUS_EVENTO.SEM_DATAS;
+  if (!inicio || !fim) {
+    return STATUS_EVENTO.SEM_DATAS;
+  }
 
   const agora = new Date();
 
-  if (agora < inicio) return STATUS_EVENTO.PROGRAMADO;
-  if (agora > fim) return STATUS_EVENTO.ENCERRADO;
+  if (agora < inicio) {
+    return STATUS_EVENTO.PROGRAMADO;
+  }
+  if (agora > fim) {
+    return STATUS_EVENTO.ENCERRADO;
+  }
 
   return STATUS_EVENTO.ANDAMENTO;
 }
 
 function labelStatus(status) {
-  if (status === STATUS_EVENTO.ANDAMENTO) return "Em andamento";
-  if (status === STATUS_EVENTO.ENCERRADO) return "Encerrado";
-  if (status === STATUS_EVENTO.SEM_DATAS) return "Sem datas";
+  if (status === STATUS_EVENTO.ANDAMENTO) {
+    return "Em andamento";
+  }
+  if (status === STATUS_EVENTO.ENCERRADO) {
+    return "Encerrado";
+  }
+  if (status === STATUS_EVENTO.SEM_DATAS) {
+    return "Sem datas";
+  }
 
   return "Programado";
 }
@@ -221,24 +263,34 @@ function statusChipClass(status) {
 }
 
 function statusDotClass(status) {
-  if (status === STATUS_EVENTO.ANDAMENTO) return "bg-amber-500";
-  if (status === STATUS_EVENTO.ENCERRADO) return "bg-rose-500";
-  if (status === STATUS_EVENTO.SEM_DATAS) return "bg-zinc-400";
+  if (status === STATUS_EVENTO.ANDAMENTO) {
+    return "bg-amber-500";
+  }
+  if (status === STATUS_EVENTO.ENCERRADO) {
+    return "bg-rose-500";
+  }
+  if (status === STATUS_EVENTO.SEM_DATAS) {
+    return "bg-zinc-400";
+  }
 
   return "bg-emerald-500";
 }
 
 function eventoPeriodoTexto(evento) {
   const inicio = ymd(
-    evento?.data_inicio_geral || evento?.data_inicio || evento?.data
+    evento?.data_inicio_geral || evento?.data_inicio || evento?.data,
   );
 
   const fim = ymd(
-    evento?.data_fim_geral || evento?.data_fim || evento?.data || inicio
+    evento?.data_fim_geral || evento?.data_fim || evento?.data || inicio,
   );
 
-  if (!inicio && !fim) return "Período não informado";
-  if (inicio && (!fim || inicio === fim)) return formatarDataBR(inicio);
+  if (!inicio && !fim) {
+    return "Período não informado";
+  }
+  if (inicio && (!fim || inicio === fim)) {
+    return formatarDataBR(inicio);
+  }
 
   return `${formatarDataBR(inicio)} a ${formatarDataBR(fim)}`;
 }
@@ -297,7 +349,7 @@ function Pill({ children, className = "" }) {
     <span
       className={classNames(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
-        className
+        className,
       )}
     >
       {children}
@@ -309,12 +361,10 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
   const tones = {
     emerald:
       "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/25 dark:text-emerald-200 dark:border-emerald-900/40",
-    sky:
-      "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40",
+    sky: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/25 dark:text-sky-200 dark:border-sky-900/40",
     amber:
       "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/25 dark:text-amber-200 dark:border-amber-900/40",
-    rose:
-      "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/25 dark:text-rose-200 dark:border-rose-900/40",
+    rose: "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/25 dark:text-rose-200 dark:border-rose-900/40",
     slate:
       "bg-slate-50 text-slate-800 border-slate-200 dark:bg-zinc-900/40 dark:text-zinc-100 dark:border-zinc-800",
   };
@@ -326,7 +376,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "emerald" }) {
           <span
             className={classNames(
               "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
-              tones[tone] || tones.emerald
+              tones[tone] || tones.emerald,
             )}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
@@ -365,10 +415,8 @@ function ActionButton({
       "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900",
     emerald:
       "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800 dark:border-emerald-600",
-    rose:
-      "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 dark:border-rose-600",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200",
+    rose: "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 dark:border-rose-600",
+    sky: "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200",
   };
 
   return (
@@ -378,7 +426,7 @@ function ActionButton({
       disabled={disabled}
       className={classNames(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       {children}
@@ -412,7 +460,9 @@ function ConfirmModal({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     const onKey = (event) => {
       if (event.key === "Escape" && !loading) {
@@ -426,7 +476,9 @@ function ConfirmModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [loading, onCancel, open]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <div
@@ -455,7 +507,7 @@ function ConfirmModal({
                 "grid h-11 w-11 shrink-0 place-items-center rounded-2xl",
                 danger
                   ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200"
-                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
               )}
             >
               <AlertTriangle className="h-5 w-5" aria-hidden="true" />
@@ -511,8 +563,8 @@ function ContextoAusente({ onVoltar }) {
           </h2>
 
           <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-            Esta tela é operacional e deve ser acessada pelo Painel do Gestor.
-            O endereço precisa conter um <strong>evento_id</strong> válido para
+            Esta tela é operacional e deve ser acessada pelo Painel do Gestor. O
+            endereço precisa conter um <strong>evento_id</strong> válido para
             carregar as turmas e inscrições do evento específico.
           </p>
 
@@ -538,7 +590,7 @@ export default function CancelarInscricaoAdmin() {
 
   const eventoIdParam = useMemo(
     () => toPositiveInt(searchParams.get("evento_id")),
-    [searchParams]
+    [searchParams],
   );
 
   const [evento, setEvento] = useState(null);
@@ -590,7 +642,9 @@ export default function CancelarInscricaoAdmin() {
     async (turma_id) => {
       const turmaId = toPositiveInt(turma_id);
 
-      if (!turmaId) return [];
+      if (!turmaId) {
+        return [];
+      }
 
       setLoadingInscritos((prev) => ({ ...prev, [turmaId]: true }));
       setLive(`Carregando inscritos da turma ${turmaId}.`);
@@ -599,7 +653,9 @@ export default function CancelarInscricaoAdmin() {
         const inscritos = await listarInscritosDaTurma(turmaId);
         const lista = Array.isArray(inscritos) ? inscritos : [];
 
-        if (!mountedRef.current) return [];
+        if (!mountedRef.current) {
+          return [];
+        }
 
         setInscritosPorTurma((prev) => ({
           ...prev,
@@ -611,10 +667,12 @@ export default function CancelarInscricaoAdmin() {
 
         return lista;
       } catch (error) {
-        if (!mountedRef.current) return [];
+        if (!mountedRef.current) {
+          return [];
+        }
 
         notifyError(
-          getErrorMessage(error, "Falha ao carregar inscritos da turma.")
+          getErrorMessage(error, "Falha ao carregar inscritos da turma."),
         );
 
         setInscritosPorTurma((prev) => ({ ...prev, [turmaId]: [] }));
@@ -627,7 +685,7 @@ export default function CancelarInscricaoAdmin() {
         }
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const carregarPagina = useCallback(async () => {
@@ -655,7 +713,9 @@ export default function CancelarInscricaoAdmin() {
     try {
       const eventos = await listarEventosAdmin({ signal: controller.signal });
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       const listaEventos = Array.isArray(eventos) ? eventos : [];
       const eventoEncontrado =
@@ -676,7 +736,9 @@ export default function CancelarInscricaoAdmin() {
 
       const turmasEvento = await listarTurmasDoEvento(eventoIdParam);
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       const listaTurmas = Array.isArray(turmasEvento) ? turmasEvento : [];
 
@@ -687,20 +749,26 @@ export default function CancelarInscricaoAdmin() {
         listaTurmas
           .map((turma) => toPositiveInt(turma?.id))
           .filter(Boolean)
-          .map((turmaId) => carregarInscritos(turmaId))
+          .map((turmaId) => carregarInscritos(turmaId)),
       );
 
-      if (!mountedRef.current || controller.signal.aborted) return;
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
 
       setLive("Evento, turmas e inscritos carregados.");
     } catch (error) {
-      if (isAbortLike(error)) return;
+      if (isAbortLike(error)) {
+        return;
+      }
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar os dados do evento."
+        "Não foi possível carregar os dados do evento.",
       );
 
       setErro(message);
@@ -726,14 +794,14 @@ export default function CancelarInscricaoAdmin() {
   const totalInscritos = useMemo(() => {
     return Object.values(inscritosPorTurma).reduce(
       (acc, lista) => acc + (Array.isArray(lista) ? lista.length : 0),
-      0
+      0,
     );
   }, [inscritosPorTurma]);
 
   const totalSelecionados = useMemo(() => {
     return Object.values(selecionados).reduce(
       (acc, setValue) => acc + (setValue?.size || 0),
-      0
+      0,
     );
   }, [selecionados]);
 
@@ -753,7 +821,9 @@ export default function CancelarInscricaoAdmin() {
     const turmaId = toPositiveInt(turma_id);
     const usuarioId = toPositiveInt(usuario_id);
 
-    if (!turmaId || !usuarioId) return;
+    if (!turmaId || !usuarioId) {
+      return;
+    }
 
     setSelecionados((prev) => {
       const atual = new Set(prev[turmaId] || []);
@@ -774,7 +844,9 @@ export default function CancelarInscricaoAdmin() {
   function selecionarTodos(turma_id) {
     const turmaId = toPositiveInt(turma_id);
 
-    if (!turmaId) return;
+    if (!turmaId) {
+      return;
+    }
 
     const lista = inscritosPorTurma[turmaId] || [];
 
@@ -783,7 +855,7 @@ export default function CancelarInscricaoAdmin() {
       [turmaId]: new Set(
         lista
           .map((inscrito) => toPositiveInt(inscrito?.usuario_id))
-          .filter(Boolean)
+          .filter(Boolean),
       ),
     }));
   }
@@ -791,7 +863,9 @@ export default function CancelarInscricaoAdmin() {
   function limparSelecao(turma_id) {
     const turmaId = toPositiveInt(turma_id);
 
-    if (!turmaId) return;
+    if (!turmaId) {
+      return;
+    }
 
     setSelecionados((prev) => ({
       ...prev,
@@ -803,7 +877,9 @@ export default function CancelarInscricaoAdmin() {
     const turmaId = toPositiveInt(turma_id);
     const usuarioId = toPositiveInt(usuario_id);
 
-    if (!turmaId || !usuarioId) return;
+    if (!turmaId || !usuarioId) {
+      return;
+    }
 
     setModal({
       open: true,
@@ -815,7 +891,9 @@ export default function CancelarInscricaoAdmin() {
   function confirmarCancelarLote(turma_id) {
     const turmaId = toPositiveInt(turma_id);
 
-    if (!turmaId) return;
+    if (!turmaId) {
+      return;
+    }
 
     const setSelecionado = selecionados[turmaId] || new Set();
 
@@ -832,7 +910,9 @@ export default function CancelarInscricaoAdmin() {
   }
 
   const fecharModal = useCallback(() => {
-    if (cancelando) return;
+    if (cancelando) {
+      return;
+    }
 
     setModal({
       open: false,
@@ -864,7 +944,7 @@ export default function CancelarInscricaoAdmin() {
       return {
         ...prev,
         [turmaId]: atuais.filter(
-          (inscrito) => !usuarioIds.includes(Number(inscrito?.usuario_id))
+          (inscrito) => !usuarioIds.includes(Number(inscrito?.usuario_id)),
         ),
       };
     });
@@ -882,7 +962,7 @@ export default function CancelarInscricaoAdmin() {
       notifySuccess(
         usuarioIds.length > 1
           ? "Inscrições canceladas com sucesso."
-          : "Inscrição cancelada com sucesso."
+          : "Inscrição cancelada com sucesso.",
       );
 
       setLive("Cancelamento concluído.");
@@ -925,65 +1005,68 @@ export default function CancelarInscricaoAdmin() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
         <HeaderHero
-  titulo="Cancelamento de inscrições"
-  subtitulo="Tela operacional contextual do Painel do Gestor para cancelar inscrições de um evento específico, com confirmação explícita, CPF protegido e rastreabilidade operacional."
-  icone={XCircle}
-  campanhaMes={new Date().getMonth() + 1}
-  tamanho="lg"
-  raio="xl"
-/>
-<section
-  className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-5"
-  aria-label="Contexto operacional do evento"
->
-  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-    <div className="min-w-0">
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
-        Contexto operacional
-      </p>
-
-      <div className="mt-2 flex flex-wrap gap-2">
-        {eventoIdParam ? (
-          <Pill className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
-            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-            Evento ID {eventoIdParam}
-          </Pill>
-        ) : (
-          <Pill className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
-            <Info className="h-3.5 w-3.5" aria-hidden="true" />
-            Evento não informado
-          </Pill>
-        )}
-
-        {evento?.titulo ? (
-          <Pill className="max-w-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
-            <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="truncate">{evento.titulo}</span>
-          </Pill>
-        ) : null}
-      </div>
-    </div>
-
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <ActionButton onClick={voltarPainelGestor}>
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Painel do Gestor
-      </ActionButton>
-
-      <ActionButton
-        onClick={carregarPagina}
-        disabled={anyLoading || !eventoIdParam}
-        tone="emerald"
-      >
-        <RefreshCw
-          className={classNames("h-4 w-4", anyLoading && "animate-spin")}
-          aria-hidden="true"
+          titulo="Cancelamento de inscrições"
+          subtitulo="Tela operacional contextual do Painel do Gestor para cancelar inscrições de um evento específico, com confirmação explícita, CPF protegido e rastreabilidade operacional."
+          icone={XCircle}
+          campanhaMes={new Date().getMonth() + 1}
+          tamanho="lg"
+          raio="xl"
         />
-        Atualizar dados
-      </ActionButton>
-    </div>
-  </div>
-</section>
+        <section
+          className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-5"
+          aria-label="Contexto operacional do evento"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
+                Contexto operacional
+              </p>
+
+              <div className="mt-2 flex flex-wrap gap-2">
+                {eventoIdParam ? (
+                  <Pill className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento ID {eventoIdParam}
+                  </Pill>
+                ) : (
+                  <Pill className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
+                    <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                    Evento não informado
+                  </Pill>
+                )}
+
+                {evento?.titulo ? (
+                  <Pill className="max-w-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
+                    <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="truncate">{evento.titulo}</span>
+                  </Pill>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <ActionButton onClick={voltarPainelGestor}>
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Painel do Gestor
+              </ActionButton>
+
+              <ActionButton
+                onClick={carregarPagina}
+                disabled={anyLoading || !eventoIdParam}
+                tone="emerald"
+              >
+                <RefreshCw
+                  className={classNames(
+                    "h-4 w-4",
+                    anyLoading && "animate-spin",
+                  )}
+                  aria-hidden="true"
+                />
+                Atualizar dados
+              </ActionButton>
+            </div>
+          </div>
+        </section>
 
         {anyLoading && (
           <div
@@ -1099,7 +1182,10 @@ export default function CancelarInscricaoAdmin() {
                         </span>
 
                         <span className="inline-flex items-center gap-1.5">
-                          <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                          <CalendarClock
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
                           {eventoPeriodoTexto(evento)}
                         </span>
                       </div>
@@ -1109,7 +1195,7 @@ export default function CancelarInscricaoAdmin() {
                       <span
                         className={classNames(
                           "h-2 w-2 rounded-full",
-                          statusDotClass(status)
+                          statusDotClass(status),
                         )}
                         aria-hidden="true"
                       />
@@ -1146,7 +1232,8 @@ export default function CancelarInscricaoAdmin() {
                         const turmaId = toPositiveInt(turma?.id);
                         const inscritos = inscritosPorTurma[turmaId] || [];
                         const carregandoInscritos = !!loadingInscritos[turmaId];
-                        const setSelecionado = selecionados[turmaId] || new Set();
+                        const setSelecionado =
+                          selecionados[turmaId] || new Set();
                         const allSelected =
                           inscritos.length > 0 &&
                           setSelecionado.size === inscritos.length;
@@ -1192,7 +1279,8 @@ export default function CancelarInscricaoAdmin() {
                                     }
                                     tone="sky"
                                     disabled={
-                                      carregandoInscritos || inscritos.length === 0
+                                      carregandoInscritos ||
+                                      inscritos.length === 0
                                     }
                                   >
                                     {allSelected ? (
@@ -1212,7 +1300,9 @@ export default function CancelarInscricaoAdmin() {
                                   </ActionButton>
 
                                   <ActionButton
-                                    onClick={() => confirmarCancelarLote(turmaId)}
+                                    onClick={() =>
+                                      confirmarCancelarLote(turmaId)
+                                    }
                                     tone="rose"
                                     disabled={setSelecionado.size === 0}
                                   >
@@ -1267,7 +1357,7 @@ export default function CancelarInscricaoAdmin() {
                                       <tbody>
                                         {inscritos.map((inscrito) => {
                                           const usuarioId = toPositiveInt(
-                                            inscrito?.usuario_id
+                                            inscrito?.usuario_id,
                                           );
                                           const marcado =
                                             setSelecionado.has(usuarioId);
@@ -1283,7 +1373,7 @@ export default function CancelarInscricaoAdmin() {
                                                   onClick={() =>
                                                     toggleSelecionado(
                                                       turmaId,
-                                                      usuarioId
+                                                      usuarioId,
                                                     )
                                                   }
                                                   aria-pressed={marcado}
@@ -1326,7 +1416,7 @@ export default function CancelarInscricaoAdmin() {
                                                     onClick={() =>
                                                       confirmarCancelarIndividual(
                                                         turmaId,
-                                                        usuarioId
+                                                        usuarioId,
                                                       )
                                                     }
                                                     tone="rose"
@@ -1349,7 +1439,7 @@ export default function CancelarInscricaoAdmin() {
                                   <ul className="space-y-3 md:hidden">
                                     {inscritos.map((inscrito) => {
                                       const usuarioId = toPositiveInt(
-                                        inscrito?.usuario_id
+                                        inscrito?.usuario_id,
                                       );
                                       const marcado =
                                         setSelecionado.has(usuarioId);
@@ -1365,7 +1455,7 @@ export default function CancelarInscricaoAdmin() {
                                               onClick={() =>
                                                 toggleSelecionado(
                                                   turmaId,
-                                                  usuarioId
+                                                  usuarioId,
                                                 )
                                               }
                                               aria-pressed={marcado}
@@ -1411,7 +1501,7 @@ export default function CancelarInscricaoAdmin() {
                                               onClick={() =>
                                                 confirmarCancelarIndividual(
                                                   turmaId,
-                                                  usuarioId
+                                                  usuarioId,
                                                 )
                                               }
                                               tone="rose"
@@ -1453,23 +1543,27 @@ export default function CancelarInscricaoAdmin() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {Object.entries(selecionados).map(([turmaIdRaw, setValue]) => {
-                    const turmaId = toPositiveInt(turmaIdRaw);
-                    const quantidade = setValue?.size || 0;
+                  {Object.entries(selecionados).map(
+                    ([turmaIdRaw, setValue]) => {
+                      const turmaId = toPositiveInt(turmaIdRaw);
+                      const quantidade = setValue?.size || 0;
 
-                    if (!turmaId || quantidade <= 0) return null;
+                      if (!turmaId || quantidade <= 0) {
+                        return null;
+                      }
 
-                    return (
-                      <ActionButton
-                        key={turmaId}
-                        onClick={() => confirmarCancelarLote(turmaId)}
-                        tone="rose"
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        Cancelar {quantidade} • Turma {turmaId}
-                      </ActionButton>
-                    );
-                  })}
+                      return (
+                        <ActionButton
+                          key={turmaId}
+                          onClick={() => confirmarCancelarLote(turmaId)}
+                          tone="rose"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          Cancelar {quantidade} • Turma {turmaId}
+                        </ActionButton>
+                      );
+                    },
+                  )}
                 </div>
               </div>
             </div>

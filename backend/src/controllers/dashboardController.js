@@ -153,7 +153,7 @@ function exigirUsuarioId(req, res) {
       res,
       401,
       "DASHBOARD-401-NAO-AUTENTICADO",
-      "Usuário não autenticado."
+      "Usuário não autenticado.",
     );
     return null;
   }
@@ -254,7 +254,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
       res,
       400,
       "DASHBOARD-ORGANIZADOR-400-ID-INVALIDO",
-      "ID de organizador inválido."
+      "ID de organizador inválido.",
     );
   }
 
@@ -269,7 +269,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
         AND tr.papel = $2
       ORDER BY t.id ASC
       `,
-      [organizadorId, PAPEL_ORGANIZADOR]
+      [organizadorId, PAPEL_ORGANIZADOR],
     );
 
     const turmaIds = (turmasResult.rows || [])
@@ -287,7 +287,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
         },
         {
           message: "Nenhuma turma vinculada ao organizador foi localizada.",
-        }
+        },
       );
     }
 
@@ -307,7 +307,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
       GROUP BY e.id, e.titulo, t.id, t.nome, t.data_inicio
       ORDER BY e.titulo ASC, t.data_inicio DESC
       `,
-      [turmaIds]
+      [turmaIds],
     );
 
     const comentariosResult = await db.query(
@@ -328,7 +328,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
         )
       ORDER BY a.data_avaliacao DESC NULLS LAST, a.id DESC
       `,
-      [turmaIds]
+      [turmaIds],
     );
 
     const comentariosPorTurma = new Map();
@@ -343,10 +343,8 @@ async function getEventoAvaliacaoPororganizador(req, res) {
       comentariosPorTurma.get(turmaId).push({
         desempenho_organizador: row.desempenho_organizador ?? null,
         gostou_mais: String(row.gostou_mais || "").trim() || null,
-        sugestoes_melhoria:
-          String(row.sugestoes_melhoria || "").trim() || null,
-        comentarios_finais:
-          String(row.comentarios_finais || "").trim() || null,
+        sugestoes_melhoria: String(row.sugestoes_melhoria || "").trim() || null,
+        comentarios_finais: String(row.comentarios_finais || "").trim() || null,
         data_avaliacao: row.data_avaliacao ?? null,
       });
     }
@@ -389,7 +387,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
       },
       {
         message: "Eventos vinculados ao organizador listados com sucesso.",
-      }
+      },
     );
   } catch (err) {
     logErro("getEventoAvaliacaoPororganizador", err, { organizadorId });
@@ -398,7 +396,7 @@ async function getEventoAvaliacaoPororganizador(req, res) {
       res,
       500,
       "DASHBOARD-ORGANIZADOR-500-EVENTO-AVALIACAO",
-      "Erro ao buscar eventos do organizador."
+      "Erro ao buscar eventos do organizador.",
     );
   }
 }
@@ -424,7 +422,7 @@ async function getResumoDashboard(req, res) {
       WHERE i.usuario_id = $1
         AND (t.data_fim::date + COALESCE(t.horario_fim, '23:59'::time)) < ${agoraSp}
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const eventoOrganizadorResult = await db.query(
@@ -435,7 +433,7 @@ async function getResumoDashboard(req, res) {
       WHERE tr.usuario_id = $1
         AND tr.papel = $2
       `,
-      [usuarioId, PAPEL_ORGANIZADOR]
+      [usuarioId, PAPEL_ORGANIZADOR],
     );
 
     const inscricaoFuturaResult = await db.query(
@@ -446,7 +444,7 @@ async function getResumoDashboard(req, res) {
       WHERE i.usuario_id = $1
         AND (t.data_inicio::date + COALESCE(t.horario_inicio, '00:00'::time)) > ${agoraSp}
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const inscricaoAtualResult = await db.query(
@@ -460,7 +458,7 @@ async function getResumoDashboard(req, res) {
           AND
           (t.data_fim::date + COALESCE(t.horario_fim, '23:59'::time))
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const avaliacaoPendenteResult = await db.query(
@@ -477,7 +475,7 @@ async function getResumoDashboard(req, res) {
             AND a.turma_id = i.turma_id
         )
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const certificadoEmitidoResult = await db.query(
@@ -488,7 +486,7 @@ async function getResumoDashboard(req, res) {
         AND c.gerado_em IS NOT NULL
         AND c.status IN ('emitido', 'enviado')
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const certificadoTotalResult = await db.query(
@@ -497,7 +495,7 @@ async function getResumoDashboard(req, res) {
       FROM certificados
       WHERE usuario_id = $1
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const presencaFaltaResult = await db.query(
@@ -569,7 +567,7 @@ async function getResumoDashboard(req, res) {
       FROM agregada
       WHERE CURRENT_DATE > data_fim
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const presencaTotal = num(presencaFaltaResult.rows?.[0]?.presenca_total, 0);
@@ -582,10 +580,9 @@ async function getResumoDashboard(req, res) {
             0,
             Math.min(
               10,
-              Math.round(
-                (10 - (faltaTotal / totalPresencaFalta) * 10) * 10
-              ) / 10
-            )
+              Math.round((10 - (faltaTotal / totalPresencaFalta) * 10) * 10) /
+                10,
+            ),
           )
         : null;
 
@@ -598,7 +595,7 @@ async function getResumoDashboard(req, res) {
       WHERE tr.usuario_id = $1
         AND tr.papel = $2
       `,
-      [usuarioId, PAPEL_ORGANIZADOR]
+      [usuarioId, PAPEL_ORGANIZADOR],
     );
 
     const mediaAvaliacao10 =
@@ -625,7 +622,7 @@ async function getResumoDashboard(req, res) {
       },
       {
         message: "Resumo do dashboard carregado com sucesso.",
-      }
+      },
     );
   } catch (err) {
     logErro("getResumoDashboard", err, { usuarioId });
@@ -634,7 +631,7 @@ async function getResumoDashboard(req, res) {
       res,
       500,
       "DASHBOARD-500-RESUMO",
-      "Erro ao carregar dados do dashboard."
+      "Erro ao carregar dados do dashboard.",
     );
   }
 }
@@ -664,7 +661,7 @@ async function getAvaliacaoRecenteorganizador(req, res) {
       ORDER BY a.data_avaliacao DESC NULLS LAST, a.id DESC
       LIMIT 10
       `,
-      [usuarioId, PAPEL_ORGANIZADOR]
+      [usuarioId, PAPEL_ORGANIZADOR],
     );
 
     const avaliacao = (result.rows || []).map((row) => ({
@@ -682,7 +679,7 @@ async function getAvaliacaoRecenteorganizador(req, res) {
       },
       {
         message: "Avaliações recentes carregadas com sucesso.",
-      }
+      },
     );
   } catch (err) {
     logErro("getAvaliacaoRecenteorganizador", err, { usuarioId });
@@ -691,7 +688,7 @@ async function getAvaliacaoRecenteorganizador(req, res) {
       res,
       500,
       "DASHBOARD-500-AVALIACAO-RECENTE",
-      "Erro ao buscar últimas avaliações."
+      "Erro ao buscar últimas avaliações.",
     );
   }
 }
@@ -711,7 +708,7 @@ async function obterDashboard(req, res) {
       INNER JOIN turmas t ON t.evento_id = e.id
       ${filtro.where}
       `,
-      filtro.params
+      filtro.params,
     );
 
     const inscritoUnicoResult = await db.query(
@@ -722,7 +719,7 @@ async function obterDashboard(req, res) {
       INNER JOIN eventos e ON t.evento_id = e.id
       ${filtro.where}
       `,
-      filtro.params
+      filtro.params,
     );
 
     const mediaAvaliacaoSql = `
@@ -732,7 +729,7 @@ async function obterDashboard(req, res) {
           (
             ${NOTAS_EVENTO.map(
               (campo) =>
-                `CASE WHEN ${sqlScore10(`a.${campo}`)} IS NULL THEN 0 ELSE 1 END`
+                `CASE WHEN ${sqlScore10(`a.${campo}`)} IS NULL THEN 0 ELSE 1 END`,
             ).join(" + ")}
           )::numeric AS quantidade
         FROM avaliacoes a
@@ -755,7 +752,7 @@ async function obterDashboard(req, res) {
 
     const mediaAvaliacaoResult = await db.query(
       mediaAvaliacaoSql,
-      filtro.params
+      filtro.params,
     );
 
     const mediaOrganizadorResult = await db.query(
@@ -767,7 +764,7 @@ async function obterDashboard(req, res) {
       INNER JOIN eventos e ON t.evento_id = e.id
       ${filtro.where}
       `,
-      filtro.params
+      filtro.params,
     );
 
     const presencaResult = await db.query(
@@ -856,7 +853,7 @@ async function obterDashboard(req, res) {
       FROM resumo_evento re
       ORDER BY re.evento_titulo ASC
       `,
-      filtro.params
+      filtro.params,
     );
 
     const eventoPorMesResult = await db.query(
@@ -871,7 +868,7 @@ async function obterDashboard(req, res) {
       GROUP BY mes, mes_num
       ORDER BY mes_num ASC
       `,
-      filtro.params
+      filtro.params,
     );
 
     const eventoPorTipoResult = await db.query(
@@ -885,7 +882,7 @@ async function obterDashboard(req, res) {
       GROUP BY e.tipo
       ORDER BY e.tipo ASC
       `,
-      filtro.params
+      filtro.params,
     );
 
     let totalInscritoGlobal = 0;
@@ -910,23 +907,23 @@ async function obterDashboard(req, res) {
         media_avaliacao: num(mediaAvaliacaoResult.rows?.[0]?.media_evento, 0),
         media_organizador: num(
           mediaOrganizadorResult.rows?.[0]?.media_organizador,
-          0
+          0,
         ),
         percentual_presenca: percentualPresenca,
         evento_por_mes: formatarGrafico(eventoPorMesResult.rows || [], "mes"),
         evento_por_tipo: formatarGrafico(
           eventoPorTipoResult.rows || [],
-          "tipo"
+          "tipo",
         ),
         presenca_por_evento: formatarGrafico(
           presencaResult.rows || [],
-          "titulo"
+          "titulo",
         ),
         filtro: filtro.filtros,
       },
       {
         message: "Dashboard administrativo carregado com sucesso.",
-      }
+      },
     );
   } catch (err) {
     logErro("obterDashboard", err, { filtro: filtro.filtros });
@@ -935,7 +932,7 @@ async function obterDashboard(req, res) {
       res,
       500,
       "DASHBOARD-500-ADMINISTRADOR",
-      "Erro ao gerar dashboard administrativo."
+      "Erro ao gerar dashboard administrativo.",
     );
   }
 }

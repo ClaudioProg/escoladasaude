@@ -78,7 +78,9 @@ function normalizarDataReferencia(value) {
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
-    const error = new Error("A data de referência deve estar no formato YYYY-MM-DD.");
+    const error = new Error(
+      "A data de referência deve estar no formato YYYY-MM-DD.",
+    );
     error.code = "NOTIFICACAO-PROGRAMADA-DATA-INVALIDA";
     throw error;
   }
@@ -94,7 +96,9 @@ function normalizarLimite(value) {
   const limite = Number.parseInt(value, 10);
 
   if (!Number.isFinite(limite) || limite <= 0) {
-    const error = new Error("O limite deve ser um número inteiro maior que zero.");
+    const error = new Error(
+      "O limite deve ser um número inteiro maior que zero.",
+    );
     error.code = "NOTIFICACAO-PROGRAMADA-LIMITE-INVALIDO";
     throw error;
   }
@@ -106,7 +110,7 @@ function montarOptions(req) {
   const fonte = req.method === "GET" ? req.query : req.body;
 
   const dataReferencia = normalizarDataReferencia(
-    fonte?.data_referencia || fonte?.dataReferencia
+    fonte?.data_referencia || fonte?.dataReferencia,
   );
 
   const limite = normalizarLimite(fonte?.limite);
@@ -133,7 +137,7 @@ async function diagnosticarLembreteEvento(req, res) {
         {
           adminHint:
             "Verifique se o authMiddleware está populando req.user.perfil com o valor oficial 'administrador'.",
-        }
+        },
       );
     }
 
@@ -143,12 +147,15 @@ async function diagnosticarLembreteEvento(req, res) {
 
     return responderSucesso(res, resultado, req);
   } catch (err) {
-    console.error("[notificacaoProgramadaController.diagnosticarLembreteEvento] ERRO", {
-      message: err?.message,
-      code: err?.code,
-      detail: err?.detail,
-      constraint: err?.constraint,
-    });
+    console.error(
+      "[notificacaoProgramadaController.diagnosticarLembreteEvento] ERRO",
+      {
+        message: err?.message,
+        code: err?.code,
+        detail: err?.detail,
+        constraint: err?.constraint,
+      },
+    );
 
     if (
       err?.code === "NOTIFICACAO-PROGRAMADA-DATA-INVALIDA" ||
@@ -170,7 +177,7 @@ async function diagnosticarLembreteEvento(req, res) {
           errorCode: err?.code || null,
           constraint: err?.constraint || null,
         },
-      }
+      },
     );
   }
 }
@@ -191,7 +198,7 @@ async function executarLembreteEvento(req, res) {
         {
           adminHint:
             "Verifique se o authMiddleware está populando req.user.perfil com o valor oficial 'administrador'.",
-        }
+        },
       );
     }
 
@@ -201,12 +208,15 @@ async function executarLembreteEvento(req, res) {
 
     return responderSucesso(res, resultado, req);
   } catch (err) {
-    console.error("[notificacaoProgramadaController.executarLembreteEvento] ERRO", {
-      message: err?.message,
-      code: err?.code,
-      detail: err?.detail,
-      constraint: err?.constraint,
-    });
+    console.error(
+      "[notificacaoProgramadaController.executarLembreteEvento] ERRO",
+      {
+        message: err?.message,
+        code: err?.code,
+        detail: err?.detail,
+        constraint: err?.constraint,
+      },
+    );
 
     if (
       err?.code === "NOTIFICACAO-PROGRAMADA-DATA-INVALIDA" ||
@@ -228,7 +238,7 @@ async function executarLembreteEvento(req, res) {
           errorCode: err?.code || null,
           constraint: err?.constraint || null,
         },
-      }
+      },
     );
   }
 }

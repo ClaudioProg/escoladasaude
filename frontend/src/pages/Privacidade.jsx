@@ -64,7 +64,7 @@ function Badge({ icon: Icon, children, tone = "glass" }) {
     <span
       className={cx(
         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold backdrop-blur",
-        tones[tone] || tones.glass
+        tones[tone] || tones.glass,
       )}
     >
       {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : null}
@@ -122,7 +122,8 @@ function HeaderHero() {
           </div>
 
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/88 sm:text-base">
-            Como cuidamos dos seus dados e garantimos segurança, transparência e responsabilidade no uso da Plataforma Escola da Saúde.
+            Como cuidamos dos seus dados e garantimos segurança, transparência e
+            responsabilidade no uso da Plataforma Escola da Saúde.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
@@ -184,7 +185,10 @@ function TocLink({ href, label }) {
 function SectionTitle({ icon: Icon, children }) {
   return (
     <div className="flex items-center gap-2">
-      <Icon className="h-4 w-4 text-emerald-700 dark:text-emerald-300" aria-hidden="true" />
+      <Icon
+        className="h-4 w-4 text-emerald-700 dark:text-emerald-300"
+        aria-hidden="true"
+      />
       <h3 className="text-lg font-black text-slate-950 dark:text-white">
         {children}
       </h3>
@@ -209,7 +213,7 @@ export default function Privacidade() {
       animate: reduceMotion ? {} : { opacity: 1, y: 0 },
       transition: { duration: 0.3 },
     }),
-    [reduceMotion]
+    [reduceMotion],
   );
 
   return (
@@ -270,7 +274,10 @@ export default function Privacidade() {
 
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <TocLink href="#coleta" label="Coleta e uso de dados" />
-                  <TocLink href="#seguranca" label="Armazenamento e segurança" />
+                  <TocLink
+                    href="#seguranca"
+                    label="Armazenamento e segurança"
+                  />
                   <TocLink href="#compartilhamento" label="Compartilhamento" />
                   <TocLink href="#direitos" label="Direitos do usuário" />
                   <TocLink href="#retencao" label="Retenção e prazos" />
@@ -300,40 +307,59 @@ export default function Privacidade() {
               </h2>
 
               <p className="mt-2 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 sm:text-base">
-                A Escola Municipal de Saúde Pública de Santos respeita sua privacidade e está comprometida em proteger seus dados pessoais, observando a legislação aplicável, a finalidade institucional da plataforma e boas práticas de segurança.
+                A Escola Municipal de Saúde Pública de Santos respeita sua
+                privacidade e está comprometida em proteger seus dados pessoais,
+                observando a legislação aplicável, a finalidade institucional da
+                plataforma e boas práticas de segurança.
               </p>
             </div>
           </div>
 
           <section className="mt-7 space-y-7 text-zinc-800 dark:text-zinc-200">
             <div id="coleta" className="scroll-mt-28">
-              <SectionTitle icon={UserRound}>Coleta e uso de dados</SectionTitle>
+              <SectionTitle icon={UserRound}>
+                Coleta e uso de dados
+              </SectionTitle>
 
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
                 <li>
-                  Coletamos apenas dados necessários ao funcionamento da plataforma, como nome, CPF, e-mail, celular, unidade, cargo, inscrições, presenças, avaliações e certificados.
+                  Coletamos apenas dados necessários ao funcionamento da
+                  plataforma, como nome, CPF, e-mail, celular, unidade, cargo,
+                  inscrições, presenças, avaliações e certificados.
                 </li>
                 <li>
-                  Os dados são utilizados para gerenciar inscrições, registrar presenças, emitir certificados, enviar comunicações institucionais, organizar ações educacionais e apoiar a gestão administrativa.
+                  Os dados são utilizados para gerenciar inscrições, registrar
+                  presenças, emitir certificados, enviar comunicações
+                  institucionais, organizar ações educacionais e apoiar a gestão
+                  administrativa.
                 </li>
                 <li>
-                  Registros técnicos, como logs de acesso e ações administrativas, podem ser utilizados para segurança, auditoria, diagnóstico e melhoria contínua do serviço.
+                  Registros técnicos, como logs de acesso e ações
+                  administrativas, podem ser utilizados para segurança,
+                  auditoria, diagnóstico e melhoria contínua do serviço.
                 </li>
               </ul>
             </div>
 
             <div id="seguranca" className="scroll-mt-28">
-              <SectionTitle icon={LockKeyhole}>Armazenamento e segurança</SectionTitle>
+              <SectionTitle icon={LockKeyhole}>
+                Armazenamento e segurança
+              </SectionTitle>
 
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
                 <li>
-                  Os dados são armazenados em ambiente controlado, com acesso restrito conforme perfil e necessidade institucional.
+                  Os dados são armazenados em ambiente controlado, com acesso
+                  restrito conforme perfil e necessidade institucional.
                 </li>
                 <li>
-                  São adotadas medidas técnicas e administrativas para reduzir riscos de acesso não autorizado, perda, vazamento, alteração indevida ou uso inadequado.
+                  São adotadas medidas técnicas e administrativas para reduzir
+                  riscos de acesso não autorizado, perda, vazamento, alteração
+                  indevida ou uso inadequado.
                 </li>
                 <li>
-                  A plataforma utiliza controles de autenticação, autorização, logs administrativos, rastreabilidade e boas práticas de proteção operacional.
+                  A plataforma utiliza controles de autenticação, autorização,
+                  logs administrativos, rastreabilidade e boas práticas de
+                  proteção operacional.
                 </li>
               </ul>
             </div>
@@ -343,32 +369,45 @@ export default function Privacidade() {
 
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
                 <li>
-                  Não vendemos dados pessoais nem compartilhamos informações para fins comerciais.
+                  Não vendemos dados pessoais nem compartilhamos informações
+                  para fins comerciais.
                 </li>
                 <li>
-                  Dados podem ser compartilhados internamente com setores autorizados da Administração Pública, quando necessário para finalidade institucional legítima.
+                  Dados podem ser compartilhados internamente com setores
+                  autorizados da Administração Pública, quando necessário para
+                  finalidade institucional legítima.
                 </li>
                 <li>
-                  Poderemos fornecer dados quando houver obrigação legal, solicitação administrativa legítima, ordem judicial ou necessidade de auditoria.
+                  Poderemos fornecer dados quando houver obrigação legal,
+                  solicitação administrativa legítima, ordem judicial ou
+                  necessidade de auditoria.
                 </li>
                 <li>
-                  Quando aplicável, o compartilhamento deve observar o mínimo necessário para a finalidade pretendida.
+                  Quando aplicável, o compartilhamento deve observar o mínimo
+                  necessário para a finalidade pretendida.
                 </li>
               </ul>
             </div>
 
             <div id="direitos" className="scroll-mt-28">
-              <SectionTitle icon={ShieldCheck}>Direitos do usuário</SectionTitle>
+              <SectionTitle icon={ShieldCheck}>
+                Direitos do usuário
+              </SectionTitle>
 
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
                 <li>
-                  Acessar, corrigir ou atualizar seus dados pessoais, quando aplicável.
+                  Acessar, corrigir ou atualizar seus dados pessoais, quando
+                  aplicável.
                 </li>
                 <li>
-                  Solicitar informações sobre o tratamento dos dados, observadas as limitações legais e administrativas.
+                  Solicitar informações sobre o tratamento dos dados, observadas
+                  as limitações legais e administrativas.
                 </li>
                 <li>
-                  Solicitar exclusão ou revisão de dados, quando possível, considerando obrigações legais de guarda, histórico institucional, certificados, presenças e registros administrativos.
+                  Solicitar exclusão ou revisão de dados, quando possível,
+                  considerando obrigações legais de guarda, histórico
+                  institucional, certificados, presenças e registros
+                  administrativos.
                 </li>
               </ul>
             </div>
@@ -378,10 +417,15 @@ export default function Privacidade() {
 
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
                 <li>
-                  Dados serão mantidos pelo tempo necessário ao cumprimento das finalidades institucionais, educacionais, administrativas e legais.
+                  Dados serão mantidos pelo tempo necessário ao cumprimento das
+                  finalidades institucionais, educacionais, administrativas e
+                  legais.
                 </li>
                 <li>
-                  Registros ligados a certificados, presenças, avaliações, inscrições e auditoria podem ser preservados para fins de comprovação, validação pública, prestação de contas e rastreabilidade.
+                  Registros ligados a certificados, presenças, avaliações,
+                  inscrições e auditoria podem ser preservados para fins de
+                  comprovação, validação pública, prestação de contas e
+                  rastreabilidade.
                 </li>
               </ul>
             </div>
@@ -390,7 +434,9 @@ export default function Privacidade() {
               <SectionTitle icon={Mail}>Contato</SectionTitle>
 
               <p className="mt-2 text-sm leading-relaxed sm:text-base">
-                Em caso de dúvidas sobre esta Política de Privacidade ou sobre o uso dos seus dados na Plataforma Escola da Saúde, entre em contato pelo e-mail{" "}
+                Em caso de dúvidas sobre esta Política de Privacidade ou sobre o
+                uso dos seus dados na Plataforma Escola da Saúde, entre em
+                contato pelo e-mail{" "}
                 <strong className="font-black text-slate-950 dark:text-white">
                   escoladasaude@santos.sp.gov.br
                 </strong>
@@ -420,7 +466,9 @@ export default function Privacidade() {
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-600 dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-400">
-            Esta página tem finalidade informativa. Ajustes podem ocorrer para refletir atualizações institucionais, técnicas, operacionais ou legais.
+            Esta página tem finalidade informativa. Ajustes podem ocorrer para
+            refletir atualizações institucionais, técnicas, operacionais ou
+            legais.
           </div>
         </motion.article>
       </section>

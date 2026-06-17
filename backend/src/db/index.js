@@ -93,15 +93,15 @@ const SSL_OPTION = DATABASE_SSL ? { rejectUnauthorized: false } : false;
 const POOL_MAX = parsePositiveIntEnv(process.env.DB_POOL_MAX, DEFAULT_POOL_MAX);
 const IDLE_TIMEOUT_MS = parsePositiveIntEnv(
   process.env.DB_IDLE_TIMEOUT_MS,
-  DEFAULT_IDLE_TIMEOUT_MS
+  DEFAULT_IDLE_TIMEOUT_MS,
 );
 const CONNECTION_TIMEOUT_MS = parsePositiveIntEnv(
   process.env.DB_CONNECTION_TIMEOUT_MS,
-  DEFAULT_CONNECTION_TIMEOUT_MS
+  DEFAULT_CONNECTION_TIMEOUT_MS,
 );
 
 const APPLICATION_NAME = String(
-  process.env.DB_APPLICATION_NAME || "escola-saude-api"
+  process.env.DB_APPLICATION_NAME || "escola-saude-api",
 ).trim();
 
 function inferSslFromEnvironment(connectionString, isProd) {
@@ -130,7 +130,9 @@ function getSlowSqlThresholdMs() {
 }
 
 function shrinkWhitespace(sql) {
-  return String(sql || "").replace(/\s+/g, " ").trim();
+  return String(sql || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function redactValue(value, depth = 0) {

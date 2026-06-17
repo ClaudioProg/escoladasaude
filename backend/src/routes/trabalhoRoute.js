@@ -64,13 +64,13 @@ const { authorize } = require("../middlewares/authorize");
 
 if (typeof requireAuth !== "function") {
   throw new Error(
-    "[trabalhoRoute] authMiddleware oficial inválido. Esperado export direto como função."
+    "[trabalhoRoute] authMiddleware oficial inválido. Esperado export direto como função.",
   );
 }
 
 if (typeof authorize !== "function") {
   throw new Error(
-    "[trabalhoRoute] authorize oficial inválido. Esperado export nomeado { authorize }."
+    "[trabalhoRoute] authorize oficial inválido. Esperado export nomeado { authorize }.",
   );
 }
 
@@ -112,7 +112,12 @@ function noStore(_req, res, next) {
   next();
 }
 
-function criarErroUpload(message, status = 400, code = "UPLOAD_INVALIDO", details = null) {
+function criarErroUpload(
+  message,
+  status = 400,
+  code = "UPLOAD_INVALIDO",
+  details = null,
+) {
   const err = new Error(message);
   err.status = status;
   err.code = code;
@@ -122,10 +127,7 @@ function criarErroUpload(message, status = 400, code = "UPLOAD_INVALIDO", detail
 }
 
 const idParam = [
-  param("id")
-    .isInt({ min: 1 })
-    .withMessage("ID inválido.")
-    .toInt(),
+  param("id").isInt({ min: 1 }).withMessage("ID inválido.").toInt(),
 ];
 
 const chamadaIdParam = [
@@ -165,7 +167,16 @@ const uploadArquivo = multer({
       file.mimetype ===
         "application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
-    const extOk = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".ppt", ".pptx"].includes(ext);
+    const extOk = [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".webp",
+      ".pdf",
+      ".ppt",
+      ".pptx",
+    ].includes(ext);
 
     if (!mimeOk && !extOk) {
       return cb(
@@ -176,8 +187,8 @@ const uploadArquivo = multer({
           {
             mimetype: file.mimetype,
             extensao: ext,
-          }
-        )
+          },
+        ),
       );
     }
 
@@ -194,8 +205,8 @@ function multerErrorHandler(err, _req, _res, next) {
         criarErroUpload(
           "Arquivo muito grande. O limite é 30MB.",
           413,
-          "ARQUIVO_TAMANHO_EXCEDIDO"
-        )
+          "ARQUIVO_TAMANHO_EXCEDIDO",
+        ),
       );
     }
 
@@ -204,8 +215,8 @@ function multerErrorHandler(err, _req, _res, next) {
         `Erro no upload (${err.code}).`,
         400,
         "UPLOAD_MULTER_ERROR",
-        { multerCode: err.code }
-      )
+        { multerCode: err.code },
+      ),
     );
   }
 
@@ -257,7 +268,7 @@ router.post(
   requireAuth,
   chamadaIdParam,
   validate,
-  asyncHandler(ctrl.criar)
+  asyncHandler(ctrl.criar),
 );
 
 /**
@@ -270,7 +281,7 @@ router.get(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.obter)
+  asyncHandler(ctrl.obter),
 );
 
 /**
@@ -283,7 +294,7 @@ router.put(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.atualizar)
+  asyncHandler(ctrl.atualizar),
 );
 
 /**
@@ -296,7 +307,7 @@ router.delete(
   requireAuth,
   idParam,
   validate,
-  asyncHandler(ctrl.remover)
+  asyncHandler(ctrl.remover),
 );
 
 /**
@@ -313,7 +324,7 @@ router.post(
   idParam,
   validate,
   uploadArquivo.single("arquivo"),
-  asyncHandler(ctrl.atualizarBanner)
+  asyncHandler(ctrl.atualizarBanner),
 );
 
 /* =========================================================================
@@ -328,11 +339,7 @@ router.post(
  *
  * GET /api/trabalho/repositorio
  */
-router.get(
-  "/repositorio",
-  requireAuth,
-  asyncHandler(ctrl.listarRepositorio)
-);
+router.get("/repositorio", requireAuth, asyncHandler(ctrl.listarRepositorio));
 
 /* =========================================================================
    Error handler de upload

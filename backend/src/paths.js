@@ -111,10 +111,7 @@ function toPosixKey(...parts) {
   return parts
     .filter((part) => part !== null && part !== undefined && part !== "")
     .map((part) =>
-      String(part)
-        .replace(/\\/g, "/")
-        .replace(/^\/+/, "")
-        .replace(/\/+$/, "")
+      String(part).replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+$/, ""),
     )
     .filter(Boolean)
     .join("/");
@@ -219,7 +216,7 @@ function resolveDataRoot() {
     throw new Error(
       "[paths] Nenhum DATA_ROOT persistente gravável encontrado em produção. " +
         "Configure RENDER_DISK_PATH, FILES_BASE ou DATA_DIR. " +
-        "Para permitir fallback temporário conscientemente, defina FILES_ALLOW_TMP_FALLBACK=true."
+        "Para permitir fallback temporário conscientemente, defina FILES_ALLOW_TMP_FALLBACK=true.",
     );
   }
 
@@ -297,7 +294,7 @@ if (!IS_TEST) {
   if (!IS_DEV && FALLBACK_TO_TMP) {
     console.warn(
       "[paths] ATENÇÃO: usando armazenamento temporário em produção. " +
-        "Arquivos podem ser perdidos em restart/redeploy."
+        "Arquivos podem ser perdidos em restart/redeploy.",
     );
   }
 }

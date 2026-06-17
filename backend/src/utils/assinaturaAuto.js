@@ -77,7 +77,7 @@ function uniqPreserveOrder(lista) {
 
 const SIGNATURE_FONT_PATH = path.resolve(
   process.env.SIGNATURE_FONT_TTF ||
-    path.join(process.cwd(), "fonts", "GreatVibes-Regular.ttf")
+    path.join(process.cwd(), "fonts", "GreatVibes-Regular.ttf"),
 );
 
 const SIGNATURE_FONT_FAMILY =
@@ -86,60 +86,55 @@ const SIGNATURE_FONT_FAMILY =
 const SIGNATURE_WIDTH = clamp(
   toInt(process.env.SIGNATURE_WIDTH, 900),
   300,
-  2400
+  2400,
 );
 
 const SIGNATURE_HEIGHT = clamp(
   toInt(process.env.SIGNATURE_HEIGHT, 300),
   120,
-  900
+  900,
 );
 
 const SIGNATURE_PADDING = clamp(
   toInt(process.env.SIGNATURE_PADDING, 40),
   0,
-  200
+  200,
 );
 
-const FONT_MIN = clamp(
-  toInt(process.env.SIGNATURE_FONT_MIN, 72),
-  16,
-  300
-);
+const FONT_MIN = clamp(toInt(process.env.SIGNATURE_FONT_MIN, 72), 16, 300);
 
 const FONT_MAX = clamp(
   toInt(process.env.SIGNATURE_FONT_MAX, 180),
   FONT_MIN,
-  600
+  600,
 );
 
 const FONT_HARD_MIN = clamp(
   toInt(process.env.SIGNATURE_FONT_HARD_MIN, 12),
   8,
-  FONT_MIN
+  FONT_MIN,
 );
 
 const SIGNATURE_STROKE = process.env.SIGNATURE_STROKE || "#111827";
 const SIGNATURE_FILL = process.env.SIGNATURE_FILL || "#111827";
-const SIGNATURE_SHADOW =
-  process.env.SIGNATURE_SHADOW || "rgba(0,0,0,0.12)";
+const SIGNATURE_SHADOW = process.env.SIGNATURE_SHADOW || "rgba(0,0,0,0.12)";
 
 const CACHE_TTL_MS = clamp(
   toInt(process.env.SIGNATURE_CACHE_TTL_MS, 60_000),
   0,
-  10 * 60 * 1000
+  10 * 60 * 1000,
 );
 
 const CACHE_MAX_ITEMS = clamp(
   toInt(process.env.SIGNATURE_CACHE_MAX_ITEMS, 300),
   20,
-  5000
+  5000,
 );
 
 const MAX_NAME_LENGTH = clamp(
   toInt(process.env.SIGNATURE_MAX_NAME_LENGTH, 120),
   20,
-  240
+  240,
 );
 
 const cache = new Map();
@@ -273,7 +268,7 @@ function pruneCache() {
   }
 
   const entries = Array.from(cache.entries()).sort(
-    (a, b) => (a[1]?.ts || 0) - (b[1]?.ts || 0)
+    (a, b) => (a[1]?.ts || 0) - (b[1]?.ts || 0),
   );
 
   while (entries.length > CACHE_MAX_ITEMS) {
@@ -392,7 +387,7 @@ function renderSignaturePng(name) {
 
     const assinaturaCanvas = canvas.createCanvas(
       SIGNATURE_WIDTH,
-      SIGNATURE_HEIGHT
+      SIGNATURE_HEIGHT,
     );
 
     const ctx = assinaturaCanvas.getContext("2d");
@@ -402,11 +397,7 @@ function renderSignaturePng(name) {
     const variants = getSignatureVariants(clean);
     const maxTextWidth = SIGNATURE_WIDTH - SIGNATURE_PADDING * 2;
 
-    const { text, fontPx } = pickBestTextAndFont(
-      ctx,
-      variants,
-      maxTextWidth
-    );
+    const { text, fontPx } = pickBestTextAndFont(ctx, variants, maxTextWidth);
 
     setFont(ctx, fontPx);
 

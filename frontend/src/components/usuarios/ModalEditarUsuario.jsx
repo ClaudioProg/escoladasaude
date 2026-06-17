@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/components/usuarios/ModalEditarUsuario.jsx — v2.1
 // Atualizado em: 01/06/2026
 // Plataforma Escola da Saúde
@@ -77,7 +76,9 @@ function normText(value) {
 }
 
 function normEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normYmd(value) {
@@ -93,7 +94,9 @@ function validarEmail(value) {
 function aplicarMascaraCPF(value) {
   const digits = onlyDigits(value);
 
-  if (digits.length !== 11) return String(value || "");
+  if (digits.length !== 11) {
+    return String(value || "");
+  }
 
   return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
 }
@@ -101,7 +104,9 @@ function aplicarMascaraCPF(value) {
 function mascararCPF(value) {
   const digits = onlyDigits(value);
 
-  if (digits.length !== 11) return "—";
+  if (digits.length !== 11) {
+    return "—";
+  }
 
   return digits.replace(/^(\d{3})\d{3}(\d{3})\d{2}$/, "$1.***.$2-**");
 }
@@ -109,8 +114,12 @@ function mascararCPF(value) {
 function aplicarMascaraCelular(value) {
   const digits = onlyDigits(value).slice(0, 11);
 
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
 
   if (digits.length <= 10) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
@@ -122,7 +131,9 @@ function aplicarMascaraCelular(value) {
 function validarCelularOpcional(value) {
   const digits = onlyDigits(value);
 
-  if (!digits) return true;
+  if (!digits) {
+    return true;
+  }
 
   return /^\d{10,11}$/.test(digits);
 }
@@ -134,8 +145,12 @@ function perfilOficial(value) {
 }
 
 function iconByPerfil(value) {
-  if (value === "administrador") return ShieldCheck;
-  if (value === "organizador") return GraduationCap;
+  if (value === "administrador") {
+    return ShieldCheck;
+  }
+  if (value === "organizador") {
+    return GraduationCap;
+  }
 
   return Users;
 }
@@ -184,7 +199,9 @@ function SpinnerLocal() {
 }
 
 function FieldError({ id, children }) {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
 
   return (
     <p
@@ -198,7 +215,9 @@ function FieldError({ id, children }) {
 }
 
 function FieldHint({ id, children }) {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
 
   return (
     <p id={id} className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">
@@ -226,19 +245,19 @@ export default function ModalEditarUsuario({
   const errorId = `modal-editar-usuario-error-${uid}`;
 
   const dialogRef = useRef(null);
-const refNome = useRef(null);
-const refEmail = useRef(null);
-const refCelular = useRef(null);
-const refDataNascimento = useRef(null);
-const refUnidade = useRef(null);
-const refSalvar = useRef(null);
+  const refNome = useRef(null);
+  const refEmail = useRef(null);
+  const refCelular = useRef(null);
+  const refDataNascimento = useRef(null);
+  const refUnidade = useRef(null);
+  const refSalvar = useRef(null);
 
-const [nome, setNome] = useState("");
-const [email, setEmail] = useState("");
-const [celular, setCelular] = useState("");
-const [dataNascimento, setDataNascimento] = useState("");
-const [unidadeId, setUnidadeId] = useState("");
-const [perfil, setPerfil] = useState("");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [celular, setCelular] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [unidadeId, setUnidadeId] = useState("");
+  const [perfil, setPerfil] = useState("");
 
   const [salvando, setSalvando] = useState(false);
   const [errors, setErrors] = useState({});
@@ -254,38 +273,40 @@ const [perfil, setPerfil] = useState("");
       String(a?.sigla || a?.nome || "").localeCompare(
         String(b?.sigla || b?.nome || ""),
         "pt-BR",
-        { sensitivity: "base" }
-      )
+        { sensitivity: "base" },
+      ),
     );
   }, [unidades]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     const nomeInicial = usuario?.nome || "";
-const emailInicial = usuario?.email || "";
-const celularInicial = usuario?.celular || "";
-const dataNascimentoInicial = normYmd(usuario?.data_nascimento);
-const unidadeInicial = usuario?.unidade_id || "";
-const perfilInicial = perfilOficial(usuario?.perfil) || "usuario";
+    const emailInicial = usuario?.email || "";
+    const celularInicial = usuario?.celular || "";
+    const dataNascimentoInicial = normYmd(usuario?.data_nascimento);
+    const unidadeInicial = usuario?.unidade_id || "";
+    const perfilInicial = perfilOficial(usuario?.perfil) || "usuario";
 
-setNome(nomeInicial);
-setEmail(emailInicial);
-setCelular(aplicarMascaraCelular(celularInicial));
-setDataNascimento(dataNascimentoInicial);
-setUnidadeId(String(unidadeInicial || ""));
-setPerfil(perfilInicial);
+    setNome(nomeInicial);
+    setEmail(emailInicial);
+    setCelular(aplicarMascaraCelular(celularInicial));
+    setDataNascimento(dataNascimentoInicial);
+    setUnidadeId(String(unidadeInicial || ""));
+    setPerfil(perfilInicial);
 
-setBaseline(
-  montarSnapshot({
-    nome: nomeInicial,
-    email: emailInicial,
-    celular: celularInicial,
-    data_nascimento: dataNascimentoInicial,
-    unidade_id: unidadeInicial,
-    perfil: perfilInicial,
-  })
-);
+    setBaseline(
+      montarSnapshot({
+        nome: nomeInicial,
+        email: emailInicial,
+        celular: celularInicial,
+        data_nascimento: dataNascimentoInicial,
+        unidade_id: unidadeInicial,
+        perfil: perfilInicial,
+      }),
+    );
 
     setErrors({});
     setErroGeral("");
@@ -295,28 +316,32 @@ setBaseline(
   }, [isOpen, usuario]);
 
   const snapshotAtual = useMemo(
-  () =>
-    montarSnapshot({
-      nome,
-      email,
-      celular,
-      data_nascimento: dataNascimento,
-      unidade_id: unidadeId,
-      perfil,
-    }),
-  [celular, dataNascimento, email, nome, perfil, unidadeId]
-);
+    () =>
+      montarSnapshot({
+        nome,
+        email,
+        celular,
+        data_nascimento: dataNascimento,
+        unidade_id: unidadeId,
+        perfil,
+      }),
+    [celular, dataNascimento, email, nome, perfil, unidadeId],
+  );
 
   const dirty = useMemo(() => {
-    if (!baseline) return false;
+    if (!baseline) {
+      return false;
+    }
 
     return Object.keys(snapshotAtual).some(
-      (key) => String(snapshotAtual[key] ?? "") !== String(baseline[key] ?? "")
+      (key) => String(snapshotAtual[key] ?? "") !== String(baseline[key] ?? ""),
     );
   }, [baseline, snapshotAtual]);
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      return undefined;
+    }
 
     const previousActive = document.activeElement;
 
@@ -331,18 +356,24 @@ setBaseline(
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape") {
         event.preventDefault();
 
-        if (!salvando) onClose?.();
+        if (!salvando) {
+          onClose?.();
+        }
 
         return;
       }
 
-      if (event.key !== "Tab") return;
+      if (event.key !== "Tab") {
+        return;
+      }
 
       const focusable = dialogRef.current?.querySelectorAll(
         [
@@ -352,14 +383,16 @@ setBaseline(
           "select:not([disabled])",
           "textarea:not([disabled])",
           "[tabindex]:not([tabindex='-1'])",
-        ].join(",")
+        ].join(","),
       );
 
       const elements = Array.from(focusable || []).filter(
-        (element) => !element.hasAttribute("aria-hidden")
+        (element) => !element.hasAttribute("aria-hidden"),
       );
 
-      if (!elements.length) return;
+      if (!elements.length) {
+        return;
+      }
 
       const first = elements[0];
       const last = elements[elements.length - 1];
@@ -380,12 +413,12 @@ setBaseline(
 
   function focarPrimeiroErro(fields = {}) {
     const ordem = [
-  ["nome", refNome],
-  ["email", refEmail],
-  ["celular", refCelular],
-  ["data_nascimento", refDataNascimento],
-  ["unidade_id", refUnidade],
-];
+      ["nome", refNome],
+      ["email", refEmail],
+      ["celular", refCelular],
+      ["data_nascimento", refDataNascimento],
+      ["unidade_id", refUnidade],
+    ];
 
     const item = ordem.find(([field]) => fields[field]);
 
@@ -395,7 +428,7 @@ setBaseline(
     }
   }
 
-  function validarFormulario() {
+  const validarFormulario = useCallback(() => {
     const fields = {};
 
     if (!snapshotAtual.nome) {
@@ -409,29 +442,31 @@ setBaseline(
     }
 
     if (!validarCelularOpcional(celular)) {
-  fields.celular = "Celular inválido. Informe DDD + número.";
-}
+      fields.celular = "Celular inválido. Informe DDD + número.";
+    }
 
-if (
-  dataNascimento &&
-  !/^\d{4}-\d{2}-\d{2}$/.test(String(dataNascimento).slice(0, 10))
-) {
-  fields.data_nascimento = "Informe uma data de nascimento válida.";
-}
+    if (
+      dataNascimento &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(dataNascimento).slice(0, 10))
+    ) {
+      fields.data_nascimento = "Informe uma data de nascimento válida.";
+    }
 
-if (!snapshotAtual.unidade_id) {
-  fields.unidade_id = "Selecione a unidade do usuário.";
-}
+    if (!snapshotAtual.unidade_id) {
+      fields.unidade_id = "Selecione a unidade do usuário.";
+    }
 
     if (!snapshotAtual.perfil) {
       fields.perfil = "Selecione um perfil oficial.";
     }
 
     return fields;
-  }
+  }, [celular, dataNascimento, snapshotAtual]);
 
   const handleSalvar = useCallback(async () => {
-    if (!usuario?.id || salvando) return;
+    if (!usuario?.id || salvando) {
+      return;
+    }
 
     setErrors({});
     setErroGeral("");
@@ -467,13 +502,13 @@ if (!snapshotAtual.unidade_id) {
       setMsgA11y("Salvando alterações do usuário...");
 
       await onSalvar(usuario.id, {
-  nome: snapshotAtual.nome,
-  email: snapshotAtual.email,
-  celular: snapshotAtual.celular,
-  data_nascimento: snapshotAtual.data_nascimento || null,
-  unidade_id: snapshotAtual.unidade_id,
-  perfil: snapshotAtual.perfil,
-});
+        nome: snapshotAtual.nome,
+        email: snapshotAtual.email,
+        celular: snapshotAtual.celular,
+        data_nascimento: snapshotAtual.data_nascimento || null,
+        unidade_id: snapshotAtual.unidade_id,
+        perfil: snapshotAtual.perfil,
+      });
 
       toast.success("Usuário atualizado com sucesso.");
       setMsgA11y("Usuário atualizado com sucesso.");
@@ -488,7 +523,7 @@ if (!snapshotAtual.unidade_id) {
       const fieldsServidor = getFieldErrors(error);
       const message = getErrorMessage(
         error,
-        "Erro ao atualizar o usuário. Verifique os dados e tente novamente."
+        "Erro ao atualizar o usuário. Verifique os dados e tente novamente.",
       );
 
       if (Object.keys(fieldsServidor).length) {
@@ -504,31 +539,43 @@ if (!snapshotAtual.unidade_id) {
     } finally {
       setSalvando(false);
     }
-  }, [dirty, salvando, snapshotAtual, usuario?.id, onSalvar, onClose]);
+  }, [
+    dirty,
+    salvando,
+    snapshotAtual,
+    usuario?.id,
+    onSalvar,
+    onClose,
+    validarFormulario,
+  ]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
-return createPortal(
-  <div
-    className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto px-4 py-6 sm:items-center"
-    role="presentation"
-  >
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto px-4 py-6 sm:items-center"
+      role="presentation"
+    >
       <div
-  className="fixed inset-0 bg-black/55 backdrop-blur-sm"
-  aria-hidden="true"
-  onClick={() => {
-    if (!salvando) onClose?.();
-  }}
-/>
+        className="fixed inset-0 bg-black/55 backdrop-blur-sm"
+        aria-hidden="true"
+        onClick={() => {
+          if (!salvando) {
+            onClose?.();
+          }
+        }}
+      />
 
       <section
-  ref={dialogRef}
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby={titleId}
-  aria-describedby={erroGeral ? `${descId} ${errorId}` : descId}
-  className="relative my-auto flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white text-slate-900 shadow-2xl dark:bg-zinc-950 dark:text-zinc-100"
->
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={erroGeral ? `${descId} ${errorId}` : descId}
+        className="relative my-auto flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white text-slate-900 shadow-2xl dark:bg-zinc-950 dark:text-zinc-100"
+      >
         <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-teal-900 to-emerald-900 px-5 py-5 text-white sm:px-6">
           <div
             className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl"
@@ -558,7 +605,10 @@ return createPortal(
               Editar usuário
             </h2>
 
-            <p id={descId} className="mt-1 text-sm leading-relaxed text-white/90">
+            <p
+              id={descId}
+              className="mt-1 text-sm leading-relaxed text-white/90"
+            >
               Atualize dados cadastrais, unidade e perfil de{" "}
               <strong>{usuario?.nome || "usuário"}</strong>.
             </p>
@@ -622,14 +672,16 @@ return createPortal(
                   }}
                   disabled={salvando}
                   aria-invalid={!!errors.nome}
-                  aria-describedby={errors.nome ? `erro-nome-${uid}` : undefined}
+                  aria-describedby={
+                    errors.nome ? `erro-nome-${uid}` : undefined
+                  }
                   autoComplete="name"
                   className={cx(
                     "w-full rounded-2xl border px-4 py-3 pl-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/70",
                     "bg-white text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100 dark:placeholder:text-zinc-500",
                     errors.nome
                       ? "border-rose-400 ring-2 ring-rose-500/60"
-                      : "border-slate-300"
+                      : "border-slate-300",
                   )}
                 />
               </div>
@@ -673,7 +725,7 @@ return createPortal(
                     "bg-white text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100 dark:placeholder:text-zinc-500",
                     errors.email
                       ? "border-rose-400 ring-2 ring-rose-500/60"
-                      : "border-slate-300"
+                      : "border-slate-300",
                   )}
                 />
               </div>
@@ -726,7 +778,7 @@ return createPortal(
                     "bg-white text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100 dark:placeholder:text-zinc-500",
                     errors.celular
                       ? "border-rose-400 ring-2 ring-rose-500/60"
-                      : "border-slate-300"
+                      : "border-slate-300",
                   )}
                 />
               </div>
@@ -743,56 +795,57 @@ return createPortal(
             </div>
 
             <div>
-  <label
-    htmlFor={`edt-data-nascimento-${uid}`}
-    className="block text-sm font-semibold"
-  >
-    Data de nascimento
-  </label>
+              <label
+                htmlFor={`edt-data-nascimento-${uid}`}
+                className="block text-sm font-semibold"
+              >
+                Data de nascimento
+              </label>
 
-  <div className="relative mt-1">
-    <CalendarDays
-      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-zinc-400"
-      aria-hidden="true"
-    />
+              <div className="relative mt-1">
+                <CalendarDays
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-zinc-400"
+                  aria-hidden="true"
+                />
 
-    <input
-      ref={refDataNascimento}
-      id={`edt-data-nascimento-${uid}`}
-      type="date"
-      value={dataNascimento}
-      onChange={(event) => {
-        setDataNascimento(event.target.value);
-        setErrors((old) => ({ ...old, data_nascimento: "" }));
-      }}
-      disabled={salvando}
-      aria-invalid={!!errors.data_nascimento}
-      aria-describedby={
-        errors.data_nascimento
-          ? `erro-data-nascimento-${uid}`
-          : `dica-data-nascimento-${uid}`
-      }
-      autoComplete="bday"
-      className={cx(
-        "w-full rounded-2xl border px-4 py-3 pl-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/70",
-        "bg-white text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100 dark:placeholder:text-zinc-500",
-        errors.data_nascimento
-          ? "border-rose-400 ring-2 ring-rose-500/60"
-          : "border-slate-300"
-      )}
-    />
-  </div>
+                <input
+                  ref={refDataNascimento}
+                  id={`edt-data-nascimento-${uid}`}
+                  type="date"
+                  value={dataNascimento}
+                  onChange={(event) => {
+                    setDataNascimento(event.target.value);
+                    setErrors((old) => ({ ...old, data_nascimento: "" }));
+                  }}
+                  disabled={salvando}
+                  aria-invalid={!!errors.data_nascimento}
+                  aria-describedby={
+                    errors.data_nascimento
+                      ? `erro-data-nascimento-${uid}`
+                      : `dica-data-nascimento-${uid}`
+                  }
+                  autoComplete="bday"
+                  className={cx(
+                    "w-full rounded-2xl border px-4 py-3 pl-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/70",
+                    "bg-white text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+                    errors.data_nascimento
+                      ? "border-rose-400 ring-2 ring-rose-500/60"
+                      : "border-slate-300",
+                  )}
+                />
+              </div>
 
-  {errors.data_nascimento ? (
-    <FieldError id={`erro-data-nascimento-${uid}`}>
-      {errors.data_nascimento}
-    </FieldError>
-  ) : (
-    <FieldHint id={`dica-data-nascimento-${uid}`}>
-      Campo opcional. Usado para cálculo de idade e qualificação cadastral.
-    </FieldHint>
-  )}
-</div>
+              {errors.data_nascimento ? (
+                <FieldError id={`erro-data-nascimento-${uid}`}>
+                  {errors.data_nascimento}
+                </FieldError>
+              ) : (
+                <FieldHint id={`dica-data-nascimento-${uid}`}>
+                  Campo opcional. Usado para cálculo de idade e qualificação
+                  cadastral.
+                </FieldHint>
+              )}
+            </div>
 
             <div>
               <label
@@ -828,7 +881,7 @@ return createPortal(
                     "bg-white text-slate-900 dark:border-white/10 dark:bg-zinc-950/30 dark:text-zinc-100",
                     errors.unidade_id
                       ? "border-rose-400 ring-2 ring-rose-500/60"
-                      : "border-slate-300"
+                      : "border-slate-300",
                   )}
                 >
                   <option value="">Selecione a unidade</option>
@@ -882,7 +935,7 @@ return createPortal(
                             : "border-slate-200 bg-white text-slate-800 hover:border-emerald-300 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-emerald-700",
                           salvando
                             ? "cursor-not-allowed opacity-70"
-                            : "cursor-pointer"
+                            : "cursor-pointer",
                         )}
                         aria-pressed={selected ? "true" : "false"}
                       >
@@ -892,7 +945,7 @@ return createPortal(
                               "inline-flex h-9 w-9 items-center justify-center rounded-2xl border",
                               selected
                                 ? "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
-                                : "border-slate-200 bg-slate-100 text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                                : "border-slate-200 bg-slate-100 text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
                             )}
                             aria-hidden="true"
                           >
@@ -907,7 +960,9 @@ return createPortal(
                           ) : null}
                         </span>
 
-                        <span className="mt-3 font-extrabold">{item.label}</span>
+                        <span className="mt-3 font-extrabold">
+                          {item.label}
+                        </span>
                         <span className="mt-1 text-[11px] leading-snug opacity-80">
                           {item.description}
                         </span>
@@ -996,8 +1051,9 @@ return createPortal(
                   aria-hidden="true"
                 />
                 <p>
-                  CPF permanece somente leitura. Nome, e-mail, celular, data de nascimento,
-unidade e perfil podem ser atualizados neste fluxo administrativo.
+                  CPF permanece somente leitura. Nome, e-mail, celular, data de
+                  nascimento, unidade e perfil podem ser atualizados neste fluxo
+                  administrativo.
                 </p>
               </div>
             </div>
@@ -1021,7 +1077,7 @@ unidade e perfil podem ser atualizados neste fluxo administrativo.
             disabled={salvando || !dirty}
             className={cx(
               "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-extrabold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-60",
-              dirty ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-900"
+              dirty ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-900",
             )}
             aria-busy={salvando ? "true" : "false"}
           >
@@ -1042,7 +1098,7 @@ unidade e perfil podem ser atualizados neste fluxo administrativo.
         </footer>
       </section>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -1064,21 +1120,21 @@ ModalEditarUsuario.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func,
   usuario: PropTypes.shape({
-  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-  nome: PropTypes.string,
-  email: PropTypes.string,
-  celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  data_nascimento: PropTypes.string,
-  unidade_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  perfil: PropTypes.string,
-}).isRequired,
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    nome: PropTypes.string,
+    email: PropTypes.string,
+    celular: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    cpf: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    data_nascimento: PropTypes.string,
+    unidade_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    perfil: PropTypes.string,
+  }).isRequired,
   unidades: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       sigla: PropTypes.string,
       nome: PropTypes.string,
-    })
+    }),
   ),
   onSalvar: PropTypes.func,
 };

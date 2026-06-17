@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // ✅ frontend/src/components/usuarios/EditarUsuario.jsx — v2.0
 // Plataforma Escola da Saúde
 // Edição administrativa de usuário com contrato único, perfil string, sem aliases e UX premium.
@@ -70,7 +69,9 @@ function normText(value) {
 }
 
 function normEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function validarEmail(value) {
@@ -80,7 +81,9 @@ function validarEmail(value) {
 function aplicarMascaraCPF(value) {
   const digits = onlyDigits(value);
 
-  if (digits.length !== 11) return String(value || "");
+  if (digits.length !== 11) {
+    return String(value || "");
+  }
 
   return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
 }
@@ -88,7 +91,9 @@ function aplicarMascaraCPF(value) {
 function maskCpf(value, revealed = false) {
   const digits = onlyDigits(value);
 
-  if (digits.length !== 11) return "—";
+  if (digits.length !== 11) {
+    return "—";
+  }
 
   if (revealed) {
     return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
@@ -168,22 +173,33 @@ function BotaoLocal({
 }
 
 function FieldError({ id, children }) {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
 
   return (
-    <p id={id} className="mt-1 text-xs text-rose-600 dark:text-rose-300" role="alert">
+    <p
+      id={id}
+      className="mt-1 text-xs text-rose-600 dark:text-rose-300"
+      role="alert"
+    >
       {children}
     </p>
   );
 }
 
 function FieldHint({ id, children, isDark }) {
-  if (!children) return null;
+  if (!children) {
+    return null;
+  }
 
   return (
     <p
       id={id}
-      className={cx("mt-1 text-[11px]", isDark ? "text-zinc-400" : "text-slate-500")}
+      className={cx(
+        "mt-1 text-[11px]",
+        isDark ? "text-zinc-400" : "text-slate-500",
+      )}
     >
       {children}
     </p>
@@ -307,16 +323,23 @@ export default function EditarUsuario() {
       email: normEmail(email),
       perfil: perfilOficial(perfil),
     }),
-    [email, nome, perfil]
+    [email, nome, perfil],
   );
 
-  const snapshotOriginal = useMemo(() => montarSnapshot(original || {}), [original]);
+  const snapshotOriginal = useMemo(
+    () => montarSnapshot(original || {}),
+    [original],
+  );
 
   const dirty = useMemo(() => {
-    if (!original) return false;
+    if (!original) {
+      return false;
+    }
 
     return Object.keys(snapshotAtual).some(
-      (key) => String(snapshotAtual[key] || "") !== String(snapshotOriginal[key] || "")
+      (key) =>
+        String(snapshotAtual[key] || "") !==
+        String(snapshotOriginal[key] || ""),
     );
   }, [original, snapshotAtual, snapshotOriginal]);
 
@@ -328,21 +351,21 @@ export default function EditarUsuario() {
         isDark
           ? "border-white/10 bg-zinc-950/30 text-zinc-100 placeholder:text-zinc-500"
           : "border-slate-300 bg-white text-slate-900 placeholder:text-slate-400",
-        hasError ? "border-red-500/60 ring-2 ring-red-500/60" : ""
+        hasError ? "border-red-500/60 ring-2 ring-red-500/60" : "",
       ),
-    [isDark]
+    [isDark],
   );
 
   const selectCls = useCallback(
     (hasError) => cx(inputCls(hasError), "appearance-none"),
-    [inputCls]
+    [inputCls],
   );
 
   const readonlyCls = cx(
     "w-full rounded-2xl border px-4 py-3 text-sm",
     isDark
       ? "border-white/10 bg-zinc-950/30 text-zinc-400"
-      : "border-slate-200 bg-slate-100 text-slate-600"
+      : "border-slate-200 bg-slate-100 text-slate-600",
   );
 
   function announce(message) {
@@ -414,7 +437,7 @@ export default function EditarUsuario() {
 
       const message = getErrorMessage(
         error,
-        "Erro ao carregar dados do usuário."
+        "Erro ao carregar dados do usuário.",
       );
 
       setErroGeral(message);
@@ -459,7 +482,9 @@ export default function EditarUsuario() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!usuario?.id || salvando) return;
+    if (!usuario?.id || salvando) {
+      return;
+    }
 
     setErrors({});
     setErroGeral("");
@@ -512,7 +537,7 @@ export default function EditarUsuario() {
       const fieldsServidor = getFieldErrors(error);
       const message = getErrorMessage(
         error,
-        "Erro ao atualizar usuário. Verifique os dados e tente novamente."
+        "Erro ao atualizar usuário. Verifique os dados e tente novamente.",
       );
 
       if (Object.keys(fieldsServidor).length) {
@@ -531,7 +556,9 @@ export default function EditarUsuario() {
   }
 
   function descartarAlteracao() {
-    if (!original) return;
+    if (!original) {
+      return;
+    }
 
     setNome(original.nome || "");
     setEmail(original.email || "");
@@ -548,7 +575,7 @@ export default function EditarUsuario() {
       <main
         className={cx(
           "flex min-h-screen flex-col",
-          isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900"
+          isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900",
         )}
       >
         <HeaderHero
@@ -563,7 +590,9 @@ export default function EditarUsuario() {
           <div
             className={cx(
               "rounded-3xl border p-6 text-center shadow-sm md:p-8",
-              isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white"
+              isDark
+                ? "border-white/10 bg-zinc-900/50"
+                : "border-slate-200 bg-white",
             )}
           >
             <div className="inline-flex items-center gap-2 text-sm font-semibold">
@@ -583,7 +612,7 @@ export default function EditarUsuario() {
       <main
         className={cx(
           "flex min-h-screen flex-col",
-          isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900"
+          isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900",
         )}
       >
         <HeaderHero
@@ -602,12 +631,15 @@ export default function EditarUsuario() {
               "rounded-3xl border p-6 text-center shadow-sm outline-none md:p-8",
               isDark
                 ? "border-rose-900/40 bg-rose-950/25 text-rose-200"
-                : "border-rose-200 bg-rose-50 text-rose-800"
+                : "border-rose-200 bg-rose-50 text-rose-800",
             )}
             role="alert"
             aria-live="assertive"
           >
-            <AlertTriangle className="mx-auto mb-3 h-8 w-8" aria-hidden="true" />
+            <AlertTriangle
+              className="mx-auto mb-3 h-8 w-8"
+              aria-hidden="true"
+            />
             <p className="text-sm font-semibold">{erroGeral}</p>
 
             <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
@@ -638,7 +670,7 @@ export default function EditarUsuario() {
     <main
       className={cx(
         "flex min-h-screen flex-col transition-colors",
-        isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900"
+        isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-50 text-slate-900",
       )}
     >
       <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -654,7 +686,9 @@ export default function EditarUsuario() {
       />
 
       <div className="sticky top-0 z-30 border-b border-white/10 backdrop-blur lg:hidden">
-        <div className={cx("px-4 py-3", isDark ? "bg-zinc-950/75" : "bg-white/80")}>
+        <div
+          className={cx("px-4 py-3", isDark ? "bg-zinc-950/75" : "bg-white/80")}
+        >
           <div className="flex gap-2">
             <BotaoLocal
               variant="secondary"
@@ -689,7 +723,7 @@ export default function EditarUsuario() {
                 "rounded-2xl border px-4 py-3 text-sm outline-none",
                 isDark
                   ? "border-rose-900/40 bg-rose-950/25 text-rose-200"
-                  : "border-rose-200 bg-rose-50 text-rose-800"
+                  : "border-rose-200 bg-rose-50 text-rose-800",
               )}
               role="alert"
               aria-live="assertive"
@@ -708,7 +742,9 @@ export default function EditarUsuario() {
             onSubmit={handleSubmit}
             className={cx(
               "rounded-3xl border p-5 shadow-sm md:p-7",
-              isDark ? "border-white/10 bg-zinc-900/50" : "border-slate-200 bg-white"
+              isDark
+                ? "border-white/10 bg-zinc-900/50"
+                : "border-slate-200 bg-white",
             )}
             noValidate
             aria-label="Formulário de edição de usuário"
@@ -720,7 +756,7 @@ export default function EditarUsuario() {
                   "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
                   isDark
                     ? "border-white/10 bg-white/5 text-emerald-300"
-                    : "border-emerald-100 bg-emerald-50 text-emerald-700"
+                    : "border-emerald-100 bg-emerald-50 text-emerald-700",
                 )}
               >
                 <ShieldCheck className="h-5 w-5" aria-hidden="true" />
@@ -731,10 +767,11 @@ export default function EditarUsuario() {
                 <p
                   className={cx(
                     "mt-0.5 text-sm",
-                    isDark ? "text-zinc-400" : "text-slate-500"
+                    isDark ? "text-zinc-400" : "text-slate-500",
                   )}
                 >
-                  Edite somente campos administrativos confirmados no contrato atual.
+                  Edite somente campos administrativos confirmados no contrato
+                  atual.
                 </p>
               </div>
             </div>
@@ -749,7 +786,7 @@ export default function EditarUsuario() {
                   <User
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      isDark ? "text-zinc-400" : "text-slate-500"
+                      isDark ? "text-zinc-400" : "text-slate-500",
                     )}
                     aria-hidden="true"
                   />
@@ -785,7 +822,7 @@ export default function EditarUsuario() {
                   <Mail
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      isDark ? "text-zinc-400" : "text-slate-500"
+                      isDark ? "text-zinc-400" : "text-slate-500",
                     )}
                     aria-hidden="true"
                   />
@@ -803,7 +840,9 @@ export default function EditarUsuario() {
                     required
                     aria-required="true"
                     aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? "erro-email" : "dica-email"}
+                    aria-describedby={
+                      errors.email ? "erro-email" : "dica-email"
+                    }
                     autoComplete="email"
                     inputMode="email"
                     placeholder="nome.sobrenome@dominio.gov.br"
@@ -828,7 +867,7 @@ export default function EditarUsuario() {
                   <IdCard
                     className={cx(
                       "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
-                      isDark ? "text-zinc-400" : "text-slate-500"
+                      isDark ? "text-zinc-400" : "text-slate-500",
                     )}
                     aria-hidden="true"
                   />
@@ -854,7 +893,7 @@ export default function EditarUsuario() {
                     onClick={() => setCpfRevelado((value) => !value)}
                     className={cx(
                       "rounded-xl px-2 py-1 text-[11px] font-bold underline-offset-2 hover:underline",
-                      isDark ? "text-emerald-300" : "text-emerald-700"
+                      isDark ? "text-emerald-300" : "text-emerald-700",
                     )}
                   >
                     {cpfRevelado ? "Ocultar CPF" : "Revelar CPF"}
@@ -877,7 +916,9 @@ export default function EditarUsuario() {
                   }}
                   className={selectCls(!!errors.perfil)}
                   aria-invalid={!!errors.perfil}
-                  aria-describedby={errors.perfil ? "erro-perfil" : "dica-perfil"}
+                  aria-describedby={
+                    errors.perfil ? "erro-perfil" : "dica-perfil"
+                  }
                 >
                   <option value="">Selecione…</option>
                   {PERFIS_OFICIAIS.map((item) => (
@@ -919,7 +960,11 @@ export default function EditarUsuario() {
                   className="w-full"
                   leftIcon={<Save className="h-4 w-4" aria-hidden="true" />}
                 >
-                  {salvando ? "Salvando..." : dirty ? "Salvar alterações" : "Sem alterações"}
+                  {salvando
+                    ? "Salvando..."
+                    : dirty
+                      ? "Salvar alterações"
+                      : "Sem alterações"}
                 </BotaoLocal>
 
                 <BotaoLocal
@@ -927,7 +972,9 @@ export default function EditarUsuario() {
                   onClick={() => navigate(-1)}
                   disabled={salvando}
                   className="w-full"
-                  leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
+                  leftIcon={
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  }
                 >
                   Voltar
                 </BotaoLocal>
@@ -946,7 +993,10 @@ export default function EditarUsuario() {
 
               {dirty ? (
                 <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <CheckCircle2
+                    className="h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
                   <span>Há alterações não salvas.</span>
                 </div>
               ) : null}

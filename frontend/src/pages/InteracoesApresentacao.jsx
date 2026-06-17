@@ -42,12 +42,10 @@ import {
   ArrowLeft,
   BarChart3,
   CheckCircle2,
-  Clock3,
   Cloud,
   Copy,
   ExternalLink,
   Eye,
-  Fullscreen,
   HelpCircle,
   Loader2,
   Maximize2,
@@ -63,7 +61,11 @@ import {
 } from "lucide-react";
 
 import api from "../services/api";
-import { notifyError, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
 
 const AUTO_REFRESH_MS = 3000;
 
@@ -100,7 +102,9 @@ function textoOuTraco(valor) {
 }
 
 function formatarDataHora(valor) {
-  if (!valor) return "—";
+  if (!valor) {
+    return "—";
+  }
 
   try {
     return new Intl.DateTimeFormat("pt-BR", {
@@ -122,7 +126,9 @@ function copiarTexto(texto, mensagem = "Conteúdo copiado.") {
     .writeText(String(texto))
     .then(() => notifySuccess(mensagem))
     .catch(() =>
-      notifyError("Não foi possível copiar automaticamente. Selecione manualmente.")
+      notifyError(
+        "Não foi possível copiar automaticamente. Selecione manualmente.",
+      ),
     );
 }
 
@@ -145,10 +151,7 @@ function normalizarData(data) {
     resultado: data.resultado || data.resultados || null,
     perguntas: Array.isArray(data.perguntas) ? data.perguntas : [],
     pergunta_ativa:
-      data.pergunta_ativa ||
-      data.perguntaAtiva ||
-      data.pergunta_aberta ||
-      null,
+      data.pergunta_ativa || data.perguntaAtiva || data.pergunta_aberta || null,
     ranking: Array.isArray(data.ranking) ? data.ranking : [],
     qr: data.qr || data.qrcode || data.qr_code || null,
     participacao_url:
@@ -162,9 +165,15 @@ function normalizarData(data) {
 }
 
 function obterOpcoesVotacao(resultado, perguntas) {
-  if (Array.isArray(resultado?.opcoes)) return resultado.opcoes;
-  if (Array.isArray(resultado?.resultado?.opcoes)) return resultado.resultado.opcoes;
-  if (Array.isArray(resultado?.itens)) return resultado.itens;
+  if (Array.isArray(resultado?.opcoes)) {
+    return resultado.opcoes;
+  }
+  if (Array.isArray(resultado?.resultado?.opcoes)) {
+    return resultado.resultado.opcoes;
+  }
+  if (Array.isArray(resultado?.itens)) {
+    return resultado.itens;
+  }
 
   const primeiraPergunta = perguntas?.[0];
 
@@ -179,9 +188,15 @@ function obterOpcoesVotacao(resultado, perguntas) {
 }
 
 function obterPalavras(resultado) {
-  if (Array.isArray(resultado?.palavras)) return resultado.palavras;
-  if (Array.isArray(resultado?.resultado)) return resultado.resultado;
-  if (Array.isArray(resultado?.itens)) return resultado.itens;
+  if (Array.isArray(resultado?.palavras)) {
+    return resultado.palavras;
+  }
+  if (Array.isArray(resultado?.resultado)) {
+    return resultado.resultado;
+  }
+  if (Array.isArray(resultado?.itens)) {
+    return resultado.itens;
+  }
   return [];
 }
 
@@ -210,7 +225,7 @@ function BadgeStatus({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-4 py-2 text-sm font-black",
-        mapa[status] || mapa.rascunho
+        mapa[status] || mapa.rascunho,
       )}
     >
       {STATUS[status] || status || "—"}
@@ -269,10 +284,14 @@ function HeaderApresentacao({
             "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-black",
             online
               ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100"
-              : "border-red-400/30 bg-red-400/10 text-red-100"
+              : "border-red-400/30 bg-red-400/10 text-red-100",
           )}
         >
-          {online ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+          {online ? (
+            <Wifi className="h-4 w-4" />
+          ) : (
+            <WifiOff className="h-4 w-4" />
+          )}
           {online ? "Atualização ativa" : "Sem atualização"}
         </span>
 
@@ -291,7 +310,11 @@ function HeaderApresentacao({
           onClick={onFullscreen}
           className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-black text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
         >
-          {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          {fullscreen ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
           {fullscreen ? "Sair" : "Tela cheia"}
         </button>
       </div>
@@ -301,7 +324,8 @@ function HeaderApresentacao({
 
 function PainelParticipacao({ participacaoUrl, qr }) {
   const qrValor = qr?.url || qr?.imagem || qr?.data_url || qr;
-  const textoUrl = participacaoUrl || qr?.participacao_url || qr?.url_publica || null;
+  const textoUrl =
+    participacaoUrl || qr?.participacao_url || qr?.url_publica || null;
 
   if (!textoUrl && !qrValor) {
     return (
@@ -327,7 +351,9 @@ function PainelParticipacao({ participacaoUrl, qr }) {
         </div>
         <div>
           <p className="text-lg font-black">Participe agora</p>
-          <p className="text-sm text-slate-300">Aponte a câmera para o QR Code.</p>
+          <p className="text-sm text-slate-300">
+            Aponte a câmera para o QR Code.
+          </p>
         </div>
       </div>
 
@@ -348,7 +374,9 @@ function PainelParticipacao({ participacaoUrl, qr }) {
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 text-slate-700">
               <QrCode className="mb-3 h-16 w-16" />
-              <p className="text-center text-sm font-bold">QR Code indisponível</p>
+              <p className="text-center text-sm font-bold">
+                QR Code indisponível
+              </p>
             </div>
           )}
         </div>
@@ -365,7 +393,9 @@ function PainelParticipacao({ participacaoUrl, qr }) {
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={() => copiarTexto(textoUrl, "Link de participação copiado.")}
+              onClick={() =>
+                copiarTexto(textoUrl, "Link de participação copiado.")
+              }
               disabled={!textoUrl}
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -394,29 +424,30 @@ function PainelParticipacao({ participacaoUrl, qr }) {
 function EstadoInteracao({ interacao }) {
   const status = interacao?.status;
 
-  if (status === "publicada" || status === "em_andamento") return null;
+  if (status === "publicada" || status === "em_andamento") {
+    return null;
+  }
 
   const mapa = {
     rascunho: {
       icon: AlertTriangle,
       titulo: "Interação em rascunho",
-      texto: "Esta interação ainda não foi publicada. O público não deve visualizar resultados.",
-      classe:
-        "border-amber-300/30 bg-amber-300/10 text-amber-100",
+      texto:
+        "Esta interação ainda não foi publicada. O público não deve visualizar resultados.",
+      classe: "border-amber-300/30 bg-amber-300/10 text-amber-100",
     },
     encerrada: {
       icon: CheckCircle2,
       titulo: "Interação encerrada",
       texto: "Os resultados exibidos representam o estado final registrado.",
-      classe:
-        "border-purple-300/30 bg-purple-300/10 text-purple-100",
+      classe: "border-purple-300/30 bg-purple-300/10 text-purple-100",
     },
     arquivada: {
       icon: AlertTriangle,
       titulo: "Interação arquivada",
-      texto: "Esta interação está arquivada e deve ser usada apenas para consulta.",
-      classe:
-        "border-slate-300/30 bg-slate-300/10 text-slate-100",
+      texto:
+        "Esta interação está arquivada e deve ser usada apenas para consulta.",
+      classe: "border-slate-300/30 bg-slate-300/10 text-slate-100",
     },
   };
 
@@ -439,7 +470,8 @@ function EstadoInteracao({ interacao }) {
 function VotacaoView({ interacao, resultado, perguntas }) {
   const opcoes = obterOpcoesVotacao(resultado, perguntas);
   const total = calcularTotalOpcoes(opcoes);
-  const pergunta = perguntas?.[0]?.enunciado || interacao?.pergunta || interacao?.descricao;
+  const pergunta =
+    perguntas?.[0]?.enunciado || interacao?.pergunta || interacao?.descricao;
 
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 text-white shadow-2xl lg:p-8">
@@ -474,9 +506,13 @@ function VotacaoView({ interacao, resultado, perguntas }) {
       ) : (
         <div className="space-y-5">
           {opcoes.map((opcao, index) => {
-            const votos = Number(opcao.total || opcao.votos || opcao.respostas || 0);
-            const percentual = total > 0 ? Math.round((votos / total) * 100) : 0;
-            const texto = opcao.texto || opcao.label || opcao.opcao || `Opção ${index + 1}`;
+            const votos = Number(
+              opcao.total || opcao.votos || opcao.respostas || 0,
+            );
+            const percentual =
+              total > 0 ? Math.round((votos / total) * 100) : 0;
+            const texto =
+              opcao.texto || opcao.label || opcao.opcao || `Opção ${index + 1}`;
 
             return (
               <article
@@ -484,7 +520,9 @@ function VotacaoView({ interacao, resultado, perguntas }) {
                 className="rounded-3xl border border-white/10 bg-black/20 p-5"
               >
                 <div className="mb-3 flex items-center justify-between gap-4">
-                  <p className="min-w-0 text-xl font-black lg:text-2xl">{texto}</p>
+                  <p className="min-w-0 text-xl font-black lg:text-2xl">
+                    {texto}
+                  </p>
                   <p className="shrink-0 text-2xl font-black lg:text-3xl">
                     {percentual}%
                   </p>
@@ -493,7 +531,9 @@ function VotacaoView({ interacao, resultado, perguntas }) {
                 <div className="h-5 overflow-hidden rounded-full bg-white/10">
                   <div
                     className="h-full rounded-full bg-white transition-all duration-700"
-                    style={{ width: `${Math.max(percentual, votos > 0 ? 4 : 0)}%` }}
+                    style={{
+                      width: `${Math.max(percentual, votos > 0 ? 4 : 0)}%`,
+                    }}
                   />
                 </div>
 
@@ -510,7 +550,10 @@ function VotacaoView({ interacao, resultado, perguntas }) {
 }
 
 function QuizView({ interacao, perguntaAtiva, perguntas, ranking, execucao }) {
-  const pergunta = perguntaAtiva || perguntas?.find((item) => item.status === "aberta") || perguntas?.[0];
+  const pergunta =
+    perguntaAtiva ||
+    perguntas?.find((item) => item.status === "aberta") ||
+    perguntas?.[0];
   const opcoes = Array.isArray(pergunta?.opcoes) ? pergunta.opcoes : [];
 
   return (
@@ -524,7 +567,11 @@ function QuizView({ interacao, perguntaAtiva, perguntas, ranking, execucao }) {
             </p>
 
             <h2 className="text-3xl font-black leading-tight tracking-tight lg:text-5xl">
-              {textoOuTraco(pergunta?.enunciado || pergunta?.pergunta || interacao?.descricao)}
+              {textoOuTraco(
+                pergunta?.enunciado ||
+                  pergunta?.pergunta ||
+                  interacao?.descricao,
+              )}
             </h2>
           </div>
 
@@ -543,15 +590,21 @@ function QuizView({ interacao, perguntaAtiva, perguntas, ranking, execucao }) {
             <HelpCircle className="mx-auto mb-3 h-12 w-12 text-slate-300" />
             <p className="text-xl font-black">Nenhuma alternativa aberta</p>
             <p className="mt-2 text-sm text-slate-300">
-              Abra uma pergunta no painel administrativo para exibir as alternativas.
+              Abra uma pergunta no painel administrativo para exibir as
+              alternativas.
             </p>
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             {opcoes.map((opcao, index) => {
               const letra = String.fromCharCode(65 + index);
-              const texto = opcao.texto || opcao.label || opcao.opcao || `Alternativa ${letra}`;
-              const correta = opcao.correta === true && pergunta?.mostrar_gabarito;
+              const texto =
+                opcao.texto ||
+                opcao.label ||
+                opcao.opcao ||
+                `Alternativa ${letra}`;
+              const correta =
+                opcao.correta === true && pergunta?.mostrar_gabarito;
 
               return (
                 <article
@@ -560,7 +613,7 @@ function QuizView({ interacao, perguntaAtiva, perguntas, ranking, execucao }) {
                     "rounded-3xl border p-5",
                     correta
                       ? "border-emerald-300/40 bg-emerald-300/15"
-                      : "border-white/10 bg-black/20"
+                      : "border-white/10 bg-black/20",
                   )}
                 >
                   <div className="flex items-start gap-4">
@@ -620,7 +673,7 @@ function RankingQuiz({ ranking }) {
                         ? "bg-slate-200 text-slate-950"
                         : index === 2
                           ? "bg-orange-300 text-orange-950"
-                          : "bg-white/10 text-white"
+                          : "bg-white/10 text-white",
                   )}
                 >
                   {index + 1}
@@ -628,7 +681,10 @@ function RankingQuiz({ ranking }) {
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-black">
-                    {item.nome_curto || item.nome || item.usuario_nome || "Participante"}
+                    {item.nome_curto ||
+                      item.nome ||
+                      item.usuario_nome ||
+                      "Participante"}
                   </p>
                   <p className="text-xs text-slate-400">
                     {Number(item.acertos || 0)} acerto(s)
@@ -664,7 +720,9 @@ function NuvemPalavrasView({ interacao, resultado }) {
           </p>
 
           <h2 className="text-3xl font-black leading-tight tracking-tight lg:text-5xl">
-            {textoOuTraco(interacao?.pergunta || interacao?.descricao || interacao?.titulo)}
+            {textoOuTraco(
+              interacao?.pergunta || interacao?.descricao || interacao?.titulo,
+            )}
           </h2>
         </div>
 
@@ -694,7 +752,9 @@ function NuvemPalavrasView({ interacao, resultado }) {
               item.resposta ||
               `palavra-${index + 1}`;
 
-            const total = Number(item.total || item.quantidade || item.count || 0);
+            const total = Number(
+              item.total || item.quantidade || item.count || 0,
+            );
             const peso = maior > 0 ? total / maior : 0;
             const tamanho = 18 + Math.round(peso * 46);
 
@@ -729,8 +789,16 @@ export default function InteracoesApresentacao() {
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null);
 
   const normalizado = useMemo(() => normalizarData(dados), [dados]);
-  const { interacao, resultado, perguntas, pergunta_ativa, ranking, qr, participacao_url, execucao } =
-    normalizado;
+  const {
+    interacao,
+    resultado,
+    perguntas,
+    pergunta_ativa,
+    ranking,
+    qr,
+    participacao_url,
+    execucao,
+  } = normalizado;
 
   const carregarDados = useCallback(
     async ({ silencioso = false } = {}) => {
@@ -761,7 +829,7 @@ export default function InteracoesApresentacao() {
           resposta = await api.interacao.obterPorId(id);
         } else {
           throw new Error(
-            "Service api.interacao.apresentacao ainda não foi registrado no api.js."
+            "Service api.interacao.apresentacao ainda não foi registrado no api.js.",
           );
         }
 
@@ -769,20 +837,23 @@ export default function InteracoesApresentacao() {
         setOnline(true);
         setUltimaAtualizacao(new Date().toISOString());
       } catch (error) {
-        console.error("[InteracoesApresentacao] Falha ao carregar dados:", error);
+        console.error(
+          "[InteracoesApresentacao] Falha ao carregar dados:",
+          error,
+        );
 
         setOnline(false);
         setErro(
           error?.response?.data?.message ||
             error?.message ||
-            "Não foi possível carregar a apresentação da interação."
+            "Não foi possível carregar a apresentação da interação.",
         );
       } finally {
         setCarregando(false);
         setAtualizando(false);
       }
     },
-    [id]
+    [id],
   );
 
   useEffect(() => {
@@ -817,12 +888,16 @@ export default function InteracoesApresentacao() {
         await document.exitFullscreen?.();
       }
     } catch {
-      notifyWarning("Não foi possível alternar o modo tela cheia neste navegador.");
+      notifyWarning(
+        "Não foi possível alternar o modo tela cheia neste navegador.",
+      );
     }
   }
 
   function renderConteudoPrincipal() {
-    if (!interacao) return null;
+    if (!interacao) {
+      return null;
+    }
 
     if (interacao.tipo === "votacao") {
       return (
@@ -954,20 +1029,24 @@ export default function InteracoesApresentacao() {
                 <div className="flex items-center justify-between gap-4 rounded-2xl bg-black/20 p-3">
                   <span className="text-slate-300">Tipo</span>
                   <span className="font-black">
-                    {TIPOS[interacao?.tipo]?.label || textoOuTraco(interacao?.tipo)}
+                    {TIPOS[interacao?.tipo]?.label ||
+                      textoOuTraco(interacao?.tipo)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 rounded-2xl bg-black/20 p-3">
                   <span className="text-slate-300">Status</span>
                   <span className="font-black">
-                    {STATUS[interacao?.status] || textoOuTraco(interacao?.status)}
+                    {STATUS[interacao?.status] ||
+                      textoOuTraco(interacao?.status)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 rounded-2xl bg-black/20 p-3">
                   <span className="text-slate-300">Última atualização</span>
-                  <span className="font-black">{formatarDataHora(ultimaAtualizacao)}</span>
+                  <span className="font-black">
+                    {formatarDataHora(ultimaAtualizacao)}
+                  </span>
                 </div>
               </div>
             </section>
@@ -978,9 +1057,9 @@ export default function InteracoesApresentacao() {
                 <div>
                   <p className="text-lg font-black">Uso em evento</p>
                   <p className="mt-1 text-sm leading-6">
-                    Esta tela é somente exibição. A criação, abertura de perguntas,
-                    encerramento e gabarito continuam no painel administrativo da
-                    interação.
+                    Esta tela é somente exibição. A criação, abertura de
+                    perguntas, encerramento e gabarito continuam no painel
+                    administrativo da interação.
                   </p>
                 </div>
               </div>

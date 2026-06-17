@@ -57,7 +57,7 @@ if (typeof authMiddleware !== "function") {
   console.error("[agendaRoute] authMiddleware inválido:", authMiddleware);
 
   throw new Error(
-    "Contrato inválido: ../auth/authMiddleware deve exportar uma função."
+    "Contrato inválido: ../auth/authMiddleware deve exportar uma função.",
   );
 }
 
@@ -65,7 +65,7 @@ if (typeof authorize !== "function") {
   console.error("[agendaRoute] authorize inválido:", authorize);
 
   throw new Error(
-    "Contrato inválido: ../middlewares/authorize deve expor { authorize } como função."
+    "Contrato inválido: ../middlewares/authorize deve expor { authorize } como função.",
   );
 }
 
@@ -83,11 +83,11 @@ for (const nomeFuncao of controllerObrigatorio) {
   if (typeof agendaController?.[nomeFuncao] !== "function") {
     console.error(
       `[agendaRoute] agendaController.${nomeFuncao} inválido:`,
-      agendaController?.[nomeFuncao]
+      agendaController?.[nomeFuncao],
     );
 
     throw new Error(
-      `Contrato inválido: agendaController.${nomeFuncao} deve ser uma função.`
+      `Contrato inválido: agendaController.${nomeFuncao} deve ser uma função.`,
     );
   }
 }
@@ -137,7 +137,7 @@ const agendaLimiter = rateLimit({
   message: criarMensagemRateLimit(
     "Muitas consultas à agenda em pouco tempo. Aguarde alguns instantes e tente novamente.",
     "AGENDA_RATE_LIMIT",
-    "Rate limit aplicado ao grupo de consultas da agenda de eventos."
+    "Rate limit aplicado ao grupo de consultas da agenda de eventos.",
   ),
 });
 
@@ -149,7 +149,7 @@ const calendarioLimiter = rateLimit({
   message: criarMensagemRateLimit(
     "Muitas operações no calendário em pouco tempo. Aguarde alguns instantes e tente novamente.",
     "AGENDA_CALENDARIO_RATE_LIMIT",
-    "Rate limit aplicado ao grupo administrativo de bloqueios e feriados da agenda."
+    "Rate limit aplicado ao grupo administrativo de bloqueios e feriados da agenda.",
   ),
 });
 
@@ -176,7 +176,7 @@ router.get(
   agendaLimiter,
   authMiddleware,
   authorize("administrador"),
-  asyncHandler(agendaController.buscarAgenda)
+  asyncHandler(agendaController.buscarAgenda),
 );
 
 /**
@@ -197,7 +197,7 @@ router.get(
   "/organizador",
   agendaLimiter,
   authMiddleware,
-  asyncHandler(agendaController.buscarAgendaorganizador)
+  asyncHandler(agendaController.buscarAgendaorganizador),
 );
 
 /**
@@ -217,7 +217,7 @@ router.get(
   "/minha",
   agendaLimiter,
   authMiddleware,
-  asyncHandler(agendaController.buscarAgendaMinha)
+  asyncHandler(agendaController.buscarAgendaMinha),
 );
 
 /**
@@ -238,7 +238,7 @@ router.get(
   "/minha-organizador",
   agendaLimiter,
   authMiddleware,
-  asyncHandler(agendaController.buscarAgendaMinhaorganizador)
+  asyncHandler(agendaController.buscarAgendaMinhaorganizador),
 );
 
 /* ─────────────────────────────────────────────
@@ -259,7 +259,7 @@ router.get(
   calendarioLimiter,
   authMiddleware,
   authorize("administrador"),
-  asyncHandler(agendaController.listarBloqueios)
+  asyncHandler(agendaController.listarBloqueios),
 );
 
 /**
@@ -276,7 +276,7 @@ router.post(
   calendarioLimiter,
   authMiddleware,
   authorize("administrador"),
-  asyncHandler(agendaController.criarBloqueio)
+  asyncHandler(agendaController.criarBloqueio),
 );
 
 /**
@@ -296,7 +296,7 @@ router.delete(
   calendarioLimiter,
   authMiddleware,
   authorize("administrador"),
-  asyncHandler(agendaController.removerBloqueio)
+  asyncHandler(agendaController.removerBloqueio),
 );
 
 module.exports = router;

@@ -30,10 +30,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LogOut, ShieldCheck, UserRound, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import {
-  apiNotificacaoResumo,
-  clearAuthSession,
-} from "../../services/api";
+import { apiNotificacaoResumo, clearAuthSession } from "../../services/api";
 import SidebarNav from "./SidebarNav";
 import Topbar from "./Topbar";
 
@@ -61,13 +58,17 @@ function classNames(...classes) {
 }
 
 function getScrollbarWidth() {
-  if (!hasDOM()) return 0;
+  if (!hasDOM()) {
+    return 0;
+  }
 
   return Math.max(0, window.innerWidth - document.documentElement.clientWidth);
 }
 
 function getStoredBoolean(key, fallback = false) {
-  if (!hasDOM()) return fallback;
+  if (!hasDOM()) {
+    return fallback;
+  }
 
   try {
     return window.localStorage.getItem(key) === "1";
@@ -77,7 +78,9 @@ function getStoredBoolean(key, fallback = false) {
 }
 
 function setStoredBoolean(key, value) {
-  if (!hasDOM()) return;
+  if (!hasDOM()) {
+    return;
+  }
 
   try {
     window.localStorage.setItem(key, value ? "1" : "0");
@@ -87,7 +90,9 @@ function setStoredBoolean(key, value) {
 }
 
 function getStoredPerfil() {
-  if (!hasDOM()) return null;
+  if (!hasDOM()) {
+    return null;
+  }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_PERFIL_KEY);
@@ -110,7 +115,9 @@ function getResumoData(response) {
 }
 
 function lockBodyScroll() {
-  if (!hasDOM()) return;
+  if (!hasDOM()) {
+    return;
+  }
 
   const body = document.body;
   const count = Number(body.dataset.escolaScrollLockCount || "0");
@@ -119,7 +126,8 @@ function lockBodyScroll() {
     const scrollbarWidth = getScrollbarWidth();
 
     body.dataset.escolaScrollAnteriorOverflow = body.style.overflow || "";
-    body.dataset.escolaScrollAnteriorPaddingRight = body.style.paddingRight || "";
+    body.dataset.escolaScrollAnteriorPaddingRight =
+      body.style.paddingRight || "";
 
     body.style.overflow = "hidden";
 
@@ -132,7 +140,9 @@ function lockBodyScroll() {
 }
 
 function unlockBodyScroll() {
-  if (!hasDOM()) return;
+  if (!hasDOM()) {
+    return;
+  }
 
   const body = document.body;
   const count = Number(body.dataset.escolaScrollLockCount || "0");
@@ -140,7 +150,8 @@ function unlockBodyScroll() {
 
   if (next === 0) {
     body.style.overflow = body.dataset.escolaScrollAnteriorOverflow || "";
-    body.style.paddingRight = body.dataset.escolaScrollAnteriorPaddingRight || "";
+    body.style.paddingRight =
+      body.dataset.escolaScrollAnteriorPaddingRight || "";
 
     delete body.dataset.escolaScrollAnteriorOverflow;
     delete body.dataset.escolaScrollAnteriorPaddingRight;
@@ -150,7 +161,9 @@ function unlockBodyScroll() {
 }
 
 function forceUnlockBodyScroll() {
-  if (!hasDOM()) return;
+  if (!hasDOM()) {
+    return;
+  }
 
   const body = document.body;
 
@@ -164,7 +177,9 @@ function forceUnlockBodyScroll() {
 }
 
 function setInert(element, value) {
-  if (!element) return;
+  if (!element) {
+    return;
+  }
 
   if (value) {
     element.setAttribute("aria-hidden", "true");
@@ -178,21 +193,30 @@ function setInert(element, value) {
 }
 
 function getFocusableElements(root) {
-  if (!root) return [];
+  if (!root) {
+    return [];
+  }
 
   return Array.from(root.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
     (element) => {
-      if (element.getAttribute("aria-hidden") === "true") return false;
-      if (element.hasAttribute("disabled")) return false;
+      if (element.getAttribute("aria-hidden") === "true") {
+        return false;
+      }
+      if (element.hasAttribute("disabled")) {
+        return false;
+      }
 
       const style = window.getComputedStyle?.(element);
 
-      if (style && (style.display === "none" || style.visibility === "hidden")) {
+      if (
+        style &&
+        (style.display === "none" || style.visibility === "hidden")
+      ) {
         return false;
       }
 
       return true;
-    }
+    },
   );
 }
 
@@ -208,7 +232,7 @@ export default function EscolaAppShell({
   const [menuAberto, setMenuAberto] = useState(false);
   const [perfil, setPerfil] = useState(() => getStoredPerfil());
   const [sidebarRecolhida, setSidebarRecolhida] = useState(() =>
-    getStoredBoolean(STORAGE_SIDEBAR_RECOLHIDA_KEY, false)
+    getStoredBoolean(STORAGE_SIDEBAR_RECOLHIDA_KEY, false),
   );
   const [resumoMenu, setResumoMenu] = useState({
     notificacao_nao_lida: 0,
@@ -269,16 +293,16 @@ export default function EscolaAppShell({
         },
       };
 
-const fecharMenu = useCallback(() => {
-  setMenuAberto(false);
+  const fecharMenu = useCallback(() => {
+    setMenuAberto(false);
 
-  if (hasDOM()) {
-    window.setTimeout(() => {
-      forceUnlockBodyScroll();
-      setInert(conteudoRef.current, false);
-    }, 0);
-  }
-}, []);
+    if (hasDOM()) {
+      window.setTimeout(() => {
+        forceUnlockBodyScroll();
+        setInert(conteudoRef.current, false);
+      }, 0);
+    }
+  }, []);
 
   const abrirMenu = useCallback(() => {
     setMenuAberto(true);
@@ -292,7 +316,9 @@ const fecharMenu = useCallback(() => {
   }, []);
 
   const carregarResumoMenu = useCallback(async () => {
-    if (!hasDOM()) return;
+    if (!hasDOM()) {
+      return;
+    }
 
     abortResumoMenuRef.current?.abort?.();
 
@@ -306,7 +332,9 @@ const fecharMenu = useCallback(() => {
         signal: controller.signal,
       });
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        return;
+      }
 
       const data = getResumoData(response);
 
@@ -315,7 +343,9 @@ const fecharMenu = useCallback(() => {
         notificacao_nao_lida: Number(data.nao_lida || 0),
       }));
     } catch (error) {
-      if (error?.name === "AbortError") return;
+      if (error?.name === "AbortError") {
+        return;
+      }
 
       setResumoMenu((atual) => ({
         ...atual,
@@ -344,16 +374,16 @@ const fecharMenu = useCallback(() => {
     navigate(rotaLogin, { replace: true });
   }, [navigate, rotaLogin]);
 
-useEffect(() => {
-  setMenuAberto(false);
+  useEffect(() => {
+    setMenuAberto(false);
 
-  if (hasDOM()) {
-    window.setTimeout(() => {
-      forceUnlockBodyScroll();
-      setInert(conteudoRef.current, false);
-    }, 0);
-  }
-}, [location.pathname]);
+    if (hasDOM()) {
+      window.setTimeout(() => {
+        forceUnlockBodyScroll();
+        setInert(conteudoRef.current, false);
+      }, 0);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     setPerfil(getStoredPerfil());
@@ -364,7 +394,9 @@ useEffect(() => {
   }, [carregarResumoMenu, location.pathname]);
 
   useEffect(() => {
-    if (!hasDOM()) return undefined;
+    if (!hasDOM()) {
+      return undefined;
+    }
 
     function handleStorage(event) {
       if (event.key === STORAGE_SIDEBAR_RECOLHIDA_KEY) {
@@ -392,7 +424,9 @@ useEffect(() => {
   }, [carregarResumoMenu]);
 
   useEffect(() => {
-    if (!hasDOM() || !menuAberto) return undefined;
+    if (!hasDOM() || !menuAberto) {
+      return undefined;
+    }
 
     function handleKeyDown(event) {
       if (event.key === "Escape") {
@@ -400,7 +434,9 @@ useEffect(() => {
         setMenuAberto(false);
       }
 
-      if (event.key !== "Tab") return;
+      if (event.key !== "Tab") {
+        return;
+      }
 
       const focusable = getFocusableElements(drawerRef.current);
 
@@ -430,14 +466,16 @@ useEffect(() => {
   }, [menuAberto]);
 
   useEffect(() => {
-    if (!hasDOM()) return undefined;
-
-    if (!menuAberto) {
+    if (!hasDOM() || !menuAberto) {
       return undefined;
     }
 
+    // Congelando as referências em variáveis locais
+    const conteudoNode = conteudoRef.current;
+    const abrirMenuNode = abrirMenuRef.current;
+
     lockBodyScroll();
-    setInert(conteudoRef.current, true);
+    setInert(conteudoNode, true);
 
     const frameId = window.requestAnimationFrame(() => {
       fecharMenuRef.current?.focus?.();
@@ -446,27 +484,30 @@ useEffect(() => {
     return () => {
       window.cancelAnimationFrame(frameId);
       unlockBodyScroll();
-      setInert(conteudoRef.current, false);
-      abrirMenuRef.current?.focus?.();
+      setInert(conteudoNode, false);
+      abrirMenuNode?.focus?.();
     };
   }, [menuAberto]);
 
   useEffect(() => {
+    // Congelando a referência
+    const conteudoNode = conteudoRef.current;
+
     return () => {
       abortResumoMenuRef.current?.abort?.();
       unlockBodyScroll();
-      setInert(conteudoRef.current, false);
+      setInert(conteudoNode, false);
     };
   }, []);
 
   return (
     <div className="min-h-dvh overflow-x-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
-       <a
+      <a
         href="#conteudo"
         className={classNames(
           "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[90]",
           "rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-xl",
-          "focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          "focus:outline-none focus:ring-2 focus:ring-emerald-300",
         )}
       >
         Pular para o conteúdo
@@ -477,7 +518,7 @@ useEffect(() => {
         className={classNames(
           "pointer-events-none fixed inset-0 -z-10",
           "bg-[radial-gradient(1000px_600px_at_8%_-10%,rgba(16,185,129,.16),transparent_60%),radial-gradient(900px_600px_at_92%_0%,rgba(56,189,248,.13),transparent_55%),radial-gradient(900px_700px_at_50%_112%,rgba(99,102,241,.09),transparent_60%)]",
-          "dark:bg-[radial-gradient(1000px_600px_at_8%_-10%,rgba(16,185,129,.20),transparent_60%),radial-gradient(900px_600px_at_92%_0%,rgba(56,189,248,.16),transparent_55%),radial-gradient(900px_700px_at_50%_112%,rgba(99,102,241,.12),transparent_60%)]"
+          "dark:bg-[radial-gradient(1000px_600px_at_8%_-10%,rgba(16,185,129,.20),transparent_60%),radial-gradient(900px_600px_at_92%_0%,rgba(56,189,248,.16),transparent_55%),radial-gradient(900px_700px_at_50%_112%,rgba(99,102,241,.12),transparent_60%)]",
         )}
       />
 
@@ -495,7 +536,7 @@ useEffect(() => {
               className={classNames(
                 "hidden md:block",
                 "transition-[grid-column] duration-200 motion-reduce:transition-none",
-                layoutClasses.aside
+                layoutClasses.aside,
               )}
               aria-label="Navegação lateral"
             >
@@ -514,7 +555,7 @@ useEffect(() => {
               className={classNames(
                 "col-span-12 min-w-0",
                 "transition-[grid-column] duration-200 motion-reduce:transition-none",
-                layoutClasses.main
+                layoutClasses.main,
               )}
               aria-label="Conteúdo principal"
               tabIndex={-1}
@@ -544,7 +585,7 @@ useEffect(() => {
               className={classNames(
                 "fixed bottom-0 left-0 top-0 z-[60] flex w-[90vw] max-w-sm flex-col overflow-hidden",
                 "border-r border-slate-200 bg-white text-slate-950 shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-white",
-                "pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+                "pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]",
               )}
               role="dialog"
               aria-modal="true"
@@ -578,7 +619,7 @@ useEffect(() => {
                       "border border-slate-200 bg-white text-slate-600 shadow-sm transition",
                       "hover:bg-slate-50 hover:text-rose-600",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500",
-                      "dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                      "dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10",
                     )}
                     aria-label="Fechar menu"
                   >
@@ -610,7 +651,7 @@ useEffect(() => {
                       "mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-2xl",
                       "border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition",
                       "hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-                      "dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10"
+                      "dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
                     )}
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />

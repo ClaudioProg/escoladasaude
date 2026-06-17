@@ -41,9 +41,7 @@ import {
   ExternalLink,
   FileQuestion,
   Filter,
-  Globe2,
   Layers3,
-  Link2,
   Loader2,
   MessageSquareText,
   RefreshCcw,
@@ -81,15 +79,25 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
 function unwrapData(response) {
-  if (response?.data?.data !== undefined) return response.data.data;
-  if (response?.data !== undefined) return response.data;
+  if (response?.data?.data !== undefined) {
+    return response.data.data;
+  }
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -115,12 +123,16 @@ function cleanStr(value) {
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -161,10 +173,6 @@ function tipoInfo(tipo) {
     badge:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
-}
-
-function perguntaExigeOpcoes(tipo) {
-  return tipo === "opcao_unica" || tipo === "multipla_escolha";
 }
 
 function perguntaAceitaTexto(tipo) {
@@ -229,7 +237,7 @@ export default function Pesquisas() {
   const [mensagem, setMensagem] = useState("");
 
   const [filtroContexto, setFiltroContexto] = useState(
-    persisted.filtroContexto || ""
+    persisted.filtroContexto || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -254,7 +262,7 @@ export default function Pesquisas() {
         JSON.stringify({
           filtroContexto,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página.
@@ -285,7 +293,7 @@ export default function Pesquisas() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as pesquisas."
+        "Não foi possível carregar as pesquisas.",
       );
 
       setErro(message);
@@ -322,10 +330,12 @@ export default function Pesquisas() {
             pesquisa.link_externo,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -342,10 +352,18 @@ export default function Pesquisas() {
     };
 
     for (const pesquisa of pesquisas) {
-      if (pesquisa.tipo === "interna") base.internas += 1;
-      if (pesquisa.tipo === "externa") base.externas += 1;
-      if (pesquisa.destaque) base.destaque += 1;
-      if (pesquisa.respondida) base.respondidas += 1;
+      if (pesquisa.tipo === "interna") {
+        base.internas += 1;
+      }
+      if (pesquisa.tipo === "externa") {
+        base.externas += 1;
+      }
+      if (pesquisa.destaque) {
+        base.destaque += 1;
+      }
+      if (pesquisa.respondida) {
+        base.respondidas += 1;
+      }
     }
 
     return base;
@@ -361,7 +379,9 @@ export default function Pesquisas() {
   }
 
   function removerChip(tipo) {
-    if (tipo === "contexto") setFiltroContexto("");
+    if (tipo === "contexto") {
+      setFiltroContexto("");
+    }
 
     if (tipo === "busca") {
       setBusca("");
@@ -403,8 +423,8 @@ export default function Pesquisas() {
           current.map((item) =>
             String(item.id) === String(pesquisa.id)
               ? { ...item, respondida: true }
-              : item
-          )
+              : item,
+          ),
         );
         return;
       }
@@ -414,7 +434,7 @@ export default function Pesquisas() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a pesquisa."
+        "Não foi possível carregar a pesquisa.",
       );
 
       setErro(message);
@@ -433,8 +453,8 @@ export default function Pesquisas() {
               respondida: true,
               total_respostas: Number(item.total_respostas || 0) + 1,
             }
-          : item
-      )
+          : item,
+      ),
     );
 
     setModalPesquisa(null);
@@ -460,7 +480,12 @@ export default function Pesquisas() {
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -620,7 +645,11 @@ function HeaderHero({ totalVisiveis, carregando, onRefresh, kpis }) {
             </div>
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <MiniStat label="Pesquisas" value={kpis.total} icon={FileQuestion} />
+              <MiniStat
+                label="Pesquisas"
+                value={kpis.total}
+                icon={FileQuestion}
+              />
               <MiniStat
                 label="Internas"
                 value={kpis.internas}
@@ -660,8 +689,7 @@ function MiniStat({ label, value, icon: Icon }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -784,7 +812,7 @@ function PesquisaCard({ pesquisa, reduceMotion, onAbrir }) {
           <span
             className={cx(
               "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-black",
-              tipo.badge
+              tipo.badge,
             )}
           >
             <TipoIcon className="h-3.5 w-3.5" />
@@ -848,7 +876,7 @@ function PesquisaCard({ pesquisa, reduceMotion, onAbrir }) {
               "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition focus:outline-none focus:ring-2",
               jaRespondida
                 ? "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                : "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500"
+                : "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500",
             )}
           >
             {jaRespondida ? (
@@ -928,7 +956,9 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!pesquisa) return undefined;
+    if (!pesquisa) {
+      return undefined;
+    }
 
     setForm(respostaInicial(pesquisa.perguntas || []));
     setSalvando(false);
@@ -955,7 +985,9 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
     };
   }, [pesquisa, onClose, salvando]);
 
-  if (!pesquisa) return null;
+  if (!pesquisa) {
+    return null;
+  }
 
   function setAnonima(value) {
     setForm((current) => ({
@@ -1000,7 +1032,9 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
     for (const pergunta of perguntas) {
       const value = form.itens?.[pergunta.id];
 
-      if (!pergunta.obrigatoria) continue;
+      if (!pergunta.obrigatoria) {
+        continue;
+      }
 
       if (pergunta.tipo === "multipla_escolha") {
         if (!Array.isArray(value) || value.length === 0) {
@@ -1097,7 +1131,9 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
   async function enviar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1123,7 +1159,7 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível enviar sua resposta."
+        "Não foi possível enviar sua resposta.",
       );
 
       setErro(message);
@@ -1138,8 +1174,12 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (salvando) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <div
@@ -1238,10 +1278,11 @@ function ResponderPesquisaModal({ pesquisa, onClose, onRespondida }) {
           ))}
         </form>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          {" "}
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             Campos obrigatórios devem ser respondidos antes do envio.
           </p>
-
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             <button
               type="button"
@@ -1389,7 +1430,7 @@ function PerguntaResposta({
                 "rounded-2xl border px-3 py-3 text-sm font-black transition focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60",
                 Number(value) === numero
                   ? "border-emerald-600 bg-emerald-600 text-white"
-                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800",
               )}
               aria-pressed={Number(value) === numero}
             >

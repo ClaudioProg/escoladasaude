@@ -360,7 +360,7 @@ function brDateTimeToIsoUtc(dataBr, horaBr = "00:00", zone = TZ_PADRAO) {
     },
     {
       zone: getSafeTimeZone(zone),
-    }
+    },
   );
 
   if (!dateTime.isValid) {
@@ -392,7 +392,7 @@ function gerarOcorrencias({
     const uniqueDates = new Set(
       datasEspecificas
         .map((item) => normalizeDateOnlyToYmd(item))
-        .filter((item) => isIsoDateOnly(item))
+        .filter((item) => isIsoDateOnly(item)),
     );
 
     return Array.from(uniqueDates).sort();
@@ -416,9 +416,7 @@ function gerarOcorrencias({
     const diasDesejados = new Set(
       diasSemana
         .map((item) => Number(item))
-        .filter(
-          (item) => Number.isInteger(item) && item >= 0 && item <= 6
-        )
+        .filter((item) => Number.isInteger(item) && item >= 0 && item <= 6),
     );
 
     const ocorrencias = [];
@@ -453,7 +451,13 @@ function gerarOcorrencias({
    Verificações de conflito date-only + HH:mm
 ────────────────────────────────────────────────────────────── */
 
-function rangesDeDatasSobrepoem(dataInicioA, dataFimA, dataInicioB, dataFimB, opts = {}) {
+function rangesDeDatasSobrepoem(
+  dataInicioA,
+  dataFimA,
+  dataInicioB,
+  dataFimB,
+  opts = {},
+) {
   const { inclusive = true } = opts;
 
   const inicioA = normalizeDateOnlyToYmd(dataInicioA);
@@ -478,7 +482,13 @@ function rangesDeDatasSobrepoem(dataInicioA, dataFimA, dataInicioB, dataFimB, op
     : aFim > bInicio && bFim > aInicio;
 }
 
-function horasSobrepoem(horaInicioA, horaFimA, horaInicioB, horaFimB, opts = {}) {
+function horasSobrepoem(
+  horaInicioA,
+  horaFimA,
+  horaInicioB,
+  horaFimB,
+  opts = {},
+) {
   const { inclusive = false } = opts;
 
   const inicioA = String(horaInicioA || "").slice(0, 5);
@@ -486,12 +496,7 @@ function horasSobrepoem(horaInicioA, horaFimA, horaInicioB, horaFimB, opts = {})
   const inicioB = String(horaInicioB || "").slice(0, 5);
   const fimB = String(horaFimB || "").slice(0, 5);
 
-  if (
-    !isHhmm(inicioA) ||
-    !isHhmm(fimA) ||
-    !isHhmm(inicioB) ||
-    !isHhmm(fimB)
-  ) {
+  if (!isHhmm(inicioA) || !isHhmm(fimA) || !isHhmm(inicioB) || !isHhmm(fimB)) {
     return false;
   }
 
@@ -513,7 +518,7 @@ function turmasConflitam(turmaA, turmaB, opts = {}) {
       {
         inclusive: true,
         ...opts,
-      }
+      },
     ) &&
     horasSobrepoem(
       turmaA?.horario_inicio,
@@ -523,7 +528,7 @@ function turmasConflitam(turmaA, turmaB, opts = {}) {
       {
         inclusive: false,
         ...opts,
-      }
+      },
     )
   );
 }
@@ -582,7 +587,7 @@ function dateHourToZoned({ data, hora, brIso, zone = TZ_PADRAO }) {
     },
     {
       zone: safeZone,
-    }
+    },
   );
 }
 

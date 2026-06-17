@@ -25,7 +25,14 @@
 // - acessível;
 // - dark mode.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -56,7 +63,12 @@ function cx(...classes) {
 }
 
 function unwrap(response, fallback = null) {
-  if (response && typeof response === "object" && "ok" in response && "data" in response) {
+  if (
+    response &&
+    typeof response === "object" &&
+    "ok" in response &&
+    "data" in response
+  ) {
     return response.data ?? fallback;
   }
 
@@ -98,7 +110,9 @@ function percent(done, total) {
   const finalizadas = toNumber(done);
   const geral = toNumber(total);
 
-  if (geral <= 0) return 0;
+  if (geral <= 0) {
+    return 0;
+  }
 
   return Math.max(0, Math.min(100, Math.round((finalizadas / geral) * 100)));
 }
@@ -176,7 +190,7 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
         "focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -199,17 +213,15 @@ function Badge({ children, tone = "slate", icon: Icon }) {
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
   };
 
   return (
     <span
       className={cx(
         "inline-flex items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -230,7 +242,7 @@ function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
     <div
       className={cx(
         "rounded-3xl border bg-white p-4 shadow-sm dark:bg-slate-900/70",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       <div className="flex items-center gap-3">
@@ -312,7 +324,9 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
   });
 
   const carregar = useCallback(async () => {
-    if (!modalOpen) return;
+    if (!modalOpen) {
+      return;
+    }
 
     setLoading(true);
     setErro("");
@@ -324,8 +338,8 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
       setErro(
         getMessage(
           error,
-          "Não foi possível carregar o resumo dos avaliadores."
-        )
+          "Não foi possível carregar o resumo dos avaliadores.",
+        ),
       );
       setLista([]);
     } finally {
@@ -338,7 +352,9 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
   }, [carregar]);
 
   useEffect(() => {
-    if (!modalOpen) return undefined;
+    if (!modalOpen) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape") {
@@ -346,7 +362,7 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
       }
 
       const typing = ["input", "textarea", "select"].includes(
-        document.activeElement?.tagName?.toLowerCase()
+        document.activeElement?.tagName?.toLowerCase(),
       );
 
       if (event.key === "/" && !typing) {
@@ -370,7 +386,9 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
     const term = norm(busca);
 
     let rows = lista.filter((item) => {
-      if (!term) return true;
+      if (!term) {
+        return true;
+      }
 
       return `${item.nome} ${item.email}`.toLowerCase().includes(term);
     });
@@ -381,9 +399,11 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
       const key = sort.key;
 
       if (key === "nome" || key === "email") {
-        return String(a[key] || "").localeCompare(String(b[key] || ""), "pt-BR", {
-          sensitivity: "base",
-        }) * dir;
+        return (
+          String(a[key] || "").localeCompare(String(b[key] || ""), "pt-BR", {
+            sensitivity: "base",
+          }) * dir
+        );
       }
 
       return (toNumber(a[key]) - toNumber(b[key])) * dir;
@@ -394,14 +414,17 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
 
   const totais = useMemo(() => {
     const qtd = filtrada.length;
-    const pendentes = filtrada.reduce((sum, item) => sum + toNumber(item.pendentes), 0);
+    const pendentes = filtrada.reduce(
+      (sum, item) => sum + toNumber(item.pendentes),
+      0,
+    );
     const finalizadas = filtrada.reduce(
       (sum, item) => sum + toNumber(item.finalizadas),
-      0
+      0,
     );
     const total = filtrada.reduce(
       (sum, item) => sum + toNumber(item.total_atribuicoes),
-      0
+      0,
     );
 
     return {
@@ -429,7 +452,9 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
     });
   }
 
-  if (!modalOpen) return null;
+  if (!modalOpen) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -437,7 +462,9 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
         role="presentation"
         onMouseDown={(event) => {
-          if (event.target === event.currentTarget) onClose?.();
+          if (event.target === event.currentTarget) {
+            onClose?.();
+          }
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -448,7 +475,8 @@ export default function ModalAvaliadores({ isOpen, open, onClose }) {
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={descId}
-className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92dvh] sm:rounded-[2rem] sm:border sm:border-white/20"
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 30, scale: 0.98 }}
           transition={{ duration: 0.18 }}
@@ -475,9 +503,13 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                   Avaliadores — resumo de carga
                 </h3>
 
-                <p id={descId} className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75">
-                  Consulte a distribuição de trabalhos por avaliador para equilibrar pendências,
-                  acompanhar finalizações e apoiar novas atribuições.
+                <p
+                  id={descId}
+                  className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75"
+                >
+                  Consulte a distribuição de trabalhos por avaliador para
+                  equilibrar pendências, acompanhar finalizações e apoiar novas
+                  atribuições.
                 </p>
 
                 <div className="relative mt-4 max-w-xl">
@@ -506,16 +538,45 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
           </header>
 
           <div aria-live="polite" className="sr-only">
-            {loading ? "Carregando avaliadores." : erro ? erro : "Resumo carregado."}
+            {loading
+              ? "Carregando avaliadores."
+              : erro
+                ? erro
+                : "Resumo carregado."}
           </div>
 
           <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-6">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <MiniStat icon={Users} label="Avaliadores" value={totais.qtd} tone="cyan" />
-              <MiniStat icon={AlertCircle} label="Pendentes" value={totais.pendentes} tone="amber" />
-              <MiniStat icon={CheckCircle2} label="Finalizadas" value={totais.finalizadas} tone="emerald" />
-              <MiniStat icon={BarChart3} label="Total" value={totais.total} tone="slate" />
-              <MiniStat icon={TrendingUp} label="Progresso" value={`${totais.percentual}%`} tone="emerald" />
+              <MiniStat
+                icon={Users}
+                label="Avaliadores"
+                value={totais.qtd}
+                tone="cyan"
+              />
+              <MiniStat
+                icon={AlertCircle}
+                label="Pendentes"
+                value={totais.pendentes}
+                tone="amber"
+              />
+              <MiniStat
+                icon={CheckCircle2}
+                label="Finalizadas"
+                value={totais.finalizadas}
+                tone="emerald"
+              />
+              <MiniStat
+                icon={BarChart3}
+                label="Total"
+                value={totais.total}
+                tone="slate"
+              />
+              <MiniStat
+                icon={TrendingUp}
+                label="Progresso"
+                value={`${totais.percentual}%`}
+                tone="emerald"
+              />
             </div>
 
             {erro ? (
@@ -617,15 +678,15 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                             </td>
 
                             <td className="p-4 text-center align-top">
-                              <Badge tone={item.pendentes > 0 ? "amber" : "slate"}>
+                              <Badge
+                                tone={item.pendentes > 0 ? "amber" : "slate"}
+                              >
                                 {item.pendentes}
                               </Badge>
                             </td>
 
                             <td className="p-4 text-center align-top">
-                              <Badge tone="emerald">
-                                {item.finalizadas}
-                              </Badge>
+                              <Badge tone="emerald">{item.finalizadas}</Badge>
                             </td>
 
                             <td className="p-4 text-center align-top">
@@ -663,15 +724,29 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
                             </p>
                           </div>
 
-                          <Badge tone={item.pendentes > 0 ? "amber" : "emerald"}>
+                          <Badge
+                            tone={item.pendentes > 0 ? "amber" : "emerald"}
+                          >
                             {item.percentual}%
                           </Badge>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2">
-                          <MobileStat label="Pendentes" value={item.pendentes} tone="amber" />
-                          <MobileStat label="Finalizadas" value={item.finalizadas} tone="emerald" />
-                          <MobileStat label="Total" value={item.total_atribuicoes} tone="slate" />
+                          <MobileStat
+                            label="Pendentes"
+                            value={item.pendentes}
+                            tone="amber"
+                          />
+                          <MobileStat
+                            label="Finalizadas"
+                            value={item.finalizadas}
+                            tone="emerald"
+                          />
+                          <MobileStat
+                            label="Total"
+                            value={item.total_atribuicoes}
+                            tone="slate"
+                          />
                         </div>
 
                         <ProgressBar value={item.percentual} />
@@ -687,7 +762,12 @@ className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white sh
             <Button tone="ghost" onClick={onClose}>
               Fechar
             </Button>
-            <Button tone="slate" icon={RefreshCw} loading={loading} onClick={carregar}>
+            <Button
+              tone="slate"
+              icon={RefreshCw}
+              loading={loading}
+              onClick={carregar}
+            >
               Recarregar
             </Button>
           </footer>
@@ -708,7 +788,12 @@ function MobileStat({ label, value, tone = "slate" }) {
   };
 
   return (
-    <div className={cx("rounded-2xl border p-3 text-center", tones[tone] || tones.slate)}>
+    <div
+      className={cx(
+        "rounded-2xl border p-3 text-center",
+        tones[tone] || tones.slate,
+      )}
+    >
       <p className="text-[10px] font-bold uppercase tracking-wide opacity-70">
         {label}
       </p>

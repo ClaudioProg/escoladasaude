@@ -1144,11 +1144,15 @@ export default function GestaoUsuarios() {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <label className="text-xs text-zinc-600 dark:text-zinc-400">
+                <label
+                  htmlFor="gestao-usuarios-page-size"
+                  className="text-xs text-zinc-600 dark:text-zinc-400"
+                >
                   Por página:
                 </label>
 
                 <select
+                  id="gestao-usuarios-page-size"
                   value={pageSize}
                   onChange={(event) =>
                     setPageSize(Number(event.target.value) || 50)

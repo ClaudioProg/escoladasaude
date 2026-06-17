@@ -119,7 +119,9 @@ function isYMD(value) {
 function fmtData(value) {
   const v = String(value || "").slice(0, 10);
 
-  if (!isYMD(v)) return "—";
+  if (!isYMD(v)) {
+    return "—";
+  }
 
   const [y, m, d] = v.split("-");
   return `${d}/${m}/${y}`;
@@ -135,9 +137,15 @@ function stripHtml(html = "") {
 function getStatus(item) {
   const hoje = hojeISO();
 
-  if (!item?.ativo) return "inativa";
-  if (item?.data_inicio_exibicao && hoje < item.data_inicio_exibicao) return "agendada";
-  if (item?.data_fim_exibicao && hoje > item.data_fim_exibicao) return "expirada";
+  if (!item?.ativo) {
+    return "inativa";
+  }
+  if (item?.data_inicio_exibicao && hoje < item.data_inicio_exibicao) {
+    return "agendada";
+  }
+  if (item?.data_fim_exibicao && hoje > item.data_fim_exibicao) {
+    return "expirada";
+  }
 
   return "ativa";
 }
@@ -163,7 +171,11 @@ function getErrorMessage(error, fallback) {
 }
 
 function unwrapData(response) {
-  if (response?.data && typeof response.data === "object" && "ok" in response.data) {
+  if (
+    response?.data &&
+    typeof response.data === "object" &&
+    "ok" in response.data
+  ) {
     return response.data.data;
   }
 
@@ -203,7 +215,9 @@ function normalizarTipoExibicao(value) {
 }
 
 function validarImagem(file) {
-  if (!file) return null;
+  if (!file) {
+    return null;
+  }
 
   const mime = String(file.type || "").toLowerCase();
   const mimesPermitidos = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -283,7 +297,7 @@ function SoftButton({ children, className = "", ...props }) {
         "inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-extrabold transition",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950",
         "disabled:cursor-not-allowed disabled:opacity-60",
-        className
+        className,
       )}
     >
       {children}
@@ -307,7 +321,7 @@ function Chip({ tone = "zinc", children }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
-        map[tone] || map.zinc
+        map[tone] || map.zinc,
       )}
     >
       {children}
@@ -347,7 +361,7 @@ function StatPill({ icon: Icon, label, value, tone = "zinc" }) {
         <span
           className={cx(
             "inline-flex h-10 w-10 items-center justify-center rounded-2xl",
-            t.wrap
+            t.wrap,
           )}
         >
           <Icon className={cx("h-5 w-5", t.icon)} aria-hidden="true" />
@@ -390,7 +404,9 @@ function BarraAcoesPagina({ onCriar, onAtualizar, loading, hint }) {
             disabled={loading}
             className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
           >
-            <RefreshCcw className={cx("h-4 w-4", loading ? "animate-spin" : "")} />
+            <RefreshCcw
+              className={cx("h-4 w-4", loading ? "animate-spin" : "")}
+            />
             {loading ? "Atualizando..." : "Atualizar"}
           </SoftButton>
 
@@ -421,7 +437,7 @@ function ToolbarButton({ icon: Icon, label, onMouseDown, active = false }) {
         "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition",
         active
           ? "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-200"
-          : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+          : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900",
       )}
       title={label}
       aria-label={label}
@@ -434,9 +450,16 @@ function ToolbarButton({ icon: Icon, label, onMouseDown, active = false }) {
 function RichTextEditorLite({ value, onChange }) {
   const editorRef = useRef(null);
   const colorRef = useRef(null);
+  const selectionRangeRef = useRef(null);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const [linkHasSelection, setLinkHasSelection] = useState(false);
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorRef.current) {
+      return;
+    }
 
     const html = value || "<p><br></p>";
 
@@ -485,50 +508,49 @@ function RichTextEditorLite({ value, onChange }) {
     exec(command, commandValue);
   }
 
-function getSelectedText() {
-  const selection = window.getSelection?.();
+  function getSelectedText() {
+    const selection = window.getSelection?.();
 
-  if (!selection || selection.rangeCount === 0) return "";
+    if (!selection || selection.rangeCount === 0) {
+      return "";
+    }
 
-  return String(selection.toString() || "").trim();
-}
-
-function normalizarUrlLink(url) {
-  const value = String(url || "").trim();
-
-  if (!value) return "";
-
-  if (
-    value.startsWith("http://") ||
-    value.startsWith("https://") ||
-    value.startsWith("mailto:") ||
-    value.startsWith("tel:")
-  ) {
-    return value;
+    return String(selection.toString() || "").trim();
   }
 
-  return `https://${value}`;
-}
+  function salvarSelecaoAtual() {
+    const selection = window.getSelection?.();
 
-function onLink(event) {
-  event.preventDefault();
+    if (!selection || selection.rangeCount === 0) {
+      selectionRangeRef.current = null;
+      return;
+    }
 
-  focusEditor();
+    selectionRangeRef.current = selection.getRangeAt(0).cloneRange();
+  }
 
-  const textoSelecionado = getSelectedText();
+  function restaurarSelecaoAtual() {
+    const selection = window.getSelection?.();
+    const range = selectionRangeRef.current;
 
-  const urlDigitada = window.prompt("Cole o link:");
+    if (!selection || !range) {
+      return;
+    }
 
-  if (!urlDigitada) return;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
 
-  const href = normalizarUrlLink(urlDigitada);
+  function escapeHtml(text) {
+    return String(text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
 
-  if (!href) return;
-
-  if (textoSelecionado) {
-    exec("createLink", href);
-
-    const links = editorRef.current?.querySelectorAll(`a[href="${href}"]`) || [];
+  function estilizarLinksCriados(href) {
+    const links =
+      editorRef.current?.querySelectorAll(`a[href="${href}"]`) || [];
 
     links.forEach((link) => {
       link.setAttribute("target", "_blank");
@@ -537,25 +559,76 @@ function onLink(event) {
       link.style.textDecoration = "underline";
       link.style.fontWeight = "700";
     });
-
-    emitChange();
-    return;
   }
 
-  const textoLink = window.prompt("Qual texto deve aparecer no link?", href);
+  function normalizarUrlLink(url) {
+    const value = String(url || "").trim();
 
-  if (!textoLink) return;
+    if (!value) {
+      return "";
+    }
 
-  const safeText = String(textoLink)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("mailto:") ||
+      value.startsWith("tel:")
+    ) {
+      return value;
+    }
 
-  exec(
-    "insertHTML",
-    `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:#0369a1;text-decoration:underline;font-weight:700;">${safeText}</a>`
-  );
-}
+    return `https://${value}`;
+  }
+
+  function onLink(event) {
+    event.preventDefault();
+
+    focusEditor();
+    salvarSelecaoAtual();
+
+    const textoSelecionado = getSelectedText();
+
+    setLinkUrl("");
+    setLinkText(textoSelecionado || "");
+    setLinkHasSelection(Boolean(textoSelecionado));
+    setLinkModalOpen(true);
+  }
+
+  function confirmarLink() {
+    const href = normalizarUrlLink(linkUrl);
+
+    if (!href) {
+      return;
+    }
+
+    focusEditor();
+    restaurarSelecaoAtual();
+
+    if (linkHasSelection) {
+      exec("createLink", href);
+      estilizarLinksCriados(href);
+      emitChange();
+    } else {
+      const textoFinal = String(linkText || href).trim();
+
+      if (!textoFinal) {
+        return;
+      }
+
+      exec(
+        "insertHTML",
+        `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:#0369a1;text-decoration:underline;font-weight:700;">${escapeHtml(
+          textoFinal,
+        )}</a>`,
+      );
+    }
+
+    setLinkModalOpen(false);
+    setLinkUrl("");
+    setLinkText("");
+    setLinkHasSelection(false);
+    selectionRangeRef.current = null;
+  }
 
   function onColorMouseDown(event) {
     event.preventDefault();
@@ -565,13 +638,17 @@ function onLink(event) {
   function aplicarCor(event) {
     const cor = event.target.value;
 
-    if (!cor) return;
+    if (!cor) {
+      return;
+    }
 
     exec("foreColor", cor);
   }
 
   function onKeyDown(event) {
-    if (event.key !== "Enter") return;
+    if (event.key !== "Enter") {
+      return;
+    }
 
     /**
      * Mantém o Enter como quebra de parágrafo real.
@@ -590,12 +667,11 @@ function onLink(event) {
 
     const text = event.clipboardData?.getData("text/plain") || "";
 
-    if (!text) return;
+    if (!text) {
+      return;
+    }
 
-    const linhas = text
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n")
-      .split("\n");
+    const linhas = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 
     const html = linhas
       .map((linha) => {
@@ -691,12 +767,13 @@ function onLink(event) {
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
+        tabIndex={0}
         className={cx(
-  "min-h-[220px] max-w-none p-4 text-sm text-zinc-800 outline-none dark:text-zinc-100",
-  "[&_p]:my-2 [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1",
-  "[&_a]:font-bold [&_a]:text-sky-700 [&_a]:underline [&_a]:underline-offset-2",
-  "dark:[&_a]:text-sky-300"
-)}
+          "min-h-[220px] max-w-none p-4 text-sm text-zinc-800 outline-none dark:text-zinc-100",
+          "[&_p]:my-2 [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1",
+          "[&_a]:font-bold [&_a]:text-sky-700 [&_a]:underline [&_a]:underline-offset-2",
+          "dark:[&_a]:text-sky-300",
+        )}
         onInput={emitChange}
         onBlur={emitChange}
         onKeyDown={onKeyDown}
@@ -705,15 +782,118 @@ function onLink(event) {
         aria-multiline="true"
         aria-label="Conteúdo formatado da publicação"
       />
+
+      {linkModalOpen ? (
+        <div className="fixed inset-0 z-[1300]">
+          <div
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            aria-hidden="true"
+            onClick={() => {
+              setLinkModalOpen(false);
+              setLinkUrl("");
+              setLinkText("");
+              setLinkHasSelection(false);
+              selectionRangeRef.current = null;
+            }}
+          />
+
+          <div className="absolute inset-0 grid place-items-center p-4">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="editor-link-title"
+              className="w-full max-w-md overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <header className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+                <h3
+                  id="editor-link-title"
+                  className="text-lg font-black text-zinc-900 dark:text-white"
+                >
+                  Inserir link
+                </h3>
+
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Informe a URL e, se necessário, o texto que será exibido.
+                </p>
+              </header>
+
+              <div className="space-y-4 px-5 py-5">
+                <label className="block">
+                  <span className="text-sm font-bold text-zinc-700 dark:text-zinc-200">
+                    Link
+                  </span>
+
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(event) => setLinkUrl(event.target.value)}
+                    placeholder="https://exemplo.com"
+                    className="mt-1 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-fuchsia-500 dark:border-zinc-800 dark:bg-zinc-950"
+                    autoFocus
+                  />
+                </label>
+
+                {!linkHasSelection ? (
+                  <label className="block">
+                    <span className="text-sm font-bold text-zinc-700 dark:text-zinc-200">
+                      Texto do link
+                    </span>
+
+                    <input
+                      type="text"
+                      value={linkText}
+                      onChange={(event) => setLinkText(event.target.value)}
+                      placeholder="Texto que aparecerá no conteúdo"
+                      className="mt-1 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-fuchsia-500 dark:border-zinc-800 dark:bg-zinc-950"
+                    />
+                  </label>
+                ) : (
+                  <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/25 dark:text-sky-200">
+                    O link será aplicado ao texto selecionado.
+                  </div>
+                )}
+              </div>
+
+              <footer className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkModalOpen(false);
+                    setLinkUrl("");
+                    setLinkText("");
+                    setLinkHasSelection(false);
+                    selectionRangeRef.current = null;
+                  }}
+                  className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-bold transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmarLink}
+                  disabled={!normalizarUrlLink(linkUrl)}
+                  className="rounded-xl border border-fuchsia-600 bg-fuchsia-600 px-4 py-2 text-sm font-black text-white transition hover:bg-fuchsia-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Inserir link
+                </button>
+              </footer>
+            </section>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
+
 /* =========================================================================
    Modal confirmação de exclusão
 =========================================================================== */
 
 function ConfirmDeleteModal({ open, item, loading, onClose, onConfirm }) {
-  if (!open || !item) return null;
+  if (!open || !item) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[1200]">
@@ -768,7 +948,8 @@ function ConfirmDeleteModal({ open, item, loading, onClose, onConfirm }) {
             </div>
 
             <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-              Confirme apenas se esta publicação não deve mais ficar disponível na gestão institucional.
+              Confirme apenas se esta publicação não deve mais ficar disponível
+              na gestão institucional.
             </p>
           </div>
 
@@ -788,7 +969,11 @@ function ConfirmDeleteModal({ open, item, loading, onClose, onConfirm }) {
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               {loading ? "Excluindo..." : "Excluir publicação"}
             </button>
           </footer>
@@ -824,7 +1009,9 @@ function ModalInformacao({
   }, [form.imagemPreview]);
 
   function onSelectImage(file) {
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     const erro = validarImagem(file);
 
@@ -852,7 +1039,9 @@ function ModalInformacao({
     });
   }
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <Modal
@@ -871,8 +1060,12 @@ function ModalInformacao({
             >
               {isEditing ? "Editar publicação" : "Nova publicação"}
             </h2>
-            <p id="gestao-informacoes-modal-desc" className="mt-1 text-sm text-white/85">
-              Configure conteúdo, período, imagem e exibição no painel do usuário.
+            <p
+              id="gestao-informacoes-modal-desc"
+              className="mt-1 text-sm text-white/85"
+            >
+              Configure conteúdo, período, imagem e exibição no painel do
+              usuário.
             </p>
           </div>
 
@@ -916,7 +1109,10 @@ function ModalInformacao({
                     className="mt-1 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-fuchsia-500 dark:border-zinc-800 dark:bg-zinc-950"
                     value={form.titulo}
                     onChange={(event) =>
-                      setForm((prev) => ({ ...prev, titulo: event.target.value }))
+                      setForm((prev) => ({
+                        ...prev,
+                        titulo: event.target.value,
+                      }))
                     }
                     maxLength={180}
                   />
@@ -930,7 +1126,10 @@ function ModalInformacao({
                     className="mt-1 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-fuchsia-500 dark:border-zinc-800 dark:bg-zinc-950"
                     value={form.badge}
                     onChange={(event) =>
-                      setForm((prev) => ({ ...prev, badge: event.target.value }))
+                      setForm((prev) => ({
+                        ...prev,
+                        badge: event.target.value,
+                      }))
                     }
                     placeholder="Ex.: Mensagem da Escola da Saúde"
                     maxLength={80}
@@ -946,7 +1145,10 @@ function ModalInformacao({
                   className="mt-1 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-fuchsia-500 dark:border-zinc-800 dark:bg-zinc-950"
                   value={form.subtitulo}
                   onChange={(event) =>
-                    setForm((prev) => ({ ...prev, subtitulo: event.target.value }))
+                    setForm((prev) => ({
+                      ...prev,
+                      subtitulo: event.target.value,
+                    }))
                   }
                   maxLength={220}
                 />
@@ -1003,7 +1205,9 @@ function ModalInformacao({
                       onChange={(event) =>
                         setForm((prev) => ({
                           ...prev,
-                          tipo_exibicao: normalizarTipoExibicao(event.target.value),
+                          tipo_exibicao: normalizarTipoExibicao(
+                            event.target.value,
+                          ),
                         }))
                       }
                     >
@@ -1025,7 +1229,10 @@ function ModalInformacao({
                       className="mt-1 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-fuchsia-500 dark:border-zinc-800 dark:bg-zinc-950"
                       value={form.ordem}
                       onChange={(event) =>
-                        setForm((prev) => ({ ...prev, ordem: event.target.value }))
+                        setForm((prev) => ({
+                          ...prev,
+                          ordem: event.target.value,
+                        }))
                       }
                     />
                   </label>
@@ -1072,7 +1279,10 @@ function ModalInformacao({
                     type="checkbox"
                     checked={Boolean(form.ativo)}
                     onChange={(event) =>
-                      setForm((prev) => ({ ...prev, ativo: event.target.checked }))
+                      setForm((prev) => ({
+                        ...prev,
+                        ativo: event.target.checked,
+                      }))
                     }
                   />
                   <div>
@@ -1080,7 +1290,8 @@ function ModalInformacao({
                       Publicação ativa
                     </div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Quando desativada, não aparece no painel mesmo estando no período.
+                      Quando desativada, não aparece no painel mesmo estando no
+                      período.
                     </div>
                   </div>
                 </label>
@@ -1126,7 +1337,8 @@ function ModalInformacao({
                 ) : null}
 
                 <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-                  Formatos permitidos: PNG, JPG ou WEBP. Tamanho máximo: {MAX_IMAGEM_MB} MB.
+                  Formatos permitidos: PNG, JPG ou WEBP. Tamanho máximo:{" "}
+                  {MAX_IMAGEM_MB} MB.
                 </p>
               </div>
             </div>
@@ -1150,8 +1362,16 @@ function ModalInformacao({
           disabled={salvando}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-fuchsia-600 bg-fuchsia-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:bg-fuchsia-700 disabled:opacity-60"
         >
-          {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {salvando ? "Salvando..." : isEditing ? "Salvar alterações" : "Criar publicação"}
+          {salvando ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {salvando
+            ? "Salvando..."
+            : isEditing
+              ? "Salvar alterações"
+              : "Criar publicação"}
         </button>
       </footer>
     </Modal>
@@ -1162,7 +1382,13 @@ function ModalInformacao({
    Card
 =========================================================================== */
 
-function CardInformacao({ item, onEdit, onDelete, onToggleAtivo, loadingAction }) {
+function CardInformacao({
+  item,
+  onEdit,
+  onDelete,
+  onToggleAtivo,
+  loadingAction,
+}) {
   const status = getStatus(item);
   const imageSrc = item?.imagem_url || "";
 
@@ -1230,7 +1456,8 @@ function CardInformacao({ item, onEdit, onDelete, onToggleAtivo, loadingAction }
           <div className="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
             <div className="inline-flex items-center gap-1">
               <CalendarDays className="h-4 w-4 opacity-70" />
-              {fmtData(item.data_inicio_exibicao)} até {fmtData(item.data_fim_exibicao)}
+              {fmtData(item.data_inicio_exibicao)} até{" "}
+              {fmtData(item.data_fim_exibicao)}
             </div>
 
             <div>
@@ -1252,10 +1479,14 @@ function CardInformacao({ item, onEdit, onDelete, onToggleAtivo, loadingAction }
               "border bg-white dark:bg-zinc-950",
               item.ativo
                 ? "border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-950/25"
-                : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-200 dark:hover:bg-emerald-950/25"
+                : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-200 dark:hover:bg-emerald-950/25",
             )}
           >
-            {item.ativo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {item.ativo ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
             {item.ativo ? "Desativar" : "Ativar"}
           </SoftButton>
 
@@ -1370,7 +1601,10 @@ export default function GestaoInformacoes() {
       tipo_exibicao: normalizarTipoExibicao(item.tipo_exibicao),
       ativo: Boolean(item.ativo),
       ordem: item.ordem ?? 0,
-      data_inicio_exibicao: String(item.data_inicio_exibicao || "").slice(0, 10),
+      data_inicio_exibicao: String(item.data_inicio_exibicao || "").slice(
+        0,
+        10,
+      ),
       data_fim_exibicao: String(item.data_fim_exibicao || "").slice(0, 10),
       conteudo_html: item.conteudo_html || "<p></p>",
       imagemFile: null,
@@ -1384,7 +1618,9 @@ export default function GestaoInformacoes() {
   }
 
   function fecharModal() {
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setModalOpen(false);
     setForm(emptyForm());
@@ -1407,13 +1643,13 @@ export default function GestaoInformacoes() {
       return "A data final não pode ser menor que a data inicial.";
     }
 
-if (!stripHtml(form.conteudo_html || "").trim()) {
-  return "Informe o conteúdo da publicação.";
-}
+    if (!stripHtml(form.conteudo_html || "").trim()) {
+      return "Informe o conteúdo da publicação.";
+    }
 
-if (String(form.conteudo_html || "").length > 50000) {
-  return "O conteúdo da publicação está muito extenso.";
-}
+    if (String(form.conteudo_html || "").length > 50000) {
+      return "O conteúdo da publicação está muito extenso.";
+    }
 
     return null;
   }
@@ -1503,7 +1739,10 @@ if (String(form.conteudo_html || "").length > 50000) {
       setMensagem({
         type: "error",
         title: "Falha ao alterar status",
-        message: getErrorMessage(error, "Falha ao alterar status da publicação."),
+        message: getErrorMessage(
+          error,
+          "Falha ao alterar status da publicação.",
+        ),
       });
     } finally {
       setLoadingAction(false);
@@ -1518,7 +1757,9 @@ if (String(form.conteudo_html || "").length > 50000) {
   }
 
   function fecharExclusao() {
-    if (loadingAction) return;
+    if (loadingAction) {
+      return;
+    }
 
     setDeleteState({
       open: false,
@@ -1572,10 +1813,15 @@ if (String(form.conteudo_html || "").length > 50000) {
     for (const item of items) {
       const status = getStatus(item);
 
-      if (status === "ativa") ativas += 1;
-      else if (status === "agendada") agendadas += 1;
-      else if (status === "expirada") expiradas += 1;
-      else inativas += 1;
+      if (status === "ativa") {
+        ativas += 1;
+      } else if (status === "agendada") {
+        agendadas += 1;
+      } else if (status === "expirada") {
+        expiradas += 1;
+      } else {
+        inativas += 1;
+      }
     }
 
     return {
@@ -1588,14 +1834,20 @@ if (String(form.conteudo_html || "").length > 50000) {
   }, [items]);
 
   const itemsFiltrados = useMemo(() => {
-    const termo = String(busca || "").trim().toLowerCase();
+    const termo = String(busca || "")
+      .trim()
+      .toLowerCase();
 
     return items.filter((item) => {
       const status = getStatus(item);
 
-      if (filtro !== "todos" && status !== filtro) return false;
+      if (filtro !== "todos" && status !== filtro) {
+        return false;
+      }
 
-      if (!termo) return true;
+      if (!termo) {
+        return true;
+      }
 
       const haystack = [
         item.titulo,
@@ -1612,23 +1864,30 @@ if (String(form.conteudo_html || "").length > 50000) {
   }, [items, filtro, busca]);
 
   const hint = useMemo(() => {
-    if (loading) return "Carregando...";
+    if (loading) {
+      return "Carregando...";
+    }
     return `${items.length} publicação(ões) cadastrada(s)`;
   }, [loading, items.length]);
 
   return (
     <main className="flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-white text-slate-950 dark:from-zinc-950 dark:via-zinc-950 dark:to-black dark:text-white">
-      <p ref={liveRef} className="sr-only" aria-live="polite" aria-atomic="true" />
+      <p
+        ref={liveRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
 
       <div className="mx-auto w-full max-w-6xl px-3 pt-4 sm:px-4">
-  <HeaderHero
-    titulo="Gestão de Informações"
-    subtitulo="Crie comunicados, campanhas e destaques institucionais com período de publicação, imagem e conteúdo rico."
-    icone={Megaphone}
-    tamanho="md"
-    raio="xl"
-  />
-</div>
+        <HeaderHero
+          titulo="Gestão de Informações"
+          subtitulo="Crie comunicados, campanhas e destaques institucionais com período de publicação, imagem e conteúdo rico."
+          icone={Megaphone}
+          tamanho="md"
+          raio="xl"
+        />
+      </div>
 
       {loading ? (
         <div
@@ -1639,44 +1898,67 @@ if (String(form.conteudo_html || "").length > 50000) {
           <div
             className={cx(
               "h-full w-1/3 bg-fuchsia-600",
-              reduceMotion ? "" : "animate-pulse"
+              reduceMotion ? "" : "animate-pulse",
             )}
           />
         </div>
       ) : null}
 
-      <section id="conteudo" className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4">
-  {mensagem ? (
-    <div className="mb-4">
-      <AlertBox
-        type={mensagem.type}
-        title={mensagem.title}
-        message={mensagem.message}
-        onClose={() => setMensagem(null)}
-      />
-    </div>
-  ) : null}
+      <section
+        id="conteudo"
+        className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4"
+      >
+        {mensagem ? (
+          <div className="mb-4">
+            <AlertBox
+              type={mensagem.type}
+              title={mensagem.title}
+              message={mensagem.message}
+              onClose={() => setMensagem(null)}
+            />
+          </div>
+        ) : null}
 
-<BarraAcoesPagina
-  onCriar={abrirCriacao}
-  onAtualizar={carregar}
-  loading={loading}
-  hint={hint}
-/>
+        <BarraAcoesPagina
+          onCriar={abrirCriacao}
+          onAtualizar={carregar}
+          loading={loading}
+          hint={hint}
+        />
 
-{!loading ? (
-  <section aria-label="Métricas das publicações" className="mb-4 mt-4">
+        {!loading ? (
+          <section aria-label="Métricas das publicações" className="mb-4 mt-4">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
-              <StatPill icon={LayoutGrid} label="Total" value={stats.total} tone="zinc" />
-              <StatPill icon={Newspaper} label="Ativas" value={stats.ativas} tone="emerald" />
-              <StatPill icon={Clock3} label="Agendadas" value={stats.agendadas} tone="amber" />
+              <StatPill
+                icon={LayoutGrid}
+                label="Total"
+                value={stats.total}
+                tone="zinc"
+              />
+              <StatPill
+                icon={Newspaper}
+                label="Ativas"
+                value={stats.ativas}
+                tone="emerald"
+              />
+              <StatPill
+                icon={Clock3}
+                label="Agendadas"
+                value={stats.agendadas}
+                tone="amber"
+              />
               <StatPill
                 icon={AlertTriangle}
                 label="Expiradas"
                 value={stats.expiradas}
                 tone="rose"
               />
-              <StatPill icon={EyeOff} label="Inativas" value={stats.inativas} tone="indigo" />
+              <StatPill
+                icon={EyeOff}
+                label="Inativas"
+                value={stats.inativas}
+                tone="indigo"
+              />
             </div>
           </section>
         ) : null}
@@ -1697,7 +1979,7 @@ if (String(form.conteudo_html || "").length > 50000) {
                       "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-extrabold transition",
                       filtro === key
                         ? "border-fuchsia-600 bg-fuchsia-600 text-white shadow-sm"
-                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900/40"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900/40",
                     )}
                   >
                     {label}

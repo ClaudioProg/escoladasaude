@@ -25,7 +25,14 @@
 // - mobile-first;
 // - dark mode.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -65,7 +72,12 @@ function cx(...classes) {
 }
 
 function unwrap(response, fallback = null) {
-  if (response && typeof response === "object" && "ok" in response && "data" in response) {
+  if (
+    response &&
+    typeof response === "object" &&
+    "ok" in response &&
+    "data" in response
+  ) {
     return response.data ?? fallback;
   }
 
@@ -91,14 +103,19 @@ function getMessage(error, fallback) {
 }
 
 function normalizarTipo(value) {
-  const tipo = String(value || "").trim().toLowerCase();
+  const tipo = String(value || "")
+    .trim()
+    .toLowerCase();
   return tipo === "oral" ? "oral" : "escrita";
 }
 
 function normalizarAvaliador(row) {
   return {
     id: Number(row?.id ?? row?.avaliador_id),
-    nome: row?.nome || row?.avaliador_nome || `Avaliador #${row?.id ?? row?.avaliador_id}`,
+    nome:
+      row?.nome ||
+      row?.avaliador_nome ||
+      `Avaliador #${row?.id ?? row?.avaliador_id}`,
     email: row?.email || row?.avaliador_email || "",
     total_atribuicoes: Number(row?.total_atribuicoes || row?.total || 0),
     pendentes: Number(row?.pendentes || 0),
@@ -106,7 +123,12 @@ function normalizarAvaliador(row) {
   };
 }
 
-function normalizarAtribuicao(row, avaliadoresMap = new Map(), origem = "lista", index = 0) {
+function normalizarAtribuicao(
+  row,
+  avaliadoresMap = new Map(),
+  origem = "lista",
+  index = 0,
+) {
   const avaliadorId = Number(row?.avaliador_id ?? row?.id);
   const avaliador = avaliadoresMap.get(avaliadorId);
   const tipo = normalizarTipo(row?.tipo);
@@ -121,7 +143,11 @@ function normalizarAtribuicao(row, avaliadoresMap = new Map(), origem = "lista",
     id: idBase,
     chave: `${tipo}-${avaliadorId}-${String(idBase)}-${origem}-${index}`,
     avaliador_id: avaliadorId,
-    nome: row?.avaliador_nome || row?.nome || avaliador?.nome || `Avaliador #${avaliadorId}`,
+    nome:
+      row?.avaliador_nome ||
+      row?.nome ||
+      avaliador?.nome ||
+      `Avaliador #${avaliadorId}`,
     email: row?.avaliador_email || row?.email || avaliador?.email || "",
     tipo,
     revogado: Boolean(row?.revogado),
@@ -146,7 +172,9 @@ function normalizarListaElegiveis(payload) {
   return rows
     .map(normalizarAvaliador)
     .filter((item) => Number.isInteger(item.id) && item.id > 0)
-    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
+    .sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
+    );
 }
 
 function normalizarListaAtribuicao(payload, avaliadoresMap, origem = "lista") {
@@ -163,8 +191,12 @@ function normalizarListaAtribuicao(payload, avaliadoresMap, origem = "lista") {
           : [];
 
   return rows
-    .map((item, index) => normalizarAtribuicao(item, avaliadoresMap, origem, index))
-    .filter((item) => Number.isInteger(item.avaliador_id) && item.avaliador_id > 0);
+    .map((item, index) =>
+      normalizarAtribuicao(item, avaliadoresMap, origem, index),
+    )
+    .filter(
+      (item) => Number.isInteger(item.avaliador_id) && item.avaliador_id > 0,
+    );
 }
 
 /* =========================================================================
@@ -172,7 +204,9 @@ function normalizarListaAtribuicao(payload, avaliadoresMap, origem = "lista") {
 =========================================================================== */
 
 async function listarElegiveis() {
-  return normalizarListaElegiveis(await api.get("/submissao/admin/avaliador/resumo"));
+  return normalizarListaElegiveis(
+    await api.get("/submissao/admin/avaliador/resumo"),
+  );
 }
 
 async function listarAtribuicao(submissaoId, avaliadoresMap) {
@@ -242,19 +276,17 @@ function Badge({ children, tone = "slate", icon: Icon }) {
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
   };
 
   return (
     <span
       className={cx(
         "inline-flex items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
@@ -278,8 +310,7 @@ function Button({
       "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
     emerald:
       "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-700",
-    rose:
-      "bg-rose-600 text-white shadow-lg shadow-rose-900/20 hover:bg-rose-700",
+    rose: "bg-rose-600 text-white shadow-lg shadow-rose-900/20 hover:bg-rose-700",
     ghost:
       "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
   };
@@ -291,7 +322,7 @@ function Button({
         "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
         "focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
         tones[tone],
-        className
+        className,
       )}
       disabled={loading || props.disabled}
       {...props}
@@ -319,7 +350,7 @@ function MiniStat({ icon: Icon, label, value, tone = "slate" }) {
     <div
       className={cx(
         "rounded-3xl border bg-white p-4 shadow-sm dark:bg-slate-900/70",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       <div className="flex items-center gap-3">
@@ -345,7 +376,10 @@ function AvaliadorRow({ item, busy, onRevogar, onRestaurar }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate font-black text-slate-900 dark:text-white" title={item.nome}>
+            <p
+              className="truncate font-black text-slate-900 dark:text-white"
+              title={item.nome}
+            >
               {item.nome}
             </p>
 
@@ -360,7 +394,10 @@ function AvaliadorRow({ item, busy, onRevogar, onRestaurar }) {
             )}
           </div>
 
-          <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400" title={item.email}>
+          <p
+            className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400"
+            title={item.email}
+          >
             {item.email || "E-mail não informado"}
           </p>
         </div>
@@ -426,27 +463,27 @@ export default function ModalAtribuirAvaliadores({
 
   const elegiveisMap = useMemo(
     () => new Map(elegiveis.map((item) => [Number(item.id), item])),
-    [elegiveis]
+    [elegiveis],
   );
 
   const ativos = useMemo(
     () => atribuicoes.filter((item) => !item.revogado),
-    [atribuicoes]
+    [atribuicoes],
   );
 
   const revogados = useMemo(
     () => atribuicoes.filter((item) => item.revogado),
-    [atribuicoes]
+    [atribuicoes],
   );
 
   const atribuicoesDoTipo = useMemo(
     () => atribuicoes.filter((item) => item.tipo === tipo),
-    [atribuicoes, tipo]
+    [atribuicoes, tipo],
   );
 
   const ativosDoTipo = useMemo(
     () => atribuicoesDoTipo.filter((item) => !item.revogado),
-    [atribuicoesDoTipo]
+    [atribuicoesDoTipo],
   );
 
   const idsDoTipo = useMemo(() => {
@@ -465,9 +502,13 @@ export default function ModalAtribuirAvaliadores({
     return elegiveis.filter((item) => {
       const jaAtribuidoNoTipo = idsDoTipo.has(Number(item.id));
 
-      if (jaAtribuidoNoTipo) return false;
+      if (jaAtribuidoNoTipo) {
+        return false;
+      }
 
-      if (!term) return true;
+      if (!term) {
+        return true;
+      }
 
       return `${item.nome} ${item.email}`.toLowerCase().includes(term);
     });
@@ -475,13 +516,17 @@ export default function ModalAtribuirAvaliadores({
 
   const selecionadoInfo = useMemo(() => {
     const id = Number(avaliadorSelecionado);
-    if (!Number.isInteger(id) || id <= 0) return null;
+    if (!Number.isInteger(id) || id <= 0) {
+      return null;
+    }
 
     return elegiveisMap.get(id) || null;
   }, [avaliadorSelecionado, elegiveisMap]);
 
   const carregar = useCallback(async () => {
-    if (!modalOpen || !submissaoId) return;
+    if (!modalOpen || !submissaoId) {
+      return;
+    }
 
     setLoading(true);
     setErro("");
@@ -501,8 +546,8 @@ export default function ModalAtribuirAvaliadores({
       setErro(
         getMessage(
           error,
-          "Não foi possível carregar avaliadores e atribuições. Verifique se existe endpoint oficial de avaliadores elegíveis."
-        )
+          "Não foi possível carregar avaliadores e atribuições. Verifique se existe endpoint oficial de avaliadores elegíveis.",
+        ),
       );
       setElegiveis([]);
       setAtribuicoes([]);
@@ -516,7 +561,9 @@ export default function ModalAtribuirAvaliadores({
   }, [carregar]);
 
   useEffect(() => {
-    if (!modalOpen) return undefined;
+    if (!modalOpen) {
+      return undefined;
+    }
 
     function onKeyDown(event) {
       if (event.key === "Escape") {
@@ -524,7 +571,7 @@ export default function ModalAtribuirAvaliadores({
       }
 
       const typing = ["input", "textarea", "select"].includes(
-        document.activeElement?.tagName?.toLowerCase()
+        document.activeElement?.tagName?.toLowerCase(),
       );
 
       if (event.key === "/" && !typing) {
@@ -619,7 +666,9 @@ export default function ModalAtribuirAvaliadores({
     }
   }
 
-  if (!modalOpen) return null;
+  if (!modalOpen) {
+    return null;
+  }
 
   return createPortal(
     <AnimatePresence>
@@ -627,7 +676,9 @@ export default function ModalAtribuirAvaliadores({
         className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
         role="presentation"
         onMouseDown={(event) => {
-          if (event.target === event.currentTarget) onClose?.();
+          if (event.target === event.currentTarget) {
+            onClose?.();
+          }
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -664,8 +715,12 @@ export default function ModalAtribuirAvaliadores({
                   Atribuir avaliadores
                 </h3>
 
-                <p id={descId} className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75">
-                  Gerencie avaliadores de avaliação escrita e oral. Revogação não apaga histórico: apenas desativa o vínculo.
+                <p
+                  id={descId}
+                  className="mt-2 max-w-4xl text-sm leading-relaxed text-white/75"
+                >
+                  Gerencie avaliadores de avaliação escrita e oral. Revogação
+                  não apaga histórico: apenas desativa o vínculo.
                 </p>
               </div>
 
@@ -716,9 +771,24 @@ export default function ModalAtribuirAvaliadores({
                 ) : null}
 
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <MiniStat icon={BadgeCheck} label="Ativos" value={ativos.length} tone="emerald" />
-                  <MiniStat icon={Users} label={`Ativos em ${tipoLabel}`} value={ativosDoTipo.length} tone="amber" />
-                  <MiniStat icon={ShieldAlert} label="Revogados" value={revogados.length} tone="rose" />
+                  <MiniStat
+                    icon={BadgeCheck}
+                    label="Ativos"
+                    value={ativos.length}
+                    tone="emerald"
+                  />
+                  <MiniStat
+                    icon={Users}
+                    label={`Ativos em ${tipoLabel}`}
+                    value={ativosDoTipo.length}
+                    tone="amber"
+                  />
+                  <MiniStat
+                    icon={ShieldAlert}
+                    label="Revogados"
+                    value={revogados.length}
+                    tone="rose"
+                  />
                 </div>
 
                 <div className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
@@ -752,7 +822,7 @@ export default function ModalAtribuirAvaliadores({
                                 "rounded-2xl border px-4 py-3 text-sm font-black transition focus:outline-none focus:ring-2 focus:ring-amber-500",
                                 active
                                   ? "border-amber-600 bg-amber-600 text-white"
-                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900",
                               )}
                             >
                               {item.label}
@@ -791,7 +861,9 @@ export default function ModalAtribuirAvaliadores({
 
                         <select
                           value={avaliadorSelecionado}
-                          onChange={(event) => setAvaliadorSelecionado(event.target.value)}
+                          onChange={(event) =>
+                            setAvaliadorSelecionado(event.target.value)
+                          }
                           className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950"
                         >
                           <option value="">Selecione...</option>
@@ -806,7 +878,9 @@ export default function ModalAtribuirAvaliadores({
                       {selecionadoInfo ? (
                         <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
                           <p className="font-black">{selecionadoInfo.nome}</p>
-                          <p className="mt-1 text-xs">{selecionadoInfo.email || "E-mail não informado"}</p>
+                          <p className="mt-1 text-xs">
+                            {selecionadoInfo.email || "E-mail não informado"}
+                          </p>
                         </div>
                       ) : null}
 
@@ -830,7 +904,8 @@ export default function ModalAtribuirAvaliadores({
                           Atribuídos em {tipoLabel}
                         </h4>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          {atribuicoesDoTipo.length} vínculo(s) nesta modalidade.
+                          {atribuicoesDoTipo.length} vínculo(s) nesta
+                          modalidade.
                         </p>
                       </div>
 
@@ -848,11 +923,16 @@ export default function ModalAtribuirAvaliadores({
                         {atribuicoesDoTipo.map((item, index) => {
                           const keyRevogar = `revogar-${item.tipo}-${item.avaliador_id}`;
                           const keyRestaurar = `restaurar-${item.tipo}-${item.avaliador_id}`;
-                          const busy = actionKey === keyRevogar || actionKey === keyRestaurar;
+                          const busy =
+                            actionKey === keyRevogar ||
+                            actionKey === keyRestaurar;
 
                           return (
                             <AvaliadorRow
-                              key={item.chave || `${item.tipo}-${item.avaliador_id}-${index}`}
+                              key={
+                                item.chave ||
+                                `${item.tipo}-${item.avaliador_id}-${index}`
+                              }
                               item={item}
                               busy={busy}
                               onRevogar={revogar}
@@ -878,14 +958,14 @@ export default function ModalAtribuirAvaliadores({
           )}
         </motion.div>
       </motion.div>
-    </AnimatePresence>
-  ,
-    document.body
+    </AnimatePresence>,
+    document.body,
   );
 }
 
 ModalAtribuirAvaliadores.propTypes = {
-  submissaoId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  submissaoId: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    .isRequired,
   isOpen: PropTypes.bool,
   open: PropTypes.bool,
   onClose: PropTypes.func.isRequired,

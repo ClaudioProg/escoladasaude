@@ -94,7 +94,7 @@ function getRequestId(req) {
 
 function apiOk(
   res,
-  { data = null, message = "OK", code = "OK", meta = null } = {}
+  { data = null, message = "OK", code = "OK", meta = null } = {},
 ) {
   return res.status(200).json({
     ok: true,
@@ -207,7 +207,7 @@ router.get("/health", (req, res) =>
     meta: {
       requestId: getRequestId(req),
     },
-  })
+  }),
 );
 
 router.head("/health", (_req, res) => res.sendStatus(204));
@@ -247,11 +247,7 @@ mount("/agenda", agendaRoute, "agendaRoute");
 ────────────────────────────────────────────────────────────── */
 
 mount("/calendario", calendarioRoute, "calendarioRoute");
-mount(
-  "/calendario-eps",
-  calendarioAnualEPSRoute,
-  "calendarioAnualEPSRoute"
-);
+mount("/calendario-eps", calendarioAnualEPSRoute, "calendarioAnualEPSRoute");
 
 /* ─────────────────────────────────────────────────────────────
    Cursos online
@@ -335,7 +331,7 @@ mount("/notificacao", notificacaoRoute, "notificacaoRoute");
 mount(
   "/notificacao-programada",
   notificacaoProgramadaRoute,
-  "notificacaoProgramadaRoute"
+  "notificacaoProgramadaRoute",
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -345,11 +341,7 @@ mount(
 mount("/auditoria", auditoriaRoute, "auditoriaRoute");
 mount("/mensagem", mensagemRoute, "mensagemRoute");
 mount("/pendencia", pendenciaRoute, "pendenciaRoute");
-mount(
-  "/saude-plataforma",
-  saudePlataformaRoute,
-  "saudePlataformaRoute"
-);
+mount("/saude-plataforma", saudePlataformaRoute, "saudePlataformaRoute");
 /* ─────────────────────────────────────────────────────────────
    Fallback 404 da API
 ────────────────────────────────────────────────────────────── */

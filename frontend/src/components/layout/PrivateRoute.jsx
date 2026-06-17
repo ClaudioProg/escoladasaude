@@ -60,7 +60,9 @@ function isBrowser() {
 }
 
 function getStoredToken() {
-  if (!isBrowser()) return null;
+  if (!isBrowser()) {
+    return null;
+  }
 
   try {
     return localStorage.getItem(STORAGE_TOKEN_KEY) || null;
@@ -70,7 +72,9 @@ function getStoredToken() {
 }
 
 function limparSessaoLocal() {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   try {
     clearAuthSession();
@@ -86,7 +90,9 @@ function limparSessaoLocal() {
 }
 
 function salvarPerfilLocal(perfil) {
-  if (!isBrowser()) return false;
+  if (!isBrowser()) {
+    return false;
+  }
 
   try {
     const novoValor = JSON.stringify(perfil);
@@ -118,29 +124,35 @@ function getPerfilData(response) {
 function perfilValido(perfil) {
   return Boolean(
     perfil &&
-      typeof perfil === "object" &&
-      Number.isFinite(Number(perfil.id)) &&
-      typeof perfil.perfil === "string" &&
-      perfil.perfil.trim() === perfil.perfil &&
-      Object.values(PERFIL).includes(perfil.perfil)
+    typeof perfil === "object" &&
+    Number.isFinite(Number(perfil.id)) &&
+    typeof perfil.perfil === "string" &&
+    perfil.perfil.trim() === perfil.perfil &&
+    Object.values(PERFIL).includes(perfil.perfil),
   );
 }
 
 function permitidoValido(permitido) {
-  if (permitido == null) return true;
+  if (permitido == null) {
+    return true;
+  }
 
-  if (!Array.isArray(permitido)) return false;
+  if (!Array.isArray(permitido)) {
+    return false;
+  }
 
   return permitido.every(
     (perfil) =>
       typeof perfil === "string" &&
       perfil.trim() === perfil &&
-      Object.values(PERFIL).includes(perfil)
+      Object.values(PERFIL).includes(perfil),
   );
 }
 
 function perfilTemAcesso(perfil, permitido) {
-  if (!permitido || permitido.length === 0) return true;
+  if (!permitido || permitido.length === 0) {
+    return true;
+  }
 
   const perfilAtual = perfil?.perfil;
 
@@ -165,12 +177,6 @@ function buildNextFromLocation(location) {
   const hash = location?.hash || "";
 
   return `${pathname}${search}${hash}`;
-}
-
-function logDev(...args) {
-  if (import.meta.env.DEV) {
-    console.info("[PrivateRoute]", ...args);
-  }
 }
 
 function errorDev(...args) {
@@ -198,7 +204,9 @@ export default function PrivateRoute({
   const authTimerRef = useRef(null);
 
   const permitidoFinal = useMemo(() => {
-    if (permitido == null) return [];
+    if (permitido == null) {
+      return [];
+    }
 
     if (!permitidoValido(permitido)) {
       return null;
@@ -207,13 +215,10 @@ export default function PrivateRoute({
     return permitido;
   }, [permitido]);
 
-  const aplicarSessaoInvalida = useCallback((origem, extra = {}) => {
-    if (!mountedRef.current) return;
-
-    logDev("sessão inválida", {
-      origem,
-      ...extra,
-    });
+  const aplicarSessaoInvalida = useCallback((_origem, _extra = {}) => {
+    if (!mountedRef.current) {
+      return;
+    }
 
     limparSessaoLocal();
     tokenVerificadoRef.current = null;
@@ -222,42 +227,41 @@ export default function PrivateRoute({
     setStatus(STATUS.nao_autenticado);
   }, []);
 
-const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => {
-  if (!mountedRef.current) return;
+  const aplicarSessaoValida = useCallback(
+    (perfilRecebido, _origem, _extra = {}) => {
+      if (!mountedRef.current) {
+        return;
+      }
 
-  const perfilFoiAtualizado = salvarPerfilLocal(perfilRecebido);
+      salvarPerfilLocal(perfilRecebido);
 
-  logDev("sessão válida", {
-    origem,
-    perfil_id: perfilRecebido.id,
-    perfil: perfilRecebido.perfil,
-    perfil_atualizado_no_storage: perfilFoiAtualizado,
-    ...extra,
-  });
+      setPerfil((perfilAtual) => {
+        if (
+          perfilAtual?.id === perfilRecebido.id &&
+          perfilAtual?.perfil === perfilRecebido.perfil
+        ) {
+          return perfilAtual;
+        }
 
-  setPerfil((perfilAtual) => {
-    if (
-      perfilAtual?.id === perfilRecebido.id &&
-      perfilAtual?.perfil === perfilRecebido.perfil
-    ) {
-      return perfilAtual;
-    }
+        return perfilRecebido;
+      });
 
-    return perfilRecebido;
-  });
+      setStatus((statusAtual) => {
+        if (statusAtual === STATUS.autenticado) {
+          return statusAtual;
+        }
 
-  setStatus((statusAtual) => {
-    if (statusAtual === STATUS.autenticado) {
-      return statusAtual;
-    }
-
-    return STATUS.autenticado;
-  });
-}, []);
+        return STATUS.autenticado;
+      });
+    },
+    [],
+  );
 
   const verificarSessao = useCallback(
     async (origem = "manual", options = {}) => {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const token = getStoredToken();
       const forcar = Boolean(options?.forcar);
@@ -270,16 +274,10 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
       }
 
       if (!forcar && tokenVerificadoRef.current === token) {
-        logDev("verificação reaproveitada", {
-          origem,
-        });
         return;
       }
 
       if (requestEmAndamentoRef.current) {
-        logDev("verificação ignorada: requisição em andamento", {
-          origem,
-        });
         return;
       }
 
@@ -288,25 +286,17 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
       requestIdRef.current = requestId;
       requestEmAndamentoRef.current = true;
 
-      logDev("verificando sessão", {
-        origem,
-        request_id: requestId,
-        forcar,
-      });
-
       try {
         const response = await apiPerfilMe({
           on401: "silent",
           on403: "silent",
         });
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         if (requestId !== requestIdRef.current) {
-          logDev("resposta antiga descartada", {
-            origem,
-            request_id: requestId,
-          });
           return;
         }
 
@@ -326,13 +316,11 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
           request_id: requestId,
         });
       } catch (error) {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          return;
+        }
 
         if (requestId !== requestIdRef.current) {
-          logDev("erro de requisição antiga descartado", {
-            origem,
-            request_id: requestId,
-          });
           return;
         }
 
@@ -353,7 +341,7 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
         }
       }
     },
-    [aplicarSessaoInvalida, aplicarSessaoValida]
+    [aplicarSessaoInvalida, aplicarSessaoValida],
   );
 
   useEffect(() => {
@@ -364,7 +352,9 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
     });
 
     function handleAuthChanged() {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       if (authTimerRef.current) {
         window.clearTimeout(authTimerRef.current);
@@ -378,8 +368,12 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
     }
 
     function handleStorageChanged(event) {
-      if (!mountedRef.current) return;
-      if (event.key !== STORAGE_TOKEN_KEY) return;
+      if (!mountedRef.current) {
+        return;
+      }
+      if (event.key !== STORAGE_TOKEN_KEY) {
+        return;
+      }
 
       verificarSessao("storage:token", {
         forcar: true,
@@ -417,14 +411,7 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
     );
   }
 
-    if (perfilEstaIncompleto(perfil) && location.pathname !== "/perfil") {
-    logDev("perfil incompleto: redirecionando para /perfil", {
-      pathname: location.pathname,
-      perfil_id: perfil?.id,
-      perfil_incompleto: Boolean(perfil?.perfil_incompleto),
-      celular_pendente: !hasCelularObrigatorio(perfil),
-    });
-
+  if (perfilEstaIncompleto(perfil) && location.pathname !== "/perfil") {
     return (
       <Navigate
         to="/perfil"
@@ -443,12 +430,6 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
   }
 
   if (!perfilTemAcesso(perfil, permitidoFinal)) {
-    logDev("acesso negado por perfil", {
-      pathname: location.pathname,
-      perfil_atual: perfil?.perfil,
-      permitido: permitidoFinal,
-    });
-
     return <Navigate to={rotaSemPermissao} replace />;
   }
 
@@ -458,7 +439,7 @@ const aplicarSessaoValida = useCallback((perfilRecebido, origem, extra = {}) => 
 PrivateRoute.propTypes = {
   children: PropTypes.node.isRequired,
   permitido: PropTypes.arrayOf(
-    PropTypes.oneOf([PERFIL.usuario, PERFIL.organizador, PERFIL.administrador])
+    PropTypes.oneOf([PERFIL.usuario, PERFIL.organizador, PERFIL.administrador]),
   ),
   fallback: PropTypes.node,
   rotaLogin: PropTypes.string,

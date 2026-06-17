@@ -57,7 +57,6 @@ import {
   Search,
   Send,
   ShieldCheck,
-  Sparkles,
   StopCircle,
   Target,
   Trash2,
@@ -160,15 +159,25 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
 function unwrapData(response) {
-  if (response?.data?.data !== undefined) return response.data.data;
-  if (response?.data !== undefined) return response.data;
+  if (response?.data?.data !== undefined) {
+    return response.data.data;
+  }
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -194,11 +203,15 @@ function norm(value) {
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -210,23 +223,31 @@ function brDateTime(value) {
 }
 
 function calcularRestanteSegundos(pergunta, agoraMs = Date.now()) {
-  if (!pergunta?.fechada_em) return null;
+  if (!pergunta?.fechada_em) {
+    return null;
+  }
 
   const fimMs = new Date(pergunta.fechada_em).getTime();
 
-  if (Number.isNaN(fimMs)) return null;
+  if (Number.isNaN(fimMs)) {
+    return null;
+  }
 
   return Math.max(0, Math.ceil((fimMs - agoraMs) / 1000));
 }
 
 function formatarTempo(segundos) {
-  if (segundos === null || segundos === undefined) return "—";
+  if (segundos === null || segundos === undefined) {
+    return "—";
+  }
 
   const total = Math.max(0, Number(segundos) || 0);
   const min = Math.floor(total / 60);
   const sec = total % 60;
 
-  if (min <= 0) return `${sec}s`;
+  if (min <= 0) {
+    return `${sec}s`;
+  }
 
   return `${min}:${String(sec).padStart(2, "0")}`;
 }
@@ -265,7 +286,9 @@ function readPersistedFilters() {
 }
 
 function normalizeFormFromInteracao(interacao) {
-  if (!interacao) return FORM_INICIAL;
+  if (!interacao) {
+    return FORM_INICIAL;
+  }
 
   return {
     titulo: interacao.titulo || "",
@@ -368,7 +391,7 @@ export default function InteracoesQuizAdmin() {
   const [mensagem, setMensagem] = useState("");
 
   const [filtroStatus, setFiltroStatus] = useState(
-    persisted.filtroStatus || ""
+    persisted.filtroStatus || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -401,7 +424,7 @@ export default function InteracoesQuizAdmin() {
         JSON.stringify({
           filtroStatus,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página.
@@ -433,7 +456,7 @@ export default function InteracoesQuizAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar os quizzes."
+        "Não foi possível carregar os quizzes.",
       );
 
       setErro(message);
@@ -451,7 +474,9 @@ export default function InteracoesQuizAdmin() {
     const query = norm(buscaDebounced);
 
     return interacoes.filter((interacao) => {
-      if (filtroStatus && interacao.status !== filtroStatus) return false;
+      if (filtroStatus && interacao.status !== filtroStatus) {
+        return false;
+      }
 
       if (query) {
         const haystack = norm(
@@ -467,10 +492,12 @@ export default function InteracoesQuizAdmin() {
             interacao.criado_por_nome,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -487,9 +514,15 @@ export default function InteracoesQuizAdmin() {
     };
 
     for (const interacao of interacoes) {
-      if (interacao.status === "publicada") base.publicada += 1;
-      if (interacao.status === "em_andamento") base.andamento += 1;
-      if (interacao.status === "encerrada") base.encerrada += 1;
+      if (interacao.status === "publicada") {
+        base.publicada += 1;
+      }
+      if (interacao.status === "em_andamento") {
+        base.andamento += 1;
+      }
+      if (interacao.status === "encerrada") {
+        base.encerrada += 1;
+      }
 
       base.respostas += Number(interacao.total_respostas || 0);
     }
@@ -522,15 +555,17 @@ export default function InteracoesQuizAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar o quiz para edição."
+        "Não foi possível carregar o quiz para edição.",
       );
 
       setErro(message);
       setLive("Falha ao carregar quiz para edição.");
     }
   }
-    async function alterarStatus(interacao, status) {
-    if (!interacao?.id || !status || interacao.status === status) return;
+  async function alterarStatus(interacao, status) {
+    if (!interacao?.id || !status || interacao.status === status) {
+      return;
+    }
 
     setAlterandoStatusId(interacao.id);
     setErro("");
@@ -551,8 +586,8 @@ export default function InteracoesQuizAdmin() {
                   : {}),
                 status,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMensagem("Status do quiz atualizado com sucesso.");
@@ -560,7 +595,7 @@ export default function InteracoesQuizAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível alterar o status do quiz."
+        "Não foi possível alterar o status do quiz.",
       );
 
       setErro(message);
@@ -597,7 +632,7 @@ export default function InteracoesQuizAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar o ranking do quiz."
+        "Não foi possível carregar o ranking do quiz.",
       );
 
       setResultadoPainel({
@@ -614,7 +649,9 @@ export default function InteracoesQuizAdmin() {
   }
 
   async function executarAcaoAoVivo(tipo, interacaoId, perguntaId = null) {
-    if (!interacaoId) return;
+    if (!interacaoId) {
+      return;
+    }
 
     const chave = `${tipo}-${interacaoId}-${perguntaId || "execucao"}`;
     setAcaoAoVivo(chave);
@@ -662,7 +699,7 @@ export default function InteracoesQuizAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível executar a ação ao vivo."
+        "Não foi possível executar a ação ao vivo.",
       );
 
       setErro(message);
@@ -679,7 +716,9 @@ export default function InteracoesQuizAdmin() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -690,7 +729,7 @@ export default function InteracoesQuizAdmin() {
       await api.interacao.excluir(confirmacao.id);
 
       setInteracoes((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Quiz excluído com sucesso.");
@@ -699,7 +738,7 @@ export default function InteracoesQuizAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível excluir o quiz."
+        "Não foi possível excluir o quiz.",
       );
 
       setErro(message);
@@ -718,7 +757,9 @@ export default function InteracoesQuizAdmin() {
         titulo={confirmacao?.titulo}
         loading={excluindo}
         onCancel={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -729,50 +770,67 @@ export default function InteracoesQuizAdmin() {
         loading={carregandoResultado}
         acaoAoVivo={acaoAoVivo}
         onClose={() => {
-          if (carregandoResultado) return;
+          if (carregandoResultado) {
+            return;
+          }
           setResultadoPainel(null);
         }}
         onAcao={executarAcaoAoVivo}
       />
 
       <HeaderHero
-  titulo="Quiz ao vivo"
-  subtitulo="Publique quizzes, libere perguntas uma a uma, revele gabarito e acompanhe o ranking em tempo real."
-  icon={Trophy}
-/>
+        titulo="Quiz ao vivo"
+        subtitulo="Publique quizzes, libere perguntas uma a uma, revele gabarito e acompanhe o ranking em tempo real."
+        icon={Trophy}
+      />
 
       <main className="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <MiniStatCard label="Total" value={kpis.total} icon={Trophy} />
-    <MiniStatCard label="Publicados" value={kpis.publicada} icon={CheckCircle2} />
-    <MiniStatCard label="Ao vivo" value={kpis.andamento} icon={Play} />
-    <MiniStatCard label="Respostas" value={kpis.respostas} icon={Target} />
-  </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MiniStatCard label="Total" value={kpis.total} icon={Trophy} />
+            <MiniStatCard
+              label="Publicados"
+              value={kpis.publicada}
+              icon={CheckCircle2}
+            />
+            <MiniStatCard label="Ao vivo" value={kpis.andamento} icon={Play} />
+            <MiniStatCard
+              label="Respostas"
+              value={kpis.respostas}
+              icon={Target}
+            />
+          </div>
 
-  <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-    <button
-      type="button"
-      onClick={abrirCriacao}
-      className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-violet-700 px-5 py-4 text-sm font-black text-white shadow-sm hover:bg-violet-800"
-    >
-      <Plus className="h-4 w-4" />
-      Novo quiz
-    </button>
+          <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+            <button
+              type="button"
+              onClick={abrirCriacao}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-violet-700 px-5 py-4 text-sm font-black text-white shadow-sm hover:bg-violet-800"
+            >
+              <Plus className="h-4 w-4" />
+              Novo quiz
+            </button>
 
-    <button
-      type="button"
-      onClick={carregarDados}
-      disabled={carregando}
-      className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:bg-slate-900 dark:text-white dark:ring-slate-800"
-    >
-      <RefreshCcw className={cx("h-4 w-4", carregando && "animate-spin")} />
-      {carregando ? "Atualizando..." : "Atualizar"}
-    </button>
-  </div>
-</section>
+            <button
+              type="button"
+              onClick={carregarDados}
+              disabled={carregando}
+              className="inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60 dark:bg-slate-900 dark:text-white dark:ring-slate-800"
+            >
+              <RefreshCcw
+                className={cx("h-4 w-4", carregando && "animate-spin")}
+              />
+              {carregando ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+        </section>
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -793,8 +851,8 @@ export default function InteracoesQuizAdmin() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Crie quizzes, libere perguntas ao vivo, exiba gabarito e acompanhe
-                o ranking.
+                Crie quizzes, libere perguntas ao vivo, exiba gabarito e
+                acompanhe o ranking.
               </p>
             </div>
 
@@ -883,7 +941,9 @@ export default function InteracoesQuizAdmin() {
                 key={interacao.id}
                 interacao={interacao}
                 reduceMotion={reduceMotion}
-                alterandoStatus={String(alterandoStatusId) === String(interacao.id)}
+                alterandoStatus={
+                  String(alterandoStatusId) === String(interacao.id)
+                }
                 acaoAoVivo={acaoAoVivo}
                 onEditar={() => abrirEdicao(interacao)}
                 onResultado={() => abrirResultado(interacao)}
@@ -939,8 +999,7 @@ function MiniStatCard({ label, value, icon: Icon }) {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -968,8 +1027,7 @@ function StatusBadge({ status }) {
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
   };
@@ -978,7 +1036,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}
@@ -1196,7 +1254,9 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     setForm(normalizeFormFromInteracao(interacao));
     setSalvando(false);
@@ -1223,7 +1283,9 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     };
   }, [aberto, interacao, onClose, salvando]);
 
-  if (!aberto) return null;
+  if (!aberto) {
+    return null;
+  }
 
   function setCampo(campo, valor) {
     setForm((current) => {
@@ -1277,7 +1339,9 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) =>
-        pergunta.local_id === localId ? { ...pergunta, [campo]: valor } : pergunta
+        pergunta.local_id === localId
+          ? { ...pergunta, [campo]: valor }
+          : pergunta,
       ),
     }));
   }
@@ -1286,7 +1350,9 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== perguntaLocalId) return pergunta;
+        if (pergunta.local_id !== perguntaLocalId) {
+          return pergunta;
+        }
 
         return {
           ...pergunta,
@@ -1303,7 +1369,9 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== perguntaLocalId) return pergunta;
+        if (pergunta.local_id !== perguntaLocalId) {
+          return pergunta;
+        }
 
         return {
           ...pergunta,
@@ -1322,14 +1390,16 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       perguntas: (current.perguntas || []).map((pergunta) => {
-        if (pergunta.local_id !== perguntaLocalId) return pergunta;
+        if (pergunta.local_id !== perguntaLocalId) {
+          return pergunta;
+        }
 
         return {
           ...pergunta,
           opcoes: (pergunta.opcoes || []).map((opcao) =>
             opcao.local_id === opcaoLocalId
               ? { ...opcao, [campo]: valor }
-              : opcao
+              : opcao,
           ),
         };
       }),
@@ -1362,7 +1432,10 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
     for (let pIndex = 0; pIndex < perguntas.length; pIndex += 1) {
       const pergunta = perguntas[pIndex];
 
-      if (!cleanStr(pergunta.enunciado) || cleanStr(pergunta.enunciado).length < 3) {
+      if (
+        !cleanStr(pergunta.enunciado) ||
+        cleanStr(pergunta.enunciado).length < 3
+      ) {
         return `Informe o enunciado da pergunta ${pIndex + 1}.`;
       }
 
@@ -1453,7 +1526,7 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
         obrigatoria: pergunta.obrigatoria !== false,
         peso: Number(pergunta.peso || 1),
         tempo_segundos: Number(
-          pergunta.tempo_segundos || form.tempo_por_pergunta_segundos || 60
+          pergunta.tempo_segundos || form.tempo_por_pergunta_segundos || 60,
         ),
         feedback_correto: cleanStr(pergunta.feedback_correto) || null,
         feedback_incorreto: cleanStr(pergunta.feedback_incorreto) || null,
@@ -1467,15 +1540,17 @@ function ModalQuiz({ aberto, interacao, onClose, onSaved }) {
       })),
 
       // O quiz ao vivo não depende de janela de disponibilidade.
-// A execução é sequencial: manual pelo administrador ou automática pelo tempo definido.
-janelas: [],
+      // A execução é sequencial: manual pelo administrador ou automática pelo tempo definido.
+      janelas: [],
     };
   }
 
   async function salvar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1518,8 +1593,12 @@ janelas: [],
       className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (salvando) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <div
@@ -1576,7 +1655,12 @@ janelas: [],
           className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"
         >
           {erro ? (
-            <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+            <AlertBox
+              tone="rose"
+              icon={AlertCircle}
+              title="Atenção"
+              message={erro}
+            />
           ) : null}
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
@@ -1632,7 +1716,9 @@ janelas: [],
                     type="number"
                     min="1"
                     value={form.evento_id}
-                    onChange={(event) => setCampo("evento_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("evento_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID do evento"
                     disabled={salvando}
@@ -1646,7 +1732,9 @@ janelas: [],
                     type="number"
                     min="1"
                     value={form.turma_id}
-                    onChange={(event) => setCampo("turma_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("turma_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID da turma"
                     disabled={salvando}
@@ -1654,7 +1742,7 @@ janelas: [],
                 </Field>
               ) : null}
 
-                           <Field label="Modo de execução" required>
+              <Field label="Modo de execução" required>
                 <select
                   value={form.modo_execucao_quiz}
                   onChange={(event) =>
@@ -1664,7 +1752,9 @@ janelas: [],
                   disabled={salvando}
                 >
                   <option value="manual">Manual — administrador avança</option>
-                  <option value="automatico">Automático — avança pelo tempo</option>
+                  <option value="automatico">
+                    Automático — avança pelo tempo
+                  </option>
                 </select>
               </Field>
 
@@ -1701,7 +1791,9 @@ janelas: [],
                   min="0"
                   step="0.01"
                   value={form.nota_minima}
-                  onChange={(event) => setCampo("nota_minima", event.target.value)}
+                  onChange={(event) =>
+                    setCampo("nota_minima", event.target.value)
+                  }
                   className={inputClass()}
                   placeholder="Opcional"
                   disabled={salvando}
@@ -1712,7 +1804,9 @@ janelas: [],
                 <Field label="Descrição">
                   <textarea
                     value={form.descricao}
-                    onChange={(event) => setCampo("descricao", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("descricao", event.target.value)
+                    }
                     className={textareaClass()}
                     rows={3}
                     placeholder="Explique o objetivo do quiz."
@@ -1824,7 +1918,7 @@ janelas: [],
                           atualizarPergunta(
                             pergunta.local_id,
                             "enunciado",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className={textareaClass()}
@@ -1844,7 +1938,7 @@ janelas: [],
                           atualizarPergunta(
                             pergunta.local_id,
                             "peso",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className={inputClass()}
@@ -1861,7 +1955,7 @@ janelas: [],
                           atualizarPergunta(
                             pergunta.local_id,
                             "tempo_segundos",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className={inputClass()}
@@ -1878,7 +1972,7 @@ janelas: [],
                           atualizarPergunta(
                             pergunta.local_id,
                             "feedback_correto",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className={inputClass()}
@@ -1894,7 +1988,7 @@ janelas: [],
                           atualizarPergunta(
                             pergunta.local_id,
                             "feedback_incorreto",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className={inputClass()}
@@ -1934,7 +2028,7 @@ janelas: [],
                                 pergunta.local_id,
                                 opcao.local_id,
                                 "texto",
-                                event.target.value
+                                event.target.value,
                               )
                             }
                             className={inputClass()}
@@ -1951,7 +2045,7 @@ janelas: [],
                                   pergunta.local_id,
                                   opcao.local_id,
                                   "correta",
-                                  event.target.checked
+                                  event.target.checked,
                                 )
                               }
                               className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
@@ -1981,12 +2075,13 @@ janelas: [],
           </section>
         </form>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                        O quiz será aplicado em sequência. No modo manual, o administrador
+        <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          {" "}
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            O quiz será aplicado em sequência. No modo manual, o administrador
             avança pergunta por pergunta. No modo automático, a plataforma
             avança conforme o tempo definido.
           </p>
-
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             <button
               type="button"
@@ -2019,7 +2114,7 @@ janelas: [],
         </footer>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -2033,14 +2128,18 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
 
   const interacao = painel?.completo || painel?.interacao || null;
   const ranking = painel?.resultado?.ranking || [];
-  const perguntas = Array.isArray(interacao?.perguntas) ? interacao.perguntas : [];
+  const perguntas = Array.isArray(interacao?.perguntas)
+    ? interacao.perguntas
+    : [];
 
   const modoExecucao = interacao?.modo_execucao_quiz || "manual";
   const tempoPadrao = Number(interacao?.tempo_por_pergunta_segundos || 0);
   const perguntaAtualId = Number(interacao?.pergunta_atual_id || 0);
 
   const perguntaAtualIndex = perguntas.findIndex((pergunta) => {
-    if (perguntaAtualId && Number(pergunta.id) === perguntaAtualId) return true;
+    if (perguntaAtualId && Number(pergunta.id) === perguntaAtualId) {
+      return true;
+    }
     return pergunta.status === "aberta";
   });
 
@@ -2055,13 +2154,15 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
 
   const tempoRestanteSegundos = calcularRestanteSegundos(
     perguntaAtual,
-    agoraMs
+    agoraMs,
   );
 
   const perguntaAtualAberta = perguntaAtual?.status === "aberta";
 
   useEffect(() => {
-    if (!painel) return undefined;
+    if (!painel) {
+      return undefined;
+    }
 
     setAgoraMs(Date.now());
 
@@ -2077,17 +2178,33 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
   }, [interacao?.id, perguntaAtual?.id]);
 
   useEffect(() => {
-    if (!painel) return;
-    if (!interacao?.id) return;
-    if (modoExecucao !== "automatico") return;
-    if (loading || acaoAoVivo) return;
-    if (quizEncerrado) return;
-    if (!perguntaAtual?.id || !perguntaAtualAberta) return;
-    if (tempoRestanteSegundos === null || tempoRestanteSegundos > 0) return;
+    if (!painel) {
+      return;
+    }
+    if (!interacao?.id) {
+      return;
+    }
+    if (modoExecucao !== "automatico") {
+      return;
+    }
+    if (loading || acaoAoVivo) {
+      return;
+    }
+    if (quizEncerrado) {
+      return;
+    }
+    if (!perguntaAtual?.id || !perguntaAtualAberta) {
+      return;
+    }
+    if (tempoRestanteSegundos === null || tempoRestanteSegundos > 0) {
+      return;
+    }
 
     const chave = `${interacao.id}-${perguntaAtual.id}`;
 
-    if (autoAvancoRef.current === chave) return;
+    if (autoAvancoRef.current === chave) {
+      return;
+    }
 
     autoAvancoRef.current = chave;
     onAcao?.("avancar", interacao.id);
@@ -2104,7 +2221,9 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
     onAcao,
   ]);
 
-  if (!painel) return null;
+  if (!painel) {
+    return null;
+  }
 
   function statusPerguntaInfo(pergunta, index) {
     const status = String(pergunta?.status || "aguardando").toLowerCase();
@@ -2147,8 +2266,12 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
       className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-sm"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <aside
@@ -2222,7 +2345,11 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                       <button
                         type="button"
                         onClick={() => onAcao?.("iniciar", interacao.id)}
-                        disabled={Boolean(acaoAoVivo) || quizEmAndamento || quizEncerrado}
+                        disabled={
+                          Boolean(acaoAoVivo) ||
+                          quizEmAndamento ||
+                          quizEncerrado
+                        }
                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
                       >
                         {iniciando ? (
@@ -2236,7 +2363,11 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                       <button
                         type="button"
                         onClick={() => onAcao?.("avancar", interacao.id)}
-                        disabled={Boolean(acaoAoVivo) || quizEncerrado || perguntas.length === 0}
+                        disabled={
+                          Boolean(acaoAoVivo) ||
+                          quizEncerrado ||
+                          perguntas.length === 0
+                        }
                         className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
                       >
                         {avancando ? (
@@ -2245,8 +2376,8 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                           <Send className="h-4 w-4" />
                         )}
                         {modoExecucao === "automatico"
-  ? "Avançar agora"
-  : "Avançar pergunta"}
+                          ? "Avançar agora"
+                          : "Avançar pergunta"}
                       </button>
                     </div>
                   </div>
@@ -2256,23 +2387,23 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                       icon={ShieldCheck}
                       title="Modo"
                       value={
-                        modoExecucao === "automatico"
-                          ? "Automático"
-                          : "Manual"
+                        modoExecucao === "automatico" ? "Automático" : "Manual"
                       }
                     />
 
                     <InfoBox
-  icon={Clock}
-  title={perguntaAtualAberta ? "Tempo restante" : "Tempo padrão"}
-  value={
-    perguntaAtualAberta && tempoRestanteSegundos !== null
-      ? formatarTempo(tempoRestanteSegundos)
-      : tempoPadrao
-        ? `${tempoPadrao}s`
-        : "—"
-  }
-/>
+                      icon={Clock}
+                      title={
+                        perguntaAtualAberta ? "Tempo restante" : "Tempo padrão"
+                      }
+                      value={
+                        perguntaAtualAberta && tempoRestanteSegundos !== null
+                          ? formatarTempo(tempoRestanteSegundos)
+                          : tempoPadrao
+                            ? `${tempoPadrao}s`
+                            : "—"
+                      }
+                    />
 
                     <InfoBox
                       icon={FileQuestion}
@@ -2300,19 +2431,19 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                       </p>
 
                       <p className="mt-2 text-2xl font-black text-violet-900 dark:text-violet-100">
-  Pergunta {perguntaAtualIndex + 1} de {perguntas.length}
-</p>
+                        Pergunta {perguntaAtualIndex + 1} de {perguntas.length}
+                      </p>
 
-<p className="mt-2 text-sm font-semibold leading-relaxed text-violet-800 dark:text-violet-100">
-  {perguntaAtual.enunciado}
-</p>
+                      <p className="mt-2 text-sm font-semibold leading-relaxed text-violet-800 dark:text-violet-100">
+                        {perguntaAtual.enunciado}
+                      </p>
 
-<div className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-sm font-black text-violet-900 ring-1 ring-violet-200 dark:bg-slate-950/40 dark:text-violet-100 dark:ring-violet-900">
-  <Clock className="h-4 w-4" />
-  {tempoRestanteSegundos !== null
-    ? `Tempo restante: ${formatarTempo(tempoRestanteSegundos)}`
-    : "Sem tempo definido"}
-</div>
+                      <div className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-sm font-black text-violet-900 ring-1 ring-violet-200 dark:bg-slate-950/40 dark:text-violet-100 dark:ring-violet-900">
+                        <Clock className="h-4 w-4" />
+                        {tempoRestanteSegundos !== null
+                          ? `Tempo restante: ${formatarTempo(tempoRestanteSegundos)}`
+                          : "Sem tempo definido"}
+                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -2323,7 +2454,10 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                   </div>
                 ) : (
                   perguntas.map((pergunta, index) => {
-                    const statusInfoPergunta = statusPerguntaInfo(pergunta, index);
+                    const statusInfoPergunta = statusPerguntaInfo(
+                      pergunta,
+                      index,
+                    );
 
                     return (
                       <div
@@ -2340,7 +2474,7 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                               <span
                                 className={cx(
                                   "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-                                  statusInfoPergunta.className
+                                  statusInfoPergunta.className,
                                 )}
                               >
                                 {statusInfoPergunta.label}
@@ -2359,7 +2493,7 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                                     "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold",
                                     opcao.correta
                                       ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-                                      : "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                      : "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
                                   )}
                                 >
                                   {opcao.texto}
@@ -2453,7 +2587,10 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
                           <div className="rounded-2xl bg-white p-2 dark:bg-slate-900">
                             <p className="font-black text-slate-400">Tempo</p>
                             <p className="font-bold text-slate-700 dark:text-slate-200">
-                              {Math.round(Number(item.tempo_total_ms || 0) / 1000)}s
+                              {Math.round(
+                                Number(item.tempo_total_ms || 0) / 1000,
+                              )}
+                              s
                             </p>
                           </div>
                         </div>
@@ -2474,16 +2611,28 @@ function ResultadoQuizDrawer({ painel, loading, acaoAoVivo, onClose, onAcao }) {
    Confirmação / campos
 =========================================================================== */
 
-function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
-  if (!open) return null;
+function ConfirmarExclusaoModal({
+  open,
+  titulo,
+  loading,
+  onCancel,
+  onConfirm,
+}) {
+  if (!open) {
+    return null;
+  }
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onCancel?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onCancel?.();
+        }
       }}
     >
       <div

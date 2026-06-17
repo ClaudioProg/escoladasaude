@@ -34,7 +34,6 @@ import {
   Download,
   FileCheck2,
   FilePlus2,
-  Filter,
   Info,
   Loader2,
   RefreshCcw,
@@ -51,7 +50,11 @@ import HeaderHero from "../components/layout/HeaderHero";
 import CarregandoSkeleton from "../components/ui/CarregandoSkeleton";
 import ErroCarregamento from "../components/ui/ErroCarregamento";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
-import { notifyError, notifySuccess, notifyWarning } from "../components/ui/AppToast";
+import {
+  notifyError,
+  notifySuccess,
+  notifyWarning,
+} from "../components/ui/AppToast";
 import { api } from "../services/api";
 import { downloadBlob } from "../utils/downloadArquivo";
 import { extractYmd, formatDateBr } from "../utils/dateTime";
@@ -137,7 +140,9 @@ function getEventoTitulo(evento) {
 }
 
 function getTurmaTitulo(turma) {
-  return turma?.turma_nome || turma?.nome || `Turma #${getTurmaId(turma) || "—"}`;
+  return (
+    turma?.turma_nome || turma?.nome || `Turma #${getTurmaId(turma) || "—"}`
+  );
 }
 
 function getNumeroCertificado(participante) {
@@ -151,14 +156,18 @@ function getNumeroCertificadoLabel(participante) {
 function participanteTemCertificado(participante) {
   return Boolean(
     participante?.emitido &&
-      participante?.certificado_id &&
-      (!participante?.status ||
-        ["emitido", "enviado"].includes(String(participante.status).toLowerCase()))
+    participante?.certificado_id &&
+    (!participante?.status ||
+      ["emitido", "enviado"].includes(
+        String(participante.status).toLowerCase(),
+      )),
   );
 }
 
 function inferirStatusTurma(turma) {
-  const status = String(turma?.status || turma?.status_calculado || "").toLowerCase();
+  const status = String(
+    turma?.status || turma?.status_calculado || "",
+  ).toLowerCase();
 
   if (["programado", "andamento", "encerrado"].includes(status)) {
     return status;
@@ -168,24 +177,42 @@ function inferirStatusTurma(turma) {
   const fim = ymd(turma?.data_fim || turma?.data_inicio);
   const hoje = hojeYMD();
 
-  if (inicio && hoje < inicio) return "programado";
-  if (inicio && fim && hoje >= inicio && hoje <= fim) return "andamento";
-  if (fim && hoje > fim) return "encerrado";
+  if (inicio && hoje < inicio) {
+    return "programado";
+  }
+  if (inicio && fim && hoje >= inicio && hoje <= fim) {
+    return "andamento";
+  }
+  if (fim && hoje > fim) {
+    return "encerrado";
+  }
 
   return "programado";
 }
 
 function statusLabel(status) {
-  if (status === "programado") return "Programado";
-  if (status === "andamento") return "Em andamento";
-  if (status === "encerrado") return "Encerrado";
+  if (status === "programado") {
+    return "Programado";
+  }
+  if (status === "andamento") {
+    return "Em andamento";
+  }
+  if (status === "encerrado") {
+    return "Encerrado";
+  }
   return "Indefinido";
 }
 
 function statusTone(status) {
-  if (status === "programado") return "emerald";
-  if (status === "andamento") return "amber";
-  if (status === "encerrado") return "rose";
+  if (status === "programado") {
+    return "emerald";
+  }
+  if (status === "andamento") {
+    return "amber";
+  }
+  if (status === "encerrado") {
+    return "rose";
+  }
   return "slate";
 }
 
@@ -193,8 +220,12 @@ function periodoTurma(turma) {
   const inicio = dataBR(turma?.data_inicio);
   const fim = dataBR(turma?.data_fim || turma?.data_inicio);
 
-  if (inicio === "—" && fim === "—") return "Período não informado";
-  if (inicio === fim) return inicio;
+  if (inicio === "—" && fim === "—") {
+    return "Período não informado";
+  }
+  if (inicio === fim) {
+    return inicio;
+  }
 
   return `${inicio} até ${fim}`;
 }
@@ -202,13 +233,17 @@ function periodoTurma(turma) {
 function normalizarEventoCertificado(evento) {
   const eventoId = getEventoId(evento);
 
-  if (!eventoId) return null;
+  if (!eventoId) {
+    return null;
+  }
 
   const turmas = Array.isArray(evento?.turmas)
     ? evento.turmas
         .map((turma) => {
           const turmaId = getTurmaId(turma);
-          if (!turmaId) return null;
+          if (!turmaId) {
+            return null;
+          }
 
           return {
             ...turma,
@@ -262,7 +297,8 @@ function calcularKpis(evento) {
 
     const emitidosTurma =
       Number(totais.emitidos || 0) ||
-      participantesTurma.filter((item) => participanteTemCertificado(item)).length;
+      participantesTurma.filter((item) => participanteTemCertificado(item))
+        .length;
 
     const pendentesTurma =
       Number(totais.pendentes || 0) ||
@@ -287,7 +323,9 @@ function calcularKpis(evento) {
 }
 
 function filtrarEvento(evento, busca, filtroStatus, filtroPendencia) {
-  if (!evento) return null;
+  if (!evento) {
+    return null;
+  }
 
   const termo = normalizarBusca(busca);
   const eventoTitulo = getEventoTitulo(evento);
@@ -308,7 +346,10 @@ function filtrarEvento(evento, busca, filtroStatus, filtroPendencia) {
       continue;
     }
 
-    if (filtroPendencia === "emitidos" && !(presentes > 0 && emitidos >= presentes)) {
+    if (
+      filtroPendencia === "emitidos" &&
+      !(presentes > 0 && emitidos >= presentes)
+    ) {
       continue;
     }
 
@@ -317,7 +358,7 @@ function filtrarEvento(evento, busca, filtroStatus, filtroPendencia) {
       : [];
 
     const textoTurma = normalizarBusca(
-      `${eventoTitulo} ${getTurmaTitulo(turma)} ${getTurmaId(turma) || ""}`
+      `${eventoTitulo} ${getTurmaTitulo(turma)} ${getTurmaId(turma) || ""}`,
     );
 
     const participantesFiltrados = termo
@@ -329,7 +370,7 @@ function filtrarEvento(evento, busca, filtroStatus, filtroPendencia) {
               participante?.numero_certificado,
               participante?.numero,
               participante?.codigo_validacao,
-            ].join(" ")
+            ].join(" "),
           );
 
           return textoParticipante.includes(termo);
@@ -383,7 +424,7 @@ function ActionButton({
       disabled={disabled}
       className={classNames(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-60",
-        tones[tone] || tones.neutral
+        tones[tone] || tones.neutral,
       )}
     >
       {children}
@@ -399,10 +440,8 @@ function Badge({ tone = "slate", children }) {
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200",
     amber:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/40 dark:bg-violet-950/25 dark:text-violet-200",
   };
@@ -411,7 +450,7 @@ function Badge({ tone = "slate", children }) {
     <span
       className={classNames(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[tone] || tones.slate
+        tones[tone] || tones.slate,
       )}
     >
       {children}
@@ -425,10 +464,8 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "amber" }) {
       "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-100",
-    cyan:
-      "border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-100",
+    rose: "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-100",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-100",
     slate:
       "border-slate-200 bg-white text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100",
     violet:
@@ -442,7 +479,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone = "amber" }) {
           <span
             className={classNames(
               "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
-              tones[tone] || tones.amber
+              tones[tone] || tones.amber,
             )}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
@@ -491,7 +528,8 @@ function Toolbar({
           </p>
 
           <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-            Pesquise por participante, turma, número de certificado ou código de validação.
+            Pesquise por participante, turma, número de certificado ou código de
+            validação.
           </p>
         </div>
 
@@ -565,7 +603,9 @@ function ConfirmacaoProcessamentoModal({
   onClose,
   onConfirm,
 }) {
-  if (!confirmProcessar) return null;
+  if (!confirmProcessar) {
+    return null;
+  }
 
   return (
     <div
@@ -660,7 +700,9 @@ function ParticipanteCard({ participante, onDownload, baixando }) {
           {participante?.codigo_validacao ? (
             <p className="mt-2 break-words rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-800">
               Código:{" "}
-              <span className="font-black">{participante.codigo_validacao}</span>
+              <span className="font-black">
+                {participante.codigo_validacao}
+              </span>
             </p>
           ) : null}
         </div>
@@ -676,7 +718,10 @@ function ParticipanteCard({ participante, onDownload, baixando }) {
           </Badge>
 
           {hasCertificado ? (
-            <ActionButton onClick={() => onDownload(participante)} disabled={baixando}>
+            <ActionButton
+              onClick={() => onDownload(participante)}
+              disabled={baixando}
+            >
               {baixando ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
@@ -701,7 +746,7 @@ export default function GestaoCertificados() {
 
   const eventoIdParam = useMemo(
     () => toPositiveInt(searchParams.get("evento_id")),
-    [searchParams]
+    [searchParams],
   );
 
   const [evento, setEvento] = useState(null);
@@ -721,7 +766,9 @@ export default function GestaoCertificados() {
   const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
-    if (liveRef.current) liveRef.current.textContent = message || "";
+    if (liveRef.current) {
+      liveRef.current.textContent = message || "";
+    }
   }, []);
 
   const voltarPainelGestor = useCallback(() => {
@@ -730,7 +777,10 @@ export default function GestaoCertificados() {
 
   const carregarArvore = useCallback(async () => {
     try {
-      validarFacade("api.certificado.adminArvore", api?.certificado?.adminArvore);
+      validarFacade(
+        "api.certificado.adminArvore",
+        api?.certificado?.adminArvore,
+      );
 
       setLoading(true);
       setErro("");
@@ -755,10 +805,14 @@ export default function GestaoCertificados() {
         normalizada.find((item) => Number(item.evento_id) === eventoIdParam) ||
         null;
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       if (!eventoEncontrado) {
-        setErro("O evento informado no link não foi encontrado na gestão de certificados.");
+        setErro(
+          "O evento informado no link não foi encontrado na gestão de certificados.",
+        );
         setEvento(null);
         setData([]);
         setLive("Evento não encontrado na gestão de certificados.");
@@ -771,11 +825,13 @@ export default function GestaoCertificados() {
     } catch (error) {
       console.error("[GestaoCertificados] erro ao carregar árvore:", error);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
       const message = obterMensagemErro(
         error,
-        "Não foi possível carregar a gestão de certificados."
+        "Não foi possível carregar a gestão de certificados.",
       );
 
       setErro(message);
@@ -784,7 +840,9 @@ export default function GestaoCertificados() {
       notifyError(message);
       setLive("Erro ao carregar gestão de certificados.");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [eventoIdParam, setLive]);
 
@@ -817,7 +875,9 @@ export default function GestaoCertificados() {
     const pendentes = Number(turma?.totais?.pendentes || 0);
 
     if (pendentes <= 0) {
-      notifyWarning("Esta turma não possui certificados pendentes para processar.");
+      notifyWarning(
+        "Esta turma não possui certificados pendentes para processar.",
+      );
       return;
     }
 
@@ -829,12 +889,14 @@ export default function GestaoCertificados() {
   }, []);
 
   const confirmarProcessamentoPendentes = useCallback(async () => {
-    if (!confirmProcessar?.turma_id) return;
+    if (!confirmProcessar?.turma_id) {
+      return;
+    }
 
     try {
       validarFacade(
         "api.certificado.processarPendentesPorTurma",
-        api?.certificado?.processarPendentesPorTurma
+        api?.certificado?.processarPendentesPorTurma,
       );
 
       const turmaId = Number(confirmProcessar.turma_id);
@@ -854,8 +916,8 @@ export default function GestaoCertificados() {
       notifyError(
         obterMensagemErro(
           error,
-          "Não foi possível processar os certificados pendentes da turma."
-        )
+          "Não foi possível processar os certificados pendentes da turma.",
+        ),
       );
       setLive("Erro ao processar certificados pendentes.");
     } finally {
@@ -884,7 +946,7 @@ export default function GestaoCertificados() {
           result?.filename ||
           `${nomeArquivoSeguro(
             getNumeroCertificado(participante) ||
-              `certificado_${participante?.nome || certificadoId}_${certificadoId}`
+              `certificado_${participante?.nome || certificadoId}_${certificadoId}`,
           )}.pdf`;
 
         downloadBlob(filename, blob);
@@ -893,14 +955,14 @@ export default function GestaoCertificados() {
         console.error("[GestaoCertificados] erro ao baixar:", error);
 
         notifyError(
-          obterMensagemErro(error, "Não foi possível baixar o certificado.")
+          obterMensagemErro(error, "Não foi possível baixar o certificado."),
         );
         setLive("Erro ao baixar certificado.");
       } finally {
         setBaixandoId(null);
       }
     },
-    [setLive]
+    [setLive],
   );
 
   const eventoTitulo = evento ? getEventoTitulo(evento) : "";
@@ -916,7 +978,9 @@ export default function GestaoCertificados() {
         confirmProcessar={confirmProcessar}
         executando={executandoProcessamento}
         onClose={() => {
-          if (!executandoProcessamento) setConfirmProcessar(null);
+          if (!executandoProcessamento) {
+            setConfirmProcessar(null);
+          }
         }}
         onConfirm={confirmarProcessamentoPendentes}
       />
@@ -1020,8 +1084,8 @@ export default function GestaoCertificados() {
 
                 <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
                   Esta tela deve ser acessada pelo Painel do Gestor. O endereço
-                  precisa conter um <strong>evento_id</strong> válido para carregar
-                  certificados do evento específico.
+                  precisa conter um <strong>evento_id</strong> válido para
+                  carregar certificados do evento específico.
                 </p>
 
                 <div className="mt-4">
@@ -1093,9 +1157,9 @@ export default function GestaoCertificados() {
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-800 dark:text-amber-200" />
                 <p className="text-sm leading-relaxed text-amber-950 dark:text-amber-100">
                   Certificados já emitidos são documentos eletrônicos oficiais:
-                  possuem número, código de validação e histórico. O processamento
-                  desta tela deve emitir apenas pendências, sem resetar,
-                  sobrescrever ou apagar certificados existentes.
+                  possuem número, código de validação e histórico. O
+                  processamento desta tela deve emitir apenas pendências, sem
+                  resetar, sobrescrever ou apagar certificados existentes.
                 </p>
               </div>
             </section>
@@ -1114,7 +1178,10 @@ export default function GestaoCertificados() {
             </section>
 
             {loading ? (
-              <section className="mt-5 grid gap-4" aria-label="Carregando certificados">
+              <section
+                className="mt-5 grid gap-4"
+                aria-label="Carregando certificados"
+              >
                 <CarregandoSkeleton height={160} />
                 <CarregandoSkeleton height={160} />
                 <CarregandoSkeleton height={160} />
@@ -1152,7 +1219,8 @@ export default function GestaoCertificados() {
                     </h2>
 
                     <p className="text-sm text-slate-500 dark:text-zinc-400">
-                      Exibindo {turmasFiltradas.length} turma(s) do evento selecionado.
+                      Exibindo {turmasFiltradas.length} turma(s) do evento
+                      selecionado.
                     </p>
                   </div>
 
@@ -1166,7 +1234,8 @@ export default function GestaoCertificados() {
                   {turmasFiltradas.map((turma) => {
                     const turmaId = getTurmaId(turma);
                     const turmaKey = `${eventoFiltrado.evento_id}:${turmaId}`;
-                    const status = turma.status_calculado || inferirStatusTurma(turma);
+                    const status =
+                      turma.status_calculado || inferirStatusTurma(turma);
                     const totais = turma?.totais || {};
                     const pendentes = Number(totais.pendentes || 0);
                     const emitidos = Number(totais.emitidos || 0);
@@ -1196,14 +1265,23 @@ export default function GestaoCertificados() {
                               </div>
 
                               <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-zinc-300">
-                                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                                <CalendarDays
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
                                 {periodoTurma(turma)}
                               </p>
 
                               <div className="mt-3 flex flex-wrap gap-2">
-                                <Badge tone="cyan">Presentes: {presentes}</Badge>
-                                <Badge tone="emerald">Emitidos: {emitidos}</Badge>
-                                <Badge tone="amber">Pendentes: {pendentes}</Badge>
+                                <Badge tone="cyan">
+                                  Presentes: {presentes}
+                                </Badge>
+                                <Badge tone="emerald">
+                                  Emitidos: {emitidos}
+                                </Badge>
+                                <Badge tone="amber">
+                                  Pendentes: {pendentes}
+                                </Badge>
                                 <Badge tone="slate">
                                   Participantes: {participantes.length}
                                 </Badge>
@@ -1212,11 +1290,18 @@ export default function GestaoCertificados() {
 
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                               <ActionButton
-                                onClick={() => pedirProcessamentoPendentes(turma)}
-                                disabled={pendentes <= 0 || executandoProcessamento}
+                                onClick={() =>
+                                  pedirProcessamentoPendentes(turma)
+                                }
+                                disabled={
+                                  pendentes <= 0 || executandoProcessamento
+                                }
                                 tone="amber"
                               >
-                                <FilePlus2 className="h-4 w-4" aria-hidden="true" />
+                                <FilePlus2
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
                                 Processar pendentes
                               </ActionButton>
                             </div>
@@ -1232,7 +1317,7 @@ export default function GestaoCertificados() {
                                 <div className="grid gap-3 md:hidden">
                                   {participantes.map((participante) => {
                                     const certificadoId = Number(
-                                      participante?.certificado_id
+                                      participante?.certificado_id,
                                     );
 
                                     return (
@@ -1250,23 +1335,30 @@ export default function GestaoCertificados() {
                                   <table className="min-w-full text-sm">
                                     <thead className="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500 dark:bg-zinc-900 dark:text-zinc-400">
                                       <tr>
-                                        <th className="px-3 py-3">Participante</th>
+                                        <th className="px-3 py-3">
+                                          Participante
+                                        </th>
                                         <th className="px-3 py-3">E-mail</th>
                                         <th className="px-3 py-3">Status</th>
                                         <th className="px-3 py-3">Número</th>
                                         <th className="px-3 py-3">Código</th>
-                                        <th className="px-3 py-3 text-right">Ação</th>
+                                        <th className="px-3 py-3 text-right">
+                                          Ação
+                                        </th>
                                       </tr>
                                     </thead>
 
                                     <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
                                       {participantes.map((participante) => {
                                         const hasCertificado =
-                                          participanteTemCertificado(participante);
+                                          participanteTemCertificado(
+                                            participante,
+                                          );
                                         const certificadoId = Number(
-                                          participante?.certificado_id
+                                          participante?.certificado_id,
                                         );
-                                        const baixando = baixandoId === certificadoId;
+                                        const baixando =
+                                          baixandoId === certificadoId;
 
                                         return (
                                           <tr
@@ -1308,19 +1400,24 @@ export default function GestaoCertificados() {
 
                                             <td className="px-3 py-3 text-xs font-bold text-slate-600 dark:text-zinc-300">
                                               {hasCertificado
-                                                ? getNumeroCertificadoLabel(participante)
+                                                ? getNumeroCertificadoLabel(
+                                                    participante,
+                                                  )
                                                 : "—"}
                                             </td>
 
                                             <td className="px-3 py-3 text-xs font-bold text-slate-500 dark:text-zinc-400">
-                                              {participante?.codigo_validacao || "—"}
+                                              {participante?.codigo_validacao ||
+                                                "—"}
                                             </td>
 
                                             <td className="px-3 py-3 text-right">
                                               {hasCertificado ? (
                                                 <ActionButton
                                                   onClick={() =>
-                                                    baixarCertificado(participante)
+                                                    baixarCertificado(
+                                                      participante,
+                                                    )
                                                   }
                                                   disabled={baixando}
                                                 >
@@ -1335,7 +1432,9 @@ export default function GestaoCertificados() {
                                                       aria-hidden="true"
                                                     />
                                                   )}
-                                                  {baixando ? "Baixando..." : "Baixar"}
+                                                  {baixando
+                                                    ? "Baixando..."
+                                                    : "Baixar"}
                                                 </ActionButton>
                                               ) : (
                                                 <span className="text-xs font-bold text-slate-400">

@@ -100,7 +100,7 @@ function logWarn(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[${rid}] ${message}`,
-    error?.stack || error?.message || error || ""
+    error?.stack || error?.message || error || "",
   );
 }
 
@@ -108,7 +108,12 @@ function logError(rid, message, error) {
  * Envelope oficial
  * ───────────────────────────────────────────────────────────── */
 
-function ok(res, data = null, message = "Operação realizada com sucesso.", status = 200) {
+function ok(
+  res,
+  data = null,
+  message = "Operação realizada com sucesso.",
+  status = 200,
+) {
   return res.status(status).json({
     ok: true,
     data,
@@ -286,7 +291,7 @@ async function carregarTurmaCompleta(q, turmaId, { forUpdate = false } = {}) {
     ${forUpdate ? "FOR UPDATE OF t" : ""}
     LIMIT 1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -354,7 +359,7 @@ async function getResumoTurma(q, turmaId) {
     WHERE t.id = $1
     LIMIT 1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -384,7 +389,7 @@ async function totalDatasTurma(q, turmaId) {
         ELSE COALESCE((SELECT total FROM fallback), 0)
       END AS total
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return Number(result.rows?.[0]?.total || 0);
@@ -400,7 +405,7 @@ async function usuarioEhOrganizadorDaTurma(q, usuarioId, turmaId) {
       AND tr.papel = $3
     LIMIT 1
     `,
-    [turmaId, usuarioId, PAPEL_ORGANIZADOR]
+    [turmaId, usuarioId, PAPEL_ORGANIZADOR],
   );
 
   return result.rowCount > 0;
@@ -415,7 +420,7 @@ async function usuarioJaInscritoNaTurma(q, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -431,7 +436,7 @@ async function usuarioJaInscritoNoEvento(q, usuarioId, eventoId) {
       AND t.evento_id = $2
     LIMIT 1
     `,
-    [usuarioId, eventoId]
+    [usuarioId, eventoId],
   );
 
   return result.rows?.[0] || null;
@@ -444,7 +449,7 @@ async function contarInscritosDaTurma(q, turmaId) {
     FROM inscricoes
     WHERE turma_id = $1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return Number(result.rows?.[0]?.total || 0);
@@ -452,11 +457,11 @@ async function contarInscritosDaTurma(q, turmaId) {
 
 async function checarAcessoEvento(usuarioId, eventoId) {
   const acesso = await podeAcessarEvento({
-  usuarioId,
-  eventoId,
-  exigirPublicado: true,
-  permitirAdministrador: true,
-});
+    usuarioId,
+    eventoId,
+    exigirPublicado: true,
+    permitirAdministrador: true,
+  });
 
   return {
     ok: acesso?.ok === true,
@@ -468,7 +473,12 @@ async function checarAcessoEvento(usuarioId, eventoId) {
  * Conflito de horário
  * ───────────────────────────────────────────────────────────── */
 
-async function conflitoHorario(q, usuarioId, turmaId, { somenteMesmoEvento = false } = {}) {
+async function conflitoHorario(
+  q,
+  usuarioId,
+  turmaId,
+  { somenteMesmoEvento = false } = {},
+) {
   const result = await q(
     `
     WITH turma_alvo AS (
@@ -581,7 +591,7 @@ async function conflitoHorario(q, usuarioId, turmaId, { somenteMesmoEvento = fal
         AND o.periodo IS NOT NULL
     ) AS conflito
     `,
-    [usuarioId, turmaId, Boolean(somenteMesmoEvento)]
+    [usuarioId, turmaId, Boolean(somenteMesmoEvento)],
   );
 
   return result.rows?.[0]?.conflito === true;
@@ -710,7 +720,7 @@ async function notificarInscricaoConfirmada({
       WHERE id = $1
       LIMIT 1
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const usuario = result.rows?.[0] || null;
@@ -728,7 +738,9 @@ async function notificarInscricaoConfirmada({
         : dataInicio || dataFim || "A definir";
 
     const horario =
-      horarioInicio && horarioFim ? `${horarioInicio} às ${horarioFim}` : "A definir";
+      horarioInicio && horarioFim
+        ? `${horarioInicio} às ${horarioFim}`
+        : "A definir";
 
     const eventoTitulo = turma.evento_titulo || "Evento";
     const turmaNome = turma.nome || "Turma";
@@ -768,17 +780,17 @@ async function notificarInscricaoConfirmada({
 
     const nomeUser = usuario.nome || "participante";
 
-const emailInscricaoConfirmada = montarEmailInscricaoConfirmada({
-  nomeUsuario: nomeUser,
-  eventoTitulo,
-  turmaNome,
-  periodo,
-  horario,
-  carga,
-  local,
-});
+    const emailInscricaoConfirmada = montarEmailInscricaoConfirmada({
+      nomeUsuario: nomeUser,
+      eventoTitulo,
+      turmaNome,
+      periodo,
+      horario,
+      carga,
+      local,
+    });
 
-const { text, html } = emailInscricaoConfirmada;
+    const { text, html } = emailInscricaoConfirmada;
 
     await enviarEmail({
       to: usuario.email,
@@ -817,7 +829,9 @@ async function inscreverEmTurma(req, res) {
 
   try {
     const resultado = await withTransaction(async (q) => {
-      const turma = await carregarTurmaCompleta(q, turmaId, { forUpdate: true });
+      const turma = await carregarTurmaCompleta(q, turmaId, {
+        forUpdate: true,
+      });
 
       if (!turma) {
         return {
@@ -854,7 +868,7 @@ async function inscreverEmTurma(req, res) {
       const ehOrganizador = await usuarioEhOrganizadorDaTurma(
         q,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       if (ehOrganizador) {
@@ -886,7 +900,7 @@ async function inscreverEmTurma(req, res) {
         const jaNoEvento = await usuarioJaInscritoNoEvento(
           q,
           usuarioId,
-          turma.evento_id
+          turma.evento_id,
         );
 
         if (jaNoEvento) {
@@ -966,7 +980,7 @@ async function inscreverEmTurma(req, res) {
         VALUES ($1, $2, NOW())
         RETURNING *
         `,
-        [usuarioId, turmaId]
+        [usuarioId, turmaId],
       );
 
       const inscricao = insert.rows[0];
@@ -1013,7 +1027,7 @@ async function inscreverEmTurma(req, res) {
         data_inscricao: inscricao.data_inscricao,
       },
       resultado.message,
-      201
+      201,
     );
   } catch (error) {
     const conhecido = motivoHttpConflito(error);
@@ -1057,7 +1071,7 @@ async function cancelarInscricaoPorId(req, res) {
         LIMIT 1
         FOR UPDATE
         `,
-        [inscricaoId]
+        [inscricaoId],
       );
 
       const inscricao = existente.rows?.[0];
@@ -1070,7 +1084,10 @@ async function cancelarInscricaoPorId(req, res) {
         };
       }
 
-      if (!isAdministrador(req) && Number(inscricao.usuario_id) !== usuarioAutenticadoId) {
+      if (
+        !isAdministrador(req) &&
+        Number(inscricao.usuario_id) !== usuarioAutenticadoId
+      ) {
         return {
           status: 403,
           error: true,
@@ -1084,7 +1101,7 @@ async function cancelarInscricaoPorId(req, res) {
         WHERE usuario_id = $1
           AND turma_id = $2
         `,
-        [inscricao.usuario_id, inscricao.turma_id]
+        [inscricao.usuario_id, inscricao.turma_id],
       );
 
       await q(
@@ -1092,7 +1109,7 @@ async function cancelarInscricaoPorId(req, res) {
         DELETE FROM inscricoes
         WHERE id = $1
         `,
-        [inscricaoId]
+        [inscricaoId],
       );
 
       return {
@@ -1118,7 +1135,7 @@ async function cancelarInscricaoPorId(req, res) {
         usuario_id: resultado.data.usuario_id,
         turma_id: resultado.data.turma_id,
       },
-      resultado.message
+      resultado.message,
     );
   } catch (error) {
     logError(rid, "Erro ao cancelar inscrição por id.", error);
@@ -1157,7 +1174,7 @@ async function cancelarMinhaInscricaoPorTurma(req, res) {
         LIMIT 1
         FOR UPDATE
         `,
-        [usuarioId, turmaId]
+        [usuarioId, turmaId],
       );
 
       const inscricao = existente.rows?.[0];
@@ -1176,7 +1193,7 @@ async function cancelarMinhaInscricaoPorTurma(req, res) {
         WHERE usuario_id = $1
           AND turma_id = $2
         `,
-        [usuarioId, turmaId]
+        [usuarioId, turmaId],
       );
 
       await q(
@@ -1184,7 +1201,7 @@ async function cancelarMinhaInscricaoPorTurma(req, res) {
         DELETE FROM inscricoes
         WHERE id = $1
         `,
-        [inscricao.id]
+        [inscricao.id],
       );
 
       return {
@@ -1210,7 +1227,7 @@ async function cancelarMinhaInscricaoPorTurma(req, res) {
         usuario_id: resultado.data.usuario_id,
         turma_id: resultado.data.turma_id,
       },
-      resultado.message
+      resultado.message,
     );
   } catch (error) {
     logError(rid, "Erro ao cancelar minha inscrição por turma.", error);
@@ -1249,7 +1266,7 @@ async function cancelarInscricaoDoUsuarioNaTurma(req, res) {
         LIMIT 1
         FOR UPDATE
         `,
-        [usuarioId, turmaId]
+        [usuarioId, turmaId],
       );
 
       const inscricao = existente.rows?.[0];
@@ -1268,7 +1285,7 @@ async function cancelarInscricaoDoUsuarioNaTurma(req, res) {
         WHERE usuario_id = $1
           AND turma_id = $2
         `,
-        [usuarioId, turmaId]
+        [usuarioId, turmaId],
       );
 
       await q(
@@ -1276,7 +1293,7 @@ async function cancelarInscricaoDoUsuarioNaTurma(req, res) {
         DELETE FROM inscricoes
         WHERE id = $1
         `,
-        [inscricao.id]
+        [inscricao.id],
       );
 
       return {
@@ -1302,7 +1319,7 @@ async function cancelarInscricaoDoUsuarioNaTurma(req, res) {
         usuario_id: resultado.data.usuario_id,
         turma_id: resultado.data.turma_id,
       },
-      resultado.message
+      resultado.message,
     );
   } catch (error) {
     logError(rid, "Erro ao cancelar inscrição do usuário na turma.", error);
@@ -1419,7 +1436,7 @@ async function listarMinhasInscricoes(req, res) {
         t.horario_fim DESC NULLS LAST,
         i.id DESC
       `,
-      [usuarioId, PAPEL_ORGANIZADOR]
+      [usuarioId, PAPEL_ORGANIZADOR],
     );
 
     logDev(rid, "listarMinhasInscricoes:ok", {
@@ -1458,14 +1475,14 @@ async function listarInscritosPorTurma(req, res) {
       WHERE turma_id = $1
       GROUP BY usuario_id
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const mapaPresencas = new Map(
       (presencas.rows || []).map((row) => [
         Number(row.usuario_id),
         Number(row.presentes || 0),
-      ])
+      ]),
     );
 
     const result = await query(
@@ -1512,7 +1529,7 @@ LEFT JOIN deficiencias d ON d.id = u.deficiencia_id
 WHERE i.turma_id = $1
 ORDER BY u.nome ASC, i.id ASC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const lista = (result.rows || []).map((row) => {
@@ -1593,9 +1610,14 @@ async function conflitoPorTurma(req, res) {
       return fail(res, 404, "Turma não encontrada.");
     }
 
-    const conflitoMesmoEvento = await conflitoHorario(query, usuarioId, turmaId, {
-      somenteMesmoEvento: true,
-    });
+    const conflitoMesmoEvento = await conflitoHorario(
+      query,
+      usuarioId,
+      turmaId,
+      {
+        somenteMesmoEvento: true,
+      },
+    );
 
     const conflitoGlobal = await conflitoHorario(query, usuarioId, turmaId, {
       somenteMesmoEvento: false,
@@ -1622,7 +1644,7 @@ async function conflitoPorTurma(req, res) {
         conflito_global: conflitoGlobal,
         conflito,
       },
-      "Conflito verificado."
+      "Conflito verificado.",
     );
   } catch (error) {
     logError(rid, "Erro ao verificar conflito por turma.", error);

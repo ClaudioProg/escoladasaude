@@ -156,7 +156,9 @@ function classNames(...classes) {
 }
 
 function getHeadingTag({ as, level }) {
-  if (as) return as;
+  if (as) {
+    return as;
+  }
 
   const safeLevel = Math.min(6, Math.max(1, Number(level) || 2));
 
@@ -216,7 +218,7 @@ export default function TituloSecao({
         alignClass.root,
         sticky &&
           "sticky top-0 z-10 rounded-3xl bg-white/80 px-3 py-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md dark:bg-slate-950/80",
-        className
+        className,
       )}
     >
       {(kicker || actions) && (
@@ -227,14 +229,14 @@ export default function TituloSecao({
               ? "sm:justify-center"
               : align === "right"
                 ? "sm:justify-end"
-                : "sm:justify-between"
+                : "sm:justify-between",
           )}
         >
           {kicker && (
             <div
               className={classNames(
                 "font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400",
-                sizeClass.kicker
+                sizeClass.kicker,
               )}
             >
               {kicker}
@@ -249,7 +251,7 @@ export default function TituloSecao({
                   ? "justify-end"
                   : align === "center"
                     ? "justify-center"
-                    : "justify-start sm:justify-end"
+                    : "justify-start sm:justify-end",
               )}
             >
               {actions}
@@ -261,7 +263,7 @@ export default function TituloSecao({
       <div
         className={classNames(
           "flex min-w-0 flex-wrap items-center gap-2",
-          alignClass.main
+          alignClass.main,
         )}
       >
         {icon && (
@@ -269,7 +271,7 @@ export default function TituloSecao({
             className={classNames(
               "grid shrink-0 place-items-center",
               accentClass.icon,
-              sizeClass.icon
+              sizeClass.icon,
             )}
             aria-hidden="true"
           >
@@ -284,7 +286,7 @@ export default function TituloSecao({
             "min-w-0 break-words bg-gradient-to-br bg-clip-text font-black leading-tight tracking-tight text-transparent",
             accentClass.title,
             sizeClass.title,
-            "dark:brightness-110"
+            "dark:brightness-110",
           )}
         >
           {children}
@@ -294,7 +296,7 @@ export default function TituloSecao({
           <span
             className={classNames(
               "inline-flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-black ring-1",
-              accentClass.badge
+              accentClass.badge,
             )}
             aria-label={`Quantidade: ${count}`}
           >
@@ -319,7 +321,7 @@ export default function TituloSecao({
           className={classNames(
             "mt-2 max-w-prose font-medium leading-relaxed text-slate-500 dark:text-slate-400",
             sizeClass.subtitle,
-            alignClass.subtitle
+            alignClass.subtitle,
           )}
         >
           {subtitle}
@@ -333,7 +335,7 @@ export default function TituloSecao({
             "mt-3 rounded-full bg-gradient-to-r",
             accentClass.line,
             LINE_SIZE_CLASSES[size] || LINE_SIZE_CLASSES.md,
-            alignClass.border
+            alignClass.border,
           )}
         />
       )}

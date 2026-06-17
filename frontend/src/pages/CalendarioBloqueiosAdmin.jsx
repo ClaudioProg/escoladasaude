@@ -73,8 +73,7 @@ const TIPO_STYLE = {
     hover: "hover:bg-rose-100 dark:hover:bg-rose-950/40",
     dot: "bg-rose-500",
     gradient: "from-rose-600 via-red-500 to-orange-500",
-    soft:
-      "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
+    soft: "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-100",
   },
   feriado_municipal: {
     border: "border-amber-200 dark:border-amber-900/60",
@@ -83,8 +82,7 @@ const TIPO_STYLE = {
     hover: "hover:bg-amber-100 dark:hover:bg-amber-950/40",
     dot: "bg-amber-500",
     gradient: "from-amber-500 via-orange-400 to-yellow-500",
-    soft:
-      "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+    soft: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
   },
   ponto_facultativo: {
     border: "border-sky-200 dark:border-sky-900/60",
@@ -93,8 +91,7 @@ const TIPO_STYLE = {
     hover: "hover:bg-sky-100 dark:hover:bg-sky-950/40",
     dot: "bg-sky-500",
     gradient: "from-sky-600 via-cyan-500 to-blue-500",
-    soft:
-      "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-sky-100",
+    soft: "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-sky-100",
   },
   bloqueio_interno: {
     border: "border-emerald-200 dark:border-emerald-900/60",
@@ -103,8 +100,7 @@ const TIPO_STYLE = {
     hover: "hover:bg-emerald-100 dark:hover:bg-emerald-950/40",
     dot: "bg-emerald-500",
     gradient: "from-emerald-600 via-teal-500 to-cyan-500",
-    soft:
-      "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+    soft: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
   },
 };
 
@@ -136,7 +132,9 @@ function isYMD(value) {
 function formatDataBR(value) {
   const iso = toISO(value);
 
-  if (!isYMD(iso)) return "—";
+  if (!isYMD(iso)) {
+    return "—";
+  }
 
   const [year, month, day] = iso.split("-");
   return `${day}/${month}/${year}`;
@@ -174,7 +172,9 @@ function criarMatrixMes(ano, mesIndex) {
 }
 
 function normalizarTipo(value) {
-  const tipo = String(value || "").trim().toLowerCase();
+  const tipo = String(value || "")
+    .trim()
+    .toLowerCase();
 
   return TIPOS_PERMITIDOS.has(tipo) ? tipo : null;
 }
@@ -186,9 +186,15 @@ function normalizarDescricao(value) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
+  if (Array.isArray(response)) {
+    return response;
+  }
 
-  if (response?.data && typeof response.data === "object" && "ok" in response.data) {
+  if (
+    response?.data &&
+    typeof response.data === "object" &&
+    "ok" in response.data
+  ) {
     return Array.isArray(response.data.data) ? response.data.data : [];
   }
 
@@ -196,7 +202,9 @@ function unwrapArray(response) {
     return Array.isArray(response.data) ? response.data : [];
   }
 
-  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
 
   return [];
 }
@@ -228,8 +236,12 @@ function isAbortError(error) {
     error?.name === "AbortError" ||
     error?.name === "CanceledError" ||
     error?.code === "ERR_CANCELED" ||
-    String(error?.message || "").toLowerCase().includes("aborted") ||
-    String(error?.message || "").toLowerCase().includes("canceled")
+    String(error?.message || "")
+      .toLowerCase()
+      .includes("aborted") ||
+    String(error?.message || "")
+      .toLowerCase()
+      .includes("canceled")
   );
 }
 
@@ -288,7 +300,9 @@ function KpiCard({ label, value, icon: Icon, tone = "bloqueio_interno" }) {
   const style = TIPO_STYLE[tone] || TIPO_STYLE.bloqueio_interno;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", style.soft)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", style.soft)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${style.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -496,7 +510,9 @@ function PainelOperacionalBloqueios({
 }
 
 function ConfirmDeleteModal({ open, item, loading, onClose, onConfirm }) {
-  if (!open || !item) return null;
+  if (!open || !item) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -545,7 +561,8 @@ function ConfirmDeleteModal({ open, item, loading, onClose, onConfirm }) {
               </p>
 
               <p className="mt-1 text-sm text-rose-700 dark:text-rose-300">
-                <span className="font-semibold">Tipo:</span> {labelTipo(item.tipo)}
+                <span className="font-semibold">Tipo:</span>{" "}
+                {labelTipo(item.tipo)}
               </p>
 
               {item.descricao ? (
@@ -557,7 +574,8 @@ function ConfirmDeleteModal({ open, item, loading, onClose, onConfirm }) {
             </div>
 
             <p className="mt-4 text-sm text-slate-600 dark:text-zinc-300">
-              Confirme apenas se realmente deseja liberar essa data no calendário institucional.
+              Confirme apenas se realmente deseja liberar essa data no
+              calendário institucional.
             </p>
           </div>
 
@@ -634,56 +652,64 @@ export default function CalendarioBloqueiosAdmin() {
   const tipoRef = useRef(null);
   const liveRef = useRef(null);
 
-  function setLive(texto) {
+  const setLive = useCallback((texto) => {
     if (liveRef.current) {
-      liveRef.current.textContent = texto;
-    }
-  }
-
-  function showMessage(payload) {
-    setMensagem(payload);
-    setLive(`${payload.title || ""} ${payload.message || ""}`.trim());
-  }
-
-  const carregar = useCallback(async (signal) => {
-    setLoading(true);
-    setLive("Carregando calendário de bloqueios.");
-
-    try {
-      const response = await api.get("/calendario", { signal });
-      const lista = unwrapArray(response);
-
-      setCalendario(
-        lista
-          .map((item) => ({
-            ...item,
-            data: toISO(item.data),
-            tipo: normalizarTipo(item.tipo) || "bloqueio_interno",
-            descricao: item.descricao || "",
-          }))
-          .filter((item) => item.data && item.tipo)
-      );
-
-      setLive("Calendário de bloqueios carregado.");
-    } catch (error) {
-      if (isAbortError(error)) return;
-
-      console.error("[CalendarioBloqueiosAdmin][carregar]", error);
-
-      showMessage({
-        type: "error",
-        title: "Erro ao carregar calendário",
-        message: getErrorMessage(
-          error,
-          "Não foi possível carregar o calendário de bloqueios."
-        ),
-      });
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      liveRef.current.textContent = texto || "";
     }
   }, []);
+
+  const showMessage = useCallback(
+    (payload) => {
+      setMensagem(payload);
+      setLive(`${payload?.title || ""} ${payload?.message || ""}`.trim());
+    },
+    [setLive],
+  );
+
+  const carregar = useCallback(
+    async (signal) => {
+      setLoading(true);
+      setLive("Carregando calendário de bloqueios.");
+
+      try {
+        const response = await api.get("/calendario", { signal });
+        const lista = unwrapArray(response);
+
+        setCalendario(
+          lista
+            .map((item) => ({
+              ...item,
+              data: toISO(item.data),
+              tipo: normalizarTipo(item.tipo) || "bloqueio_interno",
+              descricao: item.descricao || "",
+            }))
+            .filter((item) => item.data && item.tipo),
+        );
+
+        setLive("Calendário de bloqueios carregado.");
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+
+        console.error("[CalendarioBloqueiosAdmin][carregar]", error);
+
+        showMessage({
+          type: "error",
+          title: "Erro ao carregar calendário",
+          message: getErrorMessage(
+            error,
+            "Não foi possível carregar o calendário de bloqueios.",
+          ),
+        });
+      } finally {
+        if (!signal?.aborted) {
+          setLoading(false);
+        }
+      }
+    },
+    [setLive, showMessage],
+  );
 
   useEffect(() => {
     document.title = "Calendário de Bloqueios — Escola da Saúde";
@@ -713,17 +739,23 @@ export default function CalendarioBloqueiosAdmin() {
       setMesIndex(novoMes);
       setAno(novoAno);
     },
-    [ano, mesIndex]
+    [ano, mesIndex],
   );
 
   useEffect(() => {
     function onKeyDown(event) {
       const tag = String(event?.target?.tagName || "").toLowerCase();
 
-      if (["input", "select", "textarea"].includes(tag)) return;
+      if (["input", "select", "textarea"].includes(tag)) {
+        return;
+      }
 
-      if (event.key === "ArrowLeft") mudarMes(-1);
-      if (event.key === "ArrowRight") mudarMes(1);
+      if (event.key === "ArrowLeft") {
+        mudarMes(-1);
+      }
+      if (event.key === "ArrowRight") {
+        mudarMes(1);
+      }
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -783,10 +815,10 @@ export default function CalendarioBloqueiosAdmin() {
         (item) =>
           item.data === dataISO &&
           normalizarTipo(item.tipo) === normalized &&
-          String(item.id) !== String(ignoreId || "")
+          String(item.id) !== String(ignoreId || ""),
       );
     },
-    [calendario]
+    [calendario],
   );
 
   async function onSubmit(event) {
@@ -864,7 +896,9 @@ export default function CalendarioBloqueiosAdmin() {
   }
 
   function solicitarExcluirRegistro(item) {
-    if (!item?.id || deletingId) return;
+    if (!item?.id || deletingId) {
+      return;
+    }
 
     setConfirmDelete({
       open: true,
@@ -873,7 +907,9 @@ export default function CalendarioBloqueiosAdmin() {
   }
 
   function fecharExclusao() {
-    if (deletingId) return;
+    if (deletingId) {
+      return;
+    }
 
     setConfirmDelete({
       open: false,
@@ -923,13 +959,15 @@ export default function CalendarioBloqueiosAdmin() {
     for (const item of calendario) {
       const key = toISO(item.data);
 
-      if (!map[key]) map[key] = [];
+      if (!map[key]) {
+        map[key] = [];
+      }
       map[key].push(item);
     }
 
     Object.keys(map).forEach((key) => {
       map[key].sort((a, b) =>
-        String(a.tipo || "").localeCompare(String(b.tipo || ""), "pt-BR")
+        String(a.tipo || "").localeCompare(String(b.tipo || ""), "pt-BR"),
       );
     });
 
@@ -941,7 +979,7 @@ export default function CalendarioBloqueiosAdmin() {
     const prefix = `${ano}-${month}-`;
 
     const itens = calendario.filter((item) =>
-      String(item.data || "").startsWith(prefix)
+      String(item.data || "").startsWith(prefix),
     );
 
     const byTipo = {
@@ -1034,8 +1072,8 @@ export default function CalendarioBloqueiosAdmin() {
 
             <p>
               Todas as datas cadastradas aqui são consideradas{" "}
-              <strong>indisponíveis</strong> na Agenda de Salas para Auditório
-              e Sala de Reunião, nos períodos da manhã e da tarde.
+              <strong>indisponíveis</strong> na Agenda de Salas para Auditório e
+              Sala de Reunião, nos períodos da manhã e da tarde.
             </p>
           </div>
         </section>
@@ -1059,12 +1097,15 @@ export default function CalendarioBloqueiosAdmin() {
                 key={tipo.value}
                 className={cx(
                   "inline-flex items-center gap-2 rounded-full border bg-white px-2.5 py-1 text-slate-700 dark:bg-zinc-900 dark:text-zinc-200",
-                  TIPO_STYLE[tipo.value]?.border
+                  TIPO_STYLE[tipo.value]?.border,
                 )}
                 title={tipo.label}
               >
                 <span
-                  className={cx("h-2 w-2 rounded-full", TIPO_STYLE[tipo.value]?.dot)}
+                  className={cx(
+                    "h-2 w-2 rounded-full",
+                    TIPO_STYLE[tipo.value]?.dot,
+                  )}
                   aria-hidden="true"
                 />
                 {tipo.label}
@@ -1080,11 +1121,14 @@ export default function CalendarioBloqueiosAdmin() {
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                {formData.id ? "Editar data do calendário" : "Cadastrar nova data"}
+                {formData.id
+                  ? "Editar data do calendário"
+                  : "Cadastrar nova data"}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-                Use apenas os tipos oficiais aceitos pelo banco e pelo backend v2.0.
+                Use apenas os tipos oficiais aceitos pelo banco e pelo backend
+                v2.0.
               </p>
             </div>
 
@@ -1160,9 +1204,16 @@ export default function CalendarioBloqueiosAdmin() {
                     aria-busy={salvando ? "true" : "false"}
                   >
                     {salvando ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      <Loader2
+                        className="h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
                     ) : null}
-                    {salvando ? "Salvando..." : formData.id ? "Atualizar" : "Cadastrar"}
+                    {salvando
+                      ? "Salvando..."
+                      : formData.id
+                        ? "Atualizar"
+                        : "Cadastrar"}
                   </button>
 
                   <button
@@ -1229,7 +1280,7 @@ export default function CalendarioBloqueiosAdmin() {
                               "rounded px-1 py-0.5 text-left text-xs font-black sm:text-sm",
                               eHoje
                                 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
-                                : "text-slate-700 dark:text-zinc-200"
+                                : "text-slate-700 dark:text-zinc-200",
                             )}
                             title="Preencher data no formulário"
                           >
@@ -1257,14 +1308,17 @@ export default function CalendarioBloqueiosAdmin() {
                                 className={cx(
                                   "group rounded-xl border px-2 py-1.5 text-[11px] sm:text-xs",
                                   style.border,
-                                  style.bg
+                                  style.bg,
                                 )}
                               >
                                 <div className="flex items-start justify-between gap-1">
                                   <button
                                     type="button"
                                     onClick={() => editarRegistro(evento)}
-                                    className={cx("text-left font-black", style.text)}
+                                    className={cx(
+                                      "text-left font-black",
+                                      style.text,
+                                    )}
                                     title="Editar registro"
                                   >
                                     {labelTipo(evento.tipo)}
@@ -1274,16 +1328,23 @@ export default function CalendarioBloqueiosAdmin() {
                                     <button
                                       type="button"
                                       onClick={() => editarRegistro(evento)}
-                                      className={cx("rounded p-0.5", style.hover)}
+                                      className={cx(
+                                        "rounded p-0.5",
+                                        style.hover,
+                                      )}
                                       title="Editar"
                                       aria-label="Editar registro"
                                     >
-                                      <Edit2 className={cx("h-3 w-3", style.text)} />
+                                      <Edit2
+                                        className={cx("h-3 w-3", style.text)}
+                                      />
                                     </button>
 
                                     <button
                                       type="button"
-                                      onClick={() => solicitarExcluirRegistro(evento)}
+                                      onClick={() =>
+                                        solicitarExcluirRegistro(evento)
+                                      }
                                       disabled={disabledDelete}
                                       className="rounded p-0.5 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-red-900/30"
                                       title="Excluir"
@@ -1308,7 +1369,7 @@ export default function CalendarioBloqueiosAdmin() {
                                   <p
                                     className={cx(
                                       "mt-1 text-[10px] leading-snug",
-                                      style.text
+                                      style.text,
                                     )}
                                   >
                                     {String(evento.descricao)}

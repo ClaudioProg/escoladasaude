@@ -84,10 +84,7 @@ const STATUS_AVALIACAO = Object.freeze([
   "reprovado",
 ]);
 
-const TIPO_AVALIACAO = Object.freeze([
-  "escrita",
-  "oral",
-]);
+const TIPO_AVALIACAO = Object.freeze(["escrita", "oral"]);
 
 const NOTA_MINIMA = 0;
 const NOTA_MAXIMA = 10;
@@ -142,7 +139,7 @@ function logWarn(req, message, extra = null) {
 function logError(req, message, error) {
   console.error(
     `[${requestId(req)}] ✖ ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -233,7 +230,8 @@ function getUsuarioId(req) {
 
   assert(Number.isInteger(id) && id > 0, "Usuário não autenticado.", 401, {
     code: "AUTH_OBRIGATORIA",
-    adminHint: "req.user.id não foi encontrado após o middleware de autenticação.",
+    adminHint:
+      "req.user.id não foi encontrado após o middleware de autenticação.",
   });
 
   return id;
@@ -243,7 +241,9 @@ function perfilArray(req) {
   const perfil = req.user?.perfil;
 
   if (Array.isArray(perfil)) {
-    return perfil.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
+    return perfil
+      .map((item) => String(item).trim().toLowerCase())
+      .filter(Boolean);
   }
 
   if (typeof perfil === "string") {
@@ -271,16 +271,23 @@ function textoOpcional(value, max, fieldName) {
 
   const text = String(value).trim();
 
-  assert(text.length <= max, `${fieldName} deve ter até ${max} caracteres.`, 400, {
-    code: "CAMPO_TAMANHO_INVALIDO",
-    details: { field: fieldName, max },
-  });
+  assert(
+    text.length <= max,
+    `${fieldName} deve ter até ${max} caracteres.`,
+    400,
+    {
+      code: "CAMPO_TAMANHO_INVALIDO",
+      details: { field: fieldName, max },
+    },
+  );
 
   return text;
 }
 
 function normalizarTipoAvaliacao(value) {
-  const tipo = String(value || "").trim().toLowerCase();
+  const tipo = String(value || "")
+    .trim()
+    .toLowerCase();
 
   assert(TIPO_AVALIACAO.includes(tipo), "Tipo de avaliação inválido.", 400, {
     code: "TIPO_AVALIACAO_INVALIDO",
@@ -293,21 +300,33 @@ function normalizarTipoAvaliacao(value) {
 function normalizarStatusAvaliacao(value, fallback = "em_avaliacao") {
   const status = value == null ? fallback : String(value).trim().toLowerCase();
 
-  assert(STATUS_AVALIACAO.includes(status), "Status de avaliação inválido.", 400, {
-    code: "STATUS_AVALIACAO_INVALIDO",
-    details: { aceitos: STATUS_AVALIACAO },
-  });
+  assert(
+    STATUS_AVALIACAO.includes(status),
+    "Status de avaliação inválido.",
+    400,
+    {
+      code: "STATUS_AVALIACAO_INVALIDO",
+      details: { aceitos: STATUS_AVALIACAO },
+    },
+  );
 
   return status;
 }
 
 function normalizarStatusSubmissao(value) {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  assert(STATUS_SUBMISSAO.includes(status), "Status de submissão inválido.", 400, {
-    code: "STATUS_SUBMISSAO_INVALIDO",
-    details: { aceitos: STATUS_SUBMISSAO },
-  });
+  assert(
+    STATUS_SUBMISSAO.includes(status),
+    "Status de submissão inválido.",
+    400,
+    {
+      code: "STATUS_SUBMISSAO_INVALIDO",
+      details: { aceitos: STATUS_SUBMISSAO },
+    },
+  );
 
   return status;
 }
@@ -338,7 +357,7 @@ function normalizarNota(value, fieldName = "nota") {
     {
       code: "NOTA_INVALIDA",
       details: { field: fieldName, min: NOTA_MINIMA, max: NOTA_MAXIMA },
-    }
+    },
   );
 
   return nota;
@@ -360,7 +379,11 @@ function normalizarNotas(body) {
   return itens.map((item, index) => ({
     criterio_id: toId(item?.criterio_id, `itens[${index}].criterio_id`),
     nota: normalizarNota(item?.nota, `itens[${index}].nota`),
-    comentarios: textoOpcional(item?.comentarios, 5000, `itens[${index}].comentarios`),
+    comentarios: textoOpcional(
+      item?.comentarios,
+      5000,
+      `itens[${index}].comentarios`,
+    ),
   }));
 }
 
@@ -386,7 +409,7 @@ async function obterSubmissaoBase(req, submissaoId) {
     LEFT JOIN usuarios u ON u.id = s.usuario_id
     WHERE s.id = $1
     `,
-    [submissaoId]
+    [submissaoId],
   );
 }
 
@@ -407,7 +430,7 @@ async function usuarioPodeAcessarSubmissao(req, submissao) {
       AND revoked_at IS NULL
     LIMIT 1
     `,
-    [submissao.id, usuarioId]
+    [submissao.id, usuarioId],
   );
 
   return Boolean(vinculo);
@@ -467,7 +490,7 @@ async function calcularTotaisDaSubmissaoTx(submissaoId, tx) {
       COUNT(*)::int AS qtd_avaliadores
     FROM por_avaliador
     `,
-    [submissaoId]
+    [submissaoId],
   );
 
   const qtd = Number(row?.qtd_avaliadores || 0);
@@ -509,7 +532,7 @@ async function calcularNotaPorTipoTx(submissaoId, tipo, tx) {
       ROUND(AVG(media_avaliador), 2) AS nota
     FROM por_avaliador
     `,
-    [submissaoId]
+    [submissaoId],
   );
 
   return row?.nota == null ? null : Number(row.nota);
@@ -520,7 +543,7 @@ exports.calcularTotaisDaSubmissao = async (req, res, next) => {
     const submissaoId = toId(req.params.id || req.params.submissaoId);
 
     const data = await transaction(req, async (tx) =>
-      calcularTotaisDaSubmissaoTx(submissaoId, tx)
+      calcularTotaisDaSubmissaoTx(submissaoId, tx),
     );
 
     return responder(res, data);
@@ -553,7 +576,7 @@ async function atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx) {
            atualizado_em = NOW()
      WHERE id = $1
     `,
-    [submissaoId, notaEscrita, notaOral, notaFinal]
+    [submissaoId, notaEscrita, notaOral, notaFinal],
   );
 
   return {
@@ -572,7 +595,7 @@ exports.atualizarNotaMediaMaterializada = async (req, res, next) => {
     const submissaoId = toId(req.params.id || req.params.submissaoId);
 
     const data = await transaction(req, async (tx) =>
-      atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx)
+      atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx),
     );
 
     return responder(res, data);
@@ -654,7 +677,7 @@ exports.listarAdmin = async (req, res, next) => {
       ${whereSql}
       ORDER BY s.criado_em DESC NULLS LAST, s.id DESC
       `,
-      params
+      params,
     );
 
     const data = rows.map((row) => ({
@@ -804,7 +827,7 @@ exports.resumoAvaliadores = async (req, res, next) => {
         COUNT(*) DESC,
         u.nome ASC
       `,
-      params
+      params,
     );
 
     const data = rows.map((row) => {
@@ -859,9 +882,7 @@ exports.resumoAvaliadores = async (req, res, next) => {
           finalizadas: avaliadosOral,
           pendentes: pendentesOral,
           percentual:
-            totalOral > 0
-              ? Math.round((avaliadosOral / totalOral) * 100)
-              : 0,
+            totalOral > 0 ? Math.round((avaliadosOral / totalOral) * 100) : 0,
         },
       };
     });
@@ -876,7 +897,7 @@ exports.resumoAvaliadores = async (req, res, next) => {
         total: data.length,
         regra:
           "Para avaliações atuais, considera itens individuais. Para legado encerrado, status aprovado também encerra pendência.",
-      }
+      },
     );
   } catch (error) {
     logError(req, "Erro ao gerar resumo de avaliadores.", error);
@@ -942,7 +963,7 @@ exports.listarMinhas = async (req, res, next) => {
       WHERE s.usuario_id = $1
       ORDER BY s.criado_em DESC NULLS LAST, s.id DESC
       `,
-      [usuarioId]
+      [usuarioId],
     );
 
     const data = rows.map((row) => ({
@@ -967,7 +988,10 @@ exports.listarMinhas = async (req, res, next) => {
 =========================================================================== */
 
 function guessMimeByExt(filename = "") {
-  const ext = String(filename || "").toLowerCase().split(".").pop();
+  const ext = String(filename || "")
+    .toLowerCase()
+    .split(".")
+    .pop();
 
   if (ext === "png") return "image/png";
   if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
@@ -997,7 +1021,7 @@ function resolverCaminhoUpload(rawPath) {
 
   const normalizedRel = raw.replace(/^uploads[\\/]/i, "");
   const resolved = path.normalize(
-    path.isAbsolute(raw) ? raw : path.resolve("uploads", normalizedRel)
+    path.isAbsolute(raw) ? raw : path.resolve("uploads", normalizedRel),
   );
 
   if (!path.isAbsolute(raw)) {
@@ -1027,11 +1051,16 @@ exports.baixarPoster = async (req, res, next) => {
       code: "ACESSO_NEGADO",
     });
 
-    assert(submissao.poster_arquivo_id, "Nenhum arquivo associado a esta submissão.", 404, {
-      code: "POSTER_NAO_ENCONTRADO",
-      adminHint:
-        "A submissão não possui poster_arquivo_id preenchido em trabalhos_submissoes.",
-    });
+    assert(
+      submissao.poster_arquivo_id,
+      "Nenhum arquivo associado a esta submissão.",
+      404,
+      {
+        code: "POSTER_NAO_ENCONTRADO",
+        adminHint:
+          "A submissão não possui poster_arquivo_id preenchido em trabalhos_submissoes.",
+      },
+    );
 
     const arquivo = await queryOne(
       req,
@@ -1048,7 +1077,7 @@ exports.baixarPoster = async (req, res, next) => {
         AND a.submissao_id = $2
       LIMIT 1
       `,
-      [submissao.poster_arquivo_id, submissaoId]
+      [submissao.poster_arquivo_id, submissaoId],
     );
 
     assert(arquivo, "Nenhum arquivo associado a esta submissão.", 404, {
@@ -1082,7 +1111,7 @@ exports.baixarPoster = async (req, res, next) => {
     });
 
     const nomeArquivo = safeBasename(
-      arquivo.nome_original || `poster_submissao_${submissaoId}`
+      arquivo.nome_original || `poster_submissao_${submissaoId}`,
     );
 
     const mime =
@@ -1093,7 +1122,7 @@ exports.baixarPoster = async (req, res, next) => {
     res.setHeader("Content-Type", mime);
     res.setHeader(
       "Content-Disposition",
-      `inline; filename*=UTF-8''${encodeURIComponent(nomeArquivo)}`
+      `inline; filename*=UTF-8''${encodeURIComponent(nomeArquivo)}`,
     );
     res.setHeader("Content-Length", String(buffer.length));
     res.setHeader("Cache-Control", "no-store");
@@ -1120,7 +1149,9 @@ exports.listarAvaliadores = async (req, res, next) => {
     requireAdmin(req);
 
     const submissaoId = toId(req.params.id);
-    const tipo = req.query.tipo ? normalizarTipoAvaliacao(req.query.tipo) : null;
+    const tipo = req.query.tipo
+      ? normalizarTipoAvaliacao(req.query.tipo)
+      : null;
 
     const params = [submissaoId];
     const whereTipo = tipo ? "AND tsa.tipo = $2" : "";
@@ -1148,7 +1179,7 @@ exports.listarAvaliadores = async (req, res, next) => {
         ${whereTipo}
       ORDER BY tsa.tipo ASC, u.nome ASC
       `,
-      params
+      params,
     );
 
     return responder(res, rows, {
@@ -1183,7 +1214,7 @@ exports.incluirAvaliadores = async (req, res, next) => {
     }));
 
     const avaliadorIds = Array.from(
-      new Set(normalizados.map((item) => Number(item.avaliador_id)))
+      new Set(normalizados.map((item) => Number(item.avaliador_id))),
     );
 
     const elegiveis = await queryMany(
@@ -1197,16 +1228,23 @@ exports.incluirAvaliadores = async (req, res, next) => {
           OR 'administrador' = ANY(string_to_array(LOWER(COALESCE(perfil, '')), ','))
         )
       `,
-      [avaliadorIds]
+      [avaliadorIds],
     );
 
     const elegiveisSet = new Set(elegiveis.map((row) => Number(row.id)));
-    const invalidos = avaliadorIds.filter((id) => !elegiveisSet.has(Number(id)));
+    const invalidos = avaliadorIds.filter(
+      (id) => !elegiveisSet.has(Number(id)),
+    );
 
-    assert(invalidos.length === 0, "Há usuários sem perfil elegível para avaliação.", 400, {
-      code: "AVALIADOR_NAO_ELEGIVEL",
-      details: { usuarios: invalidos },
-    });
+    assert(
+      invalidos.length === 0,
+      "Há usuários sem perfil elegível para avaliação.",
+      400,
+      {
+        code: "AVALIADOR_NAO_ELEGIVEL",
+        details: { usuarios: invalidos },
+      },
+    );
 
     const inseridos = await transaction(req, async (tx) => {
       const output = [];
@@ -1237,7 +1275,7 @@ exports.incluirAvaliadores = async (req, res, next) => {
             created_at,
             revoked_at
           `,
-          [submissaoId, item.avaliador_id, item.tipo, usuarioId]
+          [submissaoId, item.avaliador_id, item.tipo, usuarioId],
         );
 
         output.push(row);
@@ -1253,7 +1291,7 @@ exports.incluirAvaliadores = async (req, res, next) => {
                atualizado_em = NOW()
          WHERE id = $1
         `,
-        [submissaoId]
+        [submissaoId],
       );
 
       return output;
@@ -1266,7 +1304,7 @@ exports.incluirAvaliadores = async (req, res, next) => {
         itens: inseridos,
       },
       null,
-      201
+      201,
     );
   } catch (error) {
     logError(req, "Erro ao incluir avaliadores.", error);
@@ -1292,7 +1330,7 @@ exports.revogarAvaliador = async (req, res, next) => {
          AND tipo = $3
          AND revoked_at IS NULL
       `,
-      [submissaoId, avaliadorId, tipo]
+      [submissaoId, avaliadorId, tipo],
     );
 
     assert(result.rowCount > 0, "Vínculo ativo não encontrado.", 404, {
@@ -1329,7 +1367,7 @@ exports.restaurarAvaliador = async (req, res, next) => {
          AND tipo = $3
          AND revoked_at IS NOT NULL
       `,
-      [submissaoId, avaliadorId, tipo]
+      [submissaoId, avaliadorId, tipo],
     );
 
     assert(result.rowCount > 0, "Vínculo revogado não encontrado.", 404, {
@@ -1411,11 +1449,11 @@ exports.listarAvaliacaoDaSubmissao = async (req, res, next) => {
         criterio_id ASC,
         criado_em ASC
       `,
-      [submissaoId]
+      [submissaoId],
     );
 
     const totais = await transaction(req, async (tx) =>
-      atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx)
+      atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx),
     );
 
     const data = {
@@ -1440,7 +1478,7 @@ async function registrarAvaliacao(req, res, next, tipo) {
     const tipoOficial = normalizarTipoAvaliacao(tipo);
     const statusResultado = normalizarStatusAvaliacao(
       req.body?.status_resultado,
-      "em_avaliacao"
+      "em_avaliacao",
     );
     const itens = normalizarNotas(req.body);
 
@@ -1467,12 +1505,17 @@ async function registrarAvaliacao(req, res, next, tipo) {
         AND revoked_at IS NULL
       LIMIT 1
       `,
-      [submissaoId, avaliadorId, tipoOficial]
+      [submissaoId, avaliadorId, tipoOficial],
     );
 
-    assert(vinculo || isAdmin(req), "Você não está vinculado a esta avaliação.", 403, {
-      code: "AVALIADOR_NAO_VINCULADO",
-    });
+    assert(
+      vinculo || isAdmin(req),
+      "Você não está vinculado a esta avaliação.",
+      403,
+      {
+        code: "AVALIADOR_NAO_VINCULADO",
+      },
+    );
 
     const criterioTable = criterioTablePorTipo(tipoOficial);
     const avaliacaoTable = avaliacaoItemTablePorTipo(tipoOficial);
@@ -1487,16 +1530,21 @@ async function registrarAvaliacao(req, res, next, tipo) {
       WHERE chamada_id = $1
         AND id = ANY($2::int[])
       `,
-      [submissao.chamada_id, criterioIds]
+      [submissao.chamada_id, criterioIds],
     );
 
     const validosSet = new Set(criteriosValidos.map((row) => Number(row.id)));
     const invalidos = criterioIds.filter((id) => !validosSet.has(Number(id)));
 
-    assert(invalidos.length === 0, "Há critérios inválidos para esta chamada.", 400, {
-      code: "CRITERIO_INVALIDO",
-      details: { criterios: invalidos, tipo: tipoOficial },
-    });
+    assert(
+      invalidos.length === 0,
+      "Há critérios inválidos para esta chamada.",
+      400,
+      {
+        code: "CRITERIO_INVALIDO",
+        details: { criterios: invalidos, tipo: tipoOficial },
+      },
+    );
 
     const resultado = await transaction(req, async (tx) => {
       await tx.none(
@@ -1510,7 +1558,7 @@ async function registrarAvaliacao(req, res, next, tipo) {
             WHERE chamada_id = $3
           )
         `,
-        [submissaoId, avaliadorId, submissao.chamada_id]
+        [submissaoId, avaliadorId, submissao.chamada_id],
       );
 
       for (const item of itens) {
@@ -1534,7 +1582,7 @@ async function registrarAvaliacao(req, res, next, tipo) {
             item.criterio_id,
             item.nota,
             item.comentarios,
-          ]
+          ],
         );
       }
 
@@ -1552,10 +1600,14 @@ async function registrarAvaliacao(req, res, next, tipo) {
                atualizado_em = NOW()
          WHERE id = $1
         `,
-        [submissaoId, statusResultado]
+        [submissaoId, statusResultado],
       );
 
-      const notas = await atualizarNotaMediaMaterializadaInterna(req, submissaoId, tx);
+      const notas = await atualizarNotaMediaMaterializadaInterna(
+        req,
+        submissaoId,
+        tx,
+      );
 
       return {
         submissao_id: submissaoId,
@@ -1597,7 +1649,7 @@ exports.definirNotaVisivel = async (req, res, next) => {
              atualizado_em = NOW()
        WHERE id = $1
       `,
-      [submissaoId, visivel]
+      [submissaoId, visivel],
     );
 
     assert(result.rowCount > 0, "Submissão não encontrada.", 404, {
@@ -1632,7 +1684,7 @@ exports.definirStatusFinal = async (req, res, next) => {
        WHERE id = $1
        RETURNING *
       `,
-      [submissaoId, status, motivo]
+      [submissaoId, status, motivo],
     );
 
     assert(row, "Submissão não encontrada.", 404, {
@@ -1747,7 +1799,7 @@ exports.consolidarClassificacao = async (req, res, next) => {
         criado_em ASC NULLS LAST,
         id ASC
       `,
-      [chamadaId]
+      [chamadaId],
     );
 
     return responder(res, rows, {
@@ -1810,7 +1862,7 @@ exports.listarAtribuidas = async (req, res, next) => {
       ORDER BY tsa.created_at DESC NULLS LAST, tsa.submissao_id DESC
       LIMIT 500
       `,
-      [avaliadorId]
+      [avaliadorId],
     );
 
     return responder(res, rows, {
@@ -1870,7 +1922,7 @@ exports.listarPendentes = async (req, res, next) => {
       ORDER BY tsa.created_at DESC NULLS LAST, tsa.submissao_id DESC
       LIMIT 500
       `,
-      [avaliadorId]
+      [avaliadorId],
     );
 
     return responder(res, rows, {
@@ -1971,7 +2023,7 @@ exports.minhasContagens = async (req, res, next) => {
       WHERE tsa.avaliador_id = $1
         AND tsa.revoked_at IS NULL
       `,
-      [avaliadorId]
+      [avaliadorId],
     );
 
     return responder(res, {
@@ -1991,8 +2043,7 @@ exports.minhasContagens = async (req, res, next) => {
         total: Number(row?.total_oral || 0),
         finalizadas: Number(row?.finalizadas_oral || 0),
         pendentes:
-          Number(row?.total_oral || 0) -
-          Number(row?.finalizadas_oral || 0),
+          Number(row?.total_oral || 0) - Number(row?.finalizadas_oral || 0),
       },
     });
   } catch (error) {

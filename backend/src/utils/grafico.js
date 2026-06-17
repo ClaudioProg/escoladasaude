@@ -108,14 +108,14 @@ function buildColors(length, palette = PALETA_PADRAO, options = {}) {
       ...safePalette,
       ...Array.from(
         { length: safeLength - safePalette.length },
-        () => safePalette[safePalette.length - 1]
+        () => safePalette[safePalette.length - 1],
       ),
     ];
   }
 
   return Array.from(
     { length: safeLength },
-    (_item, index) => safePalette[index % safePalette.length]
+    (_item, index) => safePalette[index % safePalette.length],
   );
 }
 
@@ -196,7 +196,7 @@ function formatarGrafico(dados, campo, options = {}) {
   const labels = linhas.map((linha) => toLabel(linha?.[campo], fallbackLabel));
 
   const values = linhas.map((linha) =>
-    roundTo(toNumber(linha?.[valorField], 0), decimals)
+    roundTo(toNumber(linha?.[valorField], 0), decimals),
   );
 
   return {
@@ -248,7 +248,7 @@ function formatarGraficoPresenca(dados, options = {}) {
     calcPercent(linha?.total_presentes, linha?.total_inscritos, {
       decimals,
       clampResult: true,
-    })
+    }),
   );
 
   return {
@@ -347,7 +347,7 @@ function calcularMediaPresenca(linhas, options = {}) {
       calcPercent(linha?.total_presentes, linha?.total_inscritos, {
         decimals: 6,
         clampResult: true,
-      })
+      }),
     );
 
     const soma = percentuais.reduce((acc, value) => acc + value, 0);
@@ -365,7 +365,7 @@ function calcularMediaPresenca(linhas, options = {}) {
     {
       presentes: 0,
       inscritos: 0,
-    }
+    },
   );
 
   return calcPercent(totais.presentes, totais.inscritos, {
@@ -381,7 +381,7 @@ function calcularMediaPresenca(linhas, options = {}) {
 function somarCampo(linhas, campo) {
   return normalizeArray(linhas).reduce(
     (acc, item) => acc + toNumber(item?.[campo], 0),
-    0
+    0,
   );
 }
 

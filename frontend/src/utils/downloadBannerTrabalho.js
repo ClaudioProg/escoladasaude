@@ -47,7 +47,7 @@ export async function baixarBannerTrabalho(submissaoId, nomeSugestao) {
 
     const filenameBase = sanitizeFilename(
       filenameFromHeader || nomeSugestao || `banner-${id}`,
-      `banner-${id}`
+      `banner-${id}`,
     );
 
     const filename = ensureFilenameExtension(filenameBase, contentType);

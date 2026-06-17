@@ -101,7 +101,14 @@ function responderSucesso(res, statusCode, data, message, code, extra = {}) {
   });
 }
 
-function responderErro(res, statusCode, message, code, adminHint, details = null) {
+function responderErro(
+  res,
+  statusCode,
+  message,
+  code,
+  adminHint,
+  details = null,
+) {
   return res.status(statusCode).json({
     ok: false,
     data: null,
@@ -139,7 +146,7 @@ function logWarn(rid, message, extra) {
 function logError(rid, message, error) {
   console.error(
     `[avaliacao][${rid}][ERR] ${message}`,
-    error?.stack || error?.message || error
+    error?.stack || error?.message || error,
   );
 }
 
@@ -224,7 +231,9 @@ function getUsuarioId(req) {
 }
 
 function getPerfil(req) {
-  return String(req?.user?.perfil || "").trim().toLowerCase();
+  return String(req?.user?.perfil || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isAdministrador(req) {
@@ -402,7 +411,7 @@ function sanitizePayloadAvaliacao(payload, tipoEvento) {
           statusCode: 400,
           code: "AVALIACAO_CAMPO_OBRIGATORIO_INVALIDO",
           details: validacao,
-        }
+        },
       );
     }
   }
@@ -510,7 +519,7 @@ async function obterContextoTurma(db, turmaId) {
     WHERE t.id = $1
     LIMIT 1
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0] || null;
@@ -525,7 +534,7 @@ async function usuarioTemInscricao(db, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rowCount || 0) > 0;
@@ -541,7 +550,7 @@ async function usuarioTemPresenca(db, usuarioId, turmaId) {
       AND presente = TRUE
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rowCount || 0) > 0;
@@ -570,7 +579,7 @@ async function totalEncontrosTurma(db, turmaId) {
         ELSE COALESCE((SELECT total FROM fallback_turma), 0)
       END AS total
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return Number(result.rows?.[0]?.total || 0);
@@ -596,7 +605,7 @@ async function usuarioAtingiu75(db, usuarioId, turmaId) {
       AND p.turma_id = $2
       AND p.presente = TRUE
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   const presentes = Number(result.rows?.[0]?.presentes || 0);
@@ -640,7 +649,7 @@ async function fimRealTurmaTS(db, turmaId) {
     SELECT COALESCE(fim_datas_turma, fim_turma) AS fim_local
     FROM base
     `,
-    [turmaId]
+    [turmaId],
   );
 
   return result.rows?.[0]?.fim_local || null;
@@ -653,7 +662,7 @@ async function turmaEncerrada(db, turmaId) {
 
   const result = await db.query(
     `SELECT (NOW() AT TIME ZONE '${TZ}') >= $1::timestamp AS encerrada`,
-    [fimLocal]
+    [fimLocal],
   );
 
   return result.rows?.[0]?.encerrada === true;
@@ -668,7 +677,7 @@ async function usuarioJaAvaliou(db, usuarioId, turmaId) {
       AND turma_id = $2
     LIMIT 1
     `,
-    [usuarioId, turmaId]
+    [usuarioId, turmaId],
   );
 
   return Number(result.rowCount || 0) > 0;
@@ -684,7 +693,7 @@ async function usuarioPodeAcessarTurmaComoorganizador(db, usuarioId, turmaId) {
       AND tr.papel = $3
     LIMIT 1
     `,
-    [usuarioId, turmaId, PAPEL_ORGANIZADOR]
+    [usuarioId, turmaId, PAPEL_ORGANIZADOR],
   );
 
   return Number(result.rowCount || 0) > 0;
@@ -701,7 +710,8 @@ async function enviarAvaliacao(req, res) {
   const usuarioId = getUsuarioId(req);
   const payload = req.body || {};
   const turmaId = toPositiveInt(payload.turma_id);
-  const eventoId = payload.evento_id != null ? toPositiveInt(payload.evento_id) : null;
+  const eventoId =
+    payload.evento_id != null ? toPositiveInt(payload.evento_id) : null;
 
   if (!usuarioId) {
     return responderErro(
@@ -709,7 +719,7 @@ async function enviarAvaliacao(req, res) {
       401,
       "Usuário não autenticado.",
       "AVALIACAO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -719,7 +729,7 @@ async function enviarAvaliacao(req, res) {
       400,
       "turma_id inválido.",
       "AVALIACAO_TURMA_ID_INVALIDO",
-      "O payload de avaliação não recebeu turma_id como inteiro positivo."
+      "O payload de avaliação não recebeu turma_id como inteiro positivo.",
     );
   }
 
@@ -729,7 +739,7 @@ async function enviarAvaliacao(req, res) {
       400,
       "evento_id inválido.",
       "AVALIACAO_EVENTO_ID_INVALIDO",
-      "O payload de avaliação recebeu evento_id inválido."
+      "O payload de avaliação recebeu evento_id inválido.",
     );
   }
 
@@ -748,7 +758,7 @@ async function enviarAvaliacao(req, res) {
         404,
         "Turma não encontrada.",
         "AVALIACAO_TURMA_NAO_ENCONTRADA",
-        "Nenhuma turma foi localizada para o turma_id informado."
+        "Nenhuma turma foi localizada para o turma_id informado.",
       );
     }
 
@@ -763,7 +773,7 @@ async function enviarAvaliacao(req, res) {
           evento_id_payload: eventoId,
           evento_id_turma: Number(contexto.evento_id),
           turma_id: turmaId,
-        }
+        },
       );
     }
 
@@ -775,7 +785,7 @@ async function enviarAvaliacao(req, res) {
         403,
         "Você não está inscrito nesta turma.",
         "AVALIACAO_USUARIO_NAO_INSCRITO",
-        "Usuário tentou avaliar uma turma sem inscrição correspondente em inscricoes."
+        "Usuário tentou avaliar uma turma sem inscrição correspondente em inscricoes.",
       );
     }
 
@@ -787,7 +797,7 @@ async function enviarAvaliacao(req, res) {
         403,
         "Você não participou desta turma.",
         "AVALIACAO_USUARIO_SEM_PRESENCA",
-        "Usuário não possui presença verdadeira registrada para a turma."
+        "Usuário não possui presença verdadeira registrada para a turma.",
       );
     }
 
@@ -799,7 +809,7 @@ async function enviarAvaliacao(req, res) {
         403,
         "A avaliação só fica disponível após o encerramento da turma.",
         "AVALIACAO_TURMA_NAO_ENCERRADA",
-        "Tentativa de avaliação antes do fim real da turma."
+        "Tentativa de avaliação antes do fim real da turma.",
       );
     }
 
@@ -812,7 +822,7 @@ async function enviarAvaliacao(req, res) {
         "Você ainda não atingiu a frequência mínima de 75% para avaliar.",
         "AVALIACAO_FREQUENCIA_INSUFICIENTE",
         "Usuário não atingiu frequência mínima para liberação da avaliação.",
-        frequencia
+        frequencia,
       );
     }
 
@@ -826,7 +836,7 @@ async function enviarAvaliacao(req, res) {
         WHERE id = $1
         FOR UPDATE
         `,
-        [turmaId]
+        [turmaId],
       );
 
       if (!lockTurma.rowCount) {
@@ -844,7 +854,7 @@ async function enviarAvaliacao(req, res) {
           AND turma_id = $2
         LIMIT 1
         `,
-        [usuarioId, turmaId]
+        [usuarioId, turmaId],
       );
 
       if (duplicada.rowCount > 0) {
@@ -917,7 +927,7 @@ async function enviarAvaliacao(req, res) {
           clean.gostou_mais,
           clean.sugestoes_melhoria,
           clean.comentarios_finais,
-        ]
+        ],
       );
 
       return insertResult.rows?.[0] || null;
@@ -944,11 +954,15 @@ async function enviarAvaliacao(req, res) {
           eventoId: Number(contexto.evento_id),
         });
       } catch (error) {
-        logWarn(rid, "falha não bloqueante ao gerar notificação de certificado", {
-          usuarioId,
-          turmaId,
-          message: error?.message || String(error),
-        });
+        logWarn(
+          rid,
+          "falha não bloqueante ao gerar notificação de certificado",
+          {
+            usuarioId,
+            turmaId,
+            message: error?.message || String(error),
+          },
+        );
       }
     }
 
@@ -957,7 +971,7 @@ async function enviarAvaliacao(req, res) {
       201,
       avaliacao,
       "Avaliação registrada com sucesso. Se elegível, seu certificado será liberado.",
-      "AVALIACAO_REGISTRADA"
+      "AVALIACAO_REGISTRADA",
     );
   } catch (error) {
     logError(rid, "erro ao registrar avaliação", error);
@@ -971,7 +985,7 @@ async function enviarAvaliacao(req, res) {
         error.message || "Não foi possível registrar a avaliação.",
         error.code || "AVALIACAO_ERRO_VALIDACAO",
         "Erro de validação/regra de negócio em enviarAvaliacao.",
-        error.details || null
+        error.details || null,
       );
     }
 
@@ -982,7 +996,7 @@ async function enviarAvaliacao(req, res) {
         "Você já avaliou esta turma.",
         "AVALIACAO_DUPLICADA",
         "Violação de unicidade ao inserir avaliação.",
-        IS_DEV ? error?.detail || error?.message : null
+        IS_DEV ? error?.detail || error?.message : null,
       );
     }
 
@@ -993,7 +1007,7 @@ async function enviarAvaliacao(req, res) {
         "Uma ou mais notas informadas não são aceitas.",
         "AVALIACAO_NOTA_ENUM_INVALIDA",
         "Violação de CHECK/enum no banco ao inserir em avaliacoes.",
-        IS_DEV ? error?.detail || error?.message : null
+        IS_DEV ? error?.detail || error?.message : null,
       );
     }
 
@@ -1003,7 +1017,7 @@ async function enviarAvaliacao(req, res) {
       "Erro ao registrar avaliação.",
       "AVALIACAO_ERRO_REGISTRAR",
       "Falha inesperada em avaliacaoController.enviarAvaliacao.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1024,7 +1038,7 @@ async function listarAvaliacaoDisponiveis(req, res) {
       400,
       "usuario_id inválido.",
       "AVALIACAO_USUARIO_ID_INVALIDO",
-      "A consulta de avaliações disponíveis recebeu usuario_id inválido."
+      "A consulta de avaliações disponíveis recebeu usuario_id inválido.",
     );
   }
 
@@ -1042,7 +1056,7 @@ async function listarAvaliacaoDisponiveis(req, res) {
       200,
       rows,
       "Avaliações disponíveis carregadas com sucesso.",
-      "AVALIACOES_DISPONIVEIS_LISTADAS"
+      "AVALIACOES_DISPONIVEIS_LISTADAS",
     );
   } catch (error) {
     logError(rid, "erro ao buscar avaliações disponíveis", error);
@@ -1053,7 +1067,7 @@ async function listarAvaliacaoDisponiveis(req, res) {
       "Erro ao buscar avaliações disponíveis.",
       "AVALIACOES_DISPONIVEIS_ERRO_LISTAR",
       "Falha inesperada em avaliacaoController.listarAvaliacaoDisponiveis.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1075,7 +1089,7 @@ async function listarPorTurmaParaorganizador(req, res) {
       401,
       "Usuário não autenticado.",
       "AVALIACAO_USUARIO_NAO_AUTENTICADO",
-      "req.user.id não foi encontrado no request."
+      "req.user.id não foi encontrado no request.",
     );
   }
 
@@ -1085,7 +1099,7 @@ async function listarPorTurmaParaorganizador(req, res) {
       400,
       "ID de turma inválido.",
       "AVALIACAO_TURMA_ID_INVALIDO",
-      "O parâmetro turma_id não é um inteiro positivo."
+      "O parâmetro turma_id não é um inteiro positivo.",
     );
   }
 
@@ -1096,7 +1110,7 @@ async function listarPorTurmaParaorganizador(req, res) {
       const podeAcessar = await usuarioPodeAcessarTurmaComoorganizador(
         db,
         usuarioId,
-        turmaId
+        turmaId,
       );
 
       if (!podeAcessar) {
@@ -1105,7 +1119,7 @@ async function listarPorTurmaParaorganizador(req, res) {
           403,
           "Acesso negado à turma.",
           "AVALIACAO_TURMA_ACESSO_NEGADO",
-          "Organizador tentou acessar avaliações de turma sem vínculo oficial em turma_responsavel."
+          "Organizador tentou acessar avaliações de turma sem vínculo oficial em turma_responsavel.",
         );
       }
     }
@@ -1140,7 +1154,7 @@ async function listarPorTurmaParaorganizador(req, res) {
       WHERE turma_id = $1
       ORDER BY id DESC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const rows = result.rows || [];
@@ -1164,7 +1178,7 @@ async function listarPorTurmaParaorganizador(req, res) {
       200,
       rows,
       "Avaliações da turma carregadas com sucesso.",
-      "AVALIACOES_TURMA_LISTADAS"
+      "AVALIACOES_TURMA_LISTADAS",
     );
   } catch (error) {
     logError(rid, "erro ao listar avaliações da turma para organizador", error);
@@ -1175,7 +1189,7 @@ async function listarPorTurmaParaorganizador(req, res) {
       "Erro ao buscar avaliações da turma.",
       "AVALIACOES_TURMA_ERRO_LISTAR",
       "Falha inesperada em avaliacaoController.listarPorTurmaParaorganizador.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1196,7 +1210,7 @@ async function avaliacaoPorTurma(req, res) {
       400,
       "ID de turma inválido.",
       "AVALIACAO_TURMA_ID_INVALIDO",
-      "O parâmetro turma_id não é um inteiro positivo."
+      "O parâmetro turma_id não é um inteiro positivo.",
     );
   }
 
@@ -1228,7 +1242,7 @@ async function avaliacaoPorTurma(req, res) {
       JOIN usuarios u ON u.id = a.usuario_id
       WHERE a.turma_id = $1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const avaliacoes = result.rows || [];
@@ -1242,7 +1256,7 @@ async function avaliacaoPorTurma(req, res) {
           (
             notasorganizador.reduce((acc, value) => acc + value, 0) /
             notasorganizador.length
-          ).toFixed(2)
+          ).toFixed(2),
         )
       : null;
 
@@ -1255,7 +1269,7 @@ async function avaliacaoPorTurma(req, res) {
           (
             notasEvento.reduce((acc, value) => acc + value, 0) /
             notasEvento.length
-          ).toFixed(2)
+          ).toFixed(2),
         )
       : null;
 
@@ -1264,7 +1278,7 @@ async function avaliacaoPorTurma(req, res) {
         (item) =>
           pickText(item.gostou_mais) ||
           pickText(item.sugestoes_melhoria) ||
-          pickText(item.comentarios_finais)
+          pickText(item.comentarios_finais),
       )
       .map((item) => ({
         nome: item.nome,
@@ -1280,7 +1294,7 @@ async function avaliacaoPorTurma(req, res) {
       FROM inscricoes
       WHERE turma_id = $1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const total_inscritos = Number(inscritosRes.rows?.[0]?.total || 0);
@@ -1295,7 +1309,7 @@ async function avaliacaoPorTurma(req, res) {
       FROM presencas
       WHERE turma_id = $1
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const mapaPresencas = Object.create(null);
@@ -1356,7 +1370,7 @@ async function avaliacaoPorTurma(req, res) {
       200,
       data,
       "Resumo de avaliações da turma carregado com sucesso.",
-      "AVALIACAO_TURMA_RESUMO"
+      "AVALIACAO_TURMA_RESUMO",
     );
   } catch (error) {
     logError(rid, "erro ao buscar avaliações da turma", error);
@@ -1367,7 +1381,7 @@ async function avaliacaoPorTurma(req, res) {
       "Erro ao buscar avaliações da turma.",
       "AVALIACAO_TURMA_ERRO_RESUMO",
       "Falha inesperada em avaliacaoController.avaliacaoPorTurma.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1388,7 +1402,7 @@ async function avaliacaoPorEvento(req, res) {
       400,
       "evento_id inválido.",
       "AVALIACAO_EVENTO_ID_INVALIDO",
-      "O parâmetro evento_id não é um inteiro positivo."
+      "O parâmetro evento_id não é um inteiro positivo.",
     );
   }
 
@@ -1421,7 +1435,7 @@ async function avaliacaoPorEvento(req, res) {
       JOIN turmas t ON t.id = a.turma_id
       WHERE t.evento_id = $1
       `,
-      [eventoId]
+      [eventoId],
     );
 
     const avaliacoes = result.rows || [];
@@ -1435,7 +1449,7 @@ async function avaliacaoPorEvento(req, res) {
           (
             notasorganizador.reduce((acc, value) => acc + value, 0) /
             notasorganizador.length
-          ).toFixed(2)
+          ).toFixed(2),
         )
       : null;
 
@@ -1448,7 +1462,7 @@ async function avaliacaoPorEvento(req, res) {
           (
             notasEvento.reduce((acc, value) => acc + value, 0) /
             notasEvento.length
-          ).toFixed(2)
+          ).toFixed(2),
         )
       : null;
 
@@ -1457,7 +1471,7 @@ async function avaliacaoPorEvento(req, res) {
         (item) =>
           pickText(item.gostou_mais) ||
           pickText(item.sugestoes_melhoria) ||
-          pickText(item.comentarios_finais)
+          pickText(item.comentarios_finais),
       )
       .map((item) => ({
         nome: item.nome,
@@ -1485,7 +1499,7 @@ async function avaliacaoPorEvento(req, res) {
       200,
       data,
       "Resumo de avaliações do evento carregado com sucesso.",
-      "AVALIACAO_EVENTO_RESUMO"
+      "AVALIACAO_EVENTO_RESUMO",
     );
   } catch (error) {
     logError(rid, "erro ao buscar avaliações do evento", error);
@@ -1496,7 +1510,7 @@ async function avaliacaoPorEvento(req, res) {
       "Erro ao buscar avaliações do evento.",
       "AVALIACAO_EVENTO_ERRO_RESUMO",
       "Falha inesperada em avaliacaoController.avaliacaoPorEvento.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1544,7 +1558,7 @@ async function listarEventosComAvaliacao(req, res) {
       FROM eventos_agregados
       WHERE total_respostas > 0
       ORDER BY data_inicio DESC NULLS LAST, id DESC
-      `
+      `,
     );
 
     const rows = result.rows || [];
@@ -1558,7 +1572,7 @@ async function listarEventosComAvaliacao(req, res) {
       200,
       rows,
       "Eventos com avaliações carregados com sucesso.",
-      "AVALIACAO_ADMIN_EVENTOS_LISTADOS"
+      "AVALIACAO_ADMIN_EVENTOS_LISTADOS",
     );
   } catch (error) {
     logError(rid, "erro ao listar eventos com avaliações", error);
@@ -1569,7 +1583,7 @@ async function listarEventosComAvaliacao(req, res) {
       "Erro ao listar eventos com avaliações.",
       "AVALIACAO_ADMIN_EVENTOS_ERRO_LISTAR",
       "Falha inesperada em avaliacaoController.listarEventosComAvaliacao.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1590,7 +1604,7 @@ async function obterAvaliacaoDoEvento(req, res) {
       400,
       "evento_id inválido.",
       "AVALIACAO_EVENTO_ID_INVALIDO",
-      "O parâmetro evento_id não é um inteiro positivo."
+      "O parâmetro evento_id não é um inteiro positivo.",
     );
   }
 
@@ -1607,7 +1621,7 @@ async function obterAvaliacaoDoEvento(req, res) {
       GROUP BY t.id, t.nome
       ORDER BY t.id
       `,
-      [eventoId]
+      [eventoId],
     );
 
     const respostasRes = await db.query(
@@ -1627,7 +1641,7 @@ async function obterAvaliacaoDoEvento(req, res) {
       WHERE t.evento_id = $1
       ORDER BY a.data_avaliacao DESC, a.id DESC
       `,
-      [eventoId]
+      [eventoId],
     );
 
     const turmas = turmasRes.rows || [];
@@ -1661,19 +1675,21 @@ async function obterAvaliacaoDoEvento(req, res) {
     const textos = {};
 
     for (const campo of CAMPOS_TEXTOS) {
-      textos[campo] = respostas.map((row) => pickText(row[campo])).filter(Boolean);
+      textos[campo] = respostas
+        .map((row) => pickText(row[campo]))
+        .filter(Boolean);
     }
 
-    const mediasOficiais = CAMPOS_MEDIA_OFICIAL.map((campo) => medias[campo]).filter(
-      (value) => Number.isFinite(value)
-    );
+    const mediasOficiais = CAMPOS_MEDIA_OFICIAL.map(
+      (campo) => medias[campo],
+    ).filter((value) => Number.isFinite(value));
 
     const mediaOficial = mediasOficiais.length
       ? Number(
           (
             mediasOficiais.reduce((acc, value) => acc + value, 0) /
             mediasOficiais.length
-          ).toFixed(2)
+          ).toFixed(2),
         )
       : null;
 
@@ -1700,7 +1716,7 @@ async function obterAvaliacaoDoEvento(req, res) {
       200,
       data,
       "Avaliações do evento carregadas com sucesso.",
-      "AVALIACAO_ADMIN_EVENTO_DETALHE"
+      "AVALIACAO_ADMIN_EVENTO_DETALHE",
     );
   } catch (error) {
     logError(rid, "erro ao obter avaliações do evento", error);
@@ -1711,7 +1727,7 @@ async function obterAvaliacaoDoEvento(req, res) {
       "Erro ao obter avaliações do evento.",
       "AVALIACAO_ADMIN_EVENTO_ERRO_DETALHE",
       "Falha inesperada em avaliacaoController.obterAvaliacaoDoEvento.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }
@@ -1732,7 +1748,7 @@ async function obterAvaliacaoDaTurma(req, res) {
       400,
       "turma_id inválido.",
       "AVALIACAO_TURMA_ID_INVALIDO",
-      "O parâmetro turma_id não é um inteiro positivo."
+      "O parâmetro turma_id não é um inteiro positivo.",
     );
   }
 
@@ -1754,7 +1770,7 @@ async function obterAvaliacaoDaTurma(req, res) {
       WHERE a.turma_id = $1
       ORDER BY a.data_avaliacao DESC, a.id DESC
       `,
-      [turmaId]
+      [turmaId],
     );
 
     const rows = result.rows || [];
@@ -1769,7 +1785,7 @@ async function obterAvaliacaoDaTurma(req, res) {
       200,
       rows,
       "Avaliações da turma carregadas com sucesso.",
-      "AVALIACAO_ADMIN_TURMA_DETALHE"
+      "AVALIACAO_ADMIN_TURMA_DETALHE",
     );
   } catch (error) {
     logError(rid, "erro ao obter avaliações da turma", error);
@@ -1780,7 +1796,7 @@ async function obterAvaliacaoDaTurma(req, res) {
       "Erro ao obter avaliações da turma.",
       "AVALIACAO_ADMIN_TURMA_ERRO_DETALHE",
       "Falha inesperada em avaliacaoController.obterAvaliacaoDaTurma.",
-      IS_DEV ? error?.message : null
+      IS_DEV ? error?.message : null,
     );
   }
 }

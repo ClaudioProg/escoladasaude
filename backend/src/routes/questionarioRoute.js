@@ -69,14 +69,14 @@ const PERFIS_RESPOSTA = Object.freeze([
 if (typeof authMiddleware !== "function") {
   console.error("[questionarioRoute] authMiddleware inválido:", authMiddleware);
   throw new Error(
-    "authMiddleware deve ser exportado como função em backend/src/auth/authMiddleware.js."
+    "authMiddleware deve ser exportado como função em backend/src/auth/authMiddleware.js.",
   );
 }
 
 if (typeof authorize !== "function") {
   console.error("[questionarioRoute] authorize inválido:", authorize);
   throw new Error(
-    "authorize deve ser exportado como função nomeada em backend/src/middlewares/authorize.js."
+    "authorize deve ser exportado como função nomeada em backend/src/middlewares/authorize.js.",
   );
 }
 
@@ -84,10 +84,8 @@ if (typeof authorize !== "function") {
  * Helpers
  * ───────────────────────────────────────────────────────────── */
 
-const wrap =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+const wrap = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
 function fail(res, status, message, details = undefined) {
   const payload = {
@@ -148,7 +146,9 @@ function getAuthenticatedUserId(req) {
 
 function getAuthenticatedPerfil(req) {
   const user = getAuthenticatedUser(req);
-  const perfil = String(user?.perfil || "").trim().toLowerCase();
+  const perfil = String(user?.perfil || "")
+    .trim()
+    .toLowerCase();
 
   return perfil || null;
 }
@@ -196,23 +196,19 @@ router.use(authMiddleware, noStore);
  * ───────────────────────────────────────────────────────────── */
 
 if (IS_DEV) {
-  router.get(
-    "/_ping",
-    routeTag("questionarioRoute:GET /_ping"),
-    (req, res) => {
-      return res.json({
-        ok: true,
-        data: {
-          modulo: "questionario",
-          usuario: {
-            id: getAuthenticatedUserId(req),
-            perfil: getAuthenticatedPerfil(req),
-          },
+  router.get("/_ping", routeTag("questionarioRoute:GET /_ping"), (req, res) => {
+    return res.json({
+      ok: true,
+      data: {
+        modulo: "questionario",
+        usuario: {
+          id: getAuthenticatedUserId(req),
+          perfil: getAuthenticatedPerfil(req),
         },
-        message: "questionarioRoute ativo.",
-      });
-    }
-  );
+      },
+      message: "questionarioRoute ativo.",
+    });
+  });
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -224,7 +220,7 @@ router.post(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("evento_id"),
   routeTag("questionarioRoute:POST /evento/:evento_id/rascunho"),
-  wrap(criarOuObterRascunhoPorEvento)
+  wrap(criarOuObterRascunhoPorEvento),
 );
 
 router.get(
@@ -232,7 +228,7 @@ router.get(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("evento_id"),
   routeTag("questionarioRoute:GET /evento/:evento_id"),
-  wrap(obterQuestionarioPorEvento)
+  wrap(obterQuestionarioPorEvento),
 );
 
 router.put(
@@ -240,7 +236,7 @@ router.put(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("questionario_id"),
   routeTag("questionarioRoute:PUT /:questionario_id"),
-  wrap(atualizarQuestionario)
+  wrap(atualizarQuestionario),
 );
 
 router.post(
@@ -248,7 +244,7 @@ router.post(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("questionario_id"),
   routeTag("questionarioRoute:POST /:questionario_id/publicar"),
-  wrap(publicarQuestionario)
+  wrap(publicarQuestionario),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -260,7 +256,7 @@ router.post(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("questionario_id"),
   routeTag("questionarioRoute:POST /:questionario_id/questao"),
-  wrap(adicionarQuestao)
+  wrap(adicionarQuestao),
 );
 
 router.put(
@@ -269,7 +265,7 @@ router.put(
   ensureNumericParam("questionario_id"),
   ensureNumericParam("questao_id"),
   routeTag("questionarioRoute:PUT /:questionario_id/questao/:questao_id"),
-  wrap(atualizarQuestao)
+  wrap(atualizarQuestao),
 );
 
 router.delete(
@@ -278,7 +274,7 @@ router.delete(
   ensureNumericParam("questionario_id"),
   ensureNumericParam("questao_id"),
   routeTag("questionarioRoute:DELETE /:questionario_id/questao/:questao_id"),
-  wrap(removerQuestao)
+  wrap(removerQuestao),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -290,7 +286,7 @@ router.post(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("questao_id"),
   routeTag("questionarioRoute:POST /questao/:questao_id/alternativa"),
-  wrap(adicionarAlternativa)
+  wrap(adicionarAlternativa),
 );
 
 router.put(
@@ -298,7 +294,7 @@ router.put(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("alternativa_id"),
   routeTag("questionarioRoute:PUT /alternativa/:alternativa_id"),
-  wrap(atualizarAlternativa)
+  wrap(atualizarAlternativa),
 );
 
 router.delete(
@@ -306,7 +302,7 @@ router.delete(
   authorize(...PERFIS_GESTAO),
   ensureNumericParam("alternativa_id"),
   routeTag("questionarioRoute:DELETE /alternativa/:alternativa_id"),
-  wrap(removerAlternativa)
+  wrap(removerAlternativa),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -318,7 +314,7 @@ router.get(
   authorize(...PERFIS_RESPOSTA),
   routeTag("questionarioRoute:GET /disponivel"),
   setUsuarioIdFromToken,
-  wrap(listarDisponiveisParaUsuario)
+  wrap(listarDisponiveisParaUsuario),
 );
 
 router.get(
@@ -327,7 +323,7 @@ router.get(
   ensureNumericParam("usuario_id"),
   ensureSelfOrAdmin,
   routeTag("questionarioRoute:GET /disponivel/usuario/:usuario_id"),
-  wrap(listarDisponiveisParaUsuario)
+  wrap(listarDisponiveisParaUsuario),
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -340,7 +336,7 @@ router.get(
   ensureNumericParam("questionario_id"),
   ensureNumericParam("turma_id"),
   routeTag("questionarioRoute:GET /:questionario_id/responder/turma/:turma_id"),
-  wrap(obterQuestionarioParaResponder)
+  wrap(obterQuestionarioParaResponder),
 );
 
 router.post(
@@ -349,7 +345,7 @@ router.post(
   ensureNumericParam("questionario_id"),
   ensureNumericParam("turma_id"),
   routeTag("questionarioRoute:POST /:questionario_id/iniciar/turma/:turma_id"),
-  wrap(iniciarTentativa)
+  wrap(iniciarTentativa),
 );
 
 router.post(
@@ -358,7 +354,7 @@ router.post(
   ensureNumericParam("questionario_id"),
   ensureNumericParam("turma_id"),
   routeTag("questionarioRoute:POST /:questionario_id/enviar/turma/:turma_id"),
-  wrap(enviarTentativa)
+  wrap(enviarTentativa),
 );
 
 router.get(
@@ -367,9 +363,9 @@ router.get(
   ensureNumericParam("questionario_id"),
   ensureNumericParam("turma_id"),
   routeTag(
-    "questionarioRoute:GET /:questionario_id/minha-tentativa/turma/:turma_id"
+    "questionarioRoute:GET /:questionario_id/minha-tentativa/turma/:turma_id",
   ),
-  wrap(obterMinhaTentativaPorTurma)
+  wrap(obterMinhaTentativaPorTurma),
 );
 
 module.exports = router;

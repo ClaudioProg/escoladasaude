@@ -41,17 +41,13 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   BarChart3,
-  CalendarDays,
   CheckCircle2,
   Clock,
   Copy,
-  Crosshair,
   Edit2,
   Eye,
-  FileQuestion,
   Filter,
   Layers3,
-  Link2,
   Loader2,
   MapPin,
   Plus,
@@ -141,15 +137,25 @@ function cx(...classes) {
 }
 
 function unwrapArray(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
   return [];
 }
 
 function unwrapData(response) {
-  if (response?.data?.data !== undefined) return response.data.data;
-  if (response?.data !== undefined) return response.data;
+  if (response?.data?.data !== undefined) {
+    return response.data.data;
+  }
+  if (response?.data !== undefined) {
+    return response.data;
+  }
   return response;
 }
 
@@ -174,29 +180,23 @@ function norm(value) {
     .trim();
 }
 
-function brDate(value) {
-  if (!value) return "—";
-
-  try {
-    const [ano, mes, dia] = String(value).slice(0, 10).split("-");
-    if (!ano || !mes || !dia) return "—";
-    return `${dia}/${mes}/${ano}`;
-  } catch {
+function brTime(value) {
+  if (!value) {
     return "—";
   }
-}
-
-function brTime(value) {
-  if (!value) return "—";
   return String(value).slice(0, 5);
 }
 
 function brDateTime(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   try {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
 
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -260,7 +260,9 @@ function readPersistedFilters() {
 }
 
 function normalizeFormFromInteracao(interacao) {
-  if (!interacao) return FORM_INICIAL;
+  if (!interacao) {
+    return FORM_INICIAL;
+  }
 
   const pergunta = Array.isArray(interacao.perguntas)
     ? interacao.perguntas[0]
@@ -343,7 +345,9 @@ function normalizeFormFromInteracao(interacao) {
 function getFrontendBaseUrl() {
   const envUrl = import.meta.env?.VITE_FRONTEND_URL;
 
-  if (envUrl) return String(envUrl).replace(/\/+$/, "");
+  if (envUrl) {
+    return String(envUrl).replace(/\/+$/, "");
+  }
 
   if (typeof window !== "undefined" && window.location?.origin) {
     return window.location.origin;
@@ -353,10 +357,14 @@ function getFrontendBaseUrl() {
 }
 
 function montarLinkInteracao(interacao) {
-  if (!interacao?.id) return "";
+  if (!interacao?.id) {
+    return "";
+  }
 
   const base = getFrontendBaseUrl();
-  const token = interacao.qr_token ? `?token=${encodeURIComponent(interacao.qr_token)}` : "";
+  const token = interacao.qr_token
+    ? `?token=${encodeURIComponent(interacao.qr_token)}`
+    : "";
 
   return `${base}/interacao/${interacao.id}${token}`;
 }
@@ -376,7 +384,7 @@ export default function InteracoesVotacaoAdmin() {
   const [mensagem, setMensagem] = useState("");
 
   const [filtroStatus, setFiltroStatus] = useState(
-    persisted.filtroStatus || ""
+    persisted.filtroStatus || "",
   );
   const [busca, setBusca] = useState(persisted.busca || "");
   const [buscaDebounced, setBuscaDebounced] = useState(persisted.busca || "");
@@ -408,7 +416,7 @@ export default function InteracoesVotacaoAdmin() {
         JSON.stringify({
           filtroStatus,
           busca,
-        })
+        }),
       );
     } catch {
       // localStorage indisponível não deve quebrar a página.
@@ -440,7 +448,7 @@ export default function InteracoesVotacaoAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar as votações."
+        "Não foi possível carregar as votações.",
       );
 
       setErro(message);
@@ -458,7 +466,9 @@ export default function InteracoesVotacaoAdmin() {
     const query = norm(buscaDebounced);
 
     return interacoes.filter((interacao) => {
-      if (filtroStatus && interacao.status !== filtroStatus) return false;
+      if (filtroStatus && interacao.status !== filtroStatus) {
+        return false;
+      }
 
       if (query) {
         const haystack = norm(
@@ -474,10 +484,12 @@ export default function InteracoesVotacaoAdmin() {
             interacao.criado_por_nome,
           ]
             .filter(Boolean)
-            .join(" | ")
+            .join(" | "),
         );
 
-        if (!haystack.includes(query)) return false;
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
 
       return true;
@@ -494,9 +506,15 @@ export default function InteracoesVotacaoAdmin() {
     };
 
     for (const interacao of interacoes) {
-      if (interacao.status === "publicada") base.publicada += 1;
-      if (interacao.status === "encerrada") base.encerrada += 1;
-      if (interacao.status === "rascunho") base.rascunho += 1;
+      if (interacao.status === "publicada") {
+        base.publicada += 1;
+      }
+      if (interacao.status === "encerrada") {
+        base.encerrada += 1;
+      }
+      if (interacao.status === "rascunho") {
+        base.rascunho += 1;
+      }
 
       base.respostas += Number(interacao.total_respostas || 0);
     }
@@ -529,7 +547,7 @@ export default function InteracoesVotacaoAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar a votação para edição."
+        "Não foi possível carregar a votação para edição.",
       );
 
       setErro(message);
@@ -538,7 +556,9 @@ export default function InteracoesVotacaoAdmin() {
   }
 
   async function alterarStatus(interacao, status) {
-    if (!interacao?.id || !status || interacao.status === status) return;
+    if (!interacao?.id || !status || interacao.status === status) {
+      return;
+    }
 
     setAlterandoStatusId(interacao.id);
     setErro("");
@@ -559,8 +579,8 @@ export default function InteracoesVotacaoAdmin() {
                   : {}),
                 status,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMensagem("Status da votação atualizado com sucesso.");
@@ -568,7 +588,7 @@ export default function InteracoesVotacaoAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível alterar o status da votação."
+        "Não foi possível alterar o status da votação.",
       );
 
       setErro(message);
@@ -600,7 +620,7 @@ export default function InteracoesVotacaoAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível carregar o resultado da votação."
+        "Não foi possível carregar o resultado da votação.",
       );
 
       setResultadoPainel({
@@ -623,7 +643,9 @@ export default function InteracoesVotacaoAdmin() {
   }
 
   async function confirmarExclusao() {
-    if (!confirmacao?.id) return;
+    if (!confirmacao?.id) {
+      return;
+    }
 
     setExcluindo(true);
     setErro("");
@@ -634,7 +656,7 @@ export default function InteracoesVotacaoAdmin() {
       await api.interacao.excluir(confirmacao.id);
 
       setInteracoes((current) =>
-        current.filter((item) => String(item.id) !== String(confirmacao.id))
+        current.filter((item) => String(item.id) !== String(confirmacao.id)),
       );
 
       setMensagem("Votação excluída com sucesso.");
@@ -643,7 +665,7 @@ export default function InteracoesVotacaoAdmin() {
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Não foi possível excluir a votação."
+        "Não foi possível excluir a votação.",
       );
 
       setErro(message);
@@ -662,7 +684,9 @@ export default function InteracoesVotacaoAdmin() {
         titulo={confirmacao?.titulo}
         loading={excluindo}
         onCancel={() => {
-          if (excluindo) return;
+          if (excluindo) {
+            return;
+          }
           setConfirmacao(null);
         }}
         onConfirm={confirmarExclusao}
@@ -672,7 +696,9 @@ export default function InteracoesVotacaoAdmin() {
         painel={resultadoPainel}
         loading={carregandoResultado}
         onClose={() => {
-          if (carregandoResultado) return;
+          if (carregandoResultado) {
+            return;
+          }
           setResultadoPainel(null);
         }}
       />
@@ -693,7 +719,12 @@ export default function InteracoesVotacaoAdmin() {
         />
 
         {erro ? (
-          <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+          <AlertBox
+            tone="rose"
+            icon={AlertCircle}
+            title="Atenção"
+            message={erro}
+          />
         ) : null}
 
         {mensagem ? (
@@ -804,7 +835,9 @@ export default function InteracoesVotacaoAdmin() {
                 key={interacao.id}
                 interacao={interacao}
                 reduceMotion={reduceMotion}
-                alterandoStatus={String(alterandoStatusId) === String(interacao.id)}
+                alterandoStatus={
+                  String(alterandoStatusId) === String(interacao.id)
+                }
                 onEditar={() => abrirEdicao(interacao)}
                 onResultado={() => abrirResultado(interacao)}
                 onExcluir={() => pedirExclusao(interacao)}
@@ -840,8 +873,7 @@ export default function InteracoesVotacaoAdmin() {
 
 function AlertBox({ tone, icon: Icon, title, message }) {
   const tones = {
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
+    rose: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200",
     emerald:
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
   };
@@ -945,23 +977,19 @@ function PainelOperacionalVotacoes({
 function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
   const tones = {
     emerald: {
-      wrap:
-        "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
+      wrap: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-100",
       gradient: "from-emerald-600 via-teal-500 to-cyan-500",
     },
     amber: {
-      wrap:
-        "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
+      wrap: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/25 dark:text-amber-100",
       gradient: "from-amber-500 via-orange-400 to-yellow-500",
     },
     violet: {
-      wrap:
-        "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
+      wrap: "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/50 dark:bg-violet-950/25 dark:text-violet-100",
       gradient: "from-violet-600 via-fuchsia-500 to-purple-500",
     },
     slate: {
-      wrap:
-        "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+      wrap: "border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
       gradient: "from-slate-600 via-zinc-500 to-slate-400",
     },
   };
@@ -969,7 +997,9 @@ function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
   const cfg = tones[tone] || tones.emerald;
 
   return (
-    <div className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}>
+    <div
+      className={cx("overflow-hidden rounded-2xl border shadow-sm", cfg.wrap)}
+    >
       <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
 
       <div className="flex items-center justify-between gap-3 p-4">
@@ -988,16 +1018,28 @@ function MiniStat({ label, value, icon: Icon, tone = "emerald" }) {
   );
 }
 
-function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) {
-  if (!open) return null;
+function ConfirmarExclusaoModal({
+  open,
+  titulo,
+  loading,
+  onCancel,
+  onConfirm,
+}) {
+  if (!open) {
+    return null;
+  }
 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onCancel?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onCancel?.();
+        }
       }}
     >
       <div
@@ -1023,8 +1065,8 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
                 className="mt-2 text-sm leading-relaxed text-white/90"
               >
                 Tem certeza que deseja excluir{" "}
-                {titulo ? <strong>“{titulo}”</strong> : "esta votação"}?
-                Esta ação não pode ser desfeita.
+                {titulo ? <strong>“{titulo}”</strong> : "esta votação"}? Esta
+                ação não pode ser desfeita.
               </p>
             </div>
 
@@ -1072,12 +1114,14 @@ function ConfirmarExclusaoModal({ open, titulo, loading, onCancel, onConfirm }) 
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
 function ResultadoDrawer({ painel, loading, onClose }) {
-  if (!painel) return null;
+  if (!painel) {
+    return null;
+  }
 
   const resultado = painel.resultado || {};
   const ranking =
@@ -1088,15 +1132,24 @@ function ResultadoDrawer({ painel, loading, onClose }) {
     [];
 
   const total =
-    Number(resultado.total_respostas ?? resultado.total ?? painel.interacao?.total_respostas ?? 0) || 0;
+    Number(
+      resultado.total_respostas ??
+        resultado.total ??
+        painel.interacao?.total_respostas ??
+        0,
+    ) || 0;
 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-sm"
       role="presentation"
       onMouseDown={(event) => {
-        if (loading) return;
-        if (event.target === event.currentTarget) onClose?.();
+        if (loading) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
       }}
     >
       <aside
@@ -1162,7 +1215,13 @@ function ResultadoDrawer({ painel, loading, onClose }) {
                   item.titulo ||
                   `Opção ${index + 1}`;
                 const votos =
-                  Number(item.votos ?? item.total ?? item.quantidade ?? item.count ?? 0) || 0;
+                  Number(
+                    item.votos ??
+                      item.total ??
+                      item.quantidade ??
+                      item.count ??
+                      0,
+                  ) || 0;
                 const percentual =
                   total > 0 ? Math.round((votos / total) * 100) : 0;
 
@@ -1209,10 +1268,9 @@ function ResultadoDrawer({ painel, loading, onClose }) {
         </div>
       </aside>
     </div>,
-    document.body
+    document.body,
   );
 }
-
 
 function StatusBadge({ status }) {
   const info = statusInfo(status);
@@ -1224,8 +1282,7 @@ function StatusBadge({ status }) {
       "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200",
     violet:
       "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
-    blue:
-      "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
+    blue: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200",
     slate:
       "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
   };
@@ -1234,7 +1291,7 @@ function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black",
-        tones[info.tone] || tones.slate
+        tones[info.tone] || tones.slate,
       )}
     >
       {info.label}
@@ -1540,7 +1597,9 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
   const firstRef = useRef(null);
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     setForm(normalizeFormFromInteracao(interacao));
     setSalvando(false);
@@ -1567,7 +1626,9 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     };
   }, [aberto, interacao, onClose, salvando]);
 
-  if (!aberto) return null;
+  if (!aberto) {
+    return null;
+  }
 
   function setCampo(campo, valor) {
     setForm((current) => {
@@ -1614,7 +1675,7 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       opcoes: (current.opcoes || []).map((opcao) =>
-        opcao.local_id === localId ? { ...opcao, texto: valor } : opcao
+        opcao.local_id === localId ? { ...opcao, texto: valor } : opcao,
       ),
     }));
   }
@@ -1650,7 +1711,7 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       janelas: (current.janelas || []).map((janela) =>
-        janela.local_id === localId ? { ...janela, [campo]: valor } : janela
+        janela.local_id === localId ? { ...janela, [campo]: valor } : janela,
       ),
     }));
   }
@@ -1659,7 +1720,7 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     setForm((current) => ({
       ...current,
       janelas: (current.janelas || []).filter(
-        (janela) => janela.local_id !== localId
+        (janela) => janela.local_id !== localId,
       ),
     }));
   }
@@ -1686,7 +1747,7 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     }
 
     const opcoesValidas = (form.opcoes || []).filter((opcao) =>
-      cleanStr(opcao.texto)
+      cleanStr(opcao.texto),
     );
 
     if (opcoesValidas.length < 2) {
@@ -1748,9 +1809,7 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
       exige_geolocalizacao: Boolean(form.exige_geolocalizacao),
       latitude: form.exige_geolocalizacao ? Number(form.latitude) : null,
       longitude: form.exige_geolocalizacao ? Number(form.longitude) : null,
-      raio_metros: form.exige_geolocalizacao
-        ? Number(form.raio_metros)
-        : null,
+      raio_metros: form.exige_geolocalizacao ? Number(form.raio_metros) : null,
 
       permite_anonima: Boolean(form.permite_anonima),
       uma_resposta_por_usuario: true,
@@ -1785,7 +1844,9 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
   async function salvar(event) {
     event?.preventDefault?.();
 
-    if (salvando) return;
+    if (salvando) {
+      return;
+    }
 
     setErro("");
     setA11y("");
@@ -1814,7 +1875,10 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
       await onSaved?.();
       onClose?.();
     } catch (error) {
-      const message = getErrorMessage(error, "Não foi possível salvar a votação.");
+      const message = getErrorMessage(
+        error,
+        "Não foi possível salvar a votação.",
+      );
 
       setErro(message);
       setA11y(message);
@@ -1823,15 +1887,19 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
     }
   }
 
-    return createPortal(
-  <div
-    className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-    role="presentation"
-    onMouseDown={(event) => {
-      if (salvando) return;
-      if (event.target === event.currentTarget) onClose?.();
-    }}
-  >
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (salvando) {
+          return;
+        }
+        if (event.target === event.currentTarget) {
+          onClose?.();
+        }
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -1883,10 +1951,15 @@ function ModalVotacao({ aberto, interacao, onClose, onSaved }) {
 
         <form
           onSubmit={salvar}
-className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:bg-slate-950 sm:p-6 sm:pb-32"
         >
           {erro ? (
-            <AlertBox tone="rose" icon={AlertCircle} title="Atenção" message={erro} />
+            <AlertBox
+              tone="rose"
+              icon={AlertCircle}
+              title="Atenção"
+              message={erro}
+            />
           ) : null}
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
@@ -1942,7 +2015,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                     type="number"
                     min="1"
                     value={form.evento_id}
-                    onChange={(event) => setCampo("evento_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("evento_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID do evento"
                     disabled={salvando}
@@ -1956,7 +2031,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                     type="number"
                     min="1"
                     value={form.turma_id}
-                    onChange={(event) => setCampo("turma_id", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("turma_id", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="Informe o ID da turma"
                     disabled={salvando}
@@ -1968,7 +2045,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                 <Field label="Descrição">
                   <textarea
                     value={form.descricao}
-                    onChange={(event) => setCampo("descricao", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("descricao", event.target.value)
+                    }
                     className={textareaClass()}
                     rows={3}
                     placeholder="Explique o objetivo da votação."
@@ -1988,7 +2067,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
               <Field label="Pergunta da votação" required>
                 <textarea
                   value={form.enunciado}
-                  onChange={(event) => setCampo("enunciado", event.target.value)}
+                  onChange={(event) =>
+                    setCampo("enunciado", event.target.value)
+                  }
                   className={textareaClass()}
                   rows={3}
                   placeholder="Ex.: Qual desses trabalhos orais foi o melhor?"
@@ -2081,7 +2162,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                         atualizarJanela(
                           janela.local_id,
                           "data",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className={inputClass()}
@@ -2097,7 +2178,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                         atualizarJanela(
                           janela.local_id,
                           "horario_inicio",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className={inputClass()}
@@ -2113,7 +2194,7 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                         atualizarJanela(
                           janela.local_id,
                           "horario_fim",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className={inputClass()}
@@ -2197,7 +2278,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                     type="number"
                     step="0.0000001"
                     value={form.latitude}
-                    onChange={(event) => setCampo("latitude", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("latitude", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="-23.9600000"
                     disabled={salvando}
@@ -2209,7 +2292,9 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
                     type="number"
                     step="0.0000001"
                     value={form.longitude}
-                    onChange={(event) => setCampo("longitude", event.target.value)}
+                    onChange={(event) =>
+                      setCampo("longitude", event.target.value)
+                    }
                     className={inputClass()}
                     placeholder="-46.3300000"
                     disabled={salvando}
@@ -2234,11 +2319,12 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
           </section>
         </form>
 
-<footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <footer className="shrink-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          {" "}
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             A votação só aceitará votos dentro das janelas definidas e conforme
             as regras de participação.
           </p>
-
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             <button
               type="button"
@@ -2271,6 +2357,6 @@ className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 pb-28 dark:b
         </footer>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

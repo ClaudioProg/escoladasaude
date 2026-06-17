@@ -109,7 +109,7 @@ function calcularNota10Normalizada({ itens, criterios } = {}, options = {}) {
 
         return key ? [key, criterio] : null;
       })
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
   let somaPonderadaScore = 0;

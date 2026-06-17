@@ -134,7 +134,7 @@ function numeroIdOpcional(valor) {
 function perfilPrincipal(perfil) {
   if (Array.isArray(perfil)) {
     const perfilValido = perfil.find((item) =>
-      PERFIS_OFICIAIS.has(String(item).trim())
+      PERFIS_OFICIAIS.has(String(item).trim()),
     );
 
     return perfilValido || null;
@@ -148,7 +148,7 @@ function obterUsuarioId(req) {
   return numeroIdObrigatorio(
     req?.user?.id,
     "Usuário autenticado",
-    "USUARIO_AUTENTICADO_INVALIDO"
+    "USUARIO_AUTENTICADO_INVALIDO",
   );
 }
 
@@ -177,7 +177,9 @@ function usuarioEhAdministrador(req) {
 
 function exigirAdministrador(req) {
   if (!usuarioEhAdministrador(req)) {
-    const error = new Error("Você não tem permissão para acessar este recurso.");
+    const error = new Error(
+      "Você não tem permissão para acessar este recurso.",
+    );
     error.code = "SEM_PERMISSAO_MENSAGEM_ADMIN";
     error.status = 403;
     throw error;
@@ -252,18 +254,40 @@ function montarWhereConversasAdmin(filtros = {}) {
     add("c.prioridade = ?", prioridade);
   }
 
-  if (filtros.usuario_id !== undefined && filtros.usuario_id !== null && filtros.usuario_id !== "") {
-    add("c.usuario_id = ?", numeroIdObrigatorio(filtros.usuario_id, "Usuário", "MENSAGEM_USUARIO_ID_INVALIDO"));
+  if (
+    filtros.usuario_id !== undefined &&
+    filtros.usuario_id !== null &&
+    filtros.usuario_id !== ""
+  ) {
+    add(
+      "c.usuario_id = ?",
+      numeroIdObrigatorio(
+        filtros.usuario_id,
+        "Usuário",
+        "MENSAGEM_USUARIO_ID_INVALIDO",
+      ),
+    );
   }
 
-  if (filtros.atribuido_para !== undefined && filtros.atribuido_para !== null && filtros.atribuido_para !== "") {
-    add("c.atribuido_para = ?", numeroIdObrigatorio(filtros.atribuido_para, "Responsável", "MENSAGEM_ATRIBUIDO_PARA_INVALIDO"));
+  if (
+    filtros.atribuido_para !== undefined &&
+    filtros.atribuido_para !== null &&
+    filtros.atribuido_para !== ""
+  ) {
+    add(
+      "c.atribuido_para = ?",
+      numeroIdObrigatorio(
+        filtros.atribuido_para,
+        "Responsável",
+        "MENSAGEM_ATRIBUIDO_PARA_INVALIDO",
+      ),
+    );
   }
 
   if (textoOuNull(filtros.busca)) {
     add(
       "(unaccent(lower(c.assunto)) ILIKE unaccent(lower(?)) OR unaccent(lower(u.nome)) ILIKE unaccent(lower(?)) OR unaccent(lower(u.email)) ILIKE unaccent(lower(?)))",
-      `%${textoOuNull(filtros.busca)}%`
+      `%${textoOuNull(filtros.busca)}%`,
     );
 
     const busca = `%${textoOuNull(filtros.busca)}%`;
@@ -306,7 +330,7 @@ async function buscarConversaPorId(client, conversa_id) {
   const conversaId = numeroIdObrigatorio(
     conversa_id,
     "Conversa",
-    "MENSAGEM_CONVERSA_ID_INVALIDO"
+    "MENSAGEM_CONVERSA_ID_INVALIDO",
   );
 
   const { rows } = await client.query(
@@ -331,7 +355,7 @@ async function buscarConversaPorId(client, conversa_id) {
       WHERE c.id = $1
       LIMIT 1
     `,
-    [conversaId]
+    [conversaId],
   );
 
   return rows[0] || null;
@@ -352,7 +376,9 @@ function garantirAcessoConversa(req, conversa) {
   const usuarioId = obterUsuarioId(req);
 
   if (Number(conversa.usuario_id) !== Number(usuarioId)) {
-    const error = new Error("Você não tem permissão para acessar esta conversa.");
+    const error = new Error(
+      "Você não tem permissão para acessar esta conversa.",
+    );
     error.code = "SEM_PERMISSAO_CONVERSA";
     error.status = 403;
     throw error;
@@ -362,7 +388,7 @@ function garantirAcessoConversa(req, conversa) {
 function garantirConversaAtiva(conversa) {
   if (STATUS_FINAIS.has(conversa.status)) {
     const error = new Error(
-      "Esta conversa já foi encerrada ou arquivada e não aceita novas respostas."
+      "Esta conversa já foi encerrada ou arquivada e não aceita novas respostas.",
     );
     error.code = "MENSAGEM_CONVERSA_FINALIZADA";
     error.status = 409;
@@ -410,14 +436,14 @@ async function abrirConversa(req, payload = {}) {
     payload.assunto,
     5,
     "Assunto",
-    "MENSAGEM_ASSUNTO_INVALIDO"
+    "MENSAGEM_ASSUNTO_INVALIDO",
   );
 
   const mensagem = textoObrigatorio(
     payload.mensagem,
     2,
     "Mensagem",
-    "MENSAGEM_TEXTO_INVALIDO"
+    "MENSAGEM_TEXTO_INVALIDO",
   );
 
   const categoria = normalizarCategoria(payload.categoria);
@@ -455,7 +481,7 @@ async function abrirConversa(req, payload = {}) {
           encerrado_por,
           motivo_encerramento
       `,
-      [usuarioId, assunto, categoria, prioridade]
+      [usuarioId, assunto, categoria, prioridade],
     );
 
     const conversa = conversaResult.rows[0];
@@ -471,7 +497,7 @@ async function abrirConversa(req, payload = {}) {
         )
         VALUES ($1, $2, $3, $4, true)
       `,
-      [conversa.id, usuarioId, perfilAutorInicial, mensagem]
+      [conversa.id, usuarioId, perfilAutorInicial, mensagem],
     );
 
     await client.query("COMMIT");
@@ -495,7 +521,8 @@ async function abrirConversa(req, payload = {}) {
     return {
       ok: true,
       data: conversa,
-      message: "Mensagem enviada com sucesso. A equipe administrativa poderá responder por este canal.",
+      message:
+        "Mensagem enviada com sucesso. A equipe administrativa poderá responder por este canal.",
       code: "MENSAGEM_CONVERSA_CRIADA",
     };
   } catch (error) {
@@ -574,7 +601,7 @@ async function listarMinhasConversas(req, filtros = {}) {
       LIMIT ${limiteParam}
       OFFSET ${offsetParam}
     `,
-    values
+    values,
   );
 
   const countResult = await db.query(
@@ -583,7 +610,7 @@ async function listarMinhasConversas(req, filtros = {}) {
       FROM mensagem_conversas c
       ${whereSql}
     `,
-    values.slice(0, values.length - 2)
+    values.slice(0, values.length - 2),
   );
 
   const total = countResult.rows[0]?.total || 0;
@@ -635,7 +662,7 @@ async function obterConversa(req, conversa_id) {
         )
       ORDER BY r.criado_em ASC, r.id ASC
     `,
-    [conversa.id, admin]
+    [conversa.id, admin],
   );
 
   return {
@@ -661,7 +688,7 @@ async function responderConversa(req, conversa_id, payload = {}) {
     payload.mensagem,
     2,
     "Mensagem",
-    "MENSAGEM_TEXTO_INVALIDO"
+    "MENSAGEM_TEXTO_INVALIDO",
   );
 
   const visivelUsuario =
@@ -697,7 +724,7 @@ async function responderConversa(req, conversa_id, payload = {}) {
           visivel_usuario,
           criado_em
       `,
-      [conversa.id, usuarioId, perfil, mensagem, visivelUsuario]
+      [conversa.id, usuarioId, perfil, mensagem, visivelUsuario],
     );
 
     const resposta = respostaResult.rows[0];
@@ -819,7 +846,7 @@ async function listarConversasAdmin(req, filtros = {}) {
       LIMIT ${limiteParam}
       OFFSET ${offsetParam}
     `,
-    values
+    values,
   );
 
   const countResult = await db.query(
@@ -829,7 +856,7 @@ async function listarConversasAdmin(req, filtros = {}) {
       JOIN usuarios u ON u.id = c.usuario_id
       ${whereSql}
     `,
-    values.slice(0, values.length - 2)
+    values.slice(0, values.length - 2),
   );
 
   const total = countResult.rows[0]?.total || 0;
@@ -856,7 +883,7 @@ async function atualizarConversaAdmin(req, conversa_id, payload = {}) {
   const conversaId = numeroIdObrigatorio(
     conversa_id,
     "Conversa",
-    "MENSAGEM_CONVERSA_ID_INVALIDO"
+    "MENSAGEM_CONVERSA_ID_INVALIDO",
   );
 
   const client = db;
@@ -873,7 +900,9 @@ async function atualizarConversaAdmin(req, conversa_id, payload = {}) {
       throw error;
     }
 
-    const novoStatus = payload.status ? normalizarStatus(payload.status) : anterior.status;
+    const novoStatus = payload.status
+      ? normalizarStatus(payload.status)
+      : anterior.status;
     const novaPrioridade = payload.prioridade
       ? normalizarPrioridade(payload.prioridade)
       : anterior.prioridade;
@@ -901,7 +930,7 @@ async function atualizarConversaAdmin(req, conversa_id, payload = {}) {
 
     if (!vaiFinalizar && estavaFinalizada) {
       const error = new Error(
-        "Conversa encerrada ou arquivada não pode ser reaberta por esta ação."
+        "Conversa encerrada ou arquivada não pode ser reaberta por esta ação.",
       );
       error.code = "MENSAGEM_REABERTURA_NAO_PERMITIDA";
       error.status = 409;
@@ -944,7 +973,7 @@ async function atualizarConversaAdmin(req, conversa_id, payload = {}) {
         encerradoPor,
         motivoEncerramento,
         conversaId,
-      ]
+      ],
     );
 
     const atualizada = updateResult.rows[0];
@@ -1014,7 +1043,7 @@ async function resumoMensagensAdmin(req) {
         MIN(criado_em) AS primeira_conversa,
         MAX(criado_em) AS ultima_conversa
       FROM mensagem_conversas
-    `
+    `,
   );
 
   const porCategoria = await db.query(
@@ -1025,7 +1054,7 @@ async function resumoMensagensAdmin(req) {
       FROM mensagem_conversas
       GROUP BY categoria
       ORDER BY total DESC, categoria ASC
-    `
+    `,
   );
 
   const porPrioridade = await db.query(
@@ -1043,7 +1072,7 @@ async function resumoMensagensAdmin(req) {
           WHEN 'baixa' THEN 4
           ELSE 5
         END ASC
-    `
+    `,
   );
 
   return {

@@ -16,7 +16,13 @@
 // - sem compatibilidade legada acao;
 // - contrato limpo e previsível.
 
-import { cloneElement, createElement, isValidElement, useId, useMemo } from "react";
+import {
+  cloneElement,
+  createElement,
+  isValidElement,
+  useId,
+  useMemo,
+} from "react";
 import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
 import { SearchX } from "lucide-react";
@@ -97,7 +103,9 @@ function classNames(...classes) {
 }
 
 function renderIcon(icon, className) {
-  if (!icon) return null;
+  if (!icon) {
+    return null;
+  }
 
   if (isValidElement(icon)) {
     return cloneElement(icon, {
@@ -154,7 +162,8 @@ export default function NadaEncontrado({
   const descId = `${testId}-${uid}-desc`;
   const titleId = `${testId}-${uid}-title`;
 
-  const TitleTag = titleAs === "h2" || titleAs === "h3" || titleAs === "p" ? titleAs : "p";
+  const TitleTag =
+    titleAs === "h2" || titleAs === "h3" || titleAs === "p" ? titleAs : "p";
 
   const motionProps = reduceMotion
     ? {}
@@ -170,7 +179,7 @@ export default function NadaEncontrado({
       className={classNames(
         "mx-auto w-full max-w-2xl text-center text-slate-600 dark:text-slate-300",
         sizeClass.wrapper,
-        className
+        className,
       )}
       role="status"
       aria-live="polite"
@@ -182,27 +191,30 @@ export default function NadaEncontrado({
       <div
         className={classNames(
           "relative mx-auto mb-4 grid place-items-center overflow-hidden border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900",
-          sizeClass.iconBox
+          sizeClass.iconBox,
         )}
         aria-hidden="true"
       >
         <div
           className={classNames(
             "absolute inset-0 bg-gradient-to-br opacity-18 dark:opacity-25",
-            theme.ring
+            theme.ring,
           )}
         />
 
         <div className="absolute inset-0 bg-[radial-gradient(500px_circle_at_20%_0%,rgba(255,255,255,0.65),transparent_42%)] dark:bg-[radial-gradient(500px_circle_at_20%_0%,rgba(255,255,255,0.10),transparent_42%)]" />
 
-        {renderIcon(Icone, classNames("relative", sizeClass.icon, theme.icon, iconClassName))}
+        {renderIcon(
+          Icone,
+          classNames("relative", sizeClass.icon, theme.icon, iconClassName),
+        )}
       </div>
 
       <TitleTag
         id={titleId}
         className={classNames(
           "font-black tracking-tight text-slate-900 dark:text-slate-100",
-          sizeClass.title
+          sizeClass.title,
         )}
       >
         {mensagem}
@@ -213,7 +225,7 @@ export default function NadaEncontrado({
           id={descId}
           className={classNames(
             "mx-auto mt-2 max-w-xl font-medium leading-relaxed text-slate-500 dark:text-slate-400",
-            sizeClass.hint
+            sizeClass.hint,
           )}
         >
           {sugestao}
@@ -238,7 +250,8 @@ export default function NadaEncontrado({
                   "disabled:cursor-not-allowed disabled:opacity-55",
                   isPrimary
                     ? theme.primary
-                    : ACTION_VARIANTS[action.variant] || ACTION_VARIANTS.secondary
+                    : ACTION_VARIANTS[action.variant] ||
+                        ACTION_VARIANTS.secondary,
                 )}
               >
                 {action.icon && (
@@ -268,10 +281,17 @@ NadaEncontrado.propTypes = {
       variant: PropTypes.oneOf(["primary", "secondary", "ghost"]),
       disabled: PropTypes.bool,
       title: PropTypes.string,
-    })
+    }),
   ),
   size: PropTypes.oneOf(["sm", "md", "lg"]),
-  variant: PropTypes.oneOf(["emerald", "indigo", "cyan", "rose", "slate", "lousa"]),
+  variant: PropTypes.oneOf([
+    "emerald",
+    "indigo",
+    "cyan",
+    "rose",
+    "slate",
+    "lousa",
+  ]),
   className: PropTypes.string,
   iconClassName: PropTypes.string,
   testId: PropTypes.string,

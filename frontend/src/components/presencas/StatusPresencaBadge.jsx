@@ -136,7 +136,9 @@ function classNames(...classes) {
 }
 
 function normalizarStatus(status) {
-  const value = String(status || "").trim().toLowerCase();
+  const value = String(status || "")
+    .trim()
+    .toLowerCase();
 
   return Object.values(STATUS_VISUAL).includes(value)
     ? value
@@ -175,7 +177,7 @@ export default function StatusPresencaBadge({
         sizeConfig.gap,
         sizeConfig.wrap,
         config.className,
-        className
+        className,
       )}
       role={announce ? "status" : undefined}
       aria-live={announce ? ariaLive : undefined}
@@ -187,7 +189,7 @@ export default function StatusPresencaBadge({
           className={classNames(
             "shrink-0 rounded-full",
             sizeConfig.dot,
-            config.dotClassName
+            config.dotClassName,
           )}
           aria-hidden="true"
         />

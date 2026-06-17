@@ -173,7 +173,7 @@ async function queryUsuarioPerfil(db, userId) {
     WHERE id = $1
     LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   return result.rows?.[0] || null;

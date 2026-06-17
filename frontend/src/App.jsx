@@ -1,5 +1,5 @@
-// ✅ frontend/src/App.jsx — v2.4
-// Atualizado em: 19/05/2026
+// ✅ frontend/src/App.jsx — v2.5
+// Atualizado em: 16/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -122,8 +122,8 @@ const Scanner = lazy(() => import("./pages/Scanner"));
 const DashboardOrganizador = lazy(() => import("./pages/DashboardOrganizador"));
 const AgendaOrganizador = lazy(() => import("./pages/AgendaOrganizador"));
 const PresencaOrganizador = lazy(() => import("./pages/PresencaOrganizador"));
-const CertificadosOrganizador = lazy(() =>
-  import("./pages/CertificadosOrganizador")
+const CertificadosOrganizador = lazy(
+  () => import("./pages/CertificadosOrganizador"),
 );
 const AvaliacaoOrganizador = lazy(() => import("./pages/AvaliacaoOrganizador"));
 const BancaAvaliadora = lazy(() => import("./pages/BancaAvaliadora"));
@@ -133,40 +133,38 @@ const PresencasPorTurma = lazy(() => import("./pages/PresencasPorTurma"));
    Lazy loading — administrador
 ────────────────────────────────────────────────────────────── */
 
-const DashboardAdministrador = lazy(() =>
-  import("./pages/DashboardAdministrador")
+const DashboardAdministrador = lazy(
+  () => import("./pages/DashboardAdministrador"),
 );
 const DashboardAnalitico = lazy(() => import("./pages/DashboardAnalitico"));
 
 const AgendaAdministrador = lazy(() => import("./pages/AgendaAdministrador"));
 const AgendaSalasAdmin = lazy(() => import("./pages/AgendaSalasAdmin"));
-const CalendarioAnualEPSAdmin = lazy(() =>
-  import("./pages/CalendarioAnualEPSAdmin")
+const CalendarioAnualEPSAdmin = lazy(
+  () => import("./pages/CalendarioAnualEPSAdmin"),
 );
-const CalendarioBloqueiosAdmin = lazy(() =>
-  import("./pages/CalendarioBloqueiosAdmin")
+const CalendarioBloqueiosAdmin = lazy(
+  () => import("./pages/CalendarioBloqueiosAdmin"),
 );
 
 const CursosOnlineAdmin = lazy(() => import("./pages/CursosOnlineAdmin"));
 const PesquisasAdmin = lazy(() => import("./pages/PesquisasAdmin"));
 
-const InteracoesVotacaoAdmin = lazy(() =>
-  import("./pages/InteracoesVotacaoAdmin")
+const InteracoesVotacaoAdmin = lazy(
+  () => import("./pages/InteracoesVotacaoAdmin"),
 );
 const InteracoesQuizAdmin = lazy(() => import("./pages/InteracoesQuizAdmin"));
-const InteracoesNuvemPalavrasAdmin = lazy(() =>
-  import("./pages/InteracoesNuvemPalavrasAdmin")
+const InteracoesNuvemPalavrasAdmin = lazy(
+  () => import("./pages/InteracoesNuvemPalavrasAdmin"),
 );
-const InteracoesApresentacao = lazy(() =>
-  import("./pages/InteracoesApresentacao")
+const InteracoesApresentacao = lazy(
+  () => import("./pages/InteracoesApresentacao"),
 );
 
 const AuditoriaAdmin = lazy(() => import("./pages/AuditoriaAdmin"));
 const MensagemAdmin = lazy(() => import("./pages/MensagemAdmin"));
 const PendenciasAdmin = lazy(() => import("./pages/PendenciasAdmin"));
-const SaudePlataformaAdmin = lazy(() =>
-  import("./pages/SaudePlataformaAdmin")
-);
+const SaudePlataformaAdmin = lazy(() => import("./pages/SaudePlataformaAdmin"));
 
 const GestaoEventos = lazy(() => import("./pages/GestaoEventos"));
 const GestaoInformacoes = lazy(() => import("./pages/GestaoInformacoes"));
@@ -176,16 +174,16 @@ const GestaoCertificados = lazy(() => import("./pages/GestaoCertificados"));
 const GestaoPresencas = lazy(() => import("./pages/GestaoPresenca"));
 
 const ListaPresencasTurma = lazy(() => import("./pages/ListaPresencasTurma"));
-const RelatoriosCustomizados = lazy(() =>
-  import("./pages/RelatoriosCustomizados")
+const RelatoriosCustomizados = lazy(
+  () => import("./pages/RelatoriosCustomizados"),
 );
 
 const AvaliacaoAdmin = lazy(() => import("./pages/AvaliacaoAdmin"));
 const MostraExperiencias = lazy(() => import("./pages/MostraExperiencias"));
 const SubmissaoAdmin = lazy(() => import("./pages/SubmissaoAdmin"));
 
-const CancelarInscricaoAdmin = lazy(() =>
-  import("./pages/CancelarInscricaoAdmin")
+const CancelarInscricaoAdmin = lazy(
+  () => import("./pages/CancelarInscricaoAdmin"),
 );
 const CertificadoAvulso = lazy(() => import("./pages/CertificadoAvulso"));
 const QRCodesEventosAdmin = lazy(() => import("./pages/QRCodesEventosAdmin"));
@@ -214,9 +212,12 @@ const PERFIL_PERMITIDO = {
 ────────────────────────────────────────────────────────────── */
 
 function debugLog(scope, payload) {
-  if (!IS_DEV) return;
+  if (!IS_DEV) {
+    return;
+  }
 
   try {
+    // eslint-disable-next-line no-console
     console.log(scope, payload);
   } catch {
     // noop
@@ -273,7 +274,9 @@ function PublicRouteDiagnostics() {
       path.startsWith("/esqueci-senha") ||
       path.startsWith("/redefinir-senha");
 
-    if (!isAuthPublicRoute) return;
+    if (!isAuthPublicRoute) {
+      return;
+    }
 
     debugLog("[APP][PUBLIC_ROUTE]", {
       pathname: location.pathname,
@@ -299,7 +302,9 @@ function CriticalRouteDiagnostics() {
       path.startsWith("/chamada") ||
       path.startsWith("/submissao");
 
-    if (!isCriticalRoute) return;
+    if (!isCriticalRoute) {
+      return;
+    }
 
     debugLog("[APP][CRITICAL_ROUTE]", {
       pathname: location.pathname,
@@ -553,18 +558,18 @@ function PublicRoutes() {
       <Route path="/cadastro" element={<Cadastro />} />
 
       <Route path="/esqueci-senha" element={<EsqueciSenha />} />
-<Route path="/redefinir-senha/:token" element={<RedefinirSenha />} />
+      <Route path="/redefinir-senha/:token" element={<RedefinirSenha />} />
 
-<Route path="/privacidade" element={<Privacidade />} />
+      <Route path="/privacidade" element={<Privacidade />} />
 
-<Route path="/validar-certificado" element={<ValidarCertificado />} />
-<Route
-  path="/validar-certificado/:codigo_validacao"
-  element={<ValidarCertificado />}
-/>
+      <Route path="/validar-certificado" element={<ValidarCertificado />} />
+      <Route
+        path="/validar-certificado/:codigo_validacao"
+        element={<ValidarCertificado />}
+      />
 
-<Route path="/presenca" element={<ConfirmarPresenca />} />
-<Route path="/presenca/:turmaId" element={<ConfirmarPresenca />} />
+      <Route path="/presenca" element={<ConfirmarPresenca />} />
+      <Route path="/presenca/:turmaId" element={<ConfirmarPresenca />} />
 
       <Route path="/historico" element={<HistoricoEventos />} />
     </>
@@ -1018,10 +1023,10 @@ function AdministradorRoutes() {
 export default function App() {
   const basename = useMemo(
     () => normalizeBasename(import.meta.env.BASE_URL || "/"),
-    []
+    [],
   );
 
-    return (
+  return (
     <BrowserRouter basename={basename}>
       <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
         <RouteChangeAnnouncer />

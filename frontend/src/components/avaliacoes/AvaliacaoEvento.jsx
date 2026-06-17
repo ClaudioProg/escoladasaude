@@ -1,8 +1,8 @@
-// ✅ frontend/src/components/avaliacoes/AvaliacaoEvento.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/components/avaliacoes/AvaliacaoEvento.jsx — v2.1
+// Atualizado em: 16/06/2026
 // Plataforma Escola da Saúde
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -31,12 +31,10 @@ const NOTA_PONTUACAO = {
 const NOTA_STYLE = {
   Ótimo:
     "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60",
-  Bom:
-    "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
+  Bom: "bg-lime-50 text-lime-800 ring-lime-200 dark:bg-lime-950/40 dark:text-lime-200 dark:ring-lime-800/60",
   Regular:
     "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60",
-  Ruim:
-    "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
+  Ruim: "bg-orange-50 text-orange-800 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800/60",
   Péssimo:
     "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-800/60",
 };
@@ -55,19 +53,8 @@ const CAMPOS_NOTA_EVENTO = [
   "inscricao_online",
 ];
 
-const CAMPOS_TEXTOS = [
-  "gostou_mais",
-  "sugestoes_melhoria",
-  "comentarios_finais",
-];
-
 function isNotaEnumOficial(value) {
   return NOTA_ENUM_OFICIAL.includes(value);
-}
-
-function notaParaPontuacao(value) {
-  if (!isNotaEnumOficial(value)) return null;
-  return NOTA_PONTUACAO[value];
 }
 
 function criarDistribuicaoNotas() {
@@ -118,11 +105,21 @@ function labelDoCampo(campo) {
 }
 
 function classificarMedia(media) {
-  if (media == null) return "Sem dados";
-  if (media >= 9) return "Excelente";
-  if (media >= 8) return "Muito bom";
-  if (media >= 6) return "Regular";
-  if (media >= 4) return "Atenção";
+  if (media == null) {
+    return "Sem dados";
+  }
+  if (media >= 9) {
+    return "Excelente";
+  }
+  if (media >= 8) {
+    return "Muito bom";
+  }
+  if (media >= 6) {
+    return "Regular";
+  }
+  if (media >= 4) {
+    return "Atenção";
+  }
   return "Crítico";
 }
 
@@ -210,12 +207,12 @@ function calcularMediasAvaliacao(avaliacoes) {
         (
           mediasEventoValidas.reduce((acc, value) => acc + value, 0) /
           mediasEventoValidas.length
-        ).toFixed(2)
+        ).toFixed(2),
       )
     : null;
 
   const mediasGerais = [mediaEvento, mediaorganizador].filter((value) =>
-    Number.isFinite(value)
+    Number.isFinite(value),
   );
 
   const mediaGeral = mediasGerais.length
@@ -223,7 +220,7 @@ function calcularMediasAvaliacao(avaliacoes) {
         (
           mediasGerais.reduce((acc, value) => acc + value, 0) /
           mediasGerais.length
-        ).toFixed(2)
+        ).toFixed(2),
       )
     : null;
 
@@ -235,12 +232,9 @@ function calcularMediasAvaliacao(avaliacoes) {
       comentario: avaliacao?.comentarios_finais,
     }))
     .filter((item) =>
-      [
-        item?.desempenho,
-        item?.gostou,
-        item?.sugestao,
-        item?.comentario,
-      ].some((value) => String(value ?? "").trim())
+      [item?.desempenho, item?.gostou, item?.sugestao, item?.comentario].some(
+        (value) => String(value ?? "").trim(),
+      ),
     );
 
   return {
@@ -268,7 +262,7 @@ function exportarCSV(filename, resultado) {
     [
       "Média do evento (0..10)",
       resultado.mediaEvento != null ? resultado.mediaEvento.toFixed(2) : "—",
-    ].join(";")
+    ].join(";"),
   );
   linhas.push(
     [
@@ -276,7 +270,7 @@ function exportarCSV(filename, resultado) {
       resultado.mediaorganizador != null
         ? resultado.mediaorganizador.toFixed(2)
         : "—",
-    ].join(";")
+    ].join(";"),
   );
   linhas.push("");
 
@@ -285,11 +279,9 @@ function exportarCSV(filename, resultado) {
 
   for (const nota of NOTA_ENUM_OFICIAL) {
     linhas.push(
-      [
-        nota,
-        NOTA_PONTUACAO[nota],
-        resultado.distorganizador?.[nota] || 0,
-      ].join(";")
+      [nota, NOTA_PONTUACAO[nota], resultado.distorganizador?.[nota] || 0].join(
+        ";",
+      ),
     );
   }
 
@@ -304,7 +296,7 @@ function exportarCSV(filename, resultado) {
       "Regular",
       "Ruim",
       "Péssimo",
-    ].join(";")
+    ].join(";"),
   );
 
   for (const criterio of resultado.criterios || []) {
@@ -317,7 +309,7 @@ function exportarCSV(filename, resultado) {
         criterio.dist?.["Regular"] || 0,
         criterio.dist?.["Ruim"] || 0,
         criterio.dist?.["Péssimo"] || 0,
-      ].join(";")
+      ].join(";"),
     );
   }
 
@@ -329,7 +321,7 @@ function exportarCSV(filename, resultado) {
       "O que mais gostou",
       "Sugestões",
       "Comentários finais",
-    ].join(";")
+    ].join(";"),
   );
 
   for (const item of resultado.detalhes || []) {
@@ -339,7 +331,7 @@ function exportarCSV(filename, resultado) {
         limparCSV(item.gostou),
         limparCSV(item.sugestao),
         limparCSV(item.comentario),
-      ].join(";")
+      ].join(";"),
     );
   }
 
@@ -349,21 +341,6 @@ function exportarCSV(filename, resultado) {
 /* ─────────────────────────────────────────────
  * Componentes locais
  * ───────────────────────────────────────────── */
-
-function HeroMetric({ label, value, icon: Icon }) {
-  return (
-    <div className="rounded-2xl bg-white/10 p-3 text-center ring-1 ring-white/15">
-      <div className="mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-xl bg-white/10">
-        {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : null}
-      </div>
-
-      <p className="text-2xl font-black leading-none">{value}</p>
-      <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-white/75">
-        {label}
-      </p>
-    </div>
-  );
-}
 
 function NotaBadge({ nota, quantidade }) {
   return (
@@ -406,9 +383,7 @@ function KPI({ titulo, valor, descricao, icon: Icon, destaque = false }) {
           {descricao ? (
             <p
               className={`mt-1 text-xs ${
-                destaque
-                  ? "text-white/75"
-                  : "text-slate-500 dark:text-zinc-400"
+                destaque ? "text-white/75" : "text-slate-500 dark:text-zinc-400"
               }`}
             >
               {descricao}
@@ -549,18 +524,20 @@ export default function AvaliacaoEvento({
 
   const resultado = useMemo(
     () => calcularMediasAvaliacao(avaliacao),
-    [avaliacao]
+    [avaliacao],
   );
 
   const comentariosFiltrados = useMemo(() => {
     const filtro = buscaComentario.trim().toLowerCase();
 
-    if (!filtro) return resultado.detalhes;
+    if (!filtro) {
+      return resultado.detalhes;
+    }
 
     return resultado.detalhes.filter((item) =>
       [item.desempenho, item.gostou, item.sugestao, item.comentario]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(filtro))
+        .some((value) => String(value).toLowerCase().includes(filtro)),
     );
   }, [resultado.detalhes, buscaComentario]);
 
@@ -619,8 +596,8 @@ export default function AvaliacaoEvento({
               id={`${regionId}-desc`}
               className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-zinc-300"
             >
-              Média oficial do evento, desempenho do organizador, distribuição de
-              notas e comentários qualitativos dos participantes.
+              Média oficial do evento, desempenho do organizador, distribuição
+              de notas e comentários qualitativos dos participantes.
             </p>
           </div>
 
@@ -759,7 +736,10 @@ export default function AvaliacaoEvento({
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     {comentariosVisiveis.map((item, index) => (
-                      <ComentarioCard key={`${regionId}-${index}`} item={item} />
+                      <ComentarioCard
+                        key={`${regionId}-${index}`}
+                        item={item}
+                      />
                     ))}
                   </div>
 

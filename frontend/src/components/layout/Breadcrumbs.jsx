@@ -27,7 +27,7 @@ function classNames(...classes) {
 
 function isUUID(segmento) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    segmento
+    segmento,
   );
 }
 
@@ -46,7 +46,9 @@ function safeDecode(value) {
 function criarRotuloBasico(segmento) {
   const texto = safeDecode(String(segmento || "").replace(/-/g, " ")).trim();
 
-  if (!texto) return "";
+  if (!texto) {
+    return "";
+  }
 
   return texto.replace(/\b\p{L}/gu, (letra) => letra.toUpperCase());
 }
@@ -55,7 +57,9 @@ function truncarTexto(value, limite) {
   const texto = String(value ?? "");
   const max = Number(limite);
 
-  if (!Number.isFinite(max) || max <= 0) return texto;
+  if (!Number.isFinite(max) || max <= 0) {
+    return texto;
+  }
 
   return texto.length > max ? `${texto.slice(0, max - 1)}…` : texto;
 }
@@ -63,7 +67,9 @@ function truncarTexto(value, limite) {
 function normalizarPrefixoRota(prefixoRota) {
   const texto = String(prefixoRota || "").trim();
 
-  if (!texto || texto === "/") return "";
+  if (!texto || texto === "/") {
+    return "";
+  }
 
   return texto.startsWith("/") ? texto : `/${texto}`;
 }
@@ -71,9 +77,13 @@ function normalizarPrefixoRota(prefixoRota) {
 function removerPrefixoRota(pathname, prefixoRota) {
   const prefixo = normalizarPrefixoRota(prefixoRota);
 
-  if (!prefixo) return pathname;
+  if (!prefixo) {
+    return pathname;
+  }
 
-  if (!pathname.startsWith(prefixo)) return pathname;
+  if (!pathname.startsWith(prefixo)) {
+    return pathname;
+  }
 
   return pathname.slice(prefixo.length) || "/";
 }
@@ -88,8 +98,8 @@ function normalizarSegmentos({
   const path = removerPrefixoRota(pathname, prefixoRota);
   const ocultos = new Set(
     (Array.isArray(ocultarSegmentos) ? ocultarSegmentos : []).map((item) =>
-      String(item).toLowerCase()
-    )
+      String(item).toLowerCase(),
+    ),
   );
 
   return path
@@ -201,7 +211,7 @@ export default function Breadcrumbs({
       ocultarSegmentos,
       ocultarUUID,
       prefixoRota,
-    ]
+    ],
   );
 
   const trilhaAutomatica = useMemo(
@@ -223,16 +233,19 @@ export default function Breadcrumbs({
       mapaRotulos,
       resolverItem,
       segmentos,
-    ]
+    ],
   );
 
   const itens = useMemo(() => {
-    const base = Array.isArray(trilha) && trilha.length > 0 ? trilha : trilhaAutomatica;
+    const base =
+      Array.isArray(trilha) && trilha.length > 0 ? trilha : trilhaAutomatica;
     return colapsarTrilha(base, limiteItens);
   }, [limiteItens, trilha, trilhaAutomatica]);
 
   function navegar(href, item) {
-    if (!href) return;
+    if (!href) {
+      return;
+    }
 
     aoNavegar?.(href, item);
     navigate(href);
@@ -246,7 +259,7 @@ export default function Breadcrumbs({
         "scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700",
         fixo &&
           "sticky top-0 z-20 rounded-b-3xl border-b border-slate-200/70 bg-white/80 py-2 shadow-sm backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/80",
-        className
+        className,
       )}
     >
       <ol
@@ -262,19 +275,23 @@ export default function Breadcrumbs({
         >
           <button
             type="button"
-            onClick={() => navegar(inicioHref, { label: inicioLabel, href: inicioHref })}
+            onClick={() =>
+              navegar(inicioHref, { label: inicioLabel, href: inicioHref })
+            }
             className={classNames(
               "inline-flex min-h-9 items-center gap-2 rounded-xl px-3 py-2 font-black text-emerald-900 transition",
               "hover:bg-emerald-50 hover:text-emerald-950",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-              "dark:text-emerald-200 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-100 dark:focus-visible:ring-offset-slate-950"
+              "dark:text-emerald-200 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-100 dark:focus-visible:ring-offset-slate-950",
             )}
             aria-label={`Ir para ${inicioLabel}`}
             title={inicioLabel}
             itemProp="item"
           >
             <Home className="h-4 w-4" aria-hidden="true" />
-            <span itemProp="name">{truncarTexto(inicioLabel, limiteCaracteres)}</span>
+            <span itemProp="name">
+              {truncarTexto(inicioLabel, limiteCaracteres)}
+            </span>
           </button>
 
           <meta itemProp="position" content="1" />
@@ -324,7 +341,7 @@ export default function Breadcrumbs({
                     "inline-flex min-h-9 max-w-[28ch] items-center rounded-xl px-3 py-2 font-bold text-slate-600 transition",
                     "hover:bg-slate-100 hover:text-slate-950",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                    "dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white dark:focus-visible:ring-offset-slate-950"
+                    "dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white dark:focus-visible:ring-offset-slate-950",
                   )}
                   aria-label={`Ir para ${item.label}`}
                   title={item.label}
@@ -350,7 +367,7 @@ Breadcrumbs.propTypes = {
     PropTypes.shape({
       label: PropTypes.string.isRequired,
       href: PropTypes.string,
-    })
+    }),
   ),
   inicioLabel: PropTypes.string,
   inicioHref: PropTypes.string,

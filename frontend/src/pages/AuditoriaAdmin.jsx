@@ -1089,16 +1089,19 @@ function ModalEvento({ eventoSelecionado, carregandoDetalhe, onFechar }) {
   return createPortal(
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-auditoria-titulo"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onFechar();
         }
       }}
     >
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-auditoria-titulo"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+      >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -1244,7 +1247,7 @@ function ModalEvento({ eventoSelecionado, carregandoDetalhe, onFechar }) {
             Fechar
           </button>
         </footer>
-      </div>
+      </section>
     </div>,
     document.body,
   );

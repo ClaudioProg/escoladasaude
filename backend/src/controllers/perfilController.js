@@ -91,7 +91,7 @@ function log(rid, level, message, extra) {
   if (level === "error") {
     return console.error(
       `${prefix} ✖ ${message}`,
-      extra?.stack || extra?.message || extra
+      extra?.stack || extra?.message || extra,
     );
   }
 
@@ -190,7 +190,7 @@ function validarYmdReal(value) {
   const hojeUTC = Date.UTC(
     hoje.getUTCFullYear(),
     hoje.getUTCMonth(),
-    hoje.getUTCDate()
+    hoje.getUTCDate(),
   );
 
   const dataUTC = Date.UTC(ano, mes - 1, dia);
@@ -338,7 +338,7 @@ async function assertExists(req, table, id, field = "id") {
   const result = await queryDb(
     req,
     `SELECT 1 FROM ${tableName} WHERE id = $1 LIMIT 1`,
-    [id]
+    [id],
   );
 
   return result.rowCount > 0;
@@ -351,7 +351,11 @@ async function validarReferenciasPerfil(req, values) {
     ["escolaridades", "escolaridade_id", values.escolaridade_id],
     ["deficiencias", "deficiencia_id", values.deficiencia_id],
     ["generos", "genero_id", values.genero_id],
-    ["orientacoes_sexuais", "orientacao_sexual_id", values.orientacao_sexual_id],
+    [
+      "orientacoes_sexuais",
+      "orientacao_sexual_id",
+      values.orientacao_sexual_id,
+    ],
     ["cores_racas", "cor_raca_id", values.cor_raca_id],
   ];
 
@@ -397,7 +401,7 @@ async function listarOpcaoPerfil(req, res) {
         FROM cargos
         WHERE is_active = TRUE
         ORDER BY display_order NULLS LAST, nome ASC
-        `
+        `,
       ),
 
       queryDb(
@@ -409,7 +413,7 @@ async function listarOpcaoPerfil(req, res) {
           sigla
         FROM unidades
         ORDER BY nome ASC
-        `
+        `,
       ),
 
       queryDb(
@@ -422,7 +426,7 @@ async function listarOpcaoPerfil(req, res) {
         FROM generos
         WHERE is_active = TRUE
         ORDER BY display_order NULLS LAST, id ASC
-        `
+        `,
       ),
 
       queryDb(
@@ -435,7 +439,7 @@ async function listarOpcaoPerfil(req, res) {
         FROM orientacoes_sexuais
         WHERE is_active = TRUE
         ORDER BY display_order NULLS LAST, id ASC
-        `
+        `,
       ),
 
       queryDb(
@@ -448,7 +452,7 @@ async function listarOpcaoPerfil(req, res) {
         FROM cores_racas
         WHERE is_active = TRUE
         ORDER BY display_order NULLS LAST, id ASC
-        `
+        `,
       ),
 
       queryDb(
@@ -461,7 +465,7 @@ async function listarOpcaoPerfil(req, res) {
         FROM escolaridades
         WHERE is_active = TRUE
         ORDER BY display_order NULLS LAST, id ASC
-        `
+        `,
       ),
 
       queryDb(
@@ -474,7 +478,7 @@ async function listarOpcaoPerfil(req, res) {
         FROM deficiencias
         WHERE is_active = TRUE
         ORDER BY display_order NULLS LAST, id ASC
-        `
+        `,
       ),
     ]);
 
@@ -554,7 +558,7 @@ async function meuPerfil(req, res) {
       WHERE id = $1
       LIMIT 1
       `,
-      [userId]
+      [userId],
     );
 
     const usuario = result.rows?.[0] || null;
@@ -625,13 +629,13 @@ async function atualizarMeuPerfil(req, res) {
 
     const escolaridade = parseRequiredPositiveInt(
       body.escolaridade_id,
-      "escolaridade_id"
+      "escolaridade_id",
     );
     if (escolaridade.error) fieldErrors.escolaridade_id = escolaridade.error;
 
     const deficiencia = parseRequiredPositiveInt(
       body.deficiencia_id,
-      "deficiencia_id"
+      "deficiencia_id",
     );
     if (deficiencia.error) fieldErrors.deficiencia_id = deficiencia.error;
 
@@ -660,7 +664,7 @@ async function atualizarMeuPerfil(req, res) {
 
     const orientacao = parseOptionalPositiveInt(
       body.orientacao_sexual_id,
-      "orientacao_sexual_id"
+      "orientacao_sexual_id",
     );
     if (orientacao.error) fieldErrors.orientacao_sexual_id = orientacao.error;
 
@@ -736,7 +740,7 @@ async function atualizarMeuPerfil(req, res) {
         escolaridade.value,
         deficiencia.value,
         userId,
-      ]
+      ],
     );
 
     const usuario = result.rows?.[0] || null;

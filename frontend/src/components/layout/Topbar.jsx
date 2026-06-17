@@ -31,11 +31,7 @@ import {
   apiNotificacaoMarcarTodasLidas,
   clearAuthSession,
 } from "../../services/api";
-import {
-  notifyApiError,
-  notifyError,
-  notifySuccess,
-} from "../ui/AppToast";
+import { notifyApiError, notifyError, notifySuccess } from "../ui/AppToast";
 import { getCampanhaSaudeVisual } from "../../utils/campanhaSaudeVisual";
 import ThemeToggleButton from "./ThemeToggleButton";
 
@@ -58,8 +54,7 @@ const NOTIFICACAO_TIPO = {
   evento: {
     label: "Evento",
     icon: CalendarDays,
-    iconClass:
-      "bg-sky-100 text-sky-800 dark:bg-sky-950/35 dark:text-sky-200",
+    iconClass: "bg-sky-100 text-sky-800 dark:bg-sky-950/35 dark:text-sky-200",
   },
   certificado: {
     label: "Certificado",
@@ -117,7 +112,9 @@ function isBrowser() {
 }
 
 function getStoredToken() {
-  if (!isBrowser()) return null;
+  if (!isBrowser()) {
+    return null;
+  }
 
   try {
     return localStorage.getItem(STORAGE_TOKEN_KEY) || null;
@@ -127,7 +124,9 @@ function getStoredToken() {
 }
 
 function getStoredPerfil() {
-  if (!isBrowser()) return null;
+  if (!isBrowser()) {
+    return null;
+  }
 
   try {
     const raw = localStorage.getItem(STORAGE_PERFIL_KEY);
@@ -138,7 +137,9 @@ function getStoredPerfil() {
 }
 
 function limparSessao() {
-  if (!isBrowser()) return;
+  if (!isBrowser()) {
+    return;
+  }
 
   try {
     clearAuthSession();
@@ -164,7 +165,9 @@ function getIniciais(nome, email) {
 
   const emailFinal = String(email || "").trim();
 
-  if (emailFinal) return emailFinal.split("@")[0].slice(0, 2).toUpperCase();
+  if (emailFinal) {
+    return emailFinal.split("@")[0].slice(0, 2).toUpperCase();
+  }
 
   return "?";
 }
@@ -173,14 +176,16 @@ function getLabelRota(pathname) {
   const path = String(pathname || "");
 
   const match = Object.entries(ROTA_LABEL).find(([prefixo]) =>
-    path.startsWith(prefixo)
+    path.startsWith(prefixo),
   );
 
   return match?.[1] || "";
 }
 
 function formatarDataNotificacao(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const texto = String(value).trim();
 
@@ -191,7 +196,7 @@ function formatarDataNotificacao(value) {
   }
 
   const dataHora = texto.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s]?(\d{2}):(\d{2})(?::(\d{2}))?/
+    /^(\d{4})-(\d{2})-(\d{2})[T\s]?(\d{2}):(\d{2})(?::(\d{2}))?/,
   );
 
   if (dataHora) {
@@ -216,19 +221,29 @@ function getNotificacaoTipo(tipo) {
 }
 
 function getResponseData(response) {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
   return [];
 }
 
 function getResponseMeta(response) {
-  if (response?.meta && typeof response.meta === "object") return response.meta;
+  if (response?.meta && typeof response.meta === "object") {
+    return response.meta;
+  }
   return {};
 }
 
 function getResumoData(response) {
-  if (response?.data && typeof response.data === "object") return response.data;
-  if (response && typeof response === "object") return response;
+  if (response?.data && typeof response.data === "object") {
+    return response.data;
+  }
+  if (response && typeof response === "object") {
+    return response;
+  }
   return {};
 }
 
@@ -240,7 +255,7 @@ function NotificationIcon({ tipo }) {
     <span
       className={classNames(
         "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-        item.iconClass
+        item.iconClass,
       )}
       aria-hidden="true"
     >
@@ -251,7 +266,12 @@ function NotificationIcon({ tipo }) {
 
 function NotificationSkeleton() {
   return (
-    <div className="space-y-3" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className="space-y-3"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       {[1, 2, 3].map((item) => (
         <div
           key={item}
@@ -313,7 +333,9 @@ function NotificationDrawer({
   const campanha = getCampanhaSaudeVisual();
 
   useEffect(() => {
-    if (!aberto) return undefined;
+    if (!aberto) {
+      return undefined;
+    }
 
     const frame = window.requestAnimationFrame(() => {
       closeButtonRef.current?.focus?.();
@@ -385,7 +407,7 @@ function NotificationDrawer({
               <div
                 className={classNames(
                   "absolute inset-0 bg-gradient-to-br",
-                  campanha.gradienteHero
+                  campanha.gradienteHero,
                 )}
                 aria-hidden="true"
               />
@@ -427,7 +449,7 @@ function NotificationDrawer({
                     "inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-black transition",
                     marcandoTodas || totalNaoLida === 0
                       ? "cursor-not-allowed bg-white/10 text-white/60"
-                      : "bg-white/15 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      : "bg-white/15 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                   )}
                 >
                   <Check className="h-4 w-4" aria-hidden="true" />
@@ -499,7 +521,7 @@ function NotificationDrawer({
                                   "inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-black transition",
                                   marcandoId === notificacao.id
                                     ? "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                                    : "bg-slate-950 text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                                    : "bg-slate-950 text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100",
                                 )}
                               >
                                 <Check className="h-4 w-4" aria-hidden="true" />
@@ -567,12 +589,12 @@ export default function Topbar({
 
   const iniciais = useMemo(
     () => getIniciais(nomeUsuario, emailUsuario),
-    [emailUsuario, nomeUsuario]
+    [emailUsuario, nomeUsuario],
   );
 
   const rotaLabel = useMemo(
     () => getLabelRota(location.pathname),
-    [location.pathname]
+    [location.pathname],
   );
 
   const claro = campanha.textoContraste === "escuro";
@@ -586,7 +608,9 @@ export default function Topbar({
   const atualizarContadorNotificacao = useCallback(async () => {
     const tokenAtual = getStoredToken();
 
-    if (!tokenAtual || document.hidden) return;
+    if (!tokenAtual || document.hidden) {
+      return;
+    }
 
     abortContadorRef.current?.abort?.();
 
@@ -600,7 +624,9 @@ export default function Topbar({
         signal: controller.signal,
       });
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        return;
+      }
 
       const data = getResumoData(response);
       setTotalNaoLida(Number(data.nao_lida || 0));
@@ -635,7 +661,7 @@ export default function Topbar({
       const [listaResponse, resumoResponse] = await Promise.all([
         apiNotificacaoListar(
           { apenas_nao_lida: true, limite: 8, deslocamento: 0 },
-          { on401: "silent", on403: "silent", signal: controller.signal }
+          { on401: "silent", on403: "silent", signal: controller.signal },
         ),
         apiNotificacaoResumo({
           on401: "silent",
@@ -644,7 +670,9 @@ export default function Topbar({
         }),
       ]);
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        return;
+      }
 
       const lista = getResponseData(listaResponse);
       const meta = getResponseMeta(listaResponse);
@@ -652,7 +680,7 @@ export default function Topbar({
 
       setNotificacaoLista(lista);
       setTotalNaoLida(
-        Number(resumo.nao_lida ?? meta.total ?? lista.length ?? 0) || 0
+        Number(resumo.nao_lida ?? meta.total ?? lista.length ?? 0) || 0,
       );
     } catch (error) {
       if (error?.name !== "AbortError") {
@@ -665,7 +693,9 @@ export default function Topbar({
         });
       }
     } finally {
-      if (!controller.signal.aborted) setCarregandoNotificacao(false);
+      if (!controller.signal.aborted) {
+        setCarregandoNotificacao(false);
+      }
     }
   }, []);
 
@@ -694,7 +724,7 @@ export default function Topbar({
         });
 
         setNotificacaoLista((atual) =>
-          atual.filter((item) => item.id !== notificacao.id)
+          atual.filter((item) => item.id !== notificacao.id),
         );
 
         setTotalNaoLida((atual) => Math.max(0, Number(atual || 0) - 1));
@@ -713,11 +743,13 @@ export default function Topbar({
         setMarcandoId(null);
       }
     },
-    [fecharDrawerNotificacao, navigate]
+    [fecharDrawerNotificacao, navigate],
   );
 
   const marcarTodasComoLidas = useCallback(async () => {
-    if (!totalNaoLida) return;
+    if (!totalNaoLida) {
+      return;
+    }
 
     try {
       setMarcandoTodas(true);
@@ -782,14 +814,18 @@ export default function Topbar({
   }, [atualizarSessaoLocal]);
 
   useEffect(() => {
-    if (!token) return undefined;
+    if (!token) {
+      return undefined;
+    }
 
     atualizarContadorNotificacao();
 
     const intervalId = window.setInterval(atualizarContadorNotificacao, 30000);
 
     function handleVisibility() {
-      if (!document.hidden) atualizarContadorNotificacao();
+      if (!document.hidden) {
+        atualizarContadorNotificacao();
+      }
     }
 
     document.addEventListener("visibilitychange", handleVisibility);
@@ -808,7 +844,7 @@ export default function Topbar({
         <div
           className={classNames(
             "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r blur-3xl opacity-80 dark:opacity-35",
-            campanha.topbarGlow
+            campanha.topbarGlow,
           )}
           aria-hidden="true"
         />
@@ -823,7 +859,7 @@ export default function Topbar({
             <div
               className={classNames(
                 "absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r",
-                campanha.topbar
+                campanha.topbar,
               )}
               aria-hidden="true"
             />
@@ -836,7 +872,7 @@ export default function Topbar({
                   onClick={abrirMenu}
                   className={classNames(
                     "inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10 md:hidden",
-                    focoClass
+                    focoClass,
                   )}
                   aria-label="Abrir menu lateral"
                   aria-controls={drawerId}
@@ -852,7 +888,7 @@ export default function Topbar({
                   onClick={() => navigate("/painel")}
                   className={classNames(
                     "group flex min-w-0 items-center gap-3 rounded-3xl px-1 text-left focus-visible:outline-none focus-visible:ring-2",
-                    focoClass
+                    focoClass,
                   )}
                   aria-label="Ir para o painel"
                   title={titulo}
@@ -862,7 +898,7 @@ export default function Topbar({
                       "grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border shadow-sm transition group-hover:scale-[1.02]",
                       claro
                         ? "border-white/70 bg-white/70 text-slate-900 dark:border-white/10 dark:bg-slate-900 dark:text-white"
-                        : "border-white/20 bg-white/15 text-white dark:border-white/10 dark:bg-slate-900"
+                        : "border-white/20 bg-white/15 text-white dark:border-white/10 dark:bg-slate-900",
                     )}
                   >
                     {logoSrc && !logoFalhou ? (
@@ -907,7 +943,7 @@ export default function Topbar({
                   onClick={abrirDrawerNotificacao}
                   className={classNames(
                     "relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
-                    focoClass
+                    focoClass,
                   )}
                   aria-label={
                     totalNaoLida
@@ -933,7 +969,7 @@ export default function Topbar({
                   onClick={() => navigate("/perfil")}
                   className={classNames(
                     "hidden min-h-12 items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10 md:inline-flex",
-                    focoClass
+                    focoClass,
                   )}
                   title={nomeUsuario}
                 >
@@ -941,7 +977,9 @@ export default function Topbar({
                     className={classNames(
                       "grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br text-xs font-black shadow-sm",
                       campanha.topbar,
-                      claro ? "text-slate-950 dark:text-slate-950" : "text-white"
+                      claro
+                        ? "text-slate-950 dark:text-slate-950"
+                        : "text-white",
                     )}
                   >
                     {iniciais}
@@ -973,7 +1011,7 @@ export default function Topbar({
                   onClick={sair}
                   className={classNames(
                     "inline-flex min-h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/10",
-                    focoClass
+                    focoClass,
                   )}
                   aria-label="Sair da plataforma"
                   title="Sair"
@@ -1021,7 +1059,7 @@ NotificationDrawer.propTypes = {
       mensagem: PropTypes.string,
       criado_em: PropTypes.string,
       link: PropTypes.string,
-    })
+    }),
   ).isRequired,
   totalNaoLida: PropTypes.number.isRequired,
   carregando: PropTypes.bool.isRequired,

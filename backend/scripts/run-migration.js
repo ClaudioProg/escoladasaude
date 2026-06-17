@@ -49,7 +49,7 @@ const MIGRATION_TABLE = "sistema_migracao";
 
     if (files.length === 0) {
       fail(
-        "Nenhum arquivo .sql encontrado. Use --file caminho.sql ou --dir db/migration."
+        "Nenhum arquivo .sql encontrado. Use --file caminho.sql ou --dir db/migration.",
       );
     }
 
@@ -70,7 +70,7 @@ const MIGRATION_TABLE = "sistema_migracao";
 
     if (!connectionString) {
       fail(
-        "DATABASE_URL não encontrada no ambiente. Defina DATABASE_URL antes de executar migrações."
+        "DATABASE_URL não encontrada no ambiente. Defina DATABASE_URL antes de executar migrações.",
       );
     }
 
@@ -309,7 +309,8 @@ function decideSSL(connectionString, args) {
     return false;
   }
 
-  const envSSL = String(process.env.DATABASE_SSL || "").toLowerCase() === "true";
+  const envSSL =
+    String(process.env.DATABASE_SSL || "").toLowerCase() === "true";
 
   const urlRequiresSSL =
     /sslmode=require/i.test(connectionString) ||
@@ -332,8 +333,8 @@ async function printDatabaseDiagnostic(client, verbose) {
 
   console.log(
     `\n🧪 Conectado → db=${diagnostic.database_name} schema=${diagnostic.schema_name} at=${new Date(
-      diagnostic.server_time
-    ).toISOString()}`
+      diagnostic.server_time,
+    ).toISOString()}`,
   );
 
   if (verbose && diagnostic.version) {
@@ -393,8 +394,8 @@ async function applyFile(client, fullPath, options = {}) {
   if (alreadyApplied && !force) {
     console.log(
       `⏭️  Ignorada: já aplicada em ${formatDateTime(
-        alreadyApplied.aplicada_em
-      )}. Use --force para executar novamente.`
+        alreadyApplied.aplicada_em,
+      )}. Use --force para executar novamente.`,
     );
     return;
   }
@@ -440,7 +441,7 @@ async function findAppliedMigration(client, { arquivo, sha256 }) {
       ORDER BY aplicada_em DESC
       LIMIT 1
     `,
-    [arquivo, sha256]
+    [arquivo, sha256],
   );
 
   return rows?.[0] || null;
@@ -460,7 +461,7 @@ async function registerAppliedMigration(client, { arquivo, sha256, tempo_ms }) {
         aplicada_em = now(),
         tempo_ms = EXCLUDED.tempo_ms
     `,
-    [arquivo, sha256, tempo_ms]
+    [arquivo, sha256, tempo_ms],
   );
 }
 
@@ -479,7 +480,7 @@ function prettyPgError(err) {
   const column = err?.column ? `column: ${err.column}\n` : "";
 
   console.error(
-    message + status + table + column + constraint + position + detail + hint
+    message + status + table + column + constraint + position + detail + hint,
   );
 }
 
@@ -517,7 +518,7 @@ function banner() {
   console.log(
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
       "   🛠️  Runner Oficial de Migração SQL — Escola da Saúde       \n" +
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
   );
 }
 

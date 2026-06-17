@@ -35,7 +35,14 @@
 // - sem confirmarTexto;
 // - sem cancelarTexto.
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import {
   AlertTriangle,
@@ -54,11 +61,15 @@ function classNames(...classes) {
 }
 
 function isEditableElement(element) {
-  if (!element) return false;
+  if (!element) {
+    return false;
+  }
 
   const tagName = String(element.tagName || "").toLowerCase();
 
-  if (tagName === "textarea") return true;
+  if (tagName === "textarea") {
+    return true;
+  }
 
   if (tagName === "input") {
     const type = String(element.getAttribute("type") || "text").toLowerCase();
@@ -81,7 +92,7 @@ function normalizarMensagemErro(error) {
   ];
 
   const found = candidates.find(
-    (item) => typeof item === "string" && item.trim()
+    (item) => typeof item === "string" && item.trim(),
   );
 
   return found?.trim() || "";
@@ -106,13 +117,13 @@ function renderMensagem(content) {
 const VARIANTES = {
   danger: {
     tituloPadrao: "Confirmar ação sensível",
-    subtitulo: "Revise antes de confirmar. Esta ação pode afetar registros importantes.",
+    subtitulo:
+      "Revise antes de confirmar. Esta ação pode afetar registros importantes.",
     hint: "Ação sensível",
     icon: XCircle,
     header: "from-rose-950 via-rose-800 to-orange-700",
     iconBox: "bg-white/15 text-white ring-1 ring-white/20",
-    chip:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200",
+    chip: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200",
     confirmButton:
       "bg-rose-700 text-white hover:bg-rose-800 focus-visible:ring-rose-500",
     errorBox:
@@ -125,8 +136,7 @@ const VARIANTES = {
     icon: AlertTriangle,
     header: "from-amber-900 via-orange-800 to-yellow-700",
     iconBox: "bg-white/15 text-white ring-1 ring-white/20",
-    chip:
-      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200",
+    chip: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200",
     confirmButton:
       "bg-amber-700 text-white hover:bg-amber-800 focus-visible:ring-amber-500",
     errorBox:
@@ -139,8 +149,7 @@ const VARIANTES = {
     icon: CheckCircle2,
     header: "from-sky-950 via-sky-800 to-blue-700",
     iconBox: "bg-white/15 text-white ring-1 ring-white/20",
-    chip:
-      "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-200",
+    chip: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-200",
     confirmButton:
       "bg-sky-700 text-white hover:bg-sky-800 focus-visible:ring-sky-500",
     errorBox:
@@ -153,8 +162,7 @@ const VARIANTES = {
     icon: CheckCircle2,
     header: "from-emerald-950 via-emerald-800 to-teal-700",
     iconBox: "bg-white/15 text-white ring-1 ring-white/20",
-    chip:
-      "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200",
+    chip: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200",
     confirmButton:
       "bg-emerald-700 text-white hover:bg-emerald-800 focus-visible:ring-emerald-500",
     errorBox:
@@ -167,8 +175,7 @@ const VARIANTES = {
     icon: Info,
     header: "from-slate-950 via-slate-800 to-zinc-700",
     iconBox: "bg-white/15 text-white ring-1 ring-white/20",
-    chip:
-      "border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200",
+    chip: "border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200",
     confirmButton:
       "bg-slate-800 text-white hover:bg-slate-900 focus-visible:ring-slate-500 dark:bg-slate-200 dark:text-slate-950 dark:hover:bg-white",
     errorBox:
@@ -216,17 +223,21 @@ export default function ModalConfirmacao({
 
   const describedBy = useMemo(
     () => [descId, erroConfirmacao ? errorId : null].filter(Boolean).join(" "),
-    [descId, errorId, erroConfirmacao]
+    [descId, errorId, erroConfirmacao],
   );
 
   const fechar = useCallback(() => {
-    if (confirmando) return;
+    if (confirmando) {
+      return;
+    }
 
     onClose?.();
   }, [confirmando, onClose]);
 
   const confirmar = useCallback(async () => {
-    if (confirmando || !confirmarHabilitado) return;
+    if (confirmando || !confirmarHabilitado) {
+      return;
+    }
 
     setErroConfirmacao("");
     setConfirmandoInterno(true);
@@ -267,18 +278,28 @@ export default function ModalConfirmacao({
   }, [open]);
 
   useEffect(() => {
-    if (!open || !confirmOnEnter) return undefined;
+    if (!open || !confirmOnEnter) {
+      return undefined;
+    }
 
     function handleKeyDown(event) {
-      if (event.key !== "Enter") return;
-      if (confirmando || !confirmarHabilitado) return;
+      if (event.key !== "Enter") {
+        return;
+      }
+      if (confirmando || !confirmarHabilitado) {
+        return;
+      }
 
       const root = contentRef.current;
       const active = document.activeElement;
       const focusInside = Boolean(root && active && root.contains(active));
 
-      if (!focusInside) return;
-      if (isEditableElement(active)) return;
+      if (!focusInside) {
+        return;
+      }
+      if (isEditableElement(active)) {
+        return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
@@ -292,7 +313,9 @@ export default function ModalConfirmacao({
   }, [confirmOnEnter, confirmando, confirmar, confirmarHabilitado, open]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      return undefined;
+    }
 
     const timeoutId = window.setTimeout(() => {
       if (confirmarHabilitado) {
@@ -331,7 +354,7 @@ export default function ModalConfirmacao({
         <header
           className={classNames(
             "relative overflow-hidden bg-gradient-to-br px-5 py-5 text-white",
-            config.header
+            config.header,
           )}
         >
           <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
@@ -341,7 +364,7 @@ export default function ModalConfirmacao({
             <span
               className={classNames(
                 "grid h-11 w-11 shrink-0 place-items-center rounded-2xl",
-                config.iconBox
+                config.iconBox,
               )}
               aria-hidden="true"
             >
@@ -364,7 +387,7 @@ export default function ModalConfirmacao({
                 <span
                   className={classNames(
                     "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-black",
-                    config.chip
+                    config.chip,
                   )}
                 >
                   {config.hint}
@@ -400,7 +423,7 @@ export default function ModalConfirmacao({
               role="alert"
               className={classNames(
                 "mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold leading-relaxed",
-                config.errorBox
+                config.errorBox,
               )}
             >
               <div className="flex items-start gap-2">
@@ -437,7 +460,7 @@ export default function ModalConfirmacao({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950",
                 "disabled:cursor-not-allowed disabled:opacity-60",
                 config.confirmButton,
-                "sm:w-auto"
+                "sm:w-auto",
               )}
             >
               {confirmando ? (
@@ -452,7 +475,8 @@ export default function ModalConfirmacao({
 
           {confirmOnEnter && confirmarHabilitado && (
             <p className="mt-2 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400 sm:text-right">
-              Dica: pressione Enter para confirmar quando não estiver digitando em um campo.
+              Dica: pressione Enter para confirmar quando não estiver digitando
+              em um campo.
             </p>
           )}
         </footer>
@@ -470,7 +494,13 @@ ModalConfirmacao.propTypes = {
   textoConfirmar: PropTypes.string,
   textoCancelar: PropTypes.string,
   closeOnBackdrop: PropTypes.bool,
-  variant: PropTypes.oneOf(["danger", "primary", "warning", "neutral", "success"]),
+  variant: PropTypes.oneOf([
+    "danger",
+    "primary",
+    "warning",
+    "neutral",
+    "success",
+  ]),
   confirmOnEnter: PropTypes.bool,
   zIndex: PropTypes.number,
   loading: PropTypes.bool,
