@@ -1027,7 +1027,13 @@ export default function App() {
   );
 
   return (
-    <BrowserRouter basename={basename}>
+    <BrowserRouter
+      basename={basename}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
         <RouteChangeAnnouncer />
         <PublicRouteDiagnostics />

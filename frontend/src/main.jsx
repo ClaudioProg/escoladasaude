@@ -1,4 +1,4 @@
-// 📁 src/main.jsx — v2.0
+// 📁 src/main.jsx — v2.1
 // Plataforma Escola da Saúde
 //
 // Bootstrap oficial da aplicação.
@@ -10,6 +10,13 @@
 // - configurar ToastContainer;
 // - proteger a árvore com ErrorBoundary;
 // - montar o App.
+//
+// Atualização v2.1:
+// - logs de diagnóstico DEV passam a depender de flag explícita;
+// - reduz ruído no console local;
+// - evita repetição visual de logs do Google Sign-In em StrictMode;
+// - mantém recuperação automática de chunks antigos;
+// - não registra PWA manualmente.
 /* eslint-disable react-refresh/only-export-components */
 //
 // Não usar:
@@ -42,9 +49,41 @@ import {
 ───────────────────────────────────────── */
 
 const IS_DEV = Boolean(import.meta.env.DEV);
+
 const GOOGLE_CLIENT_ID = String(
   import.meta.env.VITE_GOOGLE_CLIENT_ID || "",
 ).trim();
+
+const DEBUG_MAIN_BY_ENV =
+  String(import.meta.env.VITE_DEBUG_MAIN || "")
+    .trim()
+    .toLowerCase() === "true";
+
+const DEBUG_STORAGE_KEY = "debug_escola";
+
+/* ─────────────────────────────────────────
+   Ambiente / utilitários seguros
+───────────────────────────────────────── */
+
+function isBrowser() {
+  return typeof window !== "undefined" && typeof document !== "undefined";
+}
+
+function getDebugStorageFlag() {
+  if (!IS_DEV || !isBrowser()) {
+    return false;
+  }
+
+  try {
+    return localStorage.getItem(DEBUG_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function isDebugEnabled() {
+  return IS_DEV && (DEBUG_MAIN_BY_ENV || getDebugStorageFlag());
+}
 
 /* ─────────────────────────────────────────
    Recuperação automática de chunk antigo
@@ -53,6 +92,10 @@ const GOOGLE_CLIENT_ID = String(
 const UPDATE_PAGE_URL = "/atualizar.html";
 
 function redirectToUpdatePage(reason) {
+  if (!isBrowser()) {
+    return;
+  }
+
   try {
     const url = new URL(UPDATE_PAGE_URL, window.location.origin);
     url.searchParams.set("motivo", reason || "chunk");
@@ -66,56 +109,58 @@ function redirectToUpdatePage(reason) {
   }
 }
 
-window.addEventListener("vite:preloadError", (event) => {
-  event.preventDefault();
-  redirectToUpdatePage("chunk");
-});
-
-window.addEventListener(
-  "error",
-  (event) => {
-    const message = String(event?.message || "");
-    const filename = String(event?.filename || "");
-
-    const isModuleLoadError =
-      message.includes("Failed to load module script") ||
-      message.includes("Importing a module script failed") ||
-      message.includes("error loading dynamically imported module") ||
-      filename.includes("/assets/");
-
-    if (isModuleLoadError) {
-      redirectToUpdatePage("module");
-    }
-  },
-  true,
-);
-
-window.addEventListener("unhandledrejection", (event) => {
-  const message = String(event?.reason?.message || event?.reason || "");
-
-  const isDynamicImportError =
-    message.includes("Failed to fetch dynamically imported module") ||
-    message.includes("Importing a module script failed") ||
-    message.includes("error loading dynamically imported module");
-
-  if (isDynamicImportError) {
+if (isBrowser()) {
+  window.addEventListener("vite:preloadError", (event) => {
     event.preventDefault();
-    redirectToUpdatePage("dynamic-import");
-  }
-});
+    redirectToUpdatePage("chunk");
+  });
+
+  window.addEventListener(
+    "error",
+    (event) => {
+      const message = String(event?.message || "");
+      const filename = String(event?.filename || "");
+
+      const isModuleLoadError =
+        message.includes("Failed to load module script") ||
+        message.includes("Importing a module script failed") ||
+        message.includes("error loading dynamically imported module") ||
+        filename.includes("/assets/");
+
+      if (isModuleLoadError) {
+        redirectToUpdatePage("module");
+      }
+    },
+    true,
+  );
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const message = String(event?.reason?.message || event?.reason || "");
+
+    const isDynamicImportError =
+      message.includes("Failed to fetch dynamically imported module") ||
+      message.includes("Importing a module script failed") ||
+      message.includes("error loading dynamically imported module");
+
+    if (isDynamicImportError) {
+      event.preventDefault();
+      redirectToUpdatePage("dynamic-import");
+    }
+  });
+}
 
 /* ─────────────────────────────────────────
-   Logs DEV
+   Logs DEV controlados
 ───────────────────────────────────────── */
 
 function logDev(...args) {
-  if (IS_DEV) {
+  if (isDebugEnabled()) {
     console.warn(...args);
   }
 }
 
 function warnDev(...args) {
-  if (IS_DEV) {
+  if (isDebugEnabled()) {
     console.warn(...args);
   }
 }
@@ -155,14 +200,15 @@ function bootTheme() {
 const stopThemeWatcher = bootTheme();
 
 /* ─────────────────────────────────────────
-   Diagnóstico DEV
+   Diagnóstico DEV opcional
 ───────────────────────────────────────── */
 
 let disposeThemeDiagnostics = null;
 let disposeGoogleDiagnostics = null;
+let googleSdkLogged = false;
 
 function installThemeDiagnosticsDev() {
-  if (!IS_DEV || typeof document === "undefined") {
+  if (!isDebugEnabled() || !isBrowser()) {
     return () => {};
   }
 
@@ -204,7 +250,7 @@ function installThemeDiagnosticsDev() {
 }
 
 function installGoogleDiagnosticsDev() {
-  if (!IS_DEV || typeof window === "undefined") {
+  if (!isDebugEnabled() || !isBrowser()) {
     return () => {};
   }
 
@@ -438,7 +484,10 @@ function AppProviders() {
     <GoogleOAuthProvider
       clientId={GOOGLE_CLIENT_ID}
       onScriptLoadSuccess={() => {
-        logDev("[GSI] SDK carregada.");
+        if (!googleSdkLogged) {
+          googleSdkLogged = true;
+          logDev("[GSI] SDK carregada.");
+        }
       }}
       onScriptLoadError={() => {
         console.error("[GSI] Falha ao carregar SDK do Google.");
@@ -461,16 +510,8 @@ function AppProviders() {
    Render
 ───────────────────────────────────────── */
 
-function renderBootError(error) {
-  const container = document.getElementById("root");
-
-  if (!container) {
-    return;
-  }
-
-  const message = String(
-    error?.message || error || "Erro desconhecido",
-  ).replace(/[<>&]/g, (char) => {
+function escapeHtml(value) {
+  return String(value || "").replace(/[<>&]/g, (char) => {
     const map = {
       "<": "&lt;",
       ">": "&gt;",
@@ -479,6 +520,16 @@ function renderBootError(error) {
 
     return map[char] || char;
   });
+}
+
+function renderBootError(error) {
+  const container = document.getElementById("root");
+
+  if (!container) {
+    return;
+  }
+
+  const message = escapeHtml(error?.message || error || "Erro desconhecido");
 
   container.innerHTML = `
     <div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:Arial,sans-serif;background:#f8fafc;color:#111827;">
@@ -543,7 +594,9 @@ function cleanupGlobals() {
   }
 }
 
-window.addEventListener?.("beforeunload", cleanupGlobals);
+if (isBrowser()) {
+  window.addEventListener?.("beforeunload", cleanupGlobals);
+}
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {

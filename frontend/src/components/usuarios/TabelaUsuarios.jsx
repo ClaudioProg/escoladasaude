@@ -1,4 +1,5 @@
-// ✅ frontend/src/components/usuarios/TabelaUsuarios.jsx — v2.0
+// ✅ frontend/src/components/usuarios/TabelaUsuarios.jsx — v2.1
+// Atualizado em: 18/06/2026
 
 /**
  * Plataforma Escola da Saúde
@@ -20,6 +21,11 @@
  * Segurança:
  * - CPF oculto por padrão.
  * - Revelação de CPF delegada ao componente pai.
+ *
+ * Correção v2.1:
+ * - corrige erro React #130 causado por Icon: Infinity no bloco TEA;
+ * - cria TeaIcon local usando símbolo ∞;
+ * - adiciona fallback seguro para ícones dinâmicos.
  */
 
 import { useMemo, useState } from "react";
@@ -56,7 +62,7 @@ const PERFIS_OFICIAIS = new Set(["usuario", "organizador", "administrador"]);
 
 const PERFIL_LABEL = {
   usuario: "Usuário",
-  organizador: "organizador",
+  organizador: "Organizador",
   administrador: "Administrador",
 };
 
@@ -164,6 +170,30 @@ function normalizarTextoBusca(value) {
     .trim();
 }
 
+function isIconComponent(Icon) {
+  const tipo = typeof Icon;
+
+  return tipo === "function" || tipo === "object" || tipo === "string";
+}
+
+function getSafeIcon(Icon, Fallback = AlertCircle) {
+  return isIconComponent(Icon) ? Icon : Fallback;
+}
+
+function TeaIcon({ className = "", ...props }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center justify-center font-black leading-none",
+        className,
+      )}
+      {...props}
+    >
+      ∞
+    </span>
+  );
+}
+
 function obterConfigDeficiencia(deficiencia) {
   const textoOriginal = String(deficiencia || "").trim();
   const texto = normalizarTextoBusca(textoOriginal);
@@ -235,7 +265,7 @@ function obterConfigDeficiencia(deficiencia) {
   ) {
     return {
       label: "Transtorno do Espectro Autista",
-      Icon: Infinity,
+      Icon: TeaIcon,
       className:
         "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
     };
@@ -300,6 +330,8 @@ function calcIdadeSafe(nascimento) {
 ────────────────────────────────────────────────────────────── */
 
 function Pill({ Icon, label, value, title, tone = "violet" }) {
+  const SafeIcon = getSafeIcon(Icon, Sparkles);
+
   const toneCls =
     tone === "emerald"
       ? "border-emerald-200/70 bg-emerald-50 text-emerald-950 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100"
@@ -317,7 +349,8 @@ function Pill({ Icon, label, value, title, tone = "violet" }) {
       aria-label={label}
       title={title || label}
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
+      <SafeIcon className="h-4 w-4" aria-hidden="true" />
+
       <div className="text-left leading-tight">
         <div className="text-[11px] opacity-80">{label}</div>
         <div className="text-[15px] font-extrabold tabular-nums">{value}</div>
@@ -327,16 +360,20 @@ function Pill({ Icon, label, value, title, tone = "violet" }) {
 }
 
 function IconMeta({ Icon, label, value, children }) {
+  const SafeIcon = getSafeIcon(Icon, AlertCircle);
+
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <Icon
+      <SafeIcon
         className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-300"
         aria-hidden="true"
       />
+
       <div className="min-w-0">
         <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
           {label}
         </div>
+
         <div className="break-words text-sm font-semibold text-zinc-800 dark:text-zinc-100">
           {children ?? value}
         </div>
@@ -357,6 +394,7 @@ function SkeletonUsuarioCard() {
 
       <div className="flex gap-3">
         <div className="h-12 w-12 animate-pulse rounded-2xl bg-zinc-200/70 dark:bg-white/10" />
+
         <div className="flex-1">
           <div className="h-5 w-56 animate-pulse rounded-xl bg-zinc-200/70 dark:bg-white/10" />
           <div className="mt-2 h-4 w-72 animate-pulse rounded-xl bg-zinc-200/60 dark:bg-white/10" />
@@ -473,6 +511,7 @@ function UsuarioItem({
   }
 
   const Chevron = expanded ? ChevronDown : ChevronRight;
+  const DeficienciaIcon = getSafeIcon(configDeficiencia?.Icon, AlertCircle);
 
   return (
     <article
@@ -512,6 +551,7 @@ function UsuarioItem({
                       className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-300"
                       aria-hidden="true"
                     />
+
                     <span className="truncate">{nome}</span>
 
                     {configDeficiencia ? (
@@ -523,7 +563,7 @@ function UsuarioItem({
                         title={configDeficiencia.label}
                         aria-label={configDeficiencia.label}
                       >
-                        <configDeficiencia.Icon
+                        <DeficienciaIcon
                           className="h-3.5 w-3.5"
                           aria-hidden="true"
                         />
@@ -543,6 +583,7 @@ function UsuarioItem({
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="sr-only">Perfil:</span>
+
                     <span
                       className={cx(
                         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-extrabold",
@@ -621,6 +662,7 @@ function UsuarioItem({
             <IconMeta Icon={IdCard} label="CPF" value={cpfRender}>
               <div className="flex items-center gap-2">
                 <span className="font-mono tabular-nums">{cpfRender}</span>
+
                 {typeof onToggleCpf === "function" &&
                 typeof isCpfRevealed === "function" &&
                 id !== undefined &&
@@ -701,6 +743,7 @@ function UsuarioItem({
                   value={concluidos75}
                   tone="violet"
                 />
+
                 <Pill
                   Icon={Award}
                   label="Certificados emitidos"
@@ -770,6 +813,7 @@ export default function TabelaUsuarios({
         <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
           Nenhum usuário encontrado.
         </p>
+
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
           Tente ajustar os filtros e pesquisar novamente.
         </p>
@@ -809,12 +853,23 @@ export default function TabelaUsuarios({
    PropTypes
 ────────────────────────────────────────────────────────────── */
 
+TeaIcon.propTypes = {
+  className: PropTypes.string,
+};
+
 Pill.propTypes = {
   Icon: PropTypes.elementType.isRequired,
   label: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   title: PropTypes.string,
   tone: PropTypes.oneOf(["violet", "emerald", "amber"]),
+};
+
+IconMeta.propTypes = {
+  Icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  children: PropTypes.node,
 };
 
 UsuarioItem.propTypes = {
