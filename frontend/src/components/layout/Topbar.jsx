@@ -564,7 +564,7 @@ export default function Topbar({
   aoAbrirMenu,
   abrirMenuRef,
   drawerId = "menu-lateral-mobile",
-  logoSrc = "/logo-escola-saude.png",
+  logoSrc = "/icons/og-image.png?v=20260618",
 }) {
   const navigate = useNavigate();
   const location = useLocation();
