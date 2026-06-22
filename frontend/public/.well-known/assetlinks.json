@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.gov.sp.santos.escoladasaude",
+      "sha256_cert_fingerprints": [
+        "6D:DA:2A:D7:75:93:D7:E9:E4:54:74:6F:13:8A:C7:2B:EE:8C:44:3B:47:CF:83:86:5C:C7:41:3B:07:8E:9D:DC"
+      ]
+    }
+  }
+]
