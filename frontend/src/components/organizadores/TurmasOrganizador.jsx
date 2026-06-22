@@ -1,4 +1,4 @@
-// ✅ frontend/src/components/organizadores/Turmasorganizador.jsx — v2.1
+// ✅ frontend/src/components/organizadores/Turmasorganizador.jsx — v2.2
 // Atualizado em: 22/06/2026
 // Plataforma Escola da Saúde
 
@@ -15,6 +15,7 @@ import {
   Download,
   Ear,
   Eye,
+  Infinity,
   FileText,
   MapPin,
   QrCode,
@@ -469,15 +470,64 @@ function normalizarDataTurma(item, turma) {
   };
 }
 
+function unwrapDetalhePresenca(value = {}) {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const candidatos = [
+    value?.detalhado?.data,
+    value?.detalhado,
+    value?.data?.data,
+    value?.data,
+    value,
+  ];
+
+  return (
+    candidatos.find(
+      (item) => item && typeof item === "object" && !Array.isArray(item),
+    ) || {}
+  );
+}
+
+function termoAtivoDoDetalhe(value = {}) {
+  const detalhe = unwrapDetalhePresenca(value);
+  const termo = detalhe?.termo || value?.termo || value?.data?.termo || null;
+
+  return Boolean(
+    termo?.ativo === true ||
+    termo?.termo_ativo === true ||
+    detalhe?.termo_ativo === true ||
+    detalhe?.evento_termo_ativo === true ||
+    value?.termo_ativo === true ||
+    value?.evento_termo_ativo === true,
+  );
+}
+
+function termoTituloDoDetalhe(value = {}) {
+  const detalhe = unwrapDetalhePresenca(value);
+  const termo = detalhe?.termo || value?.termo || value?.data?.termo || null;
+
+  return safeText(
+    termo?.titulo ||
+      termo?.termo_titulo ||
+      detalhe?.termo_titulo ||
+      detalhe?.evento_termo_titulo ||
+      value?.termo_titulo ||
+      value?.evento_termo_titulo,
+  );
+}
+
 function montarDatasReais(turma, datasPorTurma, presencasPorTurma) {
   const turmaId = getTurmaId(turma);
+  const detalhePresenca = unwrapDetalhePresenca(presencasPorTurma?.[turmaId]);
 
   const fonte =
     safeArray(datasPorTurma?.[turmaId]).length > 0
       ? safeArray(datasPorTurma[turmaId])
       : safeArray(turma?.datas).length > 0
         ? safeArray(turma.datas)
-        : safeArray(presencasPorTurma?.[turmaId]?.detalhado?.datas);
+        : safeArray(detalhePresenca?.datas);
 
   const map = new Map();
 
@@ -579,18 +629,28 @@ function calcularResumoData({ mapaUsuarios, data, antesDaJanela }) {
 }
 
 function turmaExigeTermo(turma, presencasDetalhadas = {}) {
-  const termoDetalhe = presencasDetalhadas?.termo;
-
   return Boolean(
-    termoDetalhe?.ativo === true ||
-    termoDetalhe?.exigido === true ||
+    termoAtivoDoDetalhe(presencasDetalhadas) ||
     turma?.termo_ativo === true ||
     turma?.termo_exigido === true ||
-    turma?.termo?.ativo === true ||
-    turma?.termo?.exigido === true ||
-    turma?.evento?.termo_ativo === true ||
+    turma?.presenca_termo_ativo === true ||
     turma?.evento_termo_ativo === true ||
-    turma?.presenca_termo_ativo === true,
+    turma?.termo?.ativo === true ||
+    turma?.termo?.termo_ativo === true ||
+    turma?.evento?.termo_ativo === true ||
+    turma?.evento?.termo?.ativo === true,
+  );
+}
+
+function getTermoTituloTurma(turma, presencasDetalhadas = {}) {
+  return safeText(
+    termoTituloDoDetalhe(presencasDetalhadas) ||
+      turma?.termo_titulo ||
+      turma?.evento_termo_titulo ||
+      turma?.termo?.titulo ||
+      turma?.termo?.termo_titulo ||
+      turma?.evento?.termo_titulo ||
+      turma?.evento?.termo?.titulo,
   );
 }
 
@@ -1108,9 +1168,14 @@ export default function Turmasorganizador({
                   );
 
                   const inscritos = safeArray(inscritosPorTurma[turmaId]);
-                  const presencasDetalhadas =
-                    presencasPorTurma[turmaId]?.detalhado || {};
+                  const presencasDetalhadas = unwrapDetalhePresenca(
+                    presencasPorTurma[turmaId],
+                  );
                   const exigeTermo = turmaExigeTermo(
+                    turma,
+                    presencasDetalhadas,
+                  );
+                  const termoTituloTurma = getTermoTituloTurma(
                     turma,
                     presencasDetalhadas,
                   );
@@ -1475,7 +1540,14 @@ export default function Turmasorganizador({
                                                       {podeConfirmar ? (
                                                         <div className="flex flex-col items-end gap-2">
                                                           {exigeTermoLinha ? (
-                                                            <label className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                                                            <label
+                                                              title={
+                                                                termoObrigatorio?.termo_titulo ||
+                                                                termoTituloTurma ||
+                                                                "Termo/regulamento do evento"
+                                                              }
+                                                              className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300"
+                                                            >
                                                               <input
                                                                 type="checkbox"
                                                                 checked={Boolean(
@@ -1615,7 +1687,14 @@ export default function Turmasorganizador({
                                                   {podeConfirmar ? (
                                                     <>
                                                       {exigeTermoLinha ? (
-                                                        <label className="inline-flex items-start gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300">
+                                                        <label
+                                                          title={
+                                                            termoObrigatorio?.termo_titulo ||
+                                                            termoTituloTurma ||
+                                                            "Termo/regulamento do evento"
+                                                          }
+                                                          className="inline-flex items-start gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300"
+                                                        >
                                                           <input
                                                             type="checkbox"
                                                             checked={Boolean(
