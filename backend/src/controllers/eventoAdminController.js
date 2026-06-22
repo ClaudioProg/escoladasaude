@@ -2237,6 +2237,9 @@ async function validarEventoParaPublicacao(eventoId) {
       e.unidade_id,
       e.restrito,
       e.restrito_modo,
+      e.restricao_registros,
+      e.cargos_permitidos_ids,
+      e.unidades_permitidas_ids,
       COUNT(DISTINCT t.id)::int AS total_turmas,
       COUNT(DISTINCT dt.id)::int AS total_datas,
       COUNT(DISTINCT tr.id)::int AS total_organizadores
@@ -2326,13 +2329,65 @@ async function validarEventoParaPublicacao(eventoId) {
     };
   }
 
-  if (e.restrito && ![MODO_TODOS, MODO_LISTA, null].includes(e.restrito_modo)) {
-    return {
-      ok: false,
-      status: 400,
-      code: "EVENTO_RESTRICAO_INVALIDA",
-      message: "Modo de restrição inválido.",
-    };
+  if (e.restrito) {
+    const modoRestricao = e.restrito_modo || null;
+    const modosValidos = new Set([
+      MODO_TODOS,
+      MODO_LISTA,
+      MODO_CARGOS,
+      MODO_UNIDADES,
+      null,
+    ]);
+
+    if (!modosValidos.has(modoRestricao)) {
+      return {
+        ok: false,
+        status: 400,
+        code: "EVENTO_RESTRICAO_INVALIDA",
+        message: "Modo de restrição inválido.",
+      };
+    }
+
+    if (
+      modoRestricao === MODO_LISTA &&
+      (!Array.isArray(e.restricao_registros) || !e.restricao_registros.length)
+    ) {
+      return {
+        ok: false,
+        status: 400,
+        code: "EVENTO_RESTRICAO_LISTA_VAZIA",
+        message:
+          "Evento restrito por lista precisa ter ao menos um registro autorizado.",
+      };
+    }
+
+    if (
+      modoRestricao === MODO_CARGOS &&
+      (!Array.isArray(e.cargos_permitidos_ids) ||
+        !e.cargos_permitidos_ids.length)
+    ) {
+      return {
+        ok: false,
+        status: 400,
+        code: "EVENTO_RESTRICAO_CARGOS_VAZIA",
+        message:
+          "Evento restrito por cargos precisa ter ao menos um cargo autorizado.",
+      };
+    }
+
+    if (
+      modoRestricao === MODO_UNIDADES &&
+      (!Array.isArray(e.unidades_permitidas_ids) ||
+        !e.unidades_permitidas_ids.length)
+    ) {
+      return {
+        ok: false,
+        status: 400,
+        code: "EVENTO_RESTRICAO_UNIDADES_VAZIA",
+        message:
+          "Evento restrito por unidades precisa ter ao menos uma unidade autorizada.",
+      };
+    }
   }
 
   return { ok: true };
