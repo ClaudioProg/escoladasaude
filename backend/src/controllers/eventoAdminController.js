@@ -340,6 +340,24 @@ function validarTermoPayload(termo) {
   return "";
 }
 
+function extrairTermoPayloadPresente(body = {}) {
+  const out = {};
+
+  if (Object.prototype.hasOwnProperty.call(body, "termo_ativo")) {
+    out.termo_ativo = body.termo_ativo;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "termo_titulo")) {
+    out.termo_titulo = body.termo_titulo;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "termo_conteudo_html")) {
+    out.termo_conteudo_html = body.termo_conteudo_html;
+  }
+
+  return out;
+}
+
 async function eventoJaIniciou(client, eventoId) {
   const result = await client.query(
     `
@@ -398,7 +416,10 @@ function normalizeBodyMultipart(body = {}) {
   out.restrito = parseBoolean(body.restrito);
   out.remover_folder = parseBoolean(body.remover_folder);
   out.remover_programacao = parseBoolean(body.remover_programacao);
-  out.termo_ativo = parseBoolean(body.termo_ativo);
+
+  if (Object.prototype.hasOwnProperty.call(body, "termo_ativo")) {
+    out.termo_ativo = parseBoolean(body.termo_ativo);
+  }
 
   return out;
 }
@@ -1994,10 +2015,8 @@ async function atualizarEvento(req, res) {
     }
 
     const termoAtual = existe.rows?.[0] || {};
-    const termoFinal = normalizarTermoPayload(
-      { termo_ativo, termo_titulo, termo_conteudo_html },
-      termoAtual,
-    );
+    const termoPayloadPresente = extrairTermoPayloadPresente(body);
+    const termoFinal = normalizarTermoPayload(termoPayloadPresente, termoAtual);
 
     if (termoFinal.alterou) {
       const iniciado = await eventoJaIniciou(client, eventoId);
