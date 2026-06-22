@@ -1419,12 +1419,13 @@ export default function PresencaOrganizador() {
       }
 
       try {
-        validarFacade(
-          "api.presenca.confirmarPresencaOrganizador",
-          api?.presenca?.confirmarPresencaOrganizador,
-        );
+        const confirmarManual =
+          api?.presenca?.confirmarorganizador ||
+          api?.presenca?.confirmarPresencaOrganizador;
 
-        await api.presenca.confirmarPresencaOrganizador({
+        validarFacade("api.presenca.confirmarorganizador", confirmarManual);
+
+        await confirmarManual({
           usuario_id: usuarioIdOk,
           turma_id: turmaIdOk,
           data_presenca: dataOk,
