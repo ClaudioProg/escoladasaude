@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/presencaController.js — v2.2
- * Atualizado em: 02/06/2026
+ * ✅ backend/src/controllers/presencaController.js — v2.3
+ * Atualizado em: 22/06/2026
  * Plataforma Escola da Saúde
  *
  * Controller oficial do módulo de presença.
@@ -38,6 +38,7 @@
  * - QR de presença obrigatório por turma_id + data_presenca.
  * - QR antigo sem data_presenca não é aceito.
  * - QR de data diferente de hoje é bloqueado.
+ * - Presença manual liberada a partir de 45 minutos antes do início da data/encontro.
  */
 
 const db = require("../db");
@@ -69,6 +70,7 @@ const PRESENCA_TOKEN_SECRET = process.env.PRESENCA_TOKEN_SECRET || "";
 
 const PRAZO_CONFIRMACAO_ORGANIZADOR_HORAS = 48;
 const PRAZO_CONFIRMACAO_ADMINISTRADOR_DIAS = 90;
+const LIBERACAO_CONFIRMACAO_MANUAL_ANTES_MINUTOS = 45;
 const MILISSEGUNDOS_POR_HORA = 60 * 60 * 1000;
 const MILISSEGUNDOS_POR_DIA = 24 * MILISSEGUNDOS_POR_HORA;
 
@@ -332,6 +334,64 @@ function calcularLimiteConfirmacaoManual(req, fimAula) {
   };
 }
 
+function calcularInicioConfirmacaoManual(dataPresenca, horarioInicio) {
+  const inicioAula = dateTimeLocal(dataPresenca, horarioInicio || "00:00");
+
+  if (!(inicioAula instanceof Date) || Number.isNaN(inicioAula.getTime())) {
+    return {
+      ok: false,
+      message:
+        "Horário de início da aula inválido para confirmação de presença.",
+    };
+  }
+
+  const liberadoDesde = new Date(
+    inicioAula.getTime() -
+      LIBERACAO_CONFIRMACAO_MANUAL_ANTES_MINUTOS * 60 * 1000,
+  );
+
+  return {
+    ok: true,
+    inicioAula,
+    liberadoDesde,
+    minutosAntes: LIBERACAO_CONFIRMACAO_MANUAL_ANTES_MINUTOS,
+  };
+}
+
+function validarInicioConfirmacaoManual(dataPresenca, dataTurma) {
+  const regraInicio = calcularInicioConfirmacaoManual(
+    dataPresenca,
+    dataTurma?.horario_inicio || "00:00",
+  );
+
+  if (!regraInicio.ok) {
+    return {
+      ok: false,
+      status: 409,
+      message: regraInicio.message,
+    };
+  }
+
+  if (new Date() < regraInicio.liberadoDesde) {
+    return {
+      ok: false,
+      status: 403,
+      message: `Confirmação manual disponível a partir de ${LIBERACAO_CONFIRMACAO_MANUAL_ANTES_MINUTOS} minutos antes do início (${dataTurma?.horario_inicio || "00:00"}).`,
+      details: {
+        minutos_antes_inicio: LIBERACAO_CONFIRMACAO_MANUAL_ANTES_MINUTOS,
+        data_presenca: dataPresenca,
+        horario_inicio: dataTurma?.horario_inicio || "00:00",
+        liberado_desde: regraInicio.liberadoDesde.toISOString(),
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    liberadoDesde: regraInicio.liberadoDesde,
+  };
+}
+
 function cpfProtegido(value) {
   const digits = String(value ?? "").replace(/\D/g, "");
 
@@ -359,7 +419,11 @@ async function buscarTurma(q, turmaId) {
       to_char(t.horario_fim::time, 'HH24:MI') AS horario_fim,
       t.carga_horaria,
       e.titulo AS evento_titulo,
-      e.local AS evento_local
+      e.local AS evento_local,
+      COALESCE(e.termo_ativo, FALSE) AS termo_ativo,
+      e.termo_titulo,
+      e.termo_conteudo_html,
+      e.termo_atualizado_em
     FROM turmas t
     JOIN eventos e ON e.id = t.evento_id
     WHERE t.id = $1
@@ -552,6 +616,205 @@ async function obterFimRealTurma(q, turmaId) {
   );
 
   return result.rows?.[0]?.fim_real || null;
+}
+
+async function buscarTermoEventoPorTurma(q, turmaId) {
+  const result = await q(
+    `
+    SELECT
+      e.id AS evento_id,
+      e.titulo AS evento_titulo,
+      COALESCE(e.termo_ativo, FALSE) AS termo_ativo,
+      e.termo_titulo,
+      e.termo_conteudo_html,
+      e.termo_atualizado_em
+    FROM turmas t
+    JOIN eventos e ON e.id = t.evento_id
+    WHERE t.id = $1
+    LIMIT 1
+    `,
+    [turmaId],
+  );
+
+  const row = result.rows?.[0] || null;
+
+  if (!row) {
+    return null;
+  }
+
+  const conteudo = normalizeText(row.termo_conteudo_html);
+  const ativo = row.termo_ativo === true && Boolean(conteudo);
+
+  return {
+    evento_id: toPositiveInt(row.evento_id),
+    evento_titulo: row.evento_titulo || null,
+    ativo,
+    titulo: normalizeText(row.termo_titulo) || "Termo/regulamento do evento",
+    conteudo_html: conteudo,
+    atualizado_em: row.termo_atualizado_em || null,
+  };
+}
+
+async function buscarAceiteTermo(q, { turmaId, usuarioId, dataPresenca }) {
+  const result = await q(
+    `
+    SELECT
+      id,
+      aceite_origem,
+      aceite_em,
+      registrado_por
+    FROM evento_termo_aceites
+    WHERE turma_id = $1
+      AND usuario_id = $2
+      AND data_presenca = $3::date
+    LIMIT 1
+    `,
+    [turmaId, usuarioId, dataPresenca],
+  );
+
+  return result.rows?.[0] || null;
+}
+
+async function registrarAceiteTermo(
+  q,
+  {
+    termo,
+    turmaId,
+    usuarioId,
+    dataPresenca,
+    origem = "qr_code",
+    registradoPor = null,
+  },
+) {
+  const existente = await buscarAceiteTermo(q, {
+    turmaId,
+    usuarioId,
+    dataPresenca,
+  });
+
+  if (existente) {
+    return existente;
+  }
+
+  const insert = await q(
+    `
+    INSERT INTO evento_termo_aceites (
+      evento_id,
+      turma_id,
+      usuario_id,
+      data_presenca,
+      termo_titulo,
+      termo_conteudo_html,
+      aceite_origem,
+      registrado_por
+    )
+    VALUES ($1,$2,$3,$4::date,$5,$6,$7,$8)
+    ON CONFLICT DO NOTHING
+    RETURNING
+      id,
+      aceite_origem,
+      aceite_em,
+      registrado_por
+    `,
+    [
+      termo.evento_id,
+      turmaId,
+      usuarioId,
+      dataPresenca,
+      termo.titulo || null,
+      termo.conteudo_html,
+      origem,
+      registradoPor,
+    ],
+  );
+
+  if (insert.rows?.[0]) {
+    return insert.rows[0];
+  }
+
+  return buscarAceiteTermo(q, { turmaId, usuarioId, dataPresenca });
+}
+
+function normalizeTermoConfirmadoManual(body = {}) {
+  return (
+    body.termo_ciencia_confirmada === true ||
+    body.termo_aceite_manual === true ||
+    body.termo_aceite === true
+  );
+}
+
+async function assegurarAceiteTermoSeNecessario(
+  q,
+  {
+    turmaId,
+    usuarioId,
+    dataPresenca,
+    confirmado = false,
+    origem = "qr_code",
+    registradoPor = null,
+  },
+) {
+  const termo = await buscarTermoEventoPorTurma(q, turmaId);
+
+  if (!termo?.ativo) {
+    return {
+      ok: true,
+      termo: termo || null,
+      aceite: null,
+      exigido: false,
+    };
+  }
+
+  const existente = await buscarAceiteTermo(q, {
+    turmaId,
+    usuarioId,
+    dataPresenca,
+  });
+
+  if (existente) {
+    return {
+      ok: true,
+      termo,
+      aceite: existente,
+      exigido: true,
+      ja_aceito: true,
+    };
+  }
+
+  if (confirmado !== true) {
+    return {
+      ok: false,
+      status: 409,
+      message:
+        origem === "qr_code"
+          ? "É necessário ler e aceitar o termo/regulamento antes de confirmar a presença."
+          : "Confirme que o participante foi cientificado sobre o termo/regulamento antes de lançar a presença.",
+      details: {
+        motivo: "TERMO_ACEITE_NECESSARIO",
+        evento_id: termo.evento_id,
+        turma_id: turmaId,
+        data_presenca: dataPresenca,
+        termo_titulo: termo.titulo,
+      },
+    };
+  }
+
+  const aceite = await registrarAceiteTermo(q, {
+    termo,
+    turmaId,
+    usuarioId,
+    dataPresenca,
+    origem,
+    registradoPor,
+  });
+
+  return {
+    ok: true,
+    termo,
+    aceite,
+    exigido: true,
+    ja_aceito: false,
+  };
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -841,6 +1104,94 @@ async function registrarPresenca(req, res) {
   }
 }
 
+async function obterContextoConfirmacaoQr(req, res) {
+  const rid = mkRid("QRCTX");
+
+  try {
+    const usuarioId = getUserId(req);
+    const turmaId = toPositiveInt(req.query?.turma_id || req.params?.turma_id);
+    const dataPresenca = normalizeDateOnly(req.query?.data_presenca);
+    const hoje = hojeSaoPaulo();
+
+    if (!usuarioId) return fail(res, 401, "Não autenticado.");
+    if (!turmaId) return fail(res, 400, "turma_id é obrigatório.");
+    if (!dataPresenca) {
+      return fail(res, 400, "data_presenca deve estar no formato YYYY-MM-DD.");
+    }
+
+    if (dataPresenca !== hoje) {
+      return fail(
+        res,
+        409,
+        "Este QR Code não corresponde à data de hoje. Solicite o QR Code correto à organização.",
+        {
+          data_presenca: dataPresenca,
+          hoje,
+          motivo: "QR_DATA_DIFERENTE_DE_HOJE",
+        },
+      );
+    }
+
+    const turma = await buscarTurma(query, turmaId);
+
+    if (!turma) {
+      return fail(res, 404, "Turma não encontrada.");
+    }
+
+    const inscrito = await usuarioEstaInscrito(query, usuarioId, turmaId);
+
+    if (!inscrito) {
+      return fail(res, 403, "Você não está inscrito nesta turma.");
+    }
+
+    const dataTurma = await obterDataTurma(query, turmaId, dataPresenca);
+
+    if (!dataTurma) {
+      return fail(res, 409, "Hoje não é uma data válida desta turma.");
+    }
+
+    const termo = await buscarTermoEventoPorTurma(query, turmaId);
+    const aceite = termo?.ativo
+      ? await buscarAceiteTermo(query, {
+          turmaId,
+          usuarioId,
+          dataPresenca,
+        })
+      : null;
+
+    return ok(
+      res,
+      {
+        turma: {
+          id: turmaId,
+          nome: turma.nome,
+          evento_id: turma.evento_id,
+          evento_titulo: turma.evento_titulo,
+          data_presenca: dataPresenca,
+          horario_inicio: dataTurma.horario_inicio,
+          horario_fim: dataTurma.horario_fim,
+        },
+        termo: termo?.ativo
+          ? {
+              ativo: true,
+              titulo: termo.titulo,
+              conteudo_html: termo.conteudo_html,
+              atualizado_em: termo.atualizado_em,
+              ja_aceito: Boolean(aceite),
+              aceite_em: aceite?.aceite_em || null,
+            }
+          : {
+              ativo: false,
+            },
+      },
+      "Contexto de confirmação por QR carregado.",
+    );
+  } catch (error) {
+    logError(rid, "Erro em obterContextoConfirmacaoQr.", error);
+    return fail(res, 500, "Erro ao carregar contexto de confirmação.");
+  }
+}
+
 async function confirmarPresencaViaQR(req, res) {
   const rid = mkRid();
 
@@ -925,6 +1276,24 @@ async function confirmarPresencaViaQR(req, res) {
         };
       }
 
+      const termoAceite = await assegurarAceiteTermoSeNecessario(q, {
+        turmaId,
+        usuarioId,
+        dataPresenca,
+        confirmado: req.body?.termo_aceite === true,
+        origem: "qr_code",
+        registradoPor: usuarioId,
+      });
+
+      if (!termoAceite.ok) {
+        return {
+          status: termoAceite.status,
+          error: true,
+          message: termoAceite.message,
+          details: termoAceite.details,
+        };
+      }
+
       const presenca = await gravarPresenca(q, {
         usuarioId,
         turmaId,
@@ -942,6 +1311,8 @@ async function confirmarPresencaViaQR(req, res) {
         status: 201,
         data: {
           presenca,
+          termo_aceite: termoAceite?.aceite || null,
+          termo_exigido: termoAceite?.exigido === true,
           elegibilidade_avaliacao: elegibilidade,
         },
         message: "Presença confirmada com sucesso.",
@@ -1111,6 +1482,30 @@ async function registrarPresencaManual(req, res) {
         };
       }
 
+      let termoAceite = null;
+
+      if (presente === true) {
+        termoAceite = await assegurarAceiteTermoSeNecessario(q, {
+          turmaId,
+          usuarioId,
+          dataPresenca,
+          confirmado: normalizeTermoConfirmadoManual(req.body),
+          origem: isAdministrador(req)
+            ? "manual_administrador"
+            : "manual_organizador",
+          registradoPor: getUserId(req),
+        });
+
+        if (!termoAceite.ok) {
+          return {
+            status: termoAceite.status,
+            error: true,
+            message: termoAceite.message,
+            details: termoAceite.details,
+          };
+        }
+      }
+
       const presenca = await gravarPresenca(q, {
         usuarioId,
         turmaId,
@@ -1129,6 +1524,8 @@ async function registrarPresencaManual(req, res) {
         status: 201,
         data: {
           presenca,
+          termo_aceite: termoAceite?.aceite || null,
+          termo_exigido: termoAceite?.exigido === true,
           elegibilidade_avaliacao: elegibilidade,
         },
         message: "Presença manual registrada.",
@@ -1174,14 +1571,37 @@ async function confirmarPresencaManualHoje(req, res) {
         };
       }
 
-      const inicio = dateTimeLocal(dataPresenca, dataTurma.horario_inicio);
-      const permitidoDesde = new Date(inicio.getTime() - 30 * 60 * 1000);
+      const regraInicio = validarInicioConfirmacaoManual(
+        dataPresenca,
+        dataTurma,
+      );
 
-      if (new Date() < permitidoDesde) {
+      if (!regraInicio.ok) {
         return {
-          status: 409,
+          status: regraInicio.status,
           error: true,
-          message: `Confirmação disponível a partir de 30 minutos antes do início (${dataTurma.horario_inicio}).`,
+          message: regraInicio.message,
+          details: regraInicio.details,
+        };
+      }
+
+      const termoAceite = await assegurarAceiteTermoSeNecessario(q, {
+        turmaId,
+        usuarioId,
+        dataPresenca,
+        confirmado: normalizeTermoConfirmadoManual(req.body),
+        origem: isAdministrador(req)
+          ? "manual_administrador"
+          : "manual_organizador",
+        registradoPor: getUserId(req),
+      });
+
+      if (!termoAceite.ok) {
+        return {
+          status: termoAceite.status,
+          error: true,
+          message: termoAceite.message,
+          details: termoAceite.details,
         };
       }
 
@@ -1202,6 +1622,8 @@ async function confirmarPresencaManualHoje(req, res) {
         status: 201,
         data: {
           presenca,
+          termo_aceite: termoAceite?.aceite || null,
+          termo_exigido: termoAceite?.exigido === true,
           elegibilidade_avaliacao: elegibilidade,
         },
         message: "Presença de hoje confirmada manualmente.",
@@ -1240,6 +1662,30 @@ async function validarPresencaManual(req, res) {
     }
 
     const resultado = await withTransaction(async (q) => {
+      let termoAceite = null;
+
+      if (presente === true) {
+        termoAceite = await assegurarAceiteTermoSeNecessario(q, {
+          turmaId,
+          usuarioId,
+          dataPresenca,
+          confirmado: normalizeTermoConfirmadoManual(req.body),
+          origem: isAdministrador(req)
+            ? "manual_administrador"
+            : "manual_organizador",
+          registradoPor: getUserId(req),
+        });
+
+        if (!termoAceite.ok) {
+          return {
+            status: termoAceite.status,
+            error: true,
+            message: termoAceite.message,
+            details: termoAceite.details,
+          };
+        }
+      }
+
       const presenca = await gravarPresenca(q, {
         usuarioId,
         turmaId,
@@ -1258,6 +1704,8 @@ async function validarPresencaManual(req, res) {
         status: 200,
         data: {
           presenca,
+          termo_aceite: termoAceite?.aceite || null,
+          termo_exigido: termoAceite?.exigido === true,
           elegibilidade_avaliacao: elegibilidade,
         },
         message: "Presença validada.",
@@ -1320,6 +1768,20 @@ async function confirmarPresencaorganizador(req, res) {
         };
       }
 
+      const regraInicio = validarInicioConfirmacaoManual(
+        dataPresenca,
+        dataTurma,
+      );
+
+      if (!regraInicio.ok) {
+        return {
+          status: regraInicio.status,
+          error: true,
+          message: regraInicio.message,
+          details: regraInicio.details,
+        };
+      }
+
       const fimAula = dateTimeLocal(
         dataPresenca,
         dataTurma.horario_fim || "23:59",
@@ -1351,6 +1813,26 @@ async function confirmarPresencaorganizador(req, res) {
         };
       }
 
+      const termoAceite = await assegurarAceiteTermoSeNecessario(q, {
+        turmaId,
+        usuarioId,
+        dataPresenca,
+        confirmado: normalizeTermoConfirmadoManual(req.body),
+        origem: isAdministrador(req)
+          ? "manual_administrador"
+          : "manual_organizador",
+        registradoPor: organizadorId,
+      });
+
+      if (!termoAceite.ok) {
+        return {
+          status: termoAceite.status,
+          error: true,
+          message: termoAceite.message,
+          details: termoAceite.details,
+        };
+      }
+
       const presenca = await gravarPresenca(q, {
         usuarioId,
         turmaId,
@@ -1368,6 +1850,8 @@ async function confirmarPresencaorganizador(req, res) {
         status: 200,
         data: {
           presenca,
+          termo_aceite: termoAceite?.aceite || null,
+          termo_exigido: termoAceite?.exigido === true,
           elegibilidade_avaliacao: elegibilidade,
         },
         message: "Presença confirmada pelo organizador.",
@@ -1421,6 +1905,9 @@ async function listarTurmasDoorganizador(req, res) {
           to_char(t.data_fim::date, 'YYYY-MM-DD') AS data_fim,
           to_char(t.horario_inicio::time, 'HH24:MI') AS horario_inicio,
           to_char(t.horario_fim::time, 'HH24:MI') AS horario_fim,
+          COALESCE(e.termo_ativo, FALSE) AS termo_ativo,
+          e.termo_titulo,
+          e.termo_atualizado_em,
           COALESCE((
             SELECT COUNT(*)::int
             FROM inscricoes i
@@ -1464,6 +1951,9 @@ async function listarTurmasDoorganizador(req, res) {
           horario_fim: row.horario_fim,
         },
         status,
+        termo_ativo: row.termo_ativo === true,
+        termo_titulo: row.termo_titulo || null,
+        termo_atualizado_em: row.termo_atualizado_em || null,
         inscritos_total: Number(row.inscritos_total || 0),
       };
     });
@@ -1623,6 +2113,14 @@ async function obterDetalhesTurma(req, res) {
       {
         turma_id: turmaId,
         evento_id: turma.evento_id,
+        termo: {
+          ativo:
+            turma.termo_ativo === true &&
+            Boolean(normalizeText(turma.termo_conteudo_html)),
+          titulo:
+            normalizeText(turma.termo_titulo) || "Termo/regulamento do evento",
+          atualizado_em: turma.termo_atualizado_em || null,
+        },
         datas,
         usuarios,
       },
@@ -2343,6 +2841,7 @@ module.exports = {
   obterMeuResumoPresencas,
 
   registrarPresenca,
+  obterContextoConfirmacaoQr,
   confirmarPresencaViaQR,
   confirmarPresencaViaToken,
 

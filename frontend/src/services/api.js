@@ -2262,6 +2262,35 @@ export async function apiPresencaRegistrar(payload = {}, opts = {}) {
   });
 }
 
+export async function apiPresencaQrContexto(payload = {}, opts = {}) {
+  const source =
+    payload && typeof payload === "object" ? payload : { turma_id: payload };
+
+  const turmaId = Number(source?.turma_id);
+  const dataPresenca = String(source?.data_presenca || "").trim();
+
+  if (!Number.isInteger(turmaId) || turmaId <= 0) {
+    throw new Error("turma_id é obrigatório.");
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataPresenca)) {
+    throw new Error("data_presenca deve estar no formato YYYY-MM-DD.");
+  }
+
+  const response = await apiGet("/presenca/qr/contexto", {
+    auth: true,
+    query: {
+      turma_id: turmaId,
+      data_presenca: dataPresenca,
+    },
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+
+  return response?.data ?? response;
+}
+
 export async function apiPresencaConfirmarQr(payload = {}, opts = {}) {
   const source =
     payload && typeof payload === "object" ? payload : { turma_id: payload };
@@ -2282,6 +2311,7 @@ export async function apiPresencaConfirmarQr(payload = {}, opts = {}) {
     {
       turma_id: turmaId,
       data_presenca: dataPresenca,
+      ...(source?.termo_aceite === true ? { termo_aceite: true } : {}),
     },
     {
       auth: true,
@@ -4118,6 +4148,7 @@ export const api = {
     minhas: (opts) => apiPresencaMinhas(opts),
     minhaResumo: (opts) => apiPresencaMinhaResumo(opts),
     registrar: (payload, opts) => apiPresencaRegistrar(payload, opts),
+    qrContexto: (payload, opts) => apiPresencaQrContexto(payload, opts),
     confirmarQr: (turmaId, opts) => apiPresencaConfirmarQr(turmaId, opts),
     confirmarToken: (token, opts) => apiPresencaConfirmarToken(token, opts),
     turmasorganizador: (opts) => apiPresencaTurmasorganizador(opts),

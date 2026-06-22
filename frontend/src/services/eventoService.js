@@ -1,5 +1,5 @@
-// ✅ frontend/src/services/eventoService.js — v2.3
-// Atualizado em: 16/06/2026
+// ✅ frontend/src/services/eventoService.js — v2.4
+// Atualizado em: 22/06/2026
 // Plataforma Escola da Saúde
 //
 // Service específico do domínio de eventos.
@@ -257,6 +257,10 @@ function isUploadFile(value) {
   return Boolean(
     (hasFile && value instanceof File) || (hasBlob && value instanceof Blob),
   );
+}
+
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj || {}, key);
 }
 
 function fileName(value, fallback) {
@@ -661,6 +665,15 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
 
   const posCurso = normalizePosCurso(source?.pos_curso ?? base?.pos_curso);
 
+  const recebeuTermo =
+    hasOwn(source, "termo_ativo") ||
+    hasOwn(source, "termo_titulo") ||
+    hasOwn(source, "termo_conteudo_html");
+
+  const termoAtivo = source?.termo_ativo === true;
+  const termoTitulo = String(source?.termo_titulo || "").trim();
+  const termoConteudoHtml = String(source?.termo_conteudo_html || "").trim();
+
   const payload = cleanObject({
     titulo,
     descricao,
@@ -693,6 +706,14 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
       ? { remover_programacao: true }
       : {}),
 
+    ...(recebeuTermo
+      ? {
+          termo_ativo: termoAtivo,
+          termo_titulo: termoAtivo ? termoTitulo : "",
+          termo_conteudo_html: termoAtivo ? termoConteudoHtml : "",
+        }
+      : {}),
+
     ...(posCurso ? { pos_curso: posCurso } : {}),
   });
 
@@ -722,6 +743,13 @@ export function validateEventoPayload(payload = {}) {
   const erroTurmas = validarTurmasComorganizadores(payload.turmas);
   if (erroTurmas) {
     return erroTurmas;
+  }
+
+  if (
+    payload?.termo_ativo === true &&
+    !String(payload?.termo_conteudo_html || "").trim()
+  ) {
+    return "Informe o conteúdo do termo/regulamento ou desative esta opção.";
   }
 
   if (

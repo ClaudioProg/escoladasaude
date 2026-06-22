@@ -16,6 +16,7 @@ import {
   useTransition,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import {
   Building2,
@@ -45,7 +46,6 @@ import {
 
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
-import ModalConfirmacao from "../components/ui/ModalConfirmacao";
 import ModalTurma from "../components/eventos/ModalTurma";
 import ModalQuestionarioEvento from "../components/eventos/ModalQuestionarioEvento";
 
@@ -91,6 +91,8 @@ const EVENTO_LIMITES = Object.freeze({
   descricao: 5000,
   publico_alvo: 200,
   conteudo_programatico: 6000,
+  termo_titulo: 180,
+  termo_conteudo_html: 30000,
 });
 
 const RESTRICAO_UI = Object.freeze({
@@ -644,6 +646,126 @@ function TextArea({ icon: Icon, className = "", ...props }) {
   );
 }
 
+function ConfirmacaoViewport({
+  open,
+  titulo,
+  descricao,
+  confirmarTexto = "Confirmar",
+  cancelarTexto = "Cancelar",
+  danger = false,
+  onClose,
+  onConfirm,
+}) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, open]);
+
+  if (!open || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gestao-eventos-confirmacao-titulo"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Fechar confirmação"
+        onClick={onClose}
+      />
+
+      <section className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+        <div
+          className={[
+            "h-1.5",
+            danger
+              ? "bg-gradient-to-r from-rose-600 via-red-500 to-orange-500"
+              : "bg-gradient-to-r from-emerald-600 via-teal-500 to-indigo-500",
+          ].join(" ")}
+          aria-hidden="true"
+        />
+
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <span
+              className={[
+                "grid h-11 w-11 shrink-0 place-items-center rounded-2xl",
+                danger
+                  ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-900/60"
+                  : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-900/60",
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              <Trash2 className="h-5 w-5" />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <h2
+                id="gestao-eventos-confirmacao-titulo"
+                className="text-lg font-black text-slate-950 dark:text-white"
+              >
+                {titulo}
+              </h2>
+
+              {descricao ? (
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
+                  {descricao}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 bg-slate-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/70 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+          >
+            {cancelarTexto}
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={[
+              "inline-flex min-h-10 items-center justify-center rounded-xl px-4 py-2 text-sm font-black text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2",
+              danger
+                ? "bg-rose-700 hover:bg-rose-800 focus-visible:ring-rose-500"
+                : "bg-emerald-700 hover:bg-emerald-800 focus-visible:ring-emerald-500",
+            ].join(" ")}
+          >
+            {confirmarTexto}
+          </button>
+        </footer>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────
    Componente Principal
 ────────────────────────────────────────────────────────────── */
@@ -792,6 +914,11 @@ export default function GestaoEventos() {
   const [unidadeId, setUnidadeId] = useState("");
   const [publicoAlvo, setPublicoAlvo] = useState("");
   const [conteudoProgramatico, setConteudoProgramatico] = useState("");
+  const [termoAtivo, setTermoAtivo] = useState(false);
+  const [termoTitulo, setTermoTitulo] = useState("");
+  const [termoConteudoHtml, setTermoConteudoHtml] = useState("");
+
+  const termoBloqueado = Boolean(evento?.termo_bloqueado);
 
   const [unidades, setUnidades] = useState([]);
   const [organizadoresDisponiveis, setorganizadoresDisponiveis] = useState([]);
@@ -1037,6 +1164,9 @@ export default function GestaoEventos() {
       setUnidadeId(evento?.unidade_id ? String(evento.unidade_id) : "");
       setPublicoAlvo(evento?.publico_alvo || "");
       setConteudoProgramatico(evento?.conteudo_programatico || "");
+      setTermoAtivo(evento?.termo_ativo === true);
+      setTermoTitulo(evento?.termo_titulo || "");
+      setTermoConteudoHtml(evento?.termo_conteudo_html || "");
 
       setFolderFile(null);
       setFolderPreview("");
@@ -1126,6 +1256,12 @@ export default function GestaoEventos() {
           )
         ) {
           setConteudoProgramatico(completo?.conteudo_programatico || "");
+        }
+
+        if (Object.prototype.hasOwnProperty.call(completo, "termo_ativo")) {
+          setTermoAtivo(completo?.termo_ativo === true);
+          setTermoTitulo(completo?.termo_titulo || "");
+          setTermoConteudoHtml(completo?.termo_conteudo_html || "");
         }
 
         setTurmas(
@@ -1470,6 +1606,8 @@ export default function GestaoEventos() {
     const descricaoLimpa = String(descricao || "").trim();
     const publicoAlvoLimpo = String(publicoAlvo || "").trim();
     const conteudoProgramaticoLimpo = String(conteudoProgramatico || "").trim();
+    const termoTituloLimpo = String(termoTitulo || "").trim();
+    const termoConteudoLimpo = String(termoConteudoHtml || "").trim();
 
     if (!tituloLimpo) {
       return "Informe o título do evento.";
@@ -1499,6 +1637,15 @@ export default function GestaoEventos() {
       conteudoProgramaticoLimpo.length > EVENTO_LIMITES.conteudo_programatico
     ) {
       return `O conteúdo programático ultrapassou o limite de ${EVENTO_LIMITES.conteudo_programatico} caracteres.`;
+    }
+    if (termoTituloLimpo.length > EVENTO_LIMITES.termo_titulo) {
+      return `O título do termo ultrapassou o limite de ${EVENTO_LIMITES.termo_titulo} caracteres.`;
+    }
+    if (termoConteudoLimpo.length > EVENTO_LIMITES.termo_conteudo_html) {
+      return `O termo/regulamento ultrapassou o limite de ${EVENTO_LIMITES.termo_conteudo_html} caracteres.`;
+    }
+    if (termoAtivo && !termoConteudoLimpo) {
+      return "Informe o conteúdo do termo/regulamento ou desative essa opção.";
     }
     if (!toPositiveIntOrNull(unidadeId)) {
       return "Selecione a unidade.";
@@ -1564,6 +1711,9 @@ export default function GestaoEventos() {
     restricaoUi,
     restrito,
     tipo,
+    termoAtivo,
+    termoConteudoHtml,
+    termoTitulo,
     titulo,
     turmas,
     unidadeId,
@@ -1613,6 +1763,16 @@ export default function GestaoEventos() {
         conteudo_programatico:
           String(conteudoProgramatico || "").trim() || null,
 
+        ...(!termoBloqueado
+          ? {
+              termo_ativo: Boolean(termoAtivo),
+              termo_titulo: termoAtivo ? String(termoTitulo || "").trim() : "",
+              termo_conteudo_html: termoAtivo
+                ? String(termoConteudoHtml || "").trim()
+                : "",
+            }
+          : {}),
+
         turmas: turmasPayload,
 
         restrito: Boolean(restrito),
@@ -1657,6 +1817,10 @@ export default function GestaoEventos() {
       salvando,
       tipo,
       titulo,
+      termoAtivo,
+      termoBloqueado,
+      termoConteudoHtml,
+      termoTitulo,
       turmas,
       unidadeId,
       unidadesPermitidas,
@@ -2137,6 +2301,108 @@ export default function GestaoEventos() {
                             Campo opcional. Impresso no verso do certificado,
                             preservando as quebras de linha.
                           </p>
+                        </div>
+
+                        <div className="grid gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:col-span-2">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="text-sm font-black text-emerald-950 dark:text-emerald-100">
+                                Termo/regulamento para confirmação de presença
+                              </p>
+                              <p className="mt-1 text-xs leading-relaxed text-emerald-900/75 dark:text-emerald-200/75">
+                                Opcional. Quando ativo, o participante verá este
+                                conteúdo ao escanear o QR Code de presença e
+                                precisará confirmar ciência antes do registro.
+                              </p>
+                            </div>
+
+                            {termoBloqueado ? (
+                              <Chip tone="amber">Bloqueado após início</Chip>
+                            ) : null}
+                          </div>
+
+                          <label className="inline-flex items-start gap-2 text-xs font-bold text-zinc-800 dark:text-zinc-100">
+                            <input
+                              type="checkbox"
+                              checked={termoAtivo}
+                              disabled={termoBloqueado}
+                              onChange={(e) => setTermoAtivo(e.target.checked)}
+                              className="mt-0.5"
+                            />
+                            <span>
+                              Exigir ciência do termo/regulamento na confirmação
+                              de presença por QR Code.
+                            </span>
+                          </label>
+
+                          {termoBloqueado ? (
+                            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
+                              Este termo não pode mais ser alterado porque o
+                              evento já iniciou.
+                            </p>
+                          ) : null}
+
+                          {termoAtivo ? (
+                            <div className="grid gap-2">
+                              <div className="grid gap-1">
+                                <FieldLabel
+                                  htmlFor={`evento-termo-titulo-${uid}`}
+                                >
+                                  Título do termo
+                                </FieldLabel>
+                                <TextInput
+                                  id={`evento-termo-titulo-${uid}`}
+                                  icon={ShieldCheck}
+                                  value={termoTitulo}
+                                  disabled={termoBloqueado}
+                                  maxLength={EVENTO_LIMITES.termo_titulo}
+                                  onChange={(e) =>
+                                    setTermoTitulo(
+                                      limitarTexto(
+                                        e.target.value,
+                                        EVENTO_LIMITES.termo_titulo,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Ex.: Termo de ciência e responsabilidade"
+                                />
+                                <CampoContador
+                                  value={termoTitulo}
+                                  max={EVENTO_LIMITES.termo_titulo}
+                                />
+                              </div>
+
+                              <div className="grid gap-1">
+                                <FieldLabel
+                                  htmlFor={`evento-termo-conteudo-${uid}`}
+                                  required
+                                >
+                                  Conteúdo do termo/regulamento
+                                </FieldLabel>
+                                <TextArea
+                                  id={`evento-termo-conteudo-${uid}`}
+                                  icon={ClipboardList}
+                                  value={termoConteudoHtml}
+                                  disabled={termoBloqueado}
+                                  maxLength={EVENTO_LIMITES.termo_conteudo_html}
+                                  onChange={(e) =>
+                                    setTermoConteudoHtml(
+                                      limitarTexto(
+                                        e.target.value,
+                                        EVENTO_LIMITES.termo_conteudo_html,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Digite aqui o termo/regulamento. Quebras de linha serão preservadas; HTML básico também pode ser usado, se necessário."
+                                  rows={8}
+                                />
+                                <CampoContador
+                                  value={termoConteudoHtml}
+                                  max={EVENTO_LIMITES.termo_conteudo_html}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="grid gap-1 sm:col-span-2">
@@ -2852,28 +3118,20 @@ export default function GestaoEventos() {
         />
       )}
 
-      <ModalConfirmacao
+      <ConfirmacaoViewport
         open={!!confirmTurma.open}
-        isOpen={!!confirmTurma.open}
         onClose={() => setConfirmTurma({ open: false, idx: null, turma: null })}
         onConfirm={confirmarRemoverTurma}
         titulo="Remover turma?"
-        title="Remover turma?"
-        description={
-          confirmTurma?.turma?.id
-            ? `A turma "${confirmTurma.turma.nome}" será removida do payload de edição.\n\nSe ela possuir inscrições, presenças ou certificados, o backend bloqueará a alteração ao salvar.`
-            : `Remover a turma "${confirmTurma?.turma?.nome || "Turma"}" do rascunho?`
-        }
         descricao={
           confirmTurma?.turma?.id
-            ? `A turma "${confirmTurma.turma.nome}" será removida do payload de edição.\n\nSe ela possuir inscrições, presenças ou certificados, o backend bloqueará a alteração ao salvar.`
+            ? `A turma "${confirmTurma.turma.nome}" será removida do payload de edição.
+
+Se ela possuir inscrições, presenças ou certificados, o backend bloqueará a alteração ao salvar.`
             : `Remover a turma "${confirmTurma?.turma?.nome || "Turma"}" do rascunho?`
         }
         confirmarTexto="Remover"
-        confirmText="Remover"
         cancelarTexto="Cancelar"
-        cancelText="Cancelar"
-        variant="danger"
         danger
       />
     </>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { motion, useReducedMotion } from "framer-motion";
@@ -540,84 +541,109 @@ function ConfirmExcluirEventoModal({
   onClose,
   onConfirm,
 }) {
-  if (!open || !evento) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !loading) {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [loading, onClose, open]);
+
+  if (!open || !evento || typeof document === "undefined") {
     return null;
   }
 
   const titulo = getTituloEvento(evento);
 
-  return (
-    <div className="fixed inset-0 z-[9999]">
-      <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[2147483647] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
+      role="presentation"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        onClick={loading ? undefined : onClose}
+        aria-label="Fechar confirmação de exclusão"
       />
 
-      <div className="absolute inset-0 grid place-items-center p-4">
-        <section
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-excluir-evento-titulo"
-          className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-950"
-        >
-          <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-rose-600 dark:text-rose-300">
-                Exclusão de evento
-              </p>
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-excluir-evento-titulo"
+        className="relative my-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-950"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-rose-600 dark:text-rose-300">
+              Exclusão de evento
+            </p>
 
-              <h2
-                id="modal-excluir-evento-titulo"
-                className="mt-1 text-xl font-black text-slate-950 dark:text-white"
-              >
-                Excluir evento?
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-100 disabled:opacity-60 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5"
-              aria-label="Fechar confirmação"
+            <h2
+              id="modal-excluir-evento-titulo"
+              className="mt-1 text-xl font-black text-slate-950 dark:text-white"
             >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </header>
-
-          <div className="px-5 py-5">
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200">
-              <p className="text-sm">
-                <strong>Evento:</strong> {titulo}
-              </p>
-
-              <p className="mt-2 text-sm">Esta ação não poderá ser desfeita.</p>
-            </div>
+              Excluir evento?
+            </h2>
           </div>
 
-          <footer className="flex flex-col gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="inline-flex justify-center rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5"
-            >
-              Cancelar
-            </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-100 disabled:opacity-60 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5"
+            aria-label="Fechar confirmação"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </header>
 
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={loading}
-              className="inline-flex justify-center rounded-2xl bg-rose-600 px-4 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60"
-            >
-              {loading ? "Excluindo..." : "Excluir evento"}
-            </button>
-          </footer>
-        </section>
-      </div>
-    </div>
+        <div className="px-5 py-5">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200">
+            <p className="text-sm">
+              <strong>Evento:</strong> {titulo}
+            </p>
+
+            <p className="mt-2 text-sm">Esta ação não poderá ser desfeita.</p>
+          </div>
+        </div>
+
+        <footer className="flex flex-col gap-2 border-t border-slate-200 px-5 py-4 dark:border-white/10 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="inline-flex justify-center rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="inline-flex justify-center rounded-2xl bg-rose-600 px-4 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60"
+          >
+            {loading ? "Excluindo..." : "Excluir evento"}
+          </button>
+        </footer>
+      </section>
+    </div>,
+    document.body,
   );
 }
 

@@ -87,6 +87,9 @@ const MAX_FOLDER_BYTES = MAX_FOLDER_MB * 1024 * 1024;
 const MAX_PDF_MB = 15;
 const MAX_PDF_BYTES = MAX_PDF_MB * 1024 * 1024;
 
+const MAX_TERMO_TITULO_CHARS = 180;
+const MAX_TERMO_HTML_CHARS = 30000;
+
 const allowedFolderExt = new Set([".png", ".jpg", ".jpeg"]);
 const allowedFolderMime = new Set(["image/png", "image/jpeg"]);
 
@@ -282,6 +285,86 @@ function parseBoolean(value) {
   return value;
 }
 
+function stripDangerousTermHtml(value) {
+  return String(value || "")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
+    .replace(/<embed\b[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript\s*:/gi, "");
+}
+
+function normalizarTermoPayload(body = {}, base = {}) {
+  const hasAtivo = Object.prototype.hasOwnProperty.call(body, "termo_ativo");
+  const hasTitulo = Object.prototype.hasOwnProperty.call(body, "termo_titulo");
+  const hasConteudo = Object.prototype.hasOwnProperty.call(
+    body,
+    "termo_conteudo_html",
+  );
+
+  const ativo = hasAtivo
+    ? body.termo_ativo === true
+    : base.termo_ativo === true;
+  const titulo = String(
+    hasTitulo ? body.termo_titulo || "" : base.termo_titulo || "",
+  )
+    .trim()
+    .slice(0, MAX_TERMO_TITULO_CHARS);
+  const conteudo = stripDangerousTermHtml(
+    hasConteudo
+      ? body.termo_conteudo_html || ""
+      : base.termo_conteudo_html || "",
+  )
+    .trim()
+    .slice(0, MAX_TERMO_HTML_CHARS);
+
+  return {
+    ativo,
+    titulo,
+    conteudo,
+    alterou: hasAtivo || hasTitulo || hasConteudo,
+  };
+}
+
+function validarTermoPayload(termo) {
+  if (!termo?.ativo) {
+    return "";
+  }
+
+  if (!String(termo.conteudo || "").trim()) {
+    return "Informe o conteúdo do termo/regulamento ou desative esta opção.";
+  }
+
+  return "";
+}
+
+async function eventoJaIniciou(client, eventoId) {
+  const result = await client.query(
+    `
+    WITH inicio_datas AS (
+      SELECT MIN(dt.data::date + COALESCE(dt.horario_inicio, '00:00'::time)) AS inicio_real
+      FROM turmas t
+      JOIN datas_turma dt ON dt.turma_id = t.id
+      WHERE t.evento_id = $1
+    ),
+    inicio_turmas AS (
+      SELECT MIN(t.data_inicio::date + COALESCE(t.horario_inicio, '00:00'::time)) AS inicio_real
+      FROM turmas t
+      WHERE t.evento_id = $1
+    )
+    SELECT COALESCE(
+      (SELECT inicio_real FROM inicio_datas),
+      (SELECT inicio_real FROM inicio_turmas)
+    ) <= (NOW() AT TIME ZONE 'America/Sao_Paulo') AS iniciado
+    `,
+    [eventoId],
+  );
+
+  return result.rows?.[0]?.iniciado === true;
+}
+
 function normalizeBodyMultipart(body = {}) {
   const out = { ...body };
 
@@ -315,6 +398,7 @@ function normalizeBodyMultipart(body = {}) {
   out.restrito = parseBoolean(body.restrito);
   out.remover_folder = parseBoolean(body.remover_folder);
   out.remover_programacao = parseBoolean(body.remover_programacao);
+  out.termo_ativo = parseBoolean(body.termo_ativo);
 
   return out;
 }
@@ -1271,6 +1355,11 @@ async function listarEventosAdmin(req, res) {
         e.unidade_id,
         e.publico_alvo,
         e.conteudo_programatico,
+        e.termo_ativo,
+        e.termo_titulo,
+        e.termo_conteudo_html,
+        e.termo_atualizado_em,
+        e.termo_atualizado_por,
         e.publicado,
         e.restrito,
         e.restrito_modo,
@@ -1299,6 +1388,16 @@ async function listarEventosAdmin(req, res) {
         at.data_fim_geral,
         at.horario_inicio_geral,
         at.horario_fim_geral,
+
+        CASE
+          WHEN COALESCE(ad.inicio_real, at.data_inicio_geral::date + COALESCE(at.horario_inicio_geral, '00:00'::time)) IS NULL
+            THEN FALSE
+          WHEN a.br_now >= COALESCE(
+            ad.inicio_real,
+            at.data_inicio_geral::date + COALESCE(at.horario_inicio_geral, '00:00'::time)
+          ) THEN TRUE
+          ELSE FALSE
+        END AS termo_bloqueado,
 
         CASE
           WHEN COALESCE(ad.inicio_real, at.data_inicio_geral::date + COALESCE(at.horario_inicio_geral, '00:00'::time)) IS NULL
@@ -1381,6 +1480,26 @@ async function buscarEventoAdminPorId(req, res) {
         e.unidade_id,
         e.publico_alvo,
         e.conteudo_programatico,
+        e.termo_ativo,
+        e.termo_titulo,
+        e.termo_conteudo_html,
+        e.termo_atualizado_em,
+        e.termo_atualizado_por,
+        COALESCE((
+          COALESCE(
+            (
+              SELECT MIN(dt.data::date + COALESCE(dt.horario_inicio, '00:00'::time))
+              FROM turmas tx
+              JOIN datas_turma dt ON dt.turma_id = tx.id
+              WHERE tx.evento_id = e.id
+            ),
+            (
+              SELECT MIN(tx.data_inicio::date + COALESCE(tx.horario_inicio, '00:00'::time))
+              FROM turmas tx
+              WHERE tx.evento_id = e.id
+            )
+          ) <= (NOW() AT TIME ZONE 'America/Sao_Paulo')
+        ), FALSE) AS termo_bloqueado,
         e.publicado,
         e.restrito,
         e.restrito_modo,
@@ -1490,6 +1609,9 @@ async function criarEvento(req, res) {
     unidade_id,
     publico_alvo,
     conteudo_programatico,
+    termo_ativo = false,
+    termo_titulo,
+    termo_conteudo_html,
     turmas = [],
     restrito = false,
     restrito_modo = null,
@@ -1550,6 +1672,20 @@ async function criarEvento(req, res) {
   for (let i = 0; i < turmas.length; i += 1) {
     const erro = validarTurmaPayload(turmas[i], i);
     if (erro) return badRequest(res, erro, { rid });
+  }
+
+  const termoInicial = normalizarTermoPayload({
+    termo_ativo,
+    termo_titulo,
+    termo_conteudo_html,
+  });
+  const erroTermo = validarTermoPayload(termoInicial);
+
+  if (erroTermo) {
+    return badRequest(res, erroTermo, {
+      rid,
+      code: "EVENTO_TERMO_INVALIDO",
+    });
   }
 
   const client = await db.getClient();
@@ -1627,13 +1763,18 @@ async function criarEvento(req, res) {
         unidade_id,
         publico_alvo,
         conteudo_programatico,
+        termo_ativo,
+        termo_titulo,
+        termo_conteudo_html,
+        termo_atualizado_em,
+        termo_atualizado_por,
         restrito,
         restrito_modo,
         publicado,
         cargos_permitidos_ids,
         unidades_permitidas_ids
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,FALSE,$10,$11)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $8::boolean IS TRUE THEN NOW() ELSE NULL END,$11,$12,$13,FALSE,$14,$15)
       RETURNING *
       `,
       [
@@ -1644,6 +1785,10 @@ async function criarEvento(req, res) {
         Number(unidade_id),
         String(publico_alvo || "").trim(),
         String(conteudo_programatico || "").trim() || null,
+        termoInicial.ativo,
+        termoInicial.ativo ? termoInicial.titulo || null : null,
+        termoInicial.ativo ? termoInicial.conteudo : null,
+        req.user?.id || null,
         restritoFinal,
         restritoFinal ? restritoModoFinal : null,
         cargoIds,
@@ -1734,6 +1879,9 @@ async function atualizarEvento(req, res) {
     unidade_id,
     publico_alvo,
     conteudo_programatico,
+    termo_ativo,
+    termo_titulo,
+    termo_conteudo_html,
     turmas,
     restrito,
     restrito_modo,
@@ -1754,9 +1902,18 @@ async function atualizarEvento(req, res) {
   try {
     await client.query("BEGIN");
 
-    const existe = await client.query(`SELECT id FROM eventos WHERE id = $1`, [
-      eventoId,
-    ]);
+    const existe = await client.query(
+      `
+      SELECT
+        id,
+        termo_ativo,
+        termo_titulo,
+        termo_conteudo_html
+      FROM eventos
+      WHERE id = $1
+      `,
+      [eventoId],
+    );
 
     if (!existe.rowCount) {
       await client.query("ROLLBACK");
@@ -1834,6 +1991,49 @@ async function atualizarEvento(req, res) {
         "conteudo_programatico",
         String(conteudo_programatico || "").trim() || null,
       );
+    }
+
+    const termoAtual = existe.rows?.[0] || {};
+    const termoFinal = normalizarTermoPayload(
+      { termo_ativo, termo_titulo, termo_conteudo_html },
+      termoAtual,
+    );
+
+    if (termoFinal.alterou) {
+      const iniciado = await eventoJaIniciou(client, eventoId);
+
+      if (iniciado) {
+        throw Object.assign(
+          new Error(
+            "O termo/regulamento não pode ser alterado após o início do evento.",
+          ),
+          {
+            status: 409,
+            code: "EVENTO_TERMO_BLOQUEADO_APOS_INICIO",
+          },
+        );
+      }
+
+      const erroTermo = validarTermoPayload(termoFinal);
+
+      if (erroTermo) {
+        throw Object.assign(new Error(erroTermo), {
+          status: 400,
+          code: "EVENTO_TERMO_INVALIDO",
+        });
+      }
+
+      pushSet("termo_ativo", termoFinal.ativo);
+      pushSet(
+        "termo_titulo",
+        termoFinal.ativo ? termoFinal.titulo || null : null,
+      );
+      pushSet(
+        "termo_conteudo_html",
+        termoFinal.ativo ? termoFinal.conteudo : null,
+      );
+      pushSet("termo_atualizado_em", new Date());
+      pushSet("termo_atualizado_por", req.user?.id || null);
     }
 
     const alterouRestricao =

@@ -259,6 +259,101 @@ function getEventoElegibilidade(evento) {
   };
 }
 
+function getAuthToken() {
+  try {
+    return (
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("access_token") ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function apiBaseUrl() {
+  return String(import.meta.env?.VITE_API_URL || "").replace(/\/+$/, "");
+}
+
+function normalizarRespostaConflito(response) {
+  const payload = response?.data?.data ?? response?.data ?? response ?? {};
+
+  return {
+    usuario_id: Number(payload?.usuario_id) || null,
+    turma_id: Number(payload?.turma_id) || null,
+    evento_id: Number(payload?.evento_id) || null,
+    conflito_mesmo_evento: payload?.conflito_mesmo_evento === true,
+    conflito_global: payload?.conflito_global === true,
+    conflito: payload?.conflito === true,
+  };
+}
+
+async function consultarConflitoTurma(turmaIdRaw, { signal } = {}) {
+  const turmaId = Number(turmaIdRaw);
+
+  if (!Number.isInteger(turmaId) || turmaId <= 0) {
+    return {
+      turma_id: null,
+      conflito: false,
+      conflito_mesmo_evento: false,
+      conflito_global: false,
+    };
+  }
+
+  if (typeof EventoService?.inscricao?.conflito === "function") {
+    return normalizarRespostaConflito(
+      await EventoService.inscricao.conflito(turmaId, { signal }),
+    );
+  }
+
+  if (typeof EventoService?.inscricao?.verificarConflito === "function") {
+    return normalizarRespostaConflito(
+      await EventoService.inscricao.verificarConflito(turmaId, { signal }),
+    );
+  }
+
+  const token = getAuthToken();
+  const headers = new Headers();
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(
+    `${apiBaseUrl()}/api/inscricao/conflito/${turmaId}`,
+    {
+      method: "GET",
+      headers,
+      credentials: "include",
+      cache: "no-store",
+      signal,
+    },
+  );
+
+  let json = null;
+
+  try {
+    json = await response.json();
+  } catch {
+    json = null;
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      json?.message || "Erro ao verificar conflito de horário.",
+    );
+    error.status = response.status;
+    error.data = json;
+    throw error;
+  }
+
+  return normalizarRespostaConflito(json);
+}
+
+const MENSAGEM_CONFLITO_HORARIO =
+  "Inscrição indisponível. Você já está inscrito em evento no mesmo horário.";
+
 /* ─────────────────────────────────────────────────────────────
    Botões locais da página
 ────────────────────────────────────────────────────────────── */
@@ -764,6 +859,9 @@ export default function Eventos() {
   const [turmasVisiveis, setTurmasVisiveis] = useState({});
   const [inscricoes, setInscricoes] = useState([]);
   const [inscricaoTurmaIds, setInscricaoTurmaIds] = useState([]);
+  const [turmasConflitoPorEvento, setTurmasConflitoPorEvento] = useState({});
+  const [carregandoConflitosPorEvento, setCarregandoConflitosPorEvento] =
+    useState({});
 
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
@@ -784,6 +882,7 @@ export default function Eventos() {
   const imageStartTimerRef = useRef(null);
   const abortEventosRef = useRef(null);
   const abortInscricaoRef = useRef(null);
+  const abortConflitosRef = useRef({});
   const mountedRef = useRef(true);
 
   const setLive = useCallback((message) => {
@@ -799,6 +898,11 @@ export default function Eventos() {
       mountedRef.current = false;
       abortEventosRef.current?.abort?.("unmount");
       abortInscricaoRef.current?.abort?.("unmount");
+
+      Object.values(abortConflitosRef.current || {}).forEach((controller) => {
+        controller?.abort?.("unmount");
+      });
+      abortConflitosRef.current = {};
     };
   }, []);
 
@@ -925,6 +1029,90 @@ export default function Eventos() {
     };
   }, [eventos, inscricaoTurmaIds]);
 
+  const carregarConflitosDoEvento = useCallback(async (eventoIdRaw, turmas) => {
+    const eventoId = Number(eventoIdRaw);
+    const listaTurmas = Array.isArray(turmas) ? turmas : [];
+    const turmaIds = listaTurmas
+      .map((turma) => Number(turma?.id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    if (!Number.isInteger(eventoId) || eventoId <= 0) {
+      return;
+    }
+
+    abortConflitosRef.current?.[eventoId]?.abort?.("new-request");
+
+    if (!turmaIds.length) {
+      setTurmasConflitoPorEvento((prev) => ({
+        ...prev,
+        [eventoId]: [],
+      }));
+      setCarregandoConflitosPorEvento((prev) => ({
+        ...prev,
+        [eventoId]: false,
+      }));
+      return;
+    }
+
+    const controller = new AbortController();
+    abortConflitosRef.current = {
+      ...(abortConflitosRef.current || {}),
+      [eventoId]: controller,
+    };
+
+    setCarregandoConflitosPorEvento((prev) => ({
+      ...prev,
+      [eventoId]: true,
+    }));
+
+    try {
+      const resultados = await Promise.allSettled(
+        turmaIds.map(async (turmaId) => {
+          const resultado = await consultarConflitoTurma(turmaId, {
+            signal: controller.signal,
+          });
+
+          return resultado?.conflito ? turmaId : null;
+        }),
+      );
+
+      if (!mountedRef.current || controller.signal.aborted) {
+        return;
+      }
+
+      const conflitos = resultados
+        .filter((item) => item.status === "fulfilled")
+        .map((item) => item.value)
+        .filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
+        .map(Number);
+
+      const falhas = resultados.filter((item) => item.status === "rejected");
+
+      if (falhas.length && import.meta.env?.DEV) {
+        console.warn("[Eventos] falha parcial ao verificar conflitos", {
+          evento_id: eventoId,
+          falhas: falhas.length,
+        });
+      }
+
+      setTurmasConflitoPorEvento((prev) => ({
+        ...prev,
+        [eventoId]: conflitos,
+      }));
+    } finally {
+      if (mountedRef.current && !controller.signal.aborted) {
+        setCarregandoConflitosPorEvento((prev) => ({
+          ...prev,
+          [eventoId]: false,
+        }));
+      }
+
+      if (abortConflitosRef.current?.[eventoId] === controller) {
+        delete abortConflitosRef.current[eventoId];
+      }
+    }
+  }, []);
+
   const carregarTurmas = useCallback(
     async (eventoId, options = {}) => {
       const id = Number(eventoId);
@@ -960,10 +1148,14 @@ export default function Eventos() {
           return;
         }
 
+        const listaTurmas = Array.isArray(turmas) ? turmas : [];
+
         setTurmasPorEvento((prev) => ({
           ...prev,
-          [id]: Array.isArray(turmas) ? turmas : [],
+          [id]: listaTurmas,
         }));
+
+        carregarConflitosDoEvento(id, listaTurmas);
       } catch {
         if (!abrirAutomaticamente) {
           notifyError("Erro ao carregar turmas.");
@@ -974,30 +1166,63 @@ export default function Eventos() {
         }
       }
     },
-    [carregandoTurmas, turmasPorEvento, turmasVisiveis],
+    [
+      carregarConflitosDoEvento,
+      carregandoTurmas,
+      turmasPorEvento,
+      turmasVisiveis,
+    ],
   );
 
-  const atualizarTurmasDoEvento = useCallback(async (eventoId) => {
-    if (!eventoId) {
-      return;
-    }
-
-    try {
-      const turmasAtualizadas =
-        await EventoService.publico.listarTurmasSimples(eventoId);
-
-      if (!mountedRef.current) {
+  const atualizarTurmasDoEvento = useCallback(
+    async (eventoId) => {
+      if (!eventoId) {
         return;
       }
 
-      setTurmasPorEvento((prev) => ({
-        ...prev,
-        [eventoId]: Array.isArray(turmasAtualizadas) ? turmasAtualizadas : [],
-      }));
-    } catch {
-      // Mantém a lista atual sem quebrar o fluxo principal.
-    }
-  }, []);
+      try {
+        const turmasAtualizadas =
+          await EventoService.publico.listarTurmasSimples(eventoId);
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        const listaTurmas = Array.isArray(turmasAtualizadas)
+          ? turmasAtualizadas
+          : [];
+
+        setTurmasPorEvento((prev) => ({
+          ...prev,
+          [eventoId]: listaTurmas,
+        }));
+
+        carregarConflitosDoEvento(eventoId, listaTurmas);
+      } catch {
+        // Mantém a lista atual sem quebrar o fluxo principal.
+      }
+    },
+    [carregarConflitosDoEvento],
+  );
+
+  useEffect(() => {
+    Object.entries(turmasPorEvento || {}).forEach(([eventoId, turmas]) => {
+      if (!turmasVisiveis[eventoId]) {
+        return;
+      }
+
+      if (!Array.isArray(turmas) || turmas.length === 0) {
+        return;
+      }
+
+      carregarConflitosDoEvento(eventoId, turmas);
+    });
+  }, [
+    carregarConflitosDoEvento,
+    inscricaoTurmaIds,
+    turmasPorEvento,
+    turmasVisiveis,
+  ]);
 
   const buildAgendaHref = useCallback(
     ({
@@ -1069,6 +1294,34 @@ export default function Eventos() {
         return;
       }
 
+      try {
+        const conflitoAtual = await consultarConflitoTurma(turmaId);
+
+        if (conflitoAtual?.conflito) {
+          setTurmasConflitoPorEvento((prev) => {
+            const atuais = new Set(
+              (prev?.[eventoId] || []).map((item) => Number(item)),
+            );
+            atuais.add(Number(turmaId));
+
+            return {
+              ...prev,
+              [eventoId]: Array.from(atuais),
+            };
+          });
+
+          notifyWarning(MENSAGEM_CONFLITO_HORARIO);
+          return;
+        }
+      } catch (error) {
+        if (import.meta.env?.DEV) {
+          console.warn("[Eventos] não foi possível pré-validar conflito", {
+            turma_id: turmaId,
+            message: error?.message || String(error),
+          });
+        }
+      }
+
       setInscrevendo(turmaId);
 
       try {
@@ -1084,7 +1337,28 @@ export default function Eventos() {
           error?.data?.message || error?.message || "Erro ao se inscrever.";
 
         if (status === 409) {
-          notifyWarning(serverMsg);
+          const motivo = String(error?.data?.details?.motivo || "");
+
+          if (
+            motivo === "CONFLITO_GLOBAL" ||
+            motivo === "CONFLITO_MESMO_EVENTO"
+          ) {
+            setTurmasConflitoPorEvento((prev) => {
+              const atuais = new Set(
+                (prev?.[eventoId] || []).map((item) => Number(item)),
+              );
+              atuais.add(Number(turmaId));
+
+              return {
+                ...prev,
+                [eventoId]: Array.from(atuais),
+              };
+            });
+
+            notifyWarning(MENSAGEM_CONFLITO_HORARIO);
+          } else {
+            notifyWarning(serverMsg);
+          }
         } else {
           notifyError(serverMsg);
         }
@@ -1337,6 +1611,9 @@ export default function Eventos() {
 
               const turmasDoEvento = turmasPorEvento[evento.id] || [];
               const temTurmasCarregadas = Array.isArray(turmasDoEvento);
+              const turmasEmConflito = turmasConflitoPorEvento[evento.id] || [];
+              const verificandoConflitos =
+                carregandoConflitosPorEvento[evento.id] === true;
 
               return (
                 <motion.article
@@ -1507,32 +1784,42 @@ export default function Eventos() {
                       <div className="mt-5 w-full">
                         {temTurmasCarregadas && (
                           <div id={`turmas-${evento.id}`} className="w-full">
-                            <ListaTurmasEvento
-                              turmas={turmasDoEvento}
-                              eventoId={evento.id}
-                              eventoTipo={evento.tipo}
-                              hoje={HOJE_ISO}
-                              inscricaoConfirmadas={inscricaoTurmaIds}
-                              inscrever={(turmaId) =>
-                                inscrever(turmaId, evento.id)
-                              }
-                              inscrevendo={inscrevendo}
-                              jaInscritoNoEvento={(() => {
-                                const ids = new Set(inscricaoTurmaIds);
-                                return turmasDoEvento.some((turma) =>
-                                  ids.has(Number(turma.id)),
-                                );
-                              })()}
-                              jaorganizadorDoEvento={!!evento.ja_organizador}
-                              carregarInscritos={() => {}}
-                              carregarAvaliacao={() => {}}
-                              gerarRelatorioPDF={() => {}}
-                              mostrarStatusTurma={false}
-                              exibirRealizadosTotal
-                              turmasEmConflito={[]}
-                              podeSeInscreverNoEvento={podeSeInscrever}
-                              motivoBloqueioEvento={motivoBloqueio}
-                            />
+                            {verificandoConflitos ? (
+                              <div
+                                className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100"
+                                role="status"
+                              >
+                                Verificando disponibilidade de inscrição e
+                                conflitos de horário...
+                              </div>
+                            ) : (
+                              <ListaTurmasEvento
+                                turmas={turmasDoEvento}
+                                eventoId={evento.id}
+                                eventoTipo={evento.tipo}
+                                hoje={HOJE_ISO}
+                                inscricaoConfirmadas={inscricaoTurmaIds}
+                                inscrever={(turmaId) =>
+                                  inscrever(turmaId, evento.id)
+                                }
+                                inscrevendo={inscrevendo}
+                                jaInscritoNoEvento={(() => {
+                                  const ids = new Set(inscricaoTurmaIds);
+                                  return turmasDoEvento.some((turma) =>
+                                    ids.has(Number(turma.id)),
+                                  );
+                                })()}
+                                jaorganizadorDoEvento={!!evento.ja_organizador}
+                                carregarInscritos={() => {}}
+                                carregarAvaliacao={() => {}}
+                                gerarRelatorioPDF={() => {}}
+                                mostrarStatusTurma={false}
+                                exibirRealizadosTotal
+                                turmasEmConflito={turmasEmConflito}
+                                podeSeInscreverNoEvento={podeSeInscrever}
+                                motivoBloqueioEvento={motivoBloqueio}
+                              />
+                            )}
                           </div>
                         )}
 

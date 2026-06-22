@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/ConfirmarPresenca.jsx — v2.0
-// Atualizado em: 14/05/2026
+// ✅ frontend/src/pages/ConfirmarPresenca.jsx — v2.1
+// Atualizado em: 22/06/2026
 // Plataforma Escola da Saúde
 //
 // Página de confirmação de presença via QR.
@@ -30,6 +30,7 @@ import {
 import { motion, useReducedMotion } from "framer-motion";
 import {
   CheckCircle2,
+  FileText,
   Home,
   Loader2,
   LogIn,
@@ -41,7 +42,11 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { apiPresencaConfirmarQr, clearAuthSession } from "../services/api";
+import {
+  apiPresencaConfirmarQr,
+  apiPresencaQrContexto,
+  clearAuthSession,
+} from "../services/api";
 
 /* ─────────────────────────────────────────────────────────────
  * Helpers
@@ -201,6 +206,42 @@ function getMensagemErro(error) {
   };
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizarTermoHtml(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const pareceHtml = /<\/?[a-z][\s\S]*>/i.test(raw);
+
+  if (!pareceHtml) {
+    return escapeHtml(raw).replace(/\n/g, "<br />");
+  }
+
+  return raw
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
+    .replace(/<embed\b[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript\s*:/gi, "");
+}
+
+function termoEstaAtivo(contexto) {
+  return contexto?.termo?.ativo === true;
+}
+
 /* ─────────────────────────────────────────────────────────────
  * Componentes locais
  * ───────────────────────────────────────────────────────────── */
@@ -208,6 +249,7 @@ function getMensagemErro(error) {
 function HeaderHero({ status, subtitle }) {
   const isOk = status === "ok";
   const isErr = status === "err";
+  const isTermo = status === "termo";
 
   return (
     <header
@@ -243,6 +285,11 @@ function HeaderHero({ status, subtitle }) {
             <>
               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
               <span className="text-sm font-bold">Presença confirmada</span>
+            </>
+          ) : isTermo ? (
+            <>
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              <span className="text-sm font-bold">Termo de ciência</span>
             </>
           ) : isErr ? (
             <>
@@ -295,6 +342,14 @@ function StatusIcon({ status }) {
     );
   }
 
+  if (status === "termo") {
+    return (
+      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-3xl bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
+        <FileText className="h-8 w-8" aria-hidden="true" />
+      </span>
+    );
+  }
+
   return (
     <span className="grid h-14 w-14 shrink-0 place-items-center rounded-3xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200">
       <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
@@ -328,6 +383,85 @@ function InfoBox({ turma_id, nowStr }) {
   );
 }
 
+function TermoBox({
+  termo,
+  termoLido,
+  onScroll,
+  onReachEnd,
+  onConfirmar,
+  confirmando,
+}) {
+  const scrollRef = useRef(null);
+  const html = useMemo(
+    () => normalizarTermoHtml(termo?.conteudo_html || ""),
+    [termo?.conteudo_html],
+  );
+
+  useEffect(() => {
+    const el = scrollRef.current;
+
+    if (!el) {
+      return;
+    }
+
+    if (el.scrollHeight <= el.clientHeight + 8) {
+      onReachEnd?.();
+    }
+  }, [html, onReachEnd]);
+
+  return (
+    <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-amber-700 ring-1 ring-amber-200 dark:bg-zinc-950 dark:text-amber-200 dark:ring-amber-900/60">
+          <FileText className="h-5 w-5" aria-hidden="true" />
+        </span>
+
+        <div className="min-w-0">
+          <p className="text-sm font-black text-amber-950 dark:text-amber-100">
+            {termo?.titulo || "Termo/regulamento do evento"}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-900/80 dark:text-amber-200/80">
+            Leia o conteúdo até o final. O botão de confirmação será liberado ao
+            final do termo.
+          </p>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="mt-4 max-h-[42vh] overflow-y-auto rounded-2xl border border-amber-200 bg-white p-4 text-sm leading-relaxed text-slate-800 shadow-inner dark:border-amber-900/60 dark:bg-zinc-950 dark:text-zinc-100"
+      >
+        <div
+          className="prose prose-sm max-w-none dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-white/80 p-3 text-xs font-semibold leading-relaxed text-amber-950 ring-1 ring-amber-200 dark:bg-zinc-950/70 dark:text-amber-100 dark:ring-amber-900/60">
+        Ao clicar no botão abaixo, declaro estar ciente e concordo com o
+        termo/regulamento deste evento.
+      </div>
+
+      <button
+        type="button"
+        disabled={!termoLido || confirmando}
+        onClick={onConfirmar}
+        className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      >
+        {confirmando ? (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+        )}
+        {termoLido
+          ? "Estou ciente e confirmar presença"
+          : "Leia o termo até o final"}
+      </button>
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────
  * Página
  * ───────────────────────────────────────────────────────────── */
@@ -355,6 +489,8 @@ export default function ConfirmarPresenca() {
   const [requiresLogin, setRequiresLogin] = useState(false);
   const [wrongAccount, setWrongAccount] = useState(false);
   const [subtitle, setSubtitle] = useState("");
+  const [contextoQr, setContextoQr] = useState(null);
+  const [termoLido, setTermoLido] = useState(false);
 
   const liveRef = useRef(null);
   const titleRef = useRef(null);
@@ -393,9 +529,12 @@ export default function ConfirmarPresenca() {
     const query = new URLSearchParams(location.search);
 
     query.set("turma_id", String(turma_id || ""));
+    if (data_presenca) {
+      query.set("data_presenca", String(data_presenca));
+    }
 
     return `${location.pathname}?${query.toString()}`;
-  }, [location.pathname, location.search, turma_id]);
+  }, [data_presenca, location.pathname, location.search, turma_id]);
 
   const goToLogin = useCallback(() => {
     const next = buildNext();
@@ -428,7 +567,7 @@ export default function ConfirmarPresenca() {
   }, []);
 
   const confirmar = useCallback(
-    async ({ silent = false } = {}) => {
+    async ({ silent = false, termoAceite = false } = {}) => {
       const turmaIdSeguro = toPositiveInt(turma_id);
 
       if (!turmaIdSeguro) {
@@ -484,10 +623,49 @@ export default function ConfirmarPresenca() {
       }
 
       try {
+        let contexto = contextoQr;
+
+        if (!contexto) {
+          contexto = await apiPresencaQrContexto(
+            {
+              turma_id: turmaIdSeguro,
+              data_presenca,
+            },
+            {
+              signal: controller.signal,
+              on401: "silent",
+            },
+          );
+
+          if (!mountedRef.current || myFlight !== inFlightRef.current) {
+            return;
+          }
+
+          setContextoQr(contexto);
+        }
+
+        if (
+          termoEstaAtivo(contexto) &&
+          contexto?.termo?.ja_aceito !== true &&
+          termoAceite !== true
+        ) {
+          setStatus("termo");
+          setMsg(contexto?.termo?.titulo || "Termo/regulamento do evento");
+          setDetail("Leia o termo/regulamento para confirmar sua presença.");
+          setRequiresLogin(false);
+          setWrongAccount(false);
+          setSubtitle("Ciência necessária antes da confirmação.");
+          setTermoLido(false);
+          setLive("Termo de ciência exibido.");
+          focusTitleSoon();
+          return;
+        }
+
         await apiPresencaConfirmarQr(
           {
             turma_id: turmaIdSeguro,
             data_presenca,
+            ...(termoEstaAtivo(contexto) ? { termo_aceite: true } : {}),
           },
           {
             signal: controller.signal,
@@ -533,7 +711,7 @@ export default function ConfirmarPresenca() {
         focusTitleSoon();
       }
     },
-    [data_presenca, focusTitleSoon, goToLogin, setLive, turma_id],
+    [contextoQr, data_presenca, focusTitleSoon, goToLogin, setLive, turma_id],
   );
 
   useEffect(() => {
@@ -553,6 +731,29 @@ export default function ConfirmarPresenca() {
     confirmar({ silent: false });
   }, [confirmar]);
 
+  const onTermoScroll = useCallback((event) => {
+    const el = event.currentTarget;
+
+    if (!el) {
+      return;
+    }
+
+    const chegouAoFim = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+
+    if (chegouAoFim) {
+      setTermoLido(true);
+    }
+  }, []);
+
+  const onConfirmarTermo = useCallback(() => {
+    if (!termoLido) {
+      return;
+    }
+
+    setAttempts((value) => value + 1);
+    confirmar({ silent: false, termoAceite: true });
+  }, [confirmar, termoLido]);
+
   const onGoHome = useCallback(() => {
     navigate("/", {
       replace: true,
@@ -566,6 +767,7 @@ export default function ConfirmarPresenca() {
   const titleColor = classNames(
     status === "ok" && "text-emerald-700 dark:text-emerald-300",
     status === "err" && "text-rose-700 dark:text-rose-300",
+    status === "termo" && "text-amber-700 dark:text-amber-300",
     status === "loading" && "text-slate-950 dark:text-zinc-100",
   );
 
@@ -625,6 +827,17 @@ export default function ConfirmarPresenca() {
 
             <InfoBox turma_id={turma_id} nowStr={nowStr} />
 
+            {status === "termo" && termoEstaAtivo(contextoQr) ? (
+              <TermoBox
+                termo={contextoQr.termo}
+                termoLido={termoLido}
+                onScroll={onTermoScroll}
+                onReachEnd={() => setTermoLido(true)}
+                onConfirmar={onConfirmarTermo}
+                confirmando={false}
+              />
+            ) : null}
+
             <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200">
               <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
               Confirmação autenticada e controlada pelo backend.
@@ -663,7 +876,7 @@ export default function ConfirmarPresenca() {
                     Ir para a Home
                   </button>
                 </>
-              ) : requiresLogin || wrongAccount ? (
+              ) : status === "termo" ? null : requiresLogin || wrongAccount ? (
                 <>
                   <button
                     type="button"

@@ -1,5 +1,5 @@
-// ✅ src/components/presencas/ControlePresencaInscritos.jsx — v2.2
-// Atualizado em: 02/06/2026
+// ✅ src/components/presencas/ControlePresencaInscritos.jsx — v2.3
+// Atualizado em: 22/06/2026
 // Plataforma Escola da Saúde
 //
 // Componente de controle de presença por inscrito e por data.
@@ -35,6 +35,10 @@
 // - preserva o modo detalhado antigo para outros usos;
 // - mantém janela 90 dias para administrador e 48h para organizador;
 // - usa variant oficial "contorno" no Botao.
+//
+// Revisão v2.3:
+// - presença manual liberada 45 minutos antes do início da data/encontro;
+// - preserva janela final de 48h para organizador e 90 dias para administrador.
 
 import PropTypes from "prop-types";
 import { motion } from "framer-motion";
@@ -63,7 +67,7 @@ import { notifyError, notifySuccess } from "../ui/AppToast";
  * Configuração
  * ───────────────────────────────────────────────────────────── */
 
-const UNLOCK_MINUTES_AFTER_START = 60;
+const UNLOCK_MINUTES_BEFORE_START = 45;
 
 const CONFIRM_WINDOW_ORGANIZADOR_HOURS = 48;
 const CONFIRM_WINDOW_ADMINISTRADOR_DAYS = 90;
@@ -219,6 +223,14 @@ function getUsuarioId(inscrito) {
 
 function getTurmaId(turma) {
   return toPositiveInt(turma?.turma_id || turma?.id);
+}
+
+function turmaExigeTermo(turma) {
+  return Boolean(
+    turma?.termo_ativo === true ||
+    turma?.termo?.ativo === true ||
+    turma?.evento?.termo_ativo === true,
+  );
 }
 
 function normalizarPrazoHoras(value, fallback) {
@@ -514,9 +526,11 @@ export default function ControlePresencaInscritos({
   modoTabelaCompacta = false,
 }) {
   const [confirmandoKey, setConfirmandoKey] = useState(null);
+  const [cienciaTermoPorPresenca, setCienciaTermoPorPresenca] = useState({});
   const [now, setNow] = useState(() => new Date());
 
   const turma_id = getTurmaId(turma);
+  const exigeTermo = turmaExigeTermo(turma);
 
   const regraPrazoConfirmacao = useMemo(
     () =>
@@ -599,15 +613,15 @@ export default function ControlePresencaInscritos({
     [now, regraPrazoConfirmacao],
   );
 
-  const liberouPosInicio = useCallback(
-    (data_presenca, horarioInicio, minutos = UNLOCK_MINUTES_AFTER_START) => {
+  const liberouJanelaInicial = useCallback(
+    (data_presenca, horarioInicio, minutos = UNLOCK_MINUTES_BEFORE_START) => {
       const inicioDia = combineDateAndTimeLocal(data_presenca, horarioInicio);
 
       if (!inicioDia) {
         return false;
       }
 
-      const unlockAt = new Date(inicioDia.getTime() + minutos * MS_MIN);
+      const unlockAt = new Date(inicioDia.getTime() - minutos * MS_MIN);
 
       return now >= unlockAt;
     },
@@ -615,7 +629,7 @@ export default function ControlePresencaInscritos({
   );
 
   const confirmarPresenca = useCallback(
-    async (usuario_id, data_presenca) => {
+    async (usuario_id, data_presenca, termoCienciaConfirmada = false) => {
       const usuarioIdSeguro = toPositiveInt(usuario_id);
       const dataSegura = ymd(data_presenca);
 
@@ -633,6 +647,7 @@ export default function ControlePresencaInscritos({
           usuario_id: usuarioIdSeguro,
           turma_id,
           data_presenca: dataSegura,
+          ...(termoCienciaConfirmada ? { termo_ciencia_confirmada: true } : {}),
         });
 
         notifySuccess("Presença confirmada com sucesso.");
@@ -659,7 +674,7 @@ export default function ControlePresencaInscritos({
     (usuario_id, data, horario_inicio, horario_fim) => {
       const presente = !!presencasMap.get(`${usuario_id}#${data}`);
 
-      const liberado = liberouPosInicio(data, horario_inicio);
+      const liberado = liberouJanelaInicial(data, horario_inicio);
 
       const noPrazo = dentroDoPrazoDeConfirmacao(
         data,
@@ -696,7 +711,7 @@ export default function ControlePresencaInscritos({
       const titleButton = presente
         ? "Presença já confirmada."
         : aguardando
-          ? `Libera ${UNLOCK_MINUTES_AFTER_START} min após o início.`
+          ? `Libera ${UNLOCK_MINUTES_BEFORE_START} min antes do início.`
           : foraPrazo
             ? regraPrazoConfirmacao.hintForaPrazo
             : "Confirmar presença deste dia";
@@ -704,7 +719,7 @@ export default function ControlePresencaInscritos({
       const hint = presente
         ? "Presença já confirmada."
         : aguardando
-          ? `Libera ${UNLOCK_MINUTES_AFTER_START} min após o início.`
+          ? `Libera ${UNLOCK_MINUTES_BEFORE_START} min antes do início.`
           : foraPrazo
             ? regraPrazoConfirmacao.hintExpirou
             : "Pode confirmar agora.";
@@ -725,7 +740,7 @@ export default function ControlePresencaInscritos({
     [
       confirmandoKey,
       dentroDoPrazoDeConfirmacao,
-      liberouPosInicio,
+      liberouJanelaInicial,
       presencasMap,
       regraPrazoConfirmacao.hintExpirou,
       regraPrazoConfirmacao.hintForaPrazo,
@@ -766,7 +781,7 @@ export default function ControlePresencaInscritos({
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
             <div className="flex flex-wrap items-center gap-2">
               <Pill tone="indigo" icon={Timer}>
-                Libera em {UNLOCK_MINUTES_AFTER_START}min
+                Libera {UNLOCK_MINUTES_BEFORE_START}min antes
               </Pill>
 
               <Pill tone="amber" icon={Clock3}>
@@ -814,6 +829,12 @@ export default function ControlePresencaInscritos({
                       );
 
                       const key = `${usuario_id || email || cpf}#${data}`;
+                      const cienciaKey = `${usuario_id}#${data}#termo`;
+                      const cienciaConfirmada =
+                        !exigeTermo ||
+                        Boolean(cienciaTermoPorPresenca[cienciaKey]);
+                      const podeEnviarConfirmacao =
+                        linha.podeConfirmar && cienciaConfirmada;
 
                       return (
                         <tr
@@ -844,23 +865,52 @@ export default function ControlePresencaInscritos({
 
                           <td className="px-4 py-3 text-right align-middle">
                             {linha.podeConfirmar ? (
-                              <Botao
-                                type="button"
-                                variant="contorno"
-                                size="sm"
-                                onClick={() =>
-                                  confirmarPresenca(usuario_id, data)
-                                }
-                                disabled={linha.isLoading}
-                                loading={linha.isLoading}
-                                aria-label={`Confirmar presença em ${formatBRDateOnly(
-                                  data,
-                                )} para ${nome}`}
-                                title={linha.titleButton}
-                                className="rounded-xl"
-                              >
-                                Confirmar
-                              </Botao>
+                              <div className="flex flex-col items-end gap-2">
+                                {exigeTermo ? (
+                                  <label className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(
+                                        cienciaTermoPorPresenca[cienciaKey],
+                                      )}
+                                      onChange={(event) =>
+                                        setCienciaTermoPorPresenca((prev) => ({
+                                          ...prev,
+                                          [cienciaKey]: event.target.checked,
+                                        }))
+                                      }
+                                      className="mt-0.5"
+                                    />
+                                    <span>
+                                      Participante ciente do termo/regulamento.
+                                    </span>
+                                  </label>
+                                ) : null}
+
+                                <Botao
+                                  type="button"
+                                  variant="contorno"
+                                  size="sm"
+                                  onClick={() =>
+                                    confirmarPresenca(
+                                      usuario_id,
+                                      data,
+                                      exigeTermo,
+                                    )
+                                  }
+                                  disabled={
+                                    linha.isLoading || !podeEnviarConfirmacao
+                                  }
+                                  loading={linha.isLoading}
+                                  aria-label={`Confirmar presença em ${formatBRDateOnly(
+                                    data,
+                                  )} para ${nome}`}
+                                  title={linha.titleButton}
+                                  className="rounded-xl"
+                                >
+                                  Confirmar
+                                </Botao>
+                              </div>
                             ) : (
                               <span className="text-xs text-slate-500 dark:text-slate-400">
                                 {linha.titleButton}
@@ -933,7 +983,7 @@ export default function ControlePresencaInscritos({
                       </Pill>
 
                       <Pill tone="indigo" icon={Timer}>
-                        Libera em {UNLOCK_MINUTES_AFTER_START}min
+                        Libera {UNLOCK_MINUTES_BEFORE_START}min antes
                       </Pill>
 
                       <Pill tone="amber" icon={Clock3}>
@@ -954,6 +1004,13 @@ export default function ControlePresencaInscritos({
                           horario_inicio,
                           horario_fim,
                         );
+
+                        const cienciaKey = `${usuario_id}#${data}#termo`;
+                        const cienciaConfirmada =
+                          !exigeTermo ||
+                          Boolean(cienciaTermoPorPresenca[cienciaKey]);
+                        const podeEnviarConfirmacao =
+                          linha.podeConfirmar && cienciaConfirmada;
 
                         const horarioStr =
                           horario_inicio || horario_fim
@@ -990,23 +1047,56 @@ export default function ControlePresencaInscritos({
                               </p>
 
                               {linha.podeConfirmar ? (
-                                <Botao
-                                  type="button"
-                                  variant="contorno"
-                                  size="sm"
-                                  onClick={() =>
-                                    confirmarPresenca(usuario_id, data)
-                                  }
-                                  disabled={linha.isLoading}
-                                  loading={linha.isLoading}
-                                  aria-label={`Confirmar presença em ${formatBRDateOnly(
-                                    data,
-                                  )} para ${nome}`}
-                                  title="Confirmar presença deste dia"
-                                  className="rounded-xl"
-                                >
-                                  Confirmar
-                                </Botao>
+                                <div className="flex flex-col items-end gap-2">
+                                  {exigeTermo ? (
+                                    <label className="inline-flex max-w-[240px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                                      <input
+                                        type="checkbox"
+                                        checked={Boolean(
+                                          cienciaTermoPorPresenca[cienciaKey],
+                                        )}
+                                        onChange={(event) =>
+                                          setCienciaTermoPorPresenca(
+                                            (prev) => ({
+                                              ...prev,
+                                              [cienciaKey]:
+                                                event.target.checked,
+                                            }),
+                                          )
+                                        }
+                                        className="mt-0.5"
+                                      />
+                                      <span>
+                                        Participante ciente do
+                                        termo/regulamento.
+                                      </span>
+                                    </label>
+                                  ) : null}
+
+                                  <Botao
+                                    type="button"
+                                    variant="contorno"
+                                    size="sm"
+                                    onClick={() =>
+                                      confirmarPresenca(
+                                        usuario_id,
+                                        data,
+                                        exigeTermo,
+                                      )
+                                    }
+                                    disabled={
+                                      linha.isLoading || !podeEnviarConfirmacao
+                                    }
+                                    loading={linha.isLoading}
+                                    aria-label={`Confirmar presença em ${formatBRDateOnly(
+                                      data,
+                                    )} para ${nome}`}
+                                    title="Confirmar presença deste dia"
+                                    className="rounded-xl"
+                                  >
+                                    Confirmar
+                                  </Botao>
+                                </div>
                               ) : null}
                             </div>
                           </div>
@@ -1096,7 +1186,11 @@ export default function ControlePresencaInscritos({
                                           variant="contorno"
                                           size="sm"
                                           onClick={() =>
-                                            confirmarPresenca(usuario_id, data)
+                                            confirmarPresenca(
+                                              usuario_id,
+                                              data,
+                                              exigeTermo,
+                                            )
                                           }
                                           disabled={linha.isLoading}
                                           loading={linha.isLoading}

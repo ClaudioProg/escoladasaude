@@ -1,5 +1,5 @@
-// ✅ frontend/src/components/organizadores/Turmasorganizador.jsx — v2.0
-// Atualizado em: 15/05/2026
+// ✅ frontend/src/components/organizadores/Turmasorganizador.jsx — v2.1
+// Atualizado em: 22/06/2026
 // Plataforma Escola da Saúde
 
 import PropTypes from "prop-types";
@@ -28,6 +28,11 @@ import AvaliacaoEvento from "../avaliacoes/AvaliacaoEvento";
 import Botao from "../ui/Botao";
 import CarregandoSkeleton from "../ui/CarregandoSkeleton";
 import NadaEncontrado from "../ui/NadaEncontrado";
+
+const CONFIRMACAO_MANUAL_ABRE_MINUTOS_ANTES_INICIO = 45;
+const CONFIRMACAO_MANUAL_FECHA_HORAS_APOS_FIM = 48;
+const MS_MINUTO = 60 * 1000;
+const MS_HORA = 60 * MS_MINUTO;
 
 /**
  * Turmasorganizador
@@ -403,8 +408,12 @@ function dentroDaJanelaConfirmacao(dataYMD, horarioInicio, horarioFim) {
     return false;
   }
 
-  const abre = new Date(start.getTime() + 60 * 60 * 1000);
-  const fecha = new Date(end.getTime() + 48 * 60 * 60 * 1000);
+  const abre = new Date(
+    start.getTime() - CONFIRMACAO_MANUAL_ABRE_MINUTOS_ANTES_INICIO * MS_MINUTO,
+  );
+  const fecha = new Date(
+    end.getTime() + CONFIRMACAO_MANUAL_FECHA_HORAS_APOS_FIM * MS_HORA,
+  );
   const agora = new Date();
 
   return agora >= abre && agora <= fecha;
@@ -553,6 +562,16 @@ function calcularResumoData({ mapaUsuarios, data, antesDaJanela }) {
     aguardando,
     percentual,
   };
+}
+
+function turmaExigeTermo(turma, presencasDetalhadas = {}) {
+  const termoDetalhe = presencasDetalhadas?.termo;
+
+  return Boolean(
+    termoDetalhe?.ativo === true ||
+    turma?.termo_ativo === true ||
+    turma?.termo?.ativo === true,
+  );
 }
 
 function exportarCsvDataAtiva({ turmaId, dataAtiva, mapaUsuarios }) {
@@ -932,6 +951,7 @@ export default function Turmasorganizador({
   const [somenteSemPresencaPorTurma, setSomenteSemPresencaPorTurma] = useState(
     {},
   );
+  const [cienciaTermoPorPresenca, setCienciaTermoPorPresenca] = useState({});
 
   const eventosAgrupados = useMemo(() => {
     const map = new Map();
@@ -960,7 +980,7 @@ export default function Turmasorganizador({
   }, [turmas]);
 
   const handleConfirmarPresenca = useCallback(
-    async ({ usuarioId, turmaId, data }) => {
+    async ({ usuarioId, turmaId, data, termoCienciaConfirmada = false }) => {
       if (typeof onConfirmarPresencaManual !== "function") {
         return;
       }
@@ -975,6 +995,9 @@ export default function Turmasorganizador({
             usuario_id: Number(usuarioId),
             turma_id: Number(turmaId),
             data_presenca: data,
+            ...(termoCienciaConfirmada
+              ? { termo_ciencia_confirmada: true }
+              : {}),
           }),
         );
 
@@ -1053,6 +1076,10 @@ export default function Turmasorganizador({
                   const inscritos = safeArray(inscritosPorTurma[turmaId]);
                   const presencasDetalhadas =
                     presencasPorTurma[turmaId]?.detalhado || {};
+                  const exigeTermo = turmaExigeTermo(
+                    turma,
+                    presencasDetalhadas,
+                  );
 
                   const mapaUsuarios = montarMapaUsuarios(
                     inscritos,
@@ -1184,7 +1211,9 @@ export default function Turmasorganizador({
                                   );
                                   const abreJanela = inicio
                                     ? new Date(
-                                        inicio.getTime() + 60 * 60 * 1000,
+                                        inicio.getTime() -
+                                          CONFIRMACAO_MANUAL_ABRE_MINUTOS_ANTES_INICIO *
+                                            MS_MINUTO,
                                       )
                                     : null;
                                   const antesDaJanela = abreJanela
@@ -1239,8 +1268,8 @@ export default function Turmasorganizador({
 
                                           {antesDaJanela ? (
                                             <p className="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                                              Confirmação manual libera cerca de
-                                              1h após o início da aula.
+                                              Confirmação manual libera 45
+                                              minutos antes do início da aula.
                                             </p>
                                           ) : null}
                                         </div>
@@ -1361,6 +1390,17 @@ export default function Turmasorganizador({
                                                 const key = `${usuario.id}-${turmaId}-${dataSelecionada.data}`;
                                                 const loadingThis =
                                                   confirmandoKey === key;
+                                                const cienciaKey = `${key}-termo`;
+                                                const cienciaConfirmada =
+                                                  !exigeTermo ||
+                                                  Boolean(
+                                                    cienciaTermoPorPresenca[
+                                                      cienciaKey
+                                                    ],
+                                                  );
+                                                const podeEnviarConfirmacao =
+                                                  podeConfirmar &&
+                                                  cienciaConfirmada;
 
                                                 return (
                                                   <tr
@@ -1392,25 +1432,64 @@ export default function Turmasorganizador({
 
                                                     <td className="px-3 py-3 text-right">
                                                       {podeConfirmar ? (
-                                                        <Botao
-                                                          type="button"
-                                                          variant="primary"
-                                                          disabled={loadingThis}
-                                                          onClick={() =>
-                                                            handleConfirmarPresenca(
-                                                              {
-                                                                usuarioId:
-                                                                  usuario.id,
-                                                                turmaId,
-                                                                data: dataSelecionada.data,
-                                                              },
-                                                            )
-                                                          }
-                                                        >
-                                                          {loadingThis
-                                                            ? "Confirmando..."
-                                                            : "Confirmar"}
-                                                        </Botao>
+                                                        <div className="flex flex-col items-end gap-2">
+                                                          {exigeTermo ? (
+                                                            <label className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                                                              <input
+                                                                type="checkbox"
+                                                                checked={Boolean(
+                                                                  cienciaTermoPorPresenca[
+                                                                    cienciaKey
+                                                                  ],
+                                                                )}
+                                                                onChange={(
+                                                                  event,
+                                                                ) =>
+                                                                  setCienciaTermoPorPresenca(
+                                                                    (prev) => ({
+                                                                      ...prev,
+                                                                      [cienciaKey]:
+                                                                        event
+                                                                          .target
+                                                                          .checked,
+                                                                    }),
+                                                                  )
+                                                                }
+                                                                className="mt-0.5"
+                                                              />
+                                                              <span>
+                                                                Participante
+                                                                ciente do
+                                                                termo/regulamento.
+                                                              </span>
+                                                            </label>
+                                                          ) : null}
+
+                                                          <Botao
+                                                            type="button"
+                                                            variant="primary"
+                                                            disabled={
+                                                              loadingThis ||
+                                                              !podeEnviarConfirmacao
+                                                            }
+                                                            onClick={() =>
+                                                              handleConfirmarPresenca(
+                                                                {
+                                                                  usuarioId:
+                                                                    usuario.id,
+                                                                  turmaId,
+                                                                  data: dataSelecionada.data,
+                                                                  termoCienciaConfirmada:
+                                                                    exigeTermo,
+                                                                },
+                                                              )
+                                                            }
+                                                          >
+                                                            {loadingThis
+                                                              ? "Confirmando..."
+                                                              : "Confirmar"}
+                                                          </Botao>
+                                                        </div>
                                                       ) : (
                                                         <span className="text-xs text-slate-400">
                                                           —
@@ -1447,6 +1526,17 @@ export default function Turmasorganizador({
                                             const key = `${usuario.id}-${turmaId}-${dataSelecionada.data}`;
                                             const loadingThis =
                                               confirmandoKey === key;
+                                            const cienciaKey = `${key}-termo`;
+                                            const cienciaConfirmada =
+                                              !exigeTermo ||
+                                              Boolean(
+                                                cienciaTermoPorPresenca[
+                                                  cienciaKey
+                                                ],
+                                              );
+                                            const podeEnviarConfirmacao =
+                                              podeConfirmar &&
+                                              cienciaConfirmada;
 
                                             return (
                                               <article
@@ -1475,25 +1565,61 @@ export default function Turmasorganizador({
                                                   />
 
                                                   {podeConfirmar ? (
-                                                    <Botao
-                                                      type="button"
-                                                      variant="sucesso"
-                                                      disabled={loadingThis}
-                                                      onClick={() =>
-                                                        handleConfirmarPresenca(
-                                                          {
-                                                            usuarioId:
-                                                              usuario.id,
-                                                            turmaId,
-                                                            data: dataSelecionada.data,
-                                                          },
-                                                        )
-                                                      }
-                                                    >
-                                                      {loadingThis
-                                                        ? "Confirmando..."
-                                                        : "Confirmar"}
-                                                    </Botao>
+                                                    <>
+                                                      {exigeTermo ? (
+                                                        <label className="inline-flex items-start gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300">
+                                                          <input
+                                                            type="checkbox"
+                                                            checked={Boolean(
+                                                              cienciaTermoPorPresenca[
+                                                                cienciaKey
+                                                              ],
+                                                            )}
+                                                            onChange={(event) =>
+                                                              setCienciaTermoPorPresenca(
+                                                                (prev) => ({
+                                                                  ...prev,
+                                                                  [cienciaKey]:
+                                                                    event.target
+                                                                      .checked,
+                                                                }),
+                                                              )
+                                                            }
+                                                            className="mt-0.5"
+                                                          />
+                                                          <span>
+                                                            Participante ciente
+                                                            do
+                                                            termo/regulamento.
+                                                          </span>
+                                                        </label>
+                                                      ) : null}
+
+                                                      <Botao
+                                                        type="button"
+                                                        variant="sucesso"
+                                                        disabled={
+                                                          loadingThis ||
+                                                          !podeEnviarConfirmacao
+                                                        }
+                                                        onClick={() =>
+                                                          handleConfirmarPresenca(
+                                                            {
+                                                              usuarioId:
+                                                                usuario.id,
+                                                              turmaId,
+                                                              data: dataSelecionada.data,
+                                                              termoCienciaConfirmada:
+                                                                exigeTermo,
+                                                            },
+                                                          )
+                                                        }
+                                                      >
+                                                        {loadingThis
+                                                          ? "Confirmando..."
+                                                          : "Confirmar"}
+                                                      </Botao>
+                                                    </>
                                                   ) : null}
                                                 </div>
                                               </article>

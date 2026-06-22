@@ -2,8 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/routes/presencaRoute.js — v2.1
- * Atualizado em: 19/05/2026
+ * ✅ backend/src/routes/presencaRoute.js — v2.2
+ * Atualizado em: 22/06/2026
  * Plataforma Escola da Saúde
  *
  * Rotas oficiais do módulo de presença.
@@ -87,6 +87,9 @@ const controller = Object.freeze({
   obterMeuResumoPresencas: requireControllerFunction("obterMeuResumoPresencas"),
 
   registrarPresenca: requireControllerFunction("registrarPresenca"),
+  obterContextoConfirmacaoQr: requireControllerFunction(
+    "obterContextoConfirmacaoQr",
+  ),
   confirmarPresencaViaQR: requireControllerFunction("confirmarPresencaViaQR"),
   confirmarPresencaViaToken: requireControllerFunction(
     "confirmarPresencaViaToken",
@@ -306,6 +309,19 @@ router.post(
   authorize(...PERFIS_USUARIO),
   routeTag("presencaRoute:POST /"),
   wrap(controller.registrarPresenca),
+);
+
+/**
+ * Carrega contexto da confirmação via QR.
+ *
+ * GET /api/presenca/qr/contexto?turma_id=1&data_presenca=YYYY-MM-DD
+ */
+router.get(
+  "/qr/contexto",
+  authorize(...PERFIS_USUARIO),
+  ensureDateOnlyQuery("data_presenca"),
+  routeTag("presencaRoute:GET /qr/contexto"),
+  wrap(controller.obterContextoConfirmacaoQr),
 );
 
 /**
