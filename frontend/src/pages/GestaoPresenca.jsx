@@ -1,5 +1,5 @@
-// ✅ frontend/src/pages/GestaoPresenca.jsx — v2.2
-// Atualizado em: 02/06/2026
+// ✅ frontend/src/pages/GestaoPresenca.jsx — v2.3
+// Atualizado em: 22/06/2026
 // Plataforma Escola da Saúde
 //
 // Tela operacional contextual para gestão de presenças.
@@ -276,6 +276,9 @@ function normalizarEventoPresenca(evento) {
     return null;
   }
 
+  const eventoTermoAtivo = evento?.termo_ativo === true;
+  const eventoTermoTitulo = String(evento?.termo_titulo || "").trim();
+
   const turmas = sortTurmasAsc(
     (Array.isArray(evento?.turmas) ? evento.turmas : [])
       .map((turma) => {
@@ -294,6 +297,16 @@ function normalizarEventoPresenca(evento) {
           data_fim: normalizeYMD(turma?.data_fim || turma?.data_inicio),
           horario_inicio: normalizeHHMM(turma?.horario_inicio, ""),
           horario_fim: normalizeHHMM(turma?.horario_fim, ""),
+          termo_ativo: turma?.termo_ativo === true || eventoTermoAtivo,
+          termo_titulo: turma?.termo_titulo || eventoTermoTitulo || null,
+          evento: {
+            ...(turma?.evento || {}),
+            id: eventoId,
+            evento_id: eventoId,
+            titulo: tituloEvento(evento),
+            termo_ativo: turma?.termo_ativo === true || eventoTermoAtivo,
+            termo_titulo: turma?.termo_titulo || eventoTermoTitulo || null,
+          },
         };
       })
       .filter(Boolean),
@@ -398,6 +411,7 @@ function normalizeDetalhePresenca(response, turma) {
     datas,
     usuarios,
     presencas,
+    termo: data?.termo || null,
   };
 }
 
@@ -973,6 +987,7 @@ export default function PaginaGestaoPresencas() {
           datas: [],
           usuarios: [],
           presencas: [],
+          termo: null,
         };
 
         if (mountedRef.current) {

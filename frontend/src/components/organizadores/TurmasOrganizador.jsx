@@ -79,6 +79,20 @@ function safeText(value, fallback = "") {
   return text || fallback;
 }
 
+function getTermoAceiteNecessario(error) {
+  const details =
+    error?.data?.details ||
+    error?.response?.data?.details ||
+    error?.details ||
+    null;
+
+  if (details?.motivo === "TERMO_ACEITE_NECESSARIO") {
+    return details;
+  }
+
+  return null;
+}
+
 function ymd(value) {
   const text = String(value || "");
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -569,8 +583,14 @@ function turmaExigeTermo(turma, presencasDetalhadas = {}) {
 
   return Boolean(
     termoDetalhe?.ativo === true ||
+    termoDetalhe?.exigido === true ||
     turma?.termo_ativo === true ||
-    turma?.termo?.ativo === true,
+    turma?.termo_exigido === true ||
+    turma?.termo?.ativo === true ||
+    turma?.termo?.exigido === true ||
+    turma?.evento?.termo_ativo === true ||
+    turma?.evento_termo_ativo === true ||
+    turma?.presenca_termo_ativo === true,
   );
 }
 
@@ -947,6 +967,8 @@ export default function Turmasorganizador({
   const reduceMotion = useReducedMotion();
 
   const [confirmandoKey, setConfirmandoKey] = useState("");
+  const [termoObrigatorioPorPresenca, setTermoObrigatorioPorPresenca] =
+    useState({});
   const [dataAtivaPorTurma, setDataAtivaPorTurma] = useState({});
   const [somenteSemPresencaPorTurma, setSomenteSemPresencaPorTurma] = useState(
     {},
@@ -1002,6 +1024,18 @@ export default function Turmasorganizador({
         );
 
         await Promise.resolve(carregarPresencas?.(turmaId));
+      } catch (error) {
+        const termoDetails = getTermoAceiteNecessario(error);
+
+        if (termoDetails) {
+          setTermoObrigatorioPorPresenca((prev) => ({
+            ...prev,
+            [`${key}-termo`]: termoDetails,
+          }));
+          return;
+        }
+
+        throw error;
       } finally {
         setConfirmandoKey("");
       }
@@ -1391,8 +1425,15 @@ export default function Turmasorganizador({
                                                 const loadingThis =
                                                   confirmandoKey === key;
                                                 const cienciaKey = `${key}-termo`;
+                                                const termoObrigatorio =
+                                                  termoObrigatorioPorPresenca[
+                                                    cienciaKey
+                                                  ] || null;
+                                                const exigeTermoLinha =
+                                                  exigeTermo ||
+                                                  Boolean(termoObrigatorio);
                                                 const cienciaConfirmada =
-                                                  !exigeTermo ||
+                                                  !exigeTermoLinha ||
                                                   Boolean(
                                                     cienciaTermoPorPresenca[
                                                       cienciaKey
@@ -1433,7 +1474,7 @@ export default function Turmasorganizador({
                                                     <td className="px-3 py-3 text-right">
                                                       {podeConfirmar ? (
                                                         <div className="flex flex-col items-end gap-2">
-                                                          {exigeTermo ? (
+                                                          {exigeTermoLinha ? (
                                                             <label className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
                                                               <input
                                                                 type="checkbox"
@@ -1480,7 +1521,7 @@ export default function Turmasorganizador({
                                                                   turmaId,
                                                                   data: dataSelecionada.data,
                                                                   termoCienciaConfirmada:
-                                                                    exigeTermo,
+                                                                    exigeTermoLinha,
                                                                 },
                                                               )
                                                             }
@@ -1527,8 +1568,15 @@ export default function Turmasorganizador({
                                             const loadingThis =
                                               confirmandoKey === key;
                                             const cienciaKey = `${key}-termo`;
+                                            const termoObrigatorio =
+                                              termoObrigatorioPorPresenca[
+                                                cienciaKey
+                                              ] || null;
+                                            const exigeTermoLinha =
+                                              exigeTermo ||
+                                              Boolean(termoObrigatorio);
                                             const cienciaConfirmada =
-                                              !exigeTermo ||
+                                              !exigeTermoLinha ||
                                               Boolean(
                                                 cienciaTermoPorPresenca[
                                                   cienciaKey
@@ -1566,7 +1614,7 @@ export default function Turmasorganizador({
 
                                                   {podeConfirmar ? (
                                                     <>
-                                                      {exigeTermo ? (
+                                                      {exigeTermoLinha ? (
                                                         <label className="inline-flex items-start gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300">
                                                           <input
                                                             type="checkbox"
@@ -1588,8 +1636,9 @@ export default function Turmasorganizador({
                                                             className="mt-0.5"
                                                           />
                                                           <span>
-                                                            Participante ciente
-                                                            do
+                                                            Confirmo que o
+                                                            participante foi
+                                                            cientificado sobre o
                                                             termo/regulamento.
                                                           </span>
                                                         </label>
@@ -1610,7 +1659,7 @@ export default function Turmasorganizador({
                                                               turmaId,
                                                               data: dataSelecionada.data,
                                                               termoCienciaConfirmada:
-                                                                exigeTermo,
+                                                                exigeTermoLinha,
                                                             },
                                                           )
                                                         }

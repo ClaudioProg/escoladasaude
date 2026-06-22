@@ -217,6 +217,20 @@ function getErrorMessage(error, fallback) {
   );
 }
 
+function getTermoAceiteNecessario(error) {
+  const details =
+    error?.data?.details ||
+    error?.response?.data?.details ||
+    error?.details ||
+    null;
+
+  if (details?.motivo === "TERMO_ACEITE_NECESSARIO") {
+    return details;
+  }
+
+  return null;
+}
+
 function getUsuarioId(inscrito) {
   return toPositiveInt(inscrito?.usuario_id);
 }
@@ -228,8 +242,22 @@ function getTurmaId(turma) {
 function turmaExigeTermo(turma) {
   return Boolean(
     turma?.termo_ativo === true ||
+    turma?.termo_exigido === true ||
     turma?.termo?.ativo === true ||
-    turma?.evento?.termo_ativo === true,
+    turma?.termo?.exigido === true ||
+    turma?.evento?.termo_ativo === true ||
+    turma?.evento_termo_ativo === true ||
+    turma?.presenca_termo_ativo === true,
+  );
+}
+
+function getTermoTituloTurma(turma) {
+  return (
+    turma?.termo_titulo ||
+    turma?.termo?.titulo ||
+    turma?.evento?.termo_titulo ||
+    turma?.evento_termo_titulo ||
+    ""
   );
 }
 
@@ -527,10 +555,13 @@ export default function ControlePresencaInscritos({
 }) {
   const [confirmandoKey, setConfirmandoKey] = useState(null);
   const [cienciaTermoPorPresenca, setCienciaTermoPorPresenca] = useState({});
+  const [termoObrigatorioPorPresenca, setTermoObrigatorioPorPresenca] =
+    useState({});
   const [now, setNow] = useState(() => new Date());
 
   const turma_id = getTurmaId(turma);
   const exigeTermo = turmaExigeTermo(turma);
+  const termoTituloTurma = getTermoTituloTurma(turma);
 
   const regraPrazoConfirmacao = useMemo(
     () =>
@@ -655,8 +686,23 @@ export default function ControlePresencaInscritos({
         await carregarPresencas?.();
       } catch (error) {
         const status = Number(error?.status || error?.response?.status || 0);
+        const termoDetails = getTermoAceiteNecessario(error);
 
-        if (status === 409 || status === 208) {
+        if (status === 409 && termoDetails) {
+          const cienciaKey = `${usuarioIdSeguro}#${dataSegura}#termo`;
+
+          setTermoObrigatorioPorPresenca((prev) => ({
+            ...prev,
+            [cienciaKey]: termoDetails,
+          }));
+
+          notifyError(
+            "Este evento possui termo/regulamento. Confirme a ciência do participante antes de lançar a presença.",
+          );
+          return;
+        }
+
+        if (status === 208) {
           notifySuccess("Presença já estava confirmada.");
           await carregarPresencas?.();
           return;
@@ -830,8 +876,14 @@ export default function ControlePresencaInscritos({
 
                       const key = `${usuario_id || email || cpf}#${data}`;
                       const cienciaKey = `${usuario_id}#${data}#termo`;
+                      const termoObrigatorio =
+                        termoObrigatorioPorPresenca[cienciaKey] || null;
+                      const exigeTermoLinha =
+                        exigeTermo || Boolean(termoObrigatorio);
+                      const termoTituloLinha =
+                        termoObrigatorio?.termo_titulo || termoTituloTurma;
                       const cienciaConfirmada =
-                        !exigeTermo ||
+                        !exigeTermoLinha ||
                         Boolean(cienciaTermoPorPresenca[cienciaKey]);
                       const podeEnviarConfirmacao =
                         linha.podeConfirmar && cienciaConfirmada;
@@ -866,8 +918,15 @@ export default function ControlePresencaInscritos({
                           <td className="px-4 py-3 text-right align-middle">
                             {linha.podeConfirmar ? (
                               <div className="flex flex-col items-end gap-2">
-                                {exigeTermo ? (
-                                  <label className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                                {exigeTermoLinha ? (
+                                  <label
+                                    className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300"
+                                    title={
+                                      termoTituloLinha
+                                        ? `Termo/regulamento: ${termoTituloLinha}`
+                                        : undefined
+                                    }
+                                  >
                                     <input
                                       type="checkbox"
                                       checked={Boolean(
@@ -882,7 +941,8 @@ export default function ControlePresencaInscritos({
                                       className="mt-0.5"
                                     />
                                     <span>
-                                      Participante ciente do termo/regulamento.
+                                      Confirmo que o participante foi
+                                      cientificado sobre o termo/regulamento.
                                     </span>
                                   </label>
                                 ) : null}
@@ -895,7 +955,7 @@ export default function ControlePresencaInscritos({
                                     confirmarPresenca(
                                       usuario_id,
                                       data,
-                                      exigeTermo,
+                                      exigeTermoLinha,
                                     )
                                   }
                                   disabled={
@@ -1006,8 +1066,14 @@ export default function ControlePresencaInscritos({
                         );
 
                         const cienciaKey = `${usuario_id}#${data}#termo`;
+                        const termoObrigatorio =
+                          termoObrigatorioPorPresenca[cienciaKey] || null;
+                        const exigeTermoLinha =
+                          exigeTermo || Boolean(termoObrigatorio);
+                        const termoTituloLinha =
+                          termoObrigatorio?.termo_titulo || termoTituloTurma;
                         const cienciaConfirmada =
-                          !exigeTermo ||
+                          !exigeTermoLinha ||
                           Boolean(cienciaTermoPorPresenca[cienciaKey]);
                         const podeEnviarConfirmacao =
                           linha.podeConfirmar && cienciaConfirmada;
@@ -1048,8 +1114,15 @@ export default function ControlePresencaInscritos({
 
                               {linha.podeConfirmar ? (
                                 <div className="flex flex-col items-end gap-2">
-                                  {exigeTermo ? (
-                                    <label className="inline-flex max-w-[240px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                                  {exigeTermoLinha ? (
+                                    <label
+                                      className="inline-flex max-w-[240px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300"
+                                      title={
+                                        termoTituloLinha
+                                          ? `Termo/regulamento: ${termoTituloLinha}`
+                                          : undefined
+                                      }
+                                    >
                                       <input
                                         type="checkbox"
                                         checked={Boolean(
@@ -1067,8 +1140,8 @@ export default function ControlePresencaInscritos({
                                         className="mt-0.5"
                                       />
                                       <span>
-                                        Participante ciente do
-                                        termo/regulamento.
+                                        Confirmo que o participante foi
+                                        cientificado sobre o termo/regulamento.
                                       </span>
                                     </label>
                                   ) : null}
@@ -1081,7 +1154,7 @@ export default function ControlePresencaInscritos({
                                       confirmarPresenca(
                                         usuario_id,
                                         data,
-                                        exigeTermo,
+                                        exigeTermoLinha,
                                       )
                                     }
                                     disabled={
@@ -1160,6 +1233,19 @@ export default function ControlePresencaInscritos({
                                       horario_inicio && horario_fim ? " – " : ""
                                     }${horario_fim || ""}`
                                   : "—";
+                              const cienciaKey = `${usuario_id}#${data}#termo`;
+                              const termoObrigatorio =
+                                termoObrigatorioPorPresenca[cienciaKey] || null;
+                              const exigeTermoLinha =
+                                exigeTermo || Boolean(termoObrigatorio);
+                              const termoTituloLinha =
+                                termoObrigatorio?.termo_titulo ||
+                                termoTituloTurma;
+                              const cienciaConfirmada =
+                                !exigeTermoLinha ||
+                                Boolean(cienciaTermoPorPresenca[cienciaKey]);
+                              const podeEnviarConfirmacao =
+                                linha.podeConfirmar && cienciaConfirmada;
 
                               return (
                                 <tr
@@ -1181,27 +1267,72 @@ export default function ControlePresencaInscritos({
                                   <td className="p-3">
                                     <div className="flex justify-end">
                                       {linha.podeConfirmar ? (
-                                        <Botao
-                                          type="button"
-                                          variant="contorno"
-                                          size="sm"
-                                          onClick={() =>
-                                            confirmarPresenca(
-                                              usuario_id,
+                                        <div className="flex flex-col items-end gap-2">
+                                          {exigeTermoLinha ? (
+                                            <label
+                                              className="inline-flex max-w-[260px] items-start gap-2 text-left text-[11px] font-semibold text-slate-600 dark:text-zinc-300"
+                                              title={
+                                                termoTituloLinha
+                                                  ? `Termo/regulamento: ${termoTituloLinha}`
+                                                  : undefined
+                                              }
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={Boolean(
+                                                  cienciaTermoPorPresenca[
+                                                    cienciaKey
+                                                  ],
+                                                )}
+                                                onChange={(event) =>
+                                                  setCienciaTermoPorPresenca(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [cienciaKey]:
+                                                        event.target.checked,
+                                                    }),
+                                                  )
+                                                }
+                                                className="mt-0.5"
+                                              />
+                                              <span>
+                                                Confirmo que o participante foi
+                                                cientificado sobre o
+                                                termo/regulamento.
+                                              </span>
+                                            </label>
+                                          ) : null}
+
+                                          <Botao
+                                            type="button"
+                                            variant="contorno"
+                                            size="sm"
+                                            onClick={() =>
+                                              confirmarPresenca(
+                                                usuario_id,
+                                                data,
+                                                exigeTermoLinha,
+                                              )
+                                            }
+                                            disabled={
+                                              linha.isLoading ||
+                                              !podeEnviarConfirmacao
+                                            }
+                                            loading={linha.isLoading}
+                                            aria-label={`Confirmar presença em ${formatBRDateOnly(
                                               data,
-                                              exigeTermo,
-                                            )
-                                          }
-                                          disabled={linha.isLoading}
-                                          loading={linha.isLoading}
-                                          aria-label={`Confirmar presença em ${formatBRDateOnly(
-                                            data,
-                                          )} para ${nome}`}
-                                          title={linha.titleButton}
-                                          className="rounded-xl"
-                                        >
-                                          Confirmar presença
-                                        </Botao>
+                                            )} para ${nome}`}
+                                            title={
+                                              exigeTermoLinha &&
+                                              !cienciaConfirmada
+                                                ? "Confirme a ciência do participante sobre o termo/regulamento."
+                                                : linha.titleButton
+                                            }
+                                            className="rounded-xl"
+                                          >
+                                            Confirmar presença
+                                          </Botao>
+                                        </div>
                                       ) : (
                                         <span className="text-xs text-slate-500 dark:text-slate-400">
                                           {linha.titleButton}
