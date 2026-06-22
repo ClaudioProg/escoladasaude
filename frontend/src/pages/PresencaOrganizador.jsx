@@ -74,6 +74,38 @@ function extrairData(response) {
   return response?.data ?? response ?? null;
 }
 
+function extrairPayload(response) {
+  const data = extrairData(response);
+
+  if (
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    data.data &&
+    typeof data.data === "object" &&
+    !Array.isArray(data.data) &&
+    (data.data.datas || data.data.usuarios || data.data.termo)
+  ) {
+    return data.data;
+  }
+
+  return data || {};
+}
+
+function getTermoAceiteNecessario(error) {
+  const details =
+    error?.data?.details ||
+    error?.response?.data?.details ||
+    error?.details ||
+    null;
+
+  if (details?.motivo === "TERMO_ACEITE_NECESSARIO") {
+    return details;
+  }
+
+  return null;
+}
+
 function obterMensagemErro(error, fallback) {
   return (
     error?.response?.data?.message ||
@@ -255,6 +287,28 @@ function normalizarTurma(turma) {
     "",
   );
 
+  const termoFonte =
+    turma?.termo || turma?.evento?.termo || turma?.presenca_termo || null;
+
+  const termoAtivo = Boolean(
+    termoFonte?.ativo === true ||
+    termoFonte?.termo_ativo === true ||
+    turma?.termo_ativo === true ||
+    turma?.termo_exigido === true ||
+    turma?.evento_termo_ativo === true ||
+    turma?.presenca_termo_ativo === true ||
+    turma?.evento?.termo_ativo === true,
+  );
+
+  const termoTitulo = textoSeguro(
+    termoFonte?.titulo ||
+      termoFonte?.termo_titulo ||
+      turma?.termo_titulo ||
+      turma?.evento_termo_titulo ||
+      turma?.evento?.termo_titulo,
+    "",
+  );
+
   return {
     ...turma,
     id,
@@ -265,10 +319,21 @@ function normalizarTurma(turma) {
     horario_inicio: hhmm(turma?.horario_inicio),
     horario_fim: hhmm(turma?.horario_fim),
     status: turma?.status || "programado",
+    termo_ativo: termoAtivo,
+    termo_exigido: termoAtivo,
+    termo_titulo: termoTitulo,
+    termo: termoAtivo
+      ? {
+          ativo: true,
+          titulo: termoTitulo,
+        }
+      : termoFonte || null,
     evento: {
       id: eventoId,
       nome: eventoNome,
       local: eventoLocal,
+      termo_ativo: termoAtivo,
+      termo_titulo: termoTitulo,
     },
     datas: safeArray(turma?.datas),
   };
@@ -471,9 +536,10 @@ export default function PresencaOrganizador() {
         );
 
         const response = await api.presenca.detalhesTurma(turmaId);
-        const data = extrairData(response) || {};
+        const data = extrairPayload(response);
         const datas = safeArray(data?.datas);
         const usuarios = safeArray(data?.usuarios);
+        const termo = data?.termo || null;
 
         const lista = calcularFrequenciaResumo({
           datas,
@@ -487,9 +553,13 @@ export default function PresencaOrganizador() {
         setPresencasPorTurma((prev) => ({
           ...prev,
           [turmaId]: {
+            ...data,
+            termo,
             detalhado: {
+              ...data,
               datas,
               usuarios,
+              termo,
             },
             lista,
           },
@@ -771,7 +841,7 @@ export default function PresencaOrganizador() {
       validarFacade("api.presenca.detalhesTurma", api?.presenca?.detalhesTurma);
 
       const response = await api.presenca.detalhesTurma(turmaId);
-      const data = extrairData(response) || {};
+      const data = extrairPayload(response);
       const datas = safeArray(data?.datas);
       const usuarios = safeArray(data?.usuarios);
       const totalDias = datas.length;
@@ -1328,10 +1398,20 @@ export default function PresencaOrganizador() {
   );
 
   const confirmarPresencaManualOrganizador = useCallback(
-    async ({ usuarioId, turmaId, dataPresenca }) => {
-      const usuarioIdOk = toPositiveInt(usuarioId);
-      const turmaIdOk = toPositiveInt(turmaId);
-      const dataOk = ymd(dataPresenca);
+    async (payload = {}) => {
+      const usuarioIdOk = toPositiveInt(
+        payload.usuarioId || payload.usuario_id,
+      );
+      const turmaIdOk = toPositiveInt(payload.turmaId || payload.turma_id);
+      const dataOk = ymd(
+        payload.dataPresenca || payload.data_presenca || payload.data,
+      );
+      const termoCienciaConfirmada = Boolean(
+        payload.termoCienciaConfirmada === true ||
+        payload.termo_ciencia_confirmada === true ||
+        payload.participante_ciente_termo === true ||
+        payload.termo_ciente === true,
+      );
 
       if (!usuarioIdOk || !turmaIdOk || !dataOk) {
         notifyError("Dados inválidos para confirmação de presença.");
@@ -1348,6 +1428,12 @@ export default function PresencaOrganizador() {
           usuario_id: usuarioIdOk,
           turma_id: turmaIdOk,
           data_presenca: dataOk,
+          ...(termoCienciaConfirmada
+            ? {
+                termo_ciencia_confirmada: true,
+                participante_ciente_termo: true,
+              }
+            : {}),
         });
 
         notifySuccess("Presença confirmada com sucesso.");
@@ -1357,6 +1443,16 @@ export default function PresencaOrganizador() {
           carregarPresencas(turmaIdOk, { silent: true }),
         ]);
       } catch (error) {
+        const termoDetails = getTermoAceiteNecessario(error);
+
+        if (termoDetails) {
+          notifyWarning(
+            "Este evento possui termo/regulamento. Confirme a ciência do participante antes de lançar a presença.",
+          );
+          await carregarPresencas(turmaIdOk, { silent: true });
+          return;
+        }
+
         notifyError(
           obterMensagemErro(error, "Erro ao confirmar presença manualmente."),
         );
