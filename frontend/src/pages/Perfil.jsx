@@ -28,6 +28,7 @@ import ModalAssinatura from "../components/usuarios/ModalAssinatura";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
 import {
+  apiContaExclusaoSolicitarAutenticada,
   apiPerfilMe,
   apiPerfilOpcao,
   apiUsuarioAtualizarBasico,
@@ -670,6 +671,7 @@ export default function Perfil() {
   const [modalAberto, setModalAberto] = useState(false);
   const [temAssinatura, setTemAssinatura] = useState(null);
   const [baseline, setBaseline] = useState(null);
+  const [solicitandoExclusao, setSolicitandoExclusao] = useState(false);
 
   const [erros, setErros] = useState({});
 
@@ -1209,6 +1211,53 @@ export default function Perfil() {
     setLive,
     validarCliente,
   ]);
+
+
+  const solicitarExclusaoConta = useCallback(async () => {
+    if (solicitandoExclusao) {
+      return;
+    }
+
+    const confirmado = window.confirm(
+      [
+        "Deseja solicitar a exclusão da sua conta?",
+        "",
+        "A plataforma enviará um e-mail de confirmação para o endereço cadastrado.",
+        "A exclusão só será concluída após a confirmação pelo link enviado.",
+      ].join("\n"),
+    );
+
+    if (!confirmado) {
+      return;
+    }
+
+    try {
+      setSolicitandoExclusao(true);
+      setLive("Solicitando exclusão da conta…");
+
+      const response = await apiContaExclusaoSolicitarAutenticada();
+      const data = unwrap(response);
+
+      toast.success(
+        data?.message ||
+          "Enviamos um e-mail para confirmar a exclusão da sua conta.",
+      );
+      setLive("Solicitação de exclusão enviada por e-mail.");
+    } catch (error) {
+      console.error("[Perfil] falha ao solicitar exclusão da conta", error);
+
+      toast.error(
+        getErrorMessage(
+          error,
+          "Não foi possível solicitar a exclusão da conta.",
+        ),
+      );
+      setLive("Falha ao solicitar exclusão da conta.");
+    } finally {
+      setSolicitandoExclusao(false);
+    }
+  }, [setLive, solicitandoExclusao]);
+
 
   useEffect(() => {
     const onKey = (event) => {
@@ -1887,6 +1936,79 @@ export default function Perfil() {
                 <FieldError id="erro-cor_raca_id">
                   {erros.cor_raca_id}
                 </FieldError>
+              </div>
+            </div>
+          </SectionCard>
+
+
+          <SectionCard
+            title="Privacidade e conta"
+            description="Solicite a exclusão da sua conta, conforme exigência de portabilidade e publicação do aplicativo."
+            icon={LockKeyhole}
+            isDark={isDark}
+          >
+            <div
+              className={cx(
+                "rounded-3xl border p-5",
+                isDark
+                  ? "border-rose-900/40 bg-rose-950/15"
+                  : "border-rose-200 bg-rose-50",
+              )}
+            >
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cx(
+                        "grid h-11 w-11 shrink-0 place-items-center rounded-2xl border",
+                        isDark
+                          ? "border-rose-900/40 bg-rose-950/35 text-rose-200"
+                          : "border-rose-200 bg-white text-rose-700",
+                      )}
+                    >
+                      <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                    </div>
+
+                    <div>
+                      <h3
+                        className={cx(
+                          "text-base font-black",
+                          isDark ? "text-rose-100" : "text-rose-950",
+                        )}
+                      >
+                        Excluir minha conta
+                      </h3>
+
+                      <p
+                        className={cx(
+                          "mt-2 text-sm leading-relaxed",
+                          isDark ? "text-rose-100/80" : "text-rose-900/80",
+                        )}
+                      >
+                        Ao solicitar a exclusão, enviaremos um e-mail de
+                        confirmação para o endereço cadastrado. Após a
+                        confirmação, seus dados pessoais de cadastro serão
+                        removidos ou anonimizados. Registros institucionais
+                        necessários para obrigações administrativas, auditoria,
+                        certificados, presenças e segurança poderão ser
+                        preservados.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <BotaoLocal
+                  variant="secondary"
+                  onClick={solicitarExclusaoConta}
+                  loading={solicitandoExclusao}
+                  disabled={solicitandoExclusao}
+                  className="w-full border-rose-200 bg-white text-rose-800 hover:bg-rose-50 focus-visible:ring-rose-500/40 md:w-auto dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-100 dark:hover:bg-rose-950/35"
+                  leftIcon={<LockKeyhole className="h-4 w-4" aria-hidden="true" />}
+                >
+                  {solicitandoExclusao
+                    ? "Enviando..."
+                    : "Solicitar exclusão"}
+                </BotaoLocal>
               </div>
             </div>
           </SectionCard>

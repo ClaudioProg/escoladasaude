@@ -2,7 +2,8 @@
 "use strict";
 
 /**
- * ✅ backend/src/controllers/loginController.js — v2.0
+ * ✅ backend/src/controllers/loginController.js — v2.1
+ * Atualizado em 23/06/2026
  * Plataforma Escola da Saúde
  *
  * Rota oficial:
@@ -16,6 +17,9 @@
  * - Perfil oficial vindo de usuarios.perfil.
  * - Perfil é string única.
  * - Perfis oficiais: usuario, organizador, administrador.
+ *
+ * Segurança v2.1:
+ * - Bloqueia login de conta excluída: usuarios.deleted_at IS NOT NULL.
  *
  * Observação obrigatória:
  * - generateToken.js também deve trabalhar com perfil como string única.
@@ -170,6 +174,7 @@ async function buscarUsuarioPorCpf(req, cpf) {
       u.cpf,
       u.perfil,
       u.senha,
+      u.deleted_at,
       a.imagem_base64
     FROM usuarios u
     LEFT JOIN assinaturas a ON a.usuario_id = u.id
@@ -221,6 +226,23 @@ async function loginUsuario(req, res) {
       await compareDummyPassword(senha);
       await sleep(120);
       return sendInvalidCredentials(res);
+    }
+
+    if (usuario.deleted_at) {
+      await sleep(120);
+
+      log(rid, "warn", "Tentativa de login em conta excluída", {
+        usuarioId: usuario.id,
+      });
+
+      return res.status(403).json({
+        ok: false,
+        code: "AUTH-403-CONTA-EXCLUIDA",
+        message:
+          "Esta conta foi excluída e não pode mais ser acessada. Para utilizar a plataforma novamente, faça um novo cadastro.",
+        erro: "Esta conta foi excluída e não pode mais ser acessada. Para utilizar a plataforma novamente, faça um novo cadastro.",
+        contaExcluida: true,
+      });
     }
 
     if (!usuario.senha) {

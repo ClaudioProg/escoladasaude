@@ -387,6 +387,7 @@ function isPublicAppPath(pathname = "") {
     path.startsWith("/cadastro") ||
     path.startsWith("/esqueci-senha") ||
     path.startsWith("/redefinir-senha") ||
+    path.startsWith("/excluir-conta") ||
     path.startsWith("/validar-certificado") ||
     path.startsWith("/presenca") ||
     path.startsWith("/historico") ||
@@ -1350,6 +1351,35 @@ export async function apiEsqueciSenha(payload, opts = {}) {
 
 export async function apiRedefinirSenha(payload, opts = {}) {
   return apiPostPublic("/auth/redefinir-senha", payload, opts);
+}
+
+export async function apiContaExclusaoSolicitarPublica(payload, opts = {}) {
+  return apiPostPublic("/conta/exclusao/solicitar-publica", payload, {
+    on401: "silent",
+    on403: "silent",
+    ...opts,
+  });
+}
+
+export async function apiContaExclusaoSolicitarAutenticada(opts = {}) {
+  return apiPost(
+    "/conta/exclusao/solicitar-autenticada",
+    {},
+    {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+    },
+  );
+}
+
+export async function apiContaExclusaoConfirmar(payload, opts = {}) {
+  return apiPostPublic("/conta/exclusao/confirmar", payload, {
+    on401: "silent",
+    on403: "silent",
+    ...opts,
+  });
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -3868,6 +3898,12 @@ export const api = {
     cadastrar: (payload, opts) => apiCadastrarUsuario(payload, opts),
     esqueciSenha: (payload, opts) => apiEsqueciSenha(payload, opts),
     redefinirSenha: (payload, opts) => apiRedefinirSenha(payload, opts),
+    contaExclusaoSolicitarPublica: (payload, opts) =>
+      apiContaExclusaoSolicitarPublica(payload, opts),
+    contaExclusaoSolicitarAutenticada: (opts) =>
+      apiContaExclusaoSolicitarAutenticada(opts),
+    contaExclusaoConfirmar: (payload, opts) =>
+      apiContaExclusaoConfirmar(payload, opts),
     me: (opts) => apiPerfilMe(opts),
   },
 

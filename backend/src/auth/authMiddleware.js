@@ -1,4 +1,5 @@
-// ✅ backend/src/auth/authMiddleware.js — v2.0
+// ✅ backend/src/auth/authMiddleware.js — v2.1
+// Atualizado em 23/06/2026
 /* eslint-disable no-console */
 "use strict";
 
@@ -18,14 +19,11 @@
  * - req.userId
  * - req.perfil
  *
- * Sem aliases:
- * - sem req.usuario
- * - sem req.auth
- * - sem admin
- * - sem roles/role/perfis
- * - sem cookie auth/access_token/jwt
- * - sem perfil em array
- * - sem normalização corretiva
+ * Segurança v2.1:
+ * - Além de validar o JWT, consulta o banco.
+ * - Bloqueia usuários inexistentes.
+ * - Bloqueia usuários com deleted_at IS NOT NULL.
+ * - Usa sempre o perfil atual do banco, não apenas o perfil gravado no token.
  */
 
 const jwt = require("jsonwebtoken");
@@ -43,6 +41,15 @@ const PERFIL_ADMINISTRADOR = "administrador";
 const IS_PROD = process.env.NODE_ENV === "production";
 const JWT_ISS = process.env.JWT_ISSUER || undefined;
 const JWT_AUD = process.env.JWT_AUDIENCE || undefined;
+
+/* ──────────────────────────────────────────────────────────────
+   Contratos obrigatórios
+────────────────────────────────────────────────────────────── */
+
+if (!db || typeof db.query !== "function") {
+  console.error("[authMiddleware] db.query inválido:", db);
+  throw new Error("Contrato inválido: backend/src/db deve exportar query.");
+}
 
 /* ──────────────────────────────────────────────────────────────
    Helpers
@@ -73,7 +80,6 @@ function normalizarPerfilOficial(perfil) {
   const valor = String(perfil || "").trim();
 
   if (!valor) return "";
-
   if (!PERFIS_OFICIAIS.has(valor)) return "";
 
   return valor;
@@ -149,6 +155,68 @@ function normalizeUserFromJwt(decoded) {
   };
 }
 
+async function carregarUsuarioAtivoDoBanco(usuarioJwt) {
+  const id = Number(usuarioJwt?.id);
+
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return {
+      ok: false,
+      reason: "invalid_id",
+      user: null,
+    };
+  }
+
+  const result = await db.query(
+    `
+    SELECT
+      id,
+      perfil,
+      deleted_at
+    FROM usuarios
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [id],
+  );
+
+  const row = result.rows?.[0];
+
+  if (!row) {
+    return {
+      ok: false,
+      reason: "not_found",
+      user: null,
+    };
+  }
+
+  if (row.deleted_at) {
+    return {
+      ok: false,
+      reason: "deleted",
+      user: null,
+    };
+  }
+
+  const perfil = normalizarPerfilOficial(row.perfil);
+
+  if (!perfil) {
+    return {
+      ok: false,
+      reason: "invalid_profile",
+      user: null,
+    };
+  }
+
+  return {
+    ok: true,
+    reason: null,
+    user: {
+      id: Number(row.id),
+      perfil,
+    },
+  };
+}
+
 function attachUserContext(req, res, user) {
   req.db = req.db ?? db;
 
@@ -163,7 +231,7 @@ function attachUserContext(req, res, user) {
    Core de autenticação
 ────────────────────────────────────────────────────────────── */
 
-function authenticateRequest(req, res) {
+async function authenticateRequest(req, res) {
   const token = extractToken(req);
 
   if (!token) {
@@ -177,6 +245,7 @@ function authenticateRequest(req, res) {
     return {
       ok: false,
       response: buildAuthErrorResponse(res, 401, "Não autenticado.", {
+        code: "AUTH-401-NAO-AUTENTICADO",
         sessionExpired: false,
       }),
     };
@@ -184,9 +253,9 @@ function authenticateRequest(req, res) {
 
   try {
     const decoded = verifyJwtToken(token);
-    const user = normalizeUserFromJwt(decoded);
+    const userFromJwt = normalizeUserFromJwt(decoded);
 
-    if (!user) {
+    if (!userFromJwt) {
       console.warn(
         "[authMiddleware] payload JWT fora do contrato oficial",
         buildAuthLog(req, {
@@ -197,16 +266,49 @@ function authenticateRequest(req, res) {
       return {
         ok: false,
         response: buildAuthErrorResponse(res, 401, "Sessão inválida.", {
-          sessionExpired: false,
+          code: "AUTH-401-SESSAO-INVALIDA",
+          sessionExpired: true,
         }),
       };
     }
 
-    attachUserContext(req, res, user);
+    const banco = await carregarUsuarioAtivoDoBanco(userFromJwt);
+
+    if (!banco.ok) {
+      console.warn(
+        "[authMiddleware] usuário bloqueado na validação de sessão",
+        buildAuthLog(req, {
+          userId: userFromJwt.id,
+          reason: banco.reason,
+        }),
+      );
+
+      const isDeleted = banco.reason === "deleted";
+
+      return {
+        ok: false,
+        response: buildAuthErrorResponse(
+          res,
+          401,
+          isDeleted
+            ? "Conta excluída. Faça um novo cadastro para utilizar a plataforma."
+            : "Sessão inválida.",
+          {
+            code: isDeleted
+              ? "AUTH-401-CONTA-EXCLUIDA"
+              : "AUTH-401-USUARIO-INDISPONIVEL",
+            sessionExpired: true,
+            contaExcluida: isDeleted,
+          },
+        ),
+      };
+    }
+
+    attachUserContext(req, res, banco.user);
 
     return {
       ok: true,
-      user,
+      user: banco.user,
       decoded,
     };
   } catch (error) {
@@ -226,24 +328,18 @@ function authenticateRequest(req, res) {
         response: res.status(500).json({
           ok: false,
           erro: "Falha de configuração de autenticação.",
+          code: "AUTH-500-JWT-SECRET-AUSENTE",
           autenticado: false,
           requestId: res.getHeader("X-Request-Id"),
         }),
       };
     }
 
-    console.error(
-      "[authMiddleware] falha na autenticação",
-      buildAuthLog(req, {
-        errorName: error?.name,
-        errorMessage: error?.message,
-      }),
-    );
-
     if (isExpired) {
       return {
         ok: false,
         response: buildAuthErrorResponse(res, 401, "Token expirado.", {
+          code: "AUTH-401-TOKEN-EXPIRADO",
           sessionExpired: true,
         }),
       };
@@ -253,21 +349,31 @@ function authenticateRequest(req, res) {
       return {
         ok: false,
         response: buildAuthErrorResponse(res, 401, "Token inválido.", {
-          sessionExpired: false,
+          code: "AUTH-401-TOKEN-INVALIDO",
+          sessionExpired: true,
         }),
       };
     }
 
+    console.error(
+      "[authMiddleware] falha inesperada na autenticação",
+      buildAuthLog(req, {
+        errorName: error?.name,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        errorConstraint: error?.constraint,
+      }),
+    );
+
     return {
       ok: false,
-      response: buildAuthErrorResponse(
-        res,
-        401,
-        "Token inválido ou expirado.",
-        {
-          sessionExpired: false,
-        },
-      ),
+      response: res.status(500).json({
+        ok: false,
+        erro: "Falha ao validar sessão.",
+        code: "AUTH-500-FALHA-VALIDACAO-SESSAO",
+        autenticado: false,
+        requestId: res.getHeader("X-Request-Id"),
+      }),
     };
   }
 }
@@ -276,8 +382,8 @@ function authenticateRequest(req, res) {
    Middlewares
 ────────────────────────────────────────────────────────────── */
 
-function authMiddleware(req, res, next) {
-  const authResult = authenticateRequest(req, res);
+async function authMiddleware(req, res, next) {
+  const authResult = await authenticateRequest(req, res);
 
   if (!authResult.ok) {
     return authResult.response;
@@ -286,8 +392,8 @@ function authMiddleware(req, res, next) {
   return next();
 }
 
-function authAdmin(req, res, next) {
-  const authResult = authenticateRequest(req, res);
+async function authAdmin(req, res, next) {
+  const authResult = await authenticateRequest(req, res);
 
   if (!authResult.ok) {
     return authResult.response;
@@ -305,6 +411,7 @@ function authAdmin(req, res, next) {
     return res.status(403).json({
       ok: false,
       erro: "Acesso restrito a administradores.",
+      code: "AUTH-403-ADMINISTRADOR-NECESSARIO",
       autenticado: true,
       autorizado: false,
       requestId: res.getHeader("X-Request-Id"),

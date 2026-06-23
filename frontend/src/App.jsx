@@ -1,5 +1,5 @@
 // ✅ frontend/src/App.jsx — v2.5
-// Atualizado em: 16/06/2026
+// Atualizado em: 23/06/2026
 //
 // Plataforma Escola da Saúde
 //
@@ -84,6 +84,10 @@ const Login = lazy(() => import("./pages/Login"));
 const Cadastro = lazy(() => import("./pages/Cadastro"));
 const EsqueciSenha = lazy(() => import("./pages/EsqueciSenha"));
 const RedefinirSenha = lazy(() => import("./pages/RedefinirSenha"));
+const ExcluirConta = lazy(() => import("./pages/ExcluirConta"));
+const ConfirmarExcluirConta = lazy(
+  () => import("./pages/ConfirmarExcluirConta"),
+);
 
 const ValidarCertificado = lazy(() => import("./pages/ValidarCertificado"));
 const ConfirmarPresenca = lazy(() => import("./pages/ConfirmarPresenca"));
@@ -559,6 +563,11 @@ function PublicRoutes() {
 
       <Route path="/esqueci-senha" element={<EsqueciSenha />} />
       <Route path="/redefinir-senha/:token" element={<RedefinirSenha />} />
+      <Route path="/excluir-conta" element={<ExcluirConta />} />
+      <Route
+        path="/excluir-conta/confirmar/:token"
+        element={<ConfirmarExcluirConta />}
+      />
 
       <Route path="/privacidade" element={<Privacidade />} />
 

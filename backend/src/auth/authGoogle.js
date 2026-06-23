@@ -1,4 +1,5 @@
-// ✅ src/auth/authGoogle.js — v2.0
+// ✅ backend/src/auth/authGoogle.js — v2.1
+// Atualizado em 23/06/2026
 /* eslint-disable no-console */
 "use strict";
 
@@ -9,12 +10,14 @@
  * - Endpoint: POST /api/auth/google
  * - Não cria usuário automaticamente.
  * - Só autentica usuário já cadastrado no banco.
+ * - Bloqueia conta excluída: usuarios.deleted_at IS NOT NULL.
  * - Não expõe /auth/me. O endpoint oficial de sessão é /perfil/me.
- * - JWT gerado pelo contrato oficial de generateToken.js v2.0:
- *   {
- *     sub: string,
- *     perfil: string[]
- *   }
+ *
+ * JWT oficial:
+ * {
+ *   sub: string,
+ *   perfil: "usuario" | "organizador" | "administrador"
+ * }
  */
 
 const express = require("express");
@@ -68,8 +71,10 @@ function log(rid, level, message, extra) {
   }
 
   if (!IS_PROD) {
-    if (level === "warn")
+    if (level === "warn") {
       return console.warn(`${prefix} ⚠ ${message}`, extra || "");
+    }
+
     return console.log(`${prefix} • ${message}`, extra || "");
   }
 
@@ -86,33 +91,17 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
-function uniq(array) {
-  return [...new Set(array)];
-}
+function perfilOficial(value) {
+  const perfil = String(value || "").trim();
 
-function normalizePerfil(perfilRaw) {
-  const base = Array.isArray(perfilRaw)
-    ? perfilRaw
-    : typeof perfilRaw === "string"
-      ? perfilRaw.split(",")
-      : [];
+  if (!perfil) return "";
+  if (!PERFIS_OFICIAIS.has(perfil)) return "";
 
-  const normalizado = uniq(
-    base
-      .map((item) =>
-        String(item || "")
-          .trim()
-          .toLowerCase(),
-      )
-      .filter(Boolean),
-  );
-
-  return normalizado.filter((perfil) => PERFIS_OFICIAIS.has(perfil));
+  return perfil;
 }
 
 function buildUsuarioResponse(usuario) {
-  const perfis = normalizePerfil(usuario?.perfil);
-  const perfil = perfis[0] || "";
+  const perfil = perfilOficial(usuario?.perfil);
 
   return {
     id: usuario.id,
@@ -141,9 +130,10 @@ async function findUsuarioByEmail(email) {
       nome,
       email,
       cpf,
-      perfil
+      perfil,
+      deleted_at
     FROM usuarios
-    WHERE LOWER(email) = LOWER($1)
+    WHERE LOWER(email::text) = LOWER($1)
     LIMIT 1
     `,
     [email],
@@ -229,6 +219,21 @@ router.post("/google", async (req, res) => {
       });
     }
 
+    if (usuario.deleted_at) {
+      log(rid, "warn", "Tentativa de login Google em conta excluída", {
+        usuarioId: usuario.id,
+        email,
+      });
+
+      return res.status(403).json({
+        ok: false,
+        code: "AUTH-GOOGLE-403-CONTA-EXCLUIDA",
+        message:
+          "Esta conta foi excluída e não pode mais ser acessada. Para utilizar a plataforma novamente, faça um novo cadastro.",
+        contaExcluida: true,
+      });
+    }
+
     const usuarioResponse = buildUsuarioResponse(usuario);
 
     if (!usuarioResponse.perfil) {
@@ -247,7 +252,7 @@ router.post("/google", async (req, res) => {
     const token = generateToken(
       {
         id: usuario.id,
-        perfil: [usuarioResponse.perfil],
+        perfil: usuarioResponse.perfil,
       },
       "1d",
     );
