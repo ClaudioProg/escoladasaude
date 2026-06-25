@@ -44,6 +44,7 @@ import {
   Eye,
   GraduationCap,
   Hash,
+  Infinity,
   IdCard,
   Loader2,
   Mail,

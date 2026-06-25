@@ -53,6 +53,7 @@ import {
   ShieldAlert,
   XCircle,
   CalendarDays,
+  Infinity,
   Timer,
   Ear,
   Eye,

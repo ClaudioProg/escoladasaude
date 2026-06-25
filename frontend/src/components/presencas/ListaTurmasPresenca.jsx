@@ -43,6 +43,7 @@ import {
   Download,
   Ear,
   Eye,
+  Infinity,
   Sparkles,
   Trash2,
   Users,
