@@ -798,6 +798,13 @@ rs.confirmado_por,
 rs.cancelado_em,
 rs.cancelado_por,
 rs.motivo_cancelamento,
+uc.nome AS cancelado_por_nome,
+CASE
+  WHEN rs.status::text <> 'cancelado' THEN NULL
+  WHEN rs.cancelado_por IS NULL THEN 'sistema'
+  WHEN rs.cancelado_por = rs.solicitante_id THEN 'usuario'
+  ELSE 'administrador'
+END AS origem_cancelamento,
 rs.created_at,
 rs.updated_at,
 us.nome AS solicitante_nome,
@@ -805,6 +812,7 @@ ua.nome AS aprovador_nome
         FROM reservas_salas rs
         LEFT JOIN usuarios us ON us.id = rs.solicitante_id
         LEFT JOIN usuarios ua ON ua.id = rs.aprovador_id
+        LEFT JOIN usuarios uc ON uc.id = rs.cancelado_por
         WHERE EXTRACT(YEAR FROM rs.data) = $1
           AND EXTRACT(MONTH FROM rs.data) = $2
           ${filtroSala}
@@ -1449,15 +1457,22 @@ async function excluirReservaUsuario(req, res) {
       });
     }
 
+    const motivoCancelamento =
+      normStr(req.body?.motivo_cancelamento, { max: 500 }) ||
+      "Cancelado pelo solicitante.";
+
     const { rows } = await query(
       `
-        UPDATE reservas_salas
-           SET status = $2,
-               updated_at = NOW()
-         WHERE id = $1
-         RETURNING *;
-      `,
-      [id, STATUS_RESERVA.CANCELADO],
+    UPDATE reservas_salas
+       SET status = $2,
+           cancelado_em = COALESCE(cancelado_em, NOW()),
+           cancelado_por = COALESCE(cancelado_por, $3),
+           motivo_cancelamento = COALESCE($4, motivo_cancelamento),
+           updated_at = NOW()
+     WHERE id = $1
+     RETURNING *;
+  `,
+      [id, STATUS_RESERVA.CANCELADO, usuarioId, motivoCancelamento],
     );
 
     return sucesso(res, {
@@ -2145,6 +2160,7 @@ async function excluirReservaAdmin(req, res) {
 
   try {
     const id = asPositiveInt(req.params?.id);
+    const usuarioIdAdmin = asPositiveInt(req.user?.id);
 
     if (!id) {
       return falha(res, {
@@ -2155,15 +2171,34 @@ async function excluirReservaAdmin(req, res) {
       });
     }
 
+    if (!usuarioIdAdmin) {
+      return falha(res, {
+        status: 401,
+        message: "Usuário não autenticado.",
+        code: "NAO_AUTENTICADO",
+        adminHint:
+          "O authMiddleware não populou req.user.id antes do cancelamento administrativo.",
+        requestId,
+      });
+    }
+
+    const motivoCancelamento =
+      normStr(req.body?.motivo_cancelamento, { max: 500 }) ||
+      normStr(req.body?.motivo, { max: 500 }) ||
+      "Cancelado pelo administrador.";
+
     const { rows } = await query(
       `
         UPDATE reservas_salas
            SET status = $2,
+               cancelado_em = COALESCE(cancelado_em, NOW()),
+               cancelado_por = COALESCE(cancelado_por, $3::bigint),
+               motivo_cancelamento = COALESCE($4::text, motivo_cancelamento),
                updated_at = NOW()
          WHERE id = $1
          RETURNING *;
       `,
-      [id, STATUS_RESERVA.CANCELADO],
+      [id, STATUS_RESERVA.CANCELADO, usuarioIdAdmin, motivoCancelamento],
     );
 
     const reserva = rows?.[0];
@@ -2190,10 +2225,13 @@ async function excluirReservaAdmin(req, res) {
       message: "Erro ao cancelar reserva.",
       code: "SALAS_ADMIN_RESERVA_CANCELAR_ERRO",
       adminHint:
-        "Verifique enum status_reserva_sala. O cancelamento admin deve preservar histórico.",
+        "Verifique enum status_reserva_sala, campos cancelado_em/cancelado_por/motivo_cancelamento e integridade da reserva.",
       details: {
         dbCode: error?.code,
         constraint: error?.constraint,
+        table: error?.table,
+        column: error?.column,
+        detail: IS_DEV ? error?.detail || error?.message : undefined,
       },
       requestId,
     });

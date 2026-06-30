@@ -930,6 +930,59 @@ async function tryQRCodeDataURL(text) {
   }
 }
 
+function carregarImagemAssetCertificado(nomeArquivo) {
+  const caminhos = [
+    path.resolve(__dirname, "../assets", nomeArquivo),
+    path.resolve(process.cwd(), "backend/src/assets", nomeArquivo),
+    path.resolve(process.cwd(), "src/assets", nomeArquivo),
+  ];
+
+  for (const caminho of caminhos) {
+    try {
+      if (fs.existsSync(caminho)) {
+        const buffer = fs.readFileSync(caminho);
+
+        if (buffer?.length > 0) {
+          return {
+            caminho,
+            buffer,
+          };
+        }
+      }
+    } catch {
+      // ignora e tenta o próximo caminho
+    }
+  }
+
+  return {
+    caminho: null,
+    buffer: null,
+  };
+}
+
+function carregarLogosCertificadoAvulso() {
+  const brasao = carregarImagemAssetCertificado("brasao-santos.png");
+  const escola = carregarImagemAssetCertificado("escola-saude.png");
+  const rodape = carregarImagemAssetCertificado("estacao.png");
+
+  if (IS_DEV) {
+    console.log("[certificado-avulso][logos-buffer]", {
+      brasaoPath: brasao.caminho,
+      brasaoBytes: brasao.buffer?.length || 0,
+      escolaPath: escola.caminho,
+      escolaBytes: escola.buffer?.length || 0,
+      rodapePath: rodape.caminho,
+      rodapeBytes: rodape.buffer?.length || 0,
+    });
+  }
+
+  return {
+    brasaoBuffer: brasao.buffer,
+    escolaLogoBuffer: escola.buffer,
+    rodapeBuffer: rodape.buffer,
+  };
+}
+
 function desenharCertificado(doc, certificado, opts = {}) {
   const assinaturas = Array.isArray(opts.assinaturas) ? opts.assinaturas : [];
 
@@ -942,6 +995,8 @@ function desenharCertificado(doc, certificado, opts = {}) {
     tituloTrabalho: certificado.titulo_trabalho,
     textoPersonalizado: certificado.texto_personalizado,
   });
+
+  const logos = carregarLogosCertificadoAvulso();
 
   desenharCertificadoCompletoV2(doc, {
     modelo: "avulso",
@@ -956,6 +1011,11 @@ function desenharCertificado(doc, certificado, opts = {}) {
     codigoValidacao: opts.codigoValidacao,
     validacaoUrl: opts.validacaoUrl,
     qrDataUrl: opts.qrDataUrl,
+
+    brasaoBuffer: logos.brasaoBuffer,
+    escolaLogoBuffer: logos.escolaLogoBuffer,
+    rodapeBuffer: logos.rodapeBuffer,
+
     subtitulo: "Documento eletrônico emitido pela Plataforma Escola da Saúde",
     fonts: {
       regular: "AlegreyaSans-Regular",

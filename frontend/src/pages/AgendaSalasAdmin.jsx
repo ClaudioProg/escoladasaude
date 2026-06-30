@@ -278,6 +278,36 @@ function reservaOcupaSlot(reserva) {
   return STATUS_OCUPA_SLOT.has(normalizarStatus(reserva.status));
 }
 
+function reservaCancelada(reserva) {
+  return normalizarStatus(reserva?.status) === "cancelado";
+}
+
+function labelOrigemCancelamento(origem) {
+  const value = String(origem || "")
+    .trim()
+    .toLowerCase();
+
+  const map = {
+    usuario: "Solicitante",
+    administrador: "Administrador",
+    sistema: "Sistema",
+  };
+
+  return map[value] || "Não informado";
+}
+
+function ordenarCancelamentos(a, b) {
+  const dataA = new Date(
+    a?.cancelado_em || a?.atualizado_em || a?.criado_em || 0,
+  ).getTime();
+
+  const dataB = new Date(
+    b?.cancelado_em || b?.atualizado_em || b?.criado_em || 0,
+  ).getTime();
+
+  return dataB - dataA;
+}
+
 function normalizeReserva(raw) {
   const dataISO = String(raw?.data || "").slice(0, 10);
   const status = normalizarStatus(raw?.status);
@@ -301,6 +331,13 @@ function normalizeReserva(raw) {
     termo_aceito: Boolean(raw?.termo_aceito),
     termo_assinado_em: raw?.termo_assinado_em ?? null,
     assinatura_id: raw?.assinatura_id ?? null,
+
+    cancelado_em: raw?.cancelado_em ?? null,
+    cancelado_por: raw?.cancelado_por ?? null,
+    cancelado_por_nome: raw?.cancelado_por_nome ?? null,
+    motivo_cancelamento: raw?.motivo_cancelamento ?? "",
+    origem_cancelamento: raw?.origem_cancelamento ?? null,
+
     criado_em: raw?.criado_em ?? raw?.created_at ?? null,
     atualizado_em: raw?.atualizado_em ?? raw?.updated_at ?? null,
     pendente_aprovacao: status === "pendente",
@@ -523,8 +560,14 @@ function AlertBox({ type = "info", title, message, onClose }) {
 }
 
 function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
-  const { estado, motivo, labelResumo, salasDisponiveis, temPendencia } =
-    diaInfo;
+  const {
+    estado,
+    motivo,
+    labelResumo,
+    salasDisponiveis,
+    temPendencia,
+    temCancelamento,
+  } = diaInfo;
 
   const cellTone = {
     bloqueado:
@@ -588,6 +631,13 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
               title="Há solicitação pendente neste dia"
             />
           ) : null}
+
+          {temCancelamento ? (
+            <span
+              className="h-2.5 w-2.5 rounded-full border border-rose-500 bg-rose-400"
+              title="Há cancelamento registrado neste dia"
+            />
+          ) : null}
         </div>
       </div>
 
@@ -623,6 +673,12 @@ function CalendarDayCell({ dia, dataISO, diaInfo, eHoje, onClick }) {
 }
 
 function SlotCardDia({ slot, onEditar, onCancelar }) {
+  const cancelamentos = Array.isArray(slot?.cancelamentos)
+    ? slot.cancelamentos
+    : [];
+
+  const temCancelamentos = cancelamentos.length > 0;
+
   const status = slot?.reserva
     ? normalizarStatus(slot.reserva.status)
     : "livre";
@@ -771,6 +827,82 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
         </div>
       </div>
 
+      {temCancelamentos ? (
+        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/70 p-3 dark:border-rose-900/60 dark:bg-rose-950/20">
+          <p className="text-[12px] font-black uppercase tracking-wide text-rose-800 dark:text-rose-200">
+            Cancelamento registrado
+          </p>
+
+          <div className="mt-2 space-y-2">
+            {cancelamentos.map((cancelamento, index) => (
+              <div
+                key={`${cancelamento.id || "cancelamento"}-${index}`}
+                className="rounded-xl border border-rose-100 bg-white/70 p-3 text-[12px] text-rose-900 dark:border-rose-900/50 dark:bg-zinc-950/40 dark:text-rose-100 sm:text-[13px]"
+              >
+                <p className="font-black text-rose-950 dark:text-rose-50">
+                  {cancelamento.finalidade || "Evento sem título"}
+                </p>
+
+                <div className="mt-2 space-y-1">
+                  <p>
+                    <span className="font-semibold">Solicitado por:</span>{" "}
+                    {cancelamento.solicitante_nome || "—"}
+                  </p>
+
+                  {cancelamento.solicitante_unidade ? (
+                    <p>
+                      <span className="font-semibold">Unidade:</span>{" "}
+                      {cancelamento.solicitante_unidade}
+                    </p>
+                  ) : null}
+
+                  {cancelamento.qtd_pessoas ? (
+                    <p>
+                      <span className="font-semibold">Pessoas:</span>{" "}
+                      {cancelamento.qtd_pessoas}
+                    </p>
+                  ) : null}
+
+                  <p>
+                    <span className="font-semibold">Sala:</span>{" "}
+                    {CAPACIDADES_SALA[cancelamento.sala]?.labelCurta ||
+                      slot?.salaLabel ||
+                      "—"}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">Período:</span>{" "}
+                    {slot?.periodoLabel || "—"}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">
+                      Origem do cancelamento:
+                    </span>{" "}
+                    {labelOrigemCancelamento(cancelamento.origem_cancelamento)}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">Cancelado por:</span>{" "}
+                    {cancelamento.cancelado_por_nome || "—"}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">Cancelado em:</span>{" "}
+                    {formatDateTimeBR(cancelamento.cancelado_em)}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">Motivo:</span>{" "}
+                    {cancelamento.motivo_cancelamento || "Não informado."}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
@@ -792,7 +924,7 @@ function SlotCardDia({ slot, onEditar, onCancelar }) {
           </button>
         ) : null}
 
-        {slot?.reserva ? (
+        {slot?.reserva && reservaOcupaSlot(slot.reserva) ? (
           <button
             type="button"
             onClick={onCancelar}
@@ -1302,6 +1434,16 @@ function AgendaSalasAdmin() {
     return Array.isArray(raw) ? raw : [raw];
   }
 
+  function getCancelamentosSlot(dataISO, periodo, salaKey) {
+    const reservas = getReservasSlot(dataISO, periodo, salaKey);
+
+    if (!reservas.length) {
+      return [];
+    }
+
+    return reservas.filter(reservaCancelada).sort(ordenarCancelamentos);
+  }
+
   function getReservaSlot(dataISO, periodo, salaKey) {
     const reservas = getReservasSlot(dataISO, periodo, salaKey);
 
@@ -1339,6 +1481,7 @@ function AgendaSalasAdmin() {
 
     let ocupados = 0;
     let temPendencia = false;
+    let temCancelamento = false;
     let salasDisponiveis = 0;
 
     const totalSlots = SALAS_ORDEM.length * PERIODOS.length;
@@ -1346,6 +1489,15 @@ function AgendaSalasAdmin() {
     const salas = SALAS_ORDEM.map((salaKey) => {
       const slots = PERIODOS.map((periodo) => {
         const reserva = getReservaSlot(dataISO, periodo.value, salaKey);
+        const cancelamentos = getCancelamentosSlot(
+          dataISO,
+          periodo.value,
+          salaKey,
+        );
+
+        if (cancelamentos.length > 0) {
+          temCancelamento = true;
+        }
         const ocupa = reservaOcupaSlot(reserva);
 
         if (ocupa) {
@@ -1362,6 +1514,7 @@ function AgendaSalasAdmin() {
           periodo: periodo.value,
           periodoLabel: periodo.label,
           reserva,
+          cancelamentos,
         };
       });
 
@@ -1409,6 +1562,7 @@ function AgendaSalasAdmin() {
       salas,
       salasDisponiveis,
       temPendencia,
+      temCancelamento,
       labelResumo,
     };
   }
@@ -1460,6 +1614,10 @@ function AgendaSalasAdmin() {
 
   const totalPendentes = reservasAtivas.filter(
     (reserva) => normalizarStatus(reserva.status) === "pendente",
+  ).length;
+
+  const totalCanceladas = reservasFlat.filter(
+    (reserva) => normalizarStatus(reserva.status) === "cancelado",
   ).length;
 
   const totalDiasBloqueados = useMemo(
@@ -1571,7 +1729,7 @@ function AgendaSalasAdmin() {
         className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8"
       >
         <section className="mb-5 space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <DashboardCard
               icon={Sparkles}
               label="Reservas"
@@ -1590,6 +1748,13 @@ function AgendaSalasAdmin() {
               icon={Waves}
               label="Pendentes"
               value={totalPendentes}
+              loading={loading}
+            />
+
+            <DashboardCard
+              icon={Trash2}
+              label="Canceladas"
+              value={totalCanceladas}
               loading={loading}
             />
 
@@ -1754,6 +1919,10 @@ function AgendaSalasAdmin() {
             {
               c: "bg-amber-400 border-amber-500",
               t: "Há pendência no dia",
+            },
+            {
+              c: "bg-rose-400 border-rose-500",
+              t: "Há cancelamento no dia",
             },
           ].map((item) => (
             <span
