@@ -870,7 +870,7 @@ async function obterAssinantesDaTurma(db, turmaId, options = {}) {
     WITH candidatos AS (
       /*
        * Assinantes oficiais cadastrados na turma.
-       * Fonte documental principal.
+       * Fonte documental exclusiva.
        */
       SELECT
         tca.usuario_id,
@@ -884,24 +884,6 @@ async function obterAssinantesDaTurma(db, turmaId, options = {}) {
         END AS cargo_fallback
       FROM turma_certificado_assinante tca
       WHERE tca.turma_id = $1
-
-      UNION ALL
-
-      /*
-       * Organizadores internos da turma.
-       * Eles NÃO assinam o próprio certificado, porque serão filtrados
-       * por excluirUsuarioId quando forem o titular do certificado.
-       * Mas assinam certificados de participantes/palestrantes.
-       */
-      SELECT
-        tr.usuario_id,
-        10 AS ordem,
-        'turma_responsavel'::text AS origem,
-        LOWER(TRIM(COALESCE(tr.papel, ''))) AS papel,
-        'Organizador(a)'::text AS cargo_fallback
-      FROM turma_responsavel tr
-      WHERE tr.turma_id = $1
-        AND LOWER(TRIM(COALESCE(tr.papel, ''))) = 'organizador'
     ),
     dedup AS (
       SELECT DISTINCT ON (c.usuario_id)

@@ -18,7 +18,7 @@
     "migrate": "node scripts/run-migration.js --dir db/migrations --pattern \"*.sql\"",
     "migrate:dry": "node scripts/run-migration.js --dir db/migrations --pattern \"*.sql\" --dry-run",
     "migrate:file": "node scripts/run-migration.js --file",
-    "test": "node -e \"console.log('No tests configured yet')\""
+    "test": "node --test"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
