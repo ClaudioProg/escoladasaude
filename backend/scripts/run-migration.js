@@ -21,6 +21,8 @@
  *   --verbose, -v    Logs detalhados.
  *   --dry-run        Mostra o plano sem conectar e sem executar.
  *   --force          Executa mesmo se a migração já estiver registrada.
+ *   --expect-host    Hostname PostgreSQL esperado para execução real.
+ *   --expect-database Database PostgreSQL esperada para execução real.
  *
  * Contrato operacional:
  *   - Sem fallback legado.
@@ -37,13 +39,30 @@ const { Pool } = require("pg");
 
 const DEFAULT_TIMEOUT_MS = 60000;
 const MIGRATION_TABLE = "sistema_migracao";
+const DEFAULT_POSTGRES_PORT = "5432";
+const FORBIDDEN_TARGET_QUERY_PARAMS = new Set(["host", "port", "options"]);
+const TARGET_DIAGNOSTIC_SQL = `
+  SELECT
+    current_database() AS database_name,
+    current_schema() AS schema_name,
+    current_setting('server_version') AS server_version;
+`;
 
-(async function main() {
+async function main(options = {}) {
   const startedAt = Date.now();
+  const argv = options.argv ?? process.argv.slice(2);
+  const env = options.env ?? process.env;
+  const PoolClass = options.PoolClass ?? Pool;
+  const output = options.output ?? console;
+  const ensureMigrationTableFn =
+    options.ensureMigrationTableFn ?? ensureMigrationTable;
+  const applyFileFn = options.applyFileFn ?? applyFile;
+  const setProcessExitCode = options.setProcessExitCode !== false;
+  let sensitiveValues = [];
 
   try {
-    const args = parseArgs(process.argv.slice(2));
-    const log = makeLogger(args.verbose);
+    const args = parseArgs(argv);
+    const log = makeLogger(args.verbose, output);
 
     const files = await resolveFiles(args, log);
 
@@ -53,74 +72,116 @@ const MIGRATION_TABLE = "sistema_migracao";
       );
     }
 
-    banner();
+    banner(output);
 
-    console.log("🗂️  Arquivos encontrados:", files.length);
+    output.log("🗂️  Arquivos encontrados:", files.length);
     files.forEach((file, index) => {
-      console.log(`   ${String(index + 1).padStart(2, "0")} • ${file}`);
+      output.log(`   ${String(index + 1).padStart(2, "0")} • ${file}`);
     });
 
     if (args.dryRun) {
-      console.log("\n💡 Modo dry-run: nada será aplicado ao banco.");
-      console.log("✅ Plano validado com sucesso.");
-      return;
+      output.log("\n💡 Modo dry-run: nada será aplicado ao banco.");
+      output.log("✅ Plano validado com sucesso.");
+      return { ok: true, dryRun: true };
     }
 
-    const connectionString = getConnectionString();
+    const expectedTarget = validateExpectedTarget(args);
+    const connectionString = getRequiredConnectionString(env);
+    const validatedTarget = parseAndValidateTarget(
+      connectionString,
+      expectedTarget,
+    );
+    sensitiveValues = validatedTarget.sensitiveValues;
 
-    if (!connectionString) {
-      fail(
-        "DATABASE_URL não encontrada no ambiente. Defina DATABASE_URL antes de executar migrações.",
-      );
-    }
+    output.log("target_host_match=true");
+    output.log("target_database_match=true");
 
-    const ssl = decideSSL(connectionString, args);
+    const ssl = decideSSL(connectionString, args, env);
     const timeout = toInt(args.timeout, DEFAULT_TIMEOUT_MS);
 
-    console.log("\n🔗 Alvo:", redactUrl(connectionString));
-    console.log("🔒 SSL:", ssl ? "on (relaxed)" : "off");
-    console.log("⏳ statement_timeout:", `${timeout}ms`);
-    console.log("🧾 Registro:", `public.${MIGRATION_TABLE}`);
-    console.log("⚙️  Force:", args.force ? "sim" : "não");
+    output.log("🔒 SSL:", ssl ? "on (relaxed)" : "off");
+    output.log("⏳ statement_timeout:", `${timeout}ms`);
+    output.log("🧾 Registro:", `public.${MIGRATION_TABLE}`);
+    output.log("⚙️  Force:", args.force ? "sim" : "não");
 
-    const pool = new Pool({
-      connectionString,
-      ssl,
-      max: 1,
-      idleTimeoutMillis: 5000,
-      connectionTimeoutMillis: 15000,
-    });
-
-    const client = await pool.connect();
+    let pool;
 
     try {
+      pool = new PoolClass({
+        connectionString,
+        ssl,
+        max: 1,
+        idleTimeoutMillis: 5000,
+        connectionTimeoutMillis: 15000,
+      });
+    } catch {
+      fail("Falha segura ao criar o pool PostgreSQL esperado.");
+    }
+
+    let client;
+
+    try {
+      client = await pool.connect();
+    } catch {
+      await pool.end().catch(() => {});
+      fail("Falha segura ao conectar ao alvo PostgreSQL esperado.");
+    }
+
+    try {
+      const diagnostic = await validateConnectedTarget(
+        client,
+        expectedTarget.database,
+      );
+
+      output.log("connected_database_match=true");
+      output.log(
+        `schema=${sanitizeText(diagnostic.schemaName, sensitiveValues)}`,
+      );
+      output.log(
+        `server_version=${sanitizeText(
+          diagnostic.serverVersion,
+          sensitiveValues,
+        )}`,
+      );
+
       await client.query(`SET statement_timeout = $1;`, [timeout]);
 
-      await printDatabaseDiagnostic(client, args.verbose);
-
-      await ensureMigrationTable(client);
+      await ensureMigrationTableFn(client);
 
       for (const fullPath of files) {
-        await applyFile(client, fullPath, {
+        await applyFileFn(client, fullPath, {
           force: args.force,
           log,
+          output,
+          sensitiveValues,
         });
       }
 
-      console.log("\n✅ Todas as migrações concluídas sem erros.");
+      output.log("\n✅ Todas as migrações concluídas sem erros.");
 
       const secs = ((Date.now() - startedAt) / 1000).toFixed(2);
-      console.log(`⏱️  Tempo total: ${secs}s`);
+      output.log(`⏱️  Tempo total: ${secs}s`);
     } finally {
       client.release();
       await pool.end().catch(() => {});
     }
+
+    return { ok: true, dryRun: false };
   } catch (err) {
-    console.error("\n❌ Falha na migração:");
-    prettyPgError(err);
-    process.exitCode = 1;
+    output.error("\n❌ Falha na migração:");
+    prettyPgError(err, { output, sensitiveValues });
+
+    if (setProcessExitCode) {
+      process.exitCode = 1;
+    }
+
+    return { ok: false, error: err };
   }
-})();
+}
+
+if (require.main === module) {
+  void main();
+}
 
 /* ─────────────────────────────────────────
    Argumentos
@@ -137,6 +198,8 @@ function parseArgs(argv) {
     ssl: false,
     noSsl: false,
     force: false,
+    expectHost: null,
+    expectDatabase: null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -171,6 +234,18 @@ function parseArgs(argv) {
       out.dryRun = true;
     } else if (arg === "--force") {
       out.force = true;
+    } else if (arg === "--expect-host") {
+      if (out.expectHost !== null) {
+        fail("A flag --expect-host não pode ser repetida.");
+      }
+
+      out.expectHost = readNext(arg);
+    } else if (arg === "--expect-database") {
+      if (out.expectDatabase !== null) {
+        fail("A flag --expect-database não pode ser repetida.");
+      }
+
+      out.expectDatabase = readNext(arg);
     } else if (/^-.+/.test(arg)) {
       fail(`Flag desconhecida: ${arg}`);
     } else {
@@ -195,11 +270,11 @@ function toInt(value, fallback) {
   return n;
 }
 
-function makeLogger(verbose) {
+function makeLogger(verbose, output = console) {
   return {
     debug: (...args) => {
       if (verbose) {
-        console.log("[debug]", ...args);
+        output.log("[debug]", ...args);
       }
     },
   };
@@ -291,16 +366,150 @@ async function isDirectory(filePath) {
    Banco
 ───────────────────────────────────────── */
 
-function getConnectionString() {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.RENDER_EXTERNAL_DATABASE_URL ||
-    process.env.POSTGRES_URL ||
-    ""
-  );
+function validateExpectedTarget(args) {
+  const expectedHost = args.expectHost;
+  const expectedDatabase = args.expectDatabase;
+
+  if (!expectedHost) {
+    fail("A flag --expect-host é obrigatória em execuções reais.");
+  }
+
+  if (!expectedDatabase) {
+    fail("A flag --expect-database é obrigatória em execuções reais.");
+  }
+
+  if (expectedHost !== expectedHost.trim()) {
+    fail("O valor de --expect-host deve ser um hostname canônico.");
+  }
+
+  if (expectedHost !== expectedHost.toLowerCase()) {
+    fail("O valor de --expect-host deve estar em lowercase.");
+  }
+
+  if (expectedHost.endsWith(".")) {
+    fail("O valor de --expect-host não pode terminar com ponto.");
+  }
+
+  const hostnamePattern =
+    /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+  if (!hostnamePattern.test(expectedHost)) {
+    fail(
+      "O valor de --expect-host deve conter somente um hostname, sem protocolo, porta, path, query ou credenciais.",
+    );
+  }
+
+  if (
+    expectedDatabase !== expectedDatabase.trim() ||
+    /[\u0000-\u001f\u007f]/.test(expectedDatabase)
+  ) {
+    fail("O valor de --expect-database deve ser um database não vazio válido.");
+  }
+
+  return {
+    host: expectedHost,
+    database: expectedDatabase,
+  };
 }
 
-function decideSSL(connectionString, args) {
+function getRequiredConnectionString(env = process.env) {
+  const connectionString = env.DATABASE_URL;
+
+  if (
+    typeof connectionString !== "string" ||
+    connectionString.trim().length === 0
+  ) {
+    fail(
+      "DATABASE_URL não encontrada no ambiente. Defina DATABASE_URL antes de executar migrações.",
+    );
+  }
+
+  if (connectionString !== connectionString.trim()) {
+    fail("DATABASE_URL inválida.");
+  }
+
+  return connectionString;
+}
+
+function parseAndValidateTarget(connectionString, expectedTarget) {
+  let parsed;
+
+  try {
+    parsed = new URL(connectionString);
+  } catch {
+    fail("DATABASE_URL inválida.");
+  }
+
+  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
+    fail("DATABASE_URL deve usar protocolo PostgreSQL.");
+  }
+
+  if (!parsed.hostname) {
+    fail("DATABASE_URL deve conter hostname.");
+  }
+
+  if (parsed.hash) {
+    fail("DATABASE_URL não pode conter fragmento.");
+  }
+
+  for (const key of parsed.searchParams.keys()) {
+    if (FORBIDDEN_TARGET_QUERY_PARAMS.has(key.toLowerCase())) {
+      fail(
+        "DATABASE_URL contém parâmetro de query capaz de alterar o alvo PostgreSQL.",
+      );
+    }
+  }
+
+  const effectivePort = parsed.port || DEFAULT_POSTGRES_PORT;
+
+  if (effectivePort !== DEFAULT_POSTGRES_PORT) {
+    fail("DATABASE_URL deve usar a porta PostgreSQL 5432.");
+  }
+
+  const encodedPath = parsed.pathname;
+
+  if (!encodedPath || encodedPath === "/") {
+    fail("DATABASE_URL deve conter database.");
+  }
+
+  const encodedDatabase = encodedPath.slice(1);
+
+  if (!encodedDatabase || encodedDatabase.includes("/")) {
+    fail("DATABASE_URL deve identificar o database em um único segmento.");
+  }
+
+  let database;
+
+  try {
+    database = decodeURIComponent(encodedDatabase);
+  } catch {
+    fail("DATABASE_URL contém database inválido.");
+  }
+
+  if (
+    !database ||
+    database.includes("/") ||
+    /[\u0000-\u001f\u007f]/.test(database)
+  ) {
+    fail("DATABASE_URL deve identificar o database em um único segmento.");
+  }
+
+  if (parsed.hostname !== expectedTarget.host) {
+    fail("Hostname PostgreSQL diferente do alvo explicitamente esperado.");
+  }
+
+  if (database !== expectedTarget.database) {
+    fail("Database PostgreSQL diferente do alvo explicitamente esperado.");
+  }
+
+  return {
+    host: parsed.hostname,
+    database,
+    sensitiveValues: collectSensitiveValues(connectionString, parsed),
+  };
+}
+
+function decideSSL(connectionString, args, env = process.env) {
   if (args.ssl) {
     return { rejectUnauthorized: false };
   }
@@ -310,7 +519,7 @@ function decideSSL(connectionString, args) {
   }
 
   const envSSL =
-    String(process.env.DATABASE_SSL || "").toLowerCase() === "true";
+    String(env.DATABASE_SSL || "").toLowerCase() === "true";
 
   const urlRequiresSSL =
     /sslmode=require/i.test(connectionString) ||
@@ -320,26 +529,44 @@ function decideSSL(connectionString, args) {
   return envSSL || urlRequiresSSL ? { rejectUnauthorized: false } : false;
 }
 
-async function printDatabaseDiagnostic(client, verbose) {
-  const { rows } = await client.query(`
-    SELECT
-      version() AS version,
-      current_database() AS database_name,
-      current_schema() AS schema_name,
-      now() AS server_time
-  `);
+async function validateConnectedTarget(client, expectedDatabase) {
+  let result;
 
-  const diagnostic = rows?.[0] || {};
-
-  console.log(
-    `\n🧪 Conectado → db=${diagnostic.database_name} schema=${diagnostic.schema_name} at=${new Date(
-      diagnostic.server_time,
-    ).toISOString()}`,
-  );
-
-  if (verbose && diagnostic.version) {
-    console.log(`   ${String(diagnostic.version).split("\n")[0]}`);
+  try {
+    result = await client.query(TARGET_DIAGNOSTIC_SQL);
+  } catch {
+    fail("Falha segura ao executar o diagnóstico PostgreSQL inicial.");
   }
+
+  if (!Array.isArray(result?.rows) || result.rows.length !== 1) {
+    fail("O diagnóstico PostgreSQL inicial deve retornar exatamente uma linha.");
+  }
+
+  const diagnostic = result.rows[0];
+  const databaseName = diagnostic?.database_name;
+  const schemaName = diagnostic?.schema_name;
+  const serverVersion = diagnostic?.server_version;
+
+  if (
+    typeof databaseName !== "string" ||
+    databaseName.length === 0 ||
+    typeof schemaName !== "string" ||
+    schemaName.length === 0 ||
+    typeof serverVersion !== "string" ||
+    serverVersion.length === 0
+  ) {
+    fail("O diagnóstico PostgreSQL inicial retornou dados inválidos.");
+  }
+
+  if (databaseName !== expectedDatabase) {
+    fail("O database conectado não corresponde ao alvo esperado.");
+  }
+
+  return {
+    databaseName,
+    schemaName: toSingleLine(schemaName),
+    serverVersion: toSingleLine(serverVersion),
+  };
 }
 
 async function ensureMigrationTable(client) {
@@ -371,6 +598,8 @@ async function ensureMigrationTable(client) {
 
 async function applyFile(client, fullPath, options = {}) {
   const force = Boolean(options.force);
+  const output = options.output ?? console;
+  const sensitiveValues = options.sensitiveValues ?? [];
   const name = path.basename(fullPath);
 
   const sql = await fsp.readFile(fullPath, "utf8");
@@ -383,8 +612,8 @@ async function applyFile(client, fullPath, options = {}) {
   const sha256 = crypto.createHash("sha256").update(sql).digest("hex");
   const shortHash = sha256.slice(0, 12);
 
-  console.log(`\n▶️  Migração: ${name}`);
-  console.log(`   sha256: ${shortHash}`);
+  output.log(`\n▶️  Migração: ${name}`);
+  output.log(`   sha256: ${shortHash}`);
 
   const alreadyApplied = await findAppliedMigration(client, {
     arquivo: name,
@@ -392,7 +621,7 @@ async function applyFile(client, fullPath, options = {}) {
   });
 
   if (alreadyApplied && !force) {
-    console.log(
+    output.log(
       `⏭️  Ignorada: já aplicada em ${formatDateTime(
         alreadyApplied.aplicada_em,
       )}. Use --force para executar novamente.`,
@@ -416,10 +645,10 @@ async function applyFile(client, fullPath, options = {}) {
       tempo_ms: elapsedMs,
     });
 
-    console.log(`✅ OK (${elapsedMs}ms)`);
+    output.log(`✅ OK (${elapsedMs}ms)`);
   } catch (err) {
-    console.error(`❌ Erro em ${name}`);
-    prettyPgError(err);
+    output.error(`❌ Erro em ${name}`);
+    prettyPgError(err, { output, sensitiveValues });
     throw err;
   }
 }
@@ -469,37 +698,75 @@ async function registerAppliedMigration(client, { arquivo, sha256, tempo_ms }) {
    Saída / diagnóstico
 ───────────────────────────────────────── */
 
-function prettyPgError(err) {
-  const status = err?.code ? `code: ${err.code}\n` : "";
-  const message = err?.message ? `${err.message}\n` : `${String(err)}\n`;
-  const position = err?.position ? `position: ${err.position}\n` : "";
-  const detail = err?.detail ? `detail: ${err.detail}\n` : "";
-  const hint = err?.hint ? `hint: ${err.hint}\n` : "";
-  const constraint = err?.constraint ? `constraint: ${err.constraint}\n` : "";
-  const table = err?.table ? `table: ${err.table}\n` : "";
-  const column = err?.column ? `column: ${err.column}\n` : "";
+function collectSensitiveValues(connectionString, parsed) {
+  const values = new Set();
 
-  console.error(
-    message + status + table + column + constraint + position + detail + hint,
-  );
+  const add = (value) => {
+    if (typeof value === "string" && value.length > 0) {
+      values.add(value);
+    }
+  };
+
+  const addEncodedAndDecoded = (value) => {
+    add(value);
+
+    try {
+      add(decodeURIComponent(value));
+    } catch {
+      // O valor original ainda é protegido quando não for percent-decodificável.
+    }
+  };
+
+  add(connectionString);
+  addEncodedAndDecoded(parsed.username);
+  addEncodedAndDecoded(parsed.password);
+  addEncodedAndDecoded(parsed.search);
+  addEncodedAndDecoded(parsed.search.slice(1));
+
+  for (const value of parsed.searchParams.values()) {
+    addEncodedAndDecoded(value);
+  }
+
+  return Array.from(values).sort((a, b) => b.length - a.length);
 }
 
-function redactUrl(url) {
-  try {
-    const parsed = new URL(url);
+function sanitizeText(value, sensitiveValues = []) {
+  let text = String(value ?? "");
 
-    if (parsed.username) {
-      parsed.username = "****";
-    }
-
-    if (parsed.password) {
-      parsed.password = "***";
-    }
-
-    return parsed.toString();
-  } catch {
-    return "(URL inválida)";
+  for (const sensitiveValue of sensitiveValues) {
+    if (!sensitiveValue) continue;
+    text = text.split(sensitiveValue).join("[REDACTED]");
   }
+
+  return toSingleLine(text);
+}
+
+function toSingleLine(value) {
+  return String(value ?? "").replace(/[\r\n\t]/g, " ");
+}
+
+function prettyPgError(err, options = {}) {
+  const output = options.output ?? console;
+  const sensitiveValues = options.sensitiveValues ?? [];
+  const safe = (value) => sanitizeText(value, sensitiveValues);
+  const status = err?.code ? `code: ${safe(err.code)}\n` : "";
+  const message = err?.message
+    ? `${safe(err.message)}\n`
+    : `${safe(String(err))}\n`;
+  const position = err?.position
+    ? `position: ${safe(err.position)}\n`
+    : "";
+  const detail = err?.detail ? `detail: ${safe(err.detail)}\n` : "";
+  const hint = err?.hint ? `hint: ${safe(err.hint)}\n` : "";
+  const constraint = err?.constraint
+    ? `constraint: ${safe(err.constraint)}\n`
+    : "";
+  const table = err?.table ? `table: ${safe(err.table)}\n` : "";
+  const column = err?.column ? `column: ${safe(err.column)}\n` : "";
+
+  output.error(
+    message + status + table + column + constraint + position + detail + hint,
+  );
 }
 
 function formatDateTime(value) {
@@ -514,8 +781,8 @@ function formatDateTime(value) {
   return date.toISOString();
 }
 
-function banner() {
-  console.log(
+function banner(output = console) {
+  output.log(
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
       "   🛠️  Runner Oficial de Migração SQL — Escola da Saúde       \n" +
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
@@ -527,3 +794,15 @@ function fail(message) {
   error.isOperational = true;
   throw error;
 }
+
+module.exports = {
+  TARGET_DIAGNOSTIC_SQL,
+  getRequiredConnectionString,
+  main,
+  parseAndValidateTarget,
+  parseArgs,
+  prettyPgError,
+  sanitizeText,
+  validateConnectedTarget,
+  validateExpectedTarget,
+};
