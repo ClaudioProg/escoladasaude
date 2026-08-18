@@ -346,23 +346,21 @@ test("erro de rollback apos falha de ledger preserva o erro do ledger", async ()
   assert.doesNotMatch(harness.output.text(), /OK/);
 });
 
-test("SQL com transacao propria preserva temporariamente o caminho legado", async () => {
+test("SQL com transacao propria e rejeitado antes de qualquer query", async () => {
   const source = "BEGIN;\nSELECT 7;\nCOMMIT;";
   const harness = makeApplyHarness({
     source,
     fullPath: "/virtual/005-own-transaction.sql",
-    times: [4000, 4012],
   });
 
-  await harness.run();
+  await assert.rejects(
+    harness.run(),
+    /comando proibido BEGIN.*processo excepcional separado/,
+  );
 
-  assert.deepEqual(stages(harness.events), ["lookup", "sql", "ledger"]);
-  assert.equal(harness.events[1].sql, source);
-  assert.deepEqual(harness.events[2].params, [
-    "005-own-transaction.sql",
-    sha256(source),
-    12,
-  ]);
+  assert.deepEqual(harness.events, []);
+  assert.equal(harness.clockCalls, 0);
+  assert.doesNotMatch(harness.output.text(), /OK/);
 });
 
 test("multiplos arquivos permanecem estritamente sequenciais", async () => {

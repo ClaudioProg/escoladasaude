@@ -613,6 +613,327 @@ async function applyFilesSequentially(
   }
 }
 
+function validateMigrationSql(sql, options = {}) {
+  const fileName = sanitizeText(
+    path.basename(String(options.fileName ?? "migration.sql")),
+    options.sensitiveValues ?? [],
+  );
+
+  for (const words of collectTopLevelStatementWords(sql)) {
+    const violation = classifyProhibitedStatement(words);
+
+    if (!violation) continue;
+
+    fail(
+      `Migration ${fileName} rejeitada: comando proibido ${violation.command} ` +
+        `(${violation.category}). Execute-o por processo excepcional separado.`,
+    );
+  }
+}
+
+function collectTopLevelStatementWords(sql) {
+  const source = String(sql ?? "");
+  const statements = [];
+  let words = [];
+  let index = 0;
+
+  const finishStatement = () => {
+    if (words.length > 0) {
+      statements.push(words);
+      words = [];
+    }
+  };
+
+  while (index < source.length) {
+    const current = source[index];
+    const next = source[index + 1];
+
+    if (current === "-" && next === "-") {
+      index = skipLineComment(source, index + 2);
+      continue;
+    }
+
+    if (current === "/" && next === "*") {
+      index = skipBlockComment(source, index + 2);
+      continue;
+    }
+
+    if (current === "'") {
+      index = skipQuotedValue(
+        source,
+        index + 1,
+        "'",
+        hasEscapeStringPrefix(source, index),
+      );
+      continue;
+    }
+
+    if (current === '"') {
+      index = skipQuotedValue(
+        source,
+        index + 1,
+        '"',
+        hasUnicodeQuotedPrefix(source, index),
+      );
+      continue;
+    }
+
+    if (current === "$") {
+      const delimiter = readDollarQuoteDelimiter(source, index);
+
+      if (delimiter) {
+        const closingIndex = source.indexOf(
+          delimiter,
+          index + delimiter.length,
+        );
+        index =
+          closingIndex === -1
+            ? source.length
+            : closingIndex + delimiter.length;
+        continue;
+      }
+    }
+
+    if (current === ";") {
+      finishStatement();
+      index += 1;
+      continue;
+    }
+
+    if (isSqlWordStart(current)) {
+      let end = index + 1;
+
+      while (end < source.length && isSqlWordPart(source[end])) {
+        end += 1;
+      }
+
+      words.push(source.slice(index, end).toUpperCase());
+      index = end;
+      continue;
+    }
+
+    index += 1;
+  }
+
+  finishStatement();
+  return statements;
+}
+
+function skipLineComment(sql, start) {
+  let index = start;
+
+  while (index < sql.length && sql[index] !== "\n" && sql[index] !== "\r") {
+    index += 1;
+  }
+
+  return index;
+}
+
+function skipBlockComment(sql, start) {
+  let depth = 1;
+  let index = start;
+
+  while (index < sql.length && depth > 0) {
+    if (sql[index] === "/" && sql[index + 1] === "*") {
+      depth += 1;
+      index += 2;
+    } else if (sql[index] === "*" && sql[index + 1] === "/") {
+      depth -= 1;
+      index += 2;
+    } else {
+      index += 1;
+    }
+  }
+
+  return index;
+}
+
+function skipQuotedValue(sql, start, quote, supportsBackslashEscapes) {
+  let index = start;
+
+  while (index < sql.length) {
+    if (supportsBackslashEscapes && sql[index] === "\\") {
+      index += 2;
+      continue;
+    }
+
+    if (sql[index] === quote && sql[index + 1] === quote) {
+      index += 2;
+      continue;
+    }
+
+    if (sql[index] === quote) {
+      return index + 1;
+    }
+
+    index += 1;
+  }
+
+  return index;
+}
+
+function hasEscapeStringPrefix(sql, quoteIndex) {
+  const previous = sql[quoteIndex - 1];
+  const beforePrevious = sql[quoteIndex - 2];
+
+  if (
+    (previous === "E" || previous === "e") &&
+    !isSqlWordPart(beforePrevious)
+  ) {
+    return true;
+  }
+
+  return hasUnicodeQuotedPrefix(sql, quoteIndex);
+}
+
+function hasUnicodeQuotedPrefix(sql, quoteIndex) {
+  const prefixStart = quoteIndex - 2;
+
+  if (prefixStart < 0) return false;
+
+  return (
+    (sql[prefixStart] === "U" || sql[prefixStart] === "u") &&
+    sql[prefixStart + 1] === "&" &&
+    !isSqlWordPart(sql[prefixStart - 1])
+  );
+}
+
+function readDollarQuoteDelimiter(sql, start) {
+  let index = start + 1;
+
+  if (sql[index] === "$") {
+    return "$$";
+  }
+
+  if (!isSqlWordStart(sql[index])) {
+    return null;
+  }
+
+  index += 1;
+
+  while (index < sql.length && isDollarTagPart(sql[index])) {
+    index += 1;
+  }
+
+  if (sql[index] !== "$") {
+    return null;
+  }
+
+  return sql.slice(start, index + 1);
+}
+
+function isSqlWordStart(value) {
+  return typeof value === "string" && /^[A-Za-z_]$/.test(value);
+}
+
+function isSqlWordPart(value) {
+  return typeof value === "string" && /^[A-Za-z0-9_$]$/.test(value);
+}
+
+function isDollarTagPart(value) {
+  return typeof value === "string" && /^[A-Za-z0-9_]$/.test(value);
+}
+
+function classifyProhibitedStatement(words) {
+  const first = words[0];
+  const second = words[1];
+
+  if (
+    first === "BEGIN" ||
+    first === "COMMIT" ||
+    first === "END" ||
+    first === "ROLLBACK" ||
+    first === "ABORT" ||
+    first === "SAVEPOINT" ||
+    first === "RELEASE" ||
+    (first === "START" && second === "TRANSACTION") ||
+    (first === "PREPARE" && second === "TRANSACTION")
+  ) {
+    return {
+      category: "controle transacional próprio",
+      command: transactionCommandLabel(words),
+    };
+  }
+
+  if (first === "CREATE" && second === "DATABASE") {
+    return nonTransactionalViolation("CREATE DATABASE");
+  }
+
+  if (first === "DROP" && second === "DATABASE") {
+    return nonTransactionalViolation("DROP DATABASE");
+  }
+
+  if (first === "VACUUM") {
+    return nonTransactionalViolation("VACUUM");
+  }
+
+  if (first === "CALL") {
+    return nonTransactionalViolation("CALL");
+  }
+
+  let indexWord = 1;
+
+  if (first === "CREATE" && words[indexWord] === "UNIQUE") {
+    indexWord += 1;
+  }
+
+  if (
+    first === "CREATE" &&
+    words[indexWord] === "INDEX" &&
+    words[indexWord + 1] === "CONCURRENTLY"
+  ) {
+    return nonTransactionalViolation("CREATE INDEX CONCURRENTLY");
+  }
+
+  if (
+    first === "DROP" &&
+    second === "INDEX" &&
+    words[2] === "CONCURRENTLY"
+  ) {
+    return nonTransactionalViolation("DROP INDEX CONCURRENTLY");
+  }
+
+  if (first === "REINDEX") {
+    const targetIndex = words.findIndex(
+      (word, index) =>
+        index > 0 &&
+        ["INDEX", "TABLE", "SCHEMA", "DATABASE", "SYSTEM"].includes(word),
+    );
+
+    if (targetIndex !== -1 && words[targetIndex + 1] === "CONCURRENTLY") {
+      return nonTransactionalViolation("REINDEX ... CONCURRENTLY");
+    }
+  }
+
+  return null;
+}
+
+function transactionCommandLabel(words) {
+  const first = words[0];
+  const second = words[1];
+
+  if (["START", "PREPARE"].includes(first)) {
+    return `${first} ${second}`;
+  }
+
+  if (first === "END" && ["TRANSACTION", "WORK"].includes(second)) {
+    return `${first} ${second}`;
+  }
+
+  if (first === "RELEASE" && second === "SAVEPOINT") {
+    return "RELEASE SAVEPOINT";
+  }
+
+  return first;
+}
+
+function nonTransactionalViolation(command) {
+  return {
+    category: "incompatível com transação gerenciada",
+    command,
+  };
+}
+
 async function applyFile(client, fullPath, options = {}, dependencies = {}) {
   const force = Boolean(options.force);
   const output = options.output ?? console;
@@ -627,6 +948,8 @@ async function applyFile(client, fullPath, options = {}, dependencies = {}) {
   if (!trimmed) {
     fail(`Arquivo SQL vazio: ${fullPath}`);
   }
+
+  validateMigrationSql(trimmed, { fileName: name, sensitiveValues });
 
   const sha256 = crypto.createHash("sha256").update(sql).digest("hex");
   const shortHash = sha256.slice(0, 12);
@@ -648,32 +971,17 @@ async function applyFile(client, fullPath, options = {}, dependencies = {}) {
     return;
   }
 
-  const hasTransaction = sqlHasOwnTransaction(trimmed);
   const startedAt = now();
 
   try {
-    let elapsedMs;
-
-    if (hasTransaction) {
-      // Legado temporário: SQL e ledger permanecem separados neste ramo.
-      // O contrato transacional estrito removerá este caminho em commit posterior.
-      await client.query(trimmed);
-      elapsedMs = now() - startedAt;
-      await registerAppliedMigration(client, {
-        arquivo: name,
-        sha256,
-        tempo_ms: elapsedMs,
-      });
-    } else {
-      elapsedMs = await applyRunnerManagedMigration(client, trimmed, {
-        arquivo: name,
-        sha256,
-        startedAt,
-        now,
-        output,
-        sensitiveValues,
-      });
-    }
+    const elapsedMs = await applyRunnerManagedMigration(client, trimmed, {
+      arquivo: name,
+      sha256,
+      startedAt,
+      now,
+      output,
+      sensitiveValues,
+    });
 
     output.log(`✅ OK (${elapsedMs}ms)`);
   } catch (err) {
@@ -728,13 +1036,6 @@ async function rollbackBestEffort(client, { output, sensitiveValues }) {
       // A observabilidade do rollback nunca pode mascarar o erro primário.
     }
   }
-}
-
-function sqlHasOwnTransaction(sql) {
-  const hasBegin = /^\s*BEGIN\b/i.test(sql);
-  const hasCommit = /\bCOMMIT\s*;?\s*$/i.test(sql);
-
-  return hasBegin && hasCommit;
 }
 
 async function findAppliedMigration(client, { arquivo, sha256 }) {
@@ -885,7 +1186,7 @@ module.exports = {
   prettyPgError,
   registerAppliedMigration,
   sanitizeText,
-  sqlHasOwnTransaction,
+  validateMigrationSql,
   validateConnectedTarget,
   validateExpectedTarget,
 };
