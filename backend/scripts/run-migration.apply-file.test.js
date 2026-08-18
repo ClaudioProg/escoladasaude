@@ -62,230 +62,307 @@ function assertLedgerRegistrationSql(sql) {
   );
 }
 
-test("migration nao aplicada executa SQL antes de registrar no ledger", async () => {
-  const source = "SELECT 42;\n";
-  const migrationHash = sha256(source);
+function stages(events) {
+  return events.map((event) => event.stage);
+}
+
+function makeApplyHarness(options = {}) {
+  const source =
+    options.source ??
+    "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\nSELECT 42;";
+  const fullPath = options.fullPath ?? "/virtual/001-managed.sql";
+  const failures = options.failures ?? {};
+  const times = [...(options.times ?? [1000, 1027])];
   const events = [];
-  const times = [1000, 1027];
+  const output = captureOutput();
+  let clockCalls = 0;
+
   const client = {
     async query(sql, params) {
       if (isLedgerLookup(sql)) {
         assertLedgerLookupSql(sql);
-        events.push({ stage: "lookup", params });
-        return { rows: [] };
+        events.push({ stage: "lookup", sql, params });
+        return { rows: options.alreadyApplied ? [options.alreadyApplied] : [] };
       }
 
       if (isLedgerRegistration(sql)) {
         assertLedgerRegistrationSql(sql);
-        events.push({ stage: "ledger", params });
+        events.push({ stage: "ledger", sql, params });
+
+        if (failures.ledger) {
+          throw failures.ledger;
+        }
+
         return { rows: [] };
       }
 
-      events.push({ stage: "execute", sql, params });
+      if (sql === "BEGIN") {
+        events.push({ stage: "begin", sql, params });
+
+        if (failures.begin) {
+          throw failures.begin;
+        }
+
+        return { rows: [] };
+      }
+
+      if (sql === "COMMIT") {
+        events.push({ stage: "commit", sql, params });
+
+        if (failures.commit) {
+          throw failures.commit;
+        }
+
+        return { rows: [] };
+      }
+
+      if (sql === "ROLLBACK") {
+        events.push({ stage: "rollback", sql, params });
+
+        if (failures.rollback) {
+          throw failures.rollback;
+        }
+
+        return { rows: [] };
+      }
+
+      events.push({ stage: "sql", sql, params });
+
+      if (failures.sql) {
+        throw failures.sql;
+      }
+
       return { rows: [] };
     },
   };
 
-  await applyFile(
+  return {
     client,
-    "/virtual/001-current.sql",
-    { output: captureOutput().output },
-    {
-      readFile: async (fullPath, encoding) => {
-        assert.equal(fullPath, "/virtual/001-current.sql");
-        assert.equal(encoding, "utf8");
-        return source;
-      },
-      now: () => times.shift(),
+    events,
+    output,
+    source,
+    get clockCalls() {
+      return clockCalls;
     },
-  );
+    run() {
+      return applyFile(
+        client,
+        fullPath,
+        {
+          force: options.force,
+          output: output.output,
+          sensitiveValues: options.sensitiveValues ?? [],
+        },
+        {
+          readFile: async (receivedPath, encoding) => {
+            assert.equal(receivedPath, fullPath);
+            assert.equal(encoding, "utf8");
+            return source;
+          },
+          now: () => {
+            const value = times[clockCalls];
+            clockCalls += 1;
+            return value;
+          },
+        },
+      );
+    },
+  };
+}
 
-  assert.deepEqual(events, [
-    {
-      stage: "lookup",
-      params: ["001-current.sql", migrationHash],
-    },
-    {
-      stage: "execute",
-      sql: "BEGIN;\nSELECT 42;\nCOMMIT;",
-      params: undefined,
-    },
-    {
-      stage: "ledger",
-      params: ["001-current.sql", migrationHash, 27],
-    },
+test("caminho gerenciado confirma SQL e ledger na mesma transacao", async () => {
+  const harness = makeApplyHarness();
+
+  await harness.run();
+
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "ledger",
+    "commit",
   ]);
-  assert.deepEqual(times, []);
+  assert.equal(harness.events[2].sql, harness.source);
+  assert.deepEqual(harness.events[0].params, [
+    "001-managed.sql",
+    sha256(harness.source),
+  ]);
+  assert.deepEqual(harness.events[3].params, [
+    "001-managed.sql",
+    sha256(harness.source),
+    27,
+  ]);
+  assert.equal(harness.clockCalls, 2);
+  assert.match(harness.output.text(), /OK \(27ms\)/);
 });
 
 test("migration ja aplicada sem --force e ignorada", async () => {
-  const source = "SELECT 1;";
-  const migrationHash = sha256(source);
-  const events = [];
-  const client = {
-    async query(sql, params) {
-      assert.equal(isLedgerLookup(sql), true);
-      assertLedgerLookupSql(sql);
-      events.push({ stage: "lookup", params });
-      return {
-        rows: [
-          {
-            id: 10,
-            arquivo: "002-applied.sql",
-            sha256: migrationHash,
-            aplicada_em: "2026-08-18T10:00:00.000Z",
-            tempo_ms: 5,
-          },
-        ],
-      };
+  const harness = makeApplyHarness({
+    fullPath: "/virtual/002-applied.sql",
+    alreadyApplied: {
+      id: 10,
+      arquivo: "002-applied.sql",
+      sha256: "hash-ja-aplicado",
+      aplicada_em: "2026-08-18T10:00:00.000Z",
+      tempo_ms: 5,
     },
-  };
+  });
 
-  await applyFile(
-    client,
-    "/virtual/002-applied.sql",
-    { output: captureOutput().output },
-    {
-      readFile: async () => source,
-      now: () => {
-        throw new Error("migration ignorada nao deve consultar o relogio");
-      },
-    },
-  );
+  await harness.run();
 
-  assert.deepEqual(events, [
-    {
-      stage: "lookup",
-      params: ["002-applied.sql", migrationHash],
-    },
-  ]);
+  assert.deepEqual(stages(harness.events), ["lookup"]);
+  assert.equal(harness.clockCalls, 0);
+  assert.doesNotMatch(harness.output.text(), /OK/);
 });
 
 test("--force preserva reexecucao e registro atual no ledger", async () => {
-  const source = "SELECT 'force';";
-  const migrationHash = sha256(source);
-  const events = [];
-  const times = [2000, 2045];
-  const client = {
-    async query(sql, params) {
-      if (isLedgerLookup(sql)) {
-        assertLedgerLookupSql(sql);
-        events.push({ stage: "lookup", params });
-        return {
-          rows: [
-            {
-              id: 11,
-              arquivo: "003-force.sql",
-              sha256: migrationHash,
-              aplicada_em: "2026-08-18T10:00:00.000Z",
-              tempo_ms: 5,
-            },
-          ],
-        };
-      }
+  const harness = makeApplyHarness({
+    fullPath: "/virtual/003-force.sql",
+    force: true,
+    times: [2000, 2045],
+    alreadyApplied: {
+      id: 11,
+      arquivo: "003-force.sql",
+      sha256: "hash-ja-aplicado",
+      aplicada_em: "2026-08-18T10:00:00.000Z",
+      tempo_ms: 5,
+    },
+  });
 
-      if (isLedgerRegistration(sql)) {
-        assertLedgerRegistrationSql(sql);
-        events.push({ stage: "ledger", params });
-        return { rows: [] };
-      }
+  await harness.run();
 
-      events.push({ stage: "execute", sql });
-      return { rows: [] };
-    },
-  };
-
-  await applyFile(
-    client,
-    "/virtual/003-force.sql",
-    { force: true, output: captureOutput().output },
-    {
-      readFile: async () => source,
-      now: () => times.shift(),
-    },
-  );
-
-  assert.deepEqual(events, [
-    {
-      stage: "lookup",
-      params: ["003-force.sql", migrationHash],
-    },
-    {
-      stage: "execute",
-      sql: "BEGIN;\nSELECT 'force';\nCOMMIT;",
-    },
-    {
-      stage: "ledger",
-      params: ["003-force.sql", migrationHash, 45],
-    },
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "ledger",
+    "commit",
+  ]);
+  assert.deepEqual(harness.events[3].params, [
+    "003-force.sql",
+    sha256(harness.source),
+    45,
   ]);
 });
 
-test("erro de execucao interrompe antes do registro no ledger", async () => {
+test("erro de SQL faz rollback sem ledger ou commit", async () => {
   const executionError = new Error("falha controlada na migration");
-  const events = [];
-  const client = {
-    async query(sql) {
-      if (isLedgerLookup(sql)) {
-        events.push("lookup");
-        return { rows: [] };
-      }
-
-      if (isLedgerRegistration(sql)) {
-        events.push("ledger");
-        return { rows: [] };
-      }
-
-      events.push("execute");
-      throw executionError;
-    },
-  };
+  const harness = makeApplyHarness({ failures: { sql: executionError } });
 
   await assert.rejects(
-    applyFile(
-      client,
-      "/virtual/004-failure.sql",
-      { output: captureOutput().output },
-      {
-        readFile: async () => "SELECT broken;",
-        now: () => 3000,
-      },
-    ),
+    harness.run(),
     (error) => error === executionError,
   );
 
-  assert.deepEqual(events, ["lookup", "execute"]);
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "rollback",
+  ]);
+  assert.doesNotMatch(harness.output.text(), /OK/);
 });
 
-test("SQL com transacao propria preserva o texto executado", async () => {
+test("erro de ledger faz rollback sem commit", async () => {
+  const ledgerError = new Error("falha controlada no ledger");
+  const harness = makeApplyHarness({ failures: { ledger: ledgerError } });
+
+  await assert.rejects(harness.run(), (error) => error === ledgerError);
+
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "ledger",
+    "rollback",
+  ]);
+  assert.doesNotMatch(harness.output.text(), /OK/);
+});
+
+test("erro de BEGIN nao tenta SQL, ledger, commit ou rollback", async () => {
+  const beginError = new Error("falha controlada no BEGIN");
+  const harness = makeApplyHarness({ failures: { begin: beginError } });
+
+  await assert.rejects(harness.run(), (error) => error === beginError);
+
+  assert.deepEqual(stages(harness.events), ["lookup", "begin"]);
+  assert.doesNotMatch(harness.output.text(), /OK/);
+});
+
+test("erro de COMMIT tenta rollback e preserva o erro de commit", async () => {
+  const commitError = new Error("falha controlada no COMMIT");
+  const harness = makeApplyHarness({ failures: { commit: commitError } });
+
+  await assert.rejects(harness.run(), (error) => error === commitError);
+
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "ledger",
+    "commit",
+    "rollback",
+  ]);
+  assert.doesNotMatch(harness.output.text(), /OK/);
+});
+
+test("erro de rollback apos falha de SQL preserva o erro de SQL", async () => {
+  const sqlError = new Error("erro primario do SQL");
+  const rollbackError = new Error("erro secundario segredo-rollback");
+  const harness = makeApplyHarness({
+    failures: { sql: sqlError, rollback: rollbackError },
+    sensitiveValues: ["segredo-rollback"],
+  });
+
+  await assert.rejects(harness.run(), (error) => error === sqlError);
+
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "rollback",
+  ]);
+  assert.match(harness.output.text(), /Falha ao executar ROLLBACK/);
+  assert.doesNotMatch(harness.output.text(), /segredo-rollback/);
+  assert.doesNotMatch(harness.output.text(), /OK/);
+});
+
+test("erro de rollback apos falha de ledger preserva o erro do ledger", async () => {
+  const ledgerError = new Error("erro primario do ledger");
+  const rollbackError = new Error("erro secundario do rollback");
+  const harness = makeApplyHarness({
+    failures: { ledger: ledgerError, rollback: rollbackError },
+  });
+
+  await assert.rejects(harness.run(), (error) => error === ledgerError);
+
+  assert.deepEqual(stages(harness.events), [
+    "lookup",
+    "begin",
+    "sql",
+    "ledger",
+    "rollback",
+  ]);
+  assert.doesNotMatch(harness.output.text(), /OK/);
+});
+
+test("SQL com transacao propria preserva temporariamente o caminho legado", async () => {
   const source = "BEGIN;\nSELECT 7;\nCOMMIT;";
-  let executedSql;
-  const client = {
-    async query(sql) {
-      if (isLedgerLookup(sql)) {
-        return { rows: [] };
-      }
+  const harness = makeApplyHarness({
+    source,
+    fullPath: "/virtual/005-own-transaction.sql",
+    times: [4000, 4012],
+  });
 
-      if (isLedgerRegistration(sql)) {
-        return { rows: [] };
-      }
+  await harness.run();
 
-      executedSql = sql;
-      return { rows: [] };
-    },
-  };
-
-  await applyFile(
-    client,
-    "/virtual/005-own-transaction.sql",
-    { output: captureOutput().output },
-    {
-      readFile: async () => source,
-      now: () => 4000,
-    },
-  );
-
-  assert.equal(executedSql, source);
+  assert.deepEqual(stages(harness.events), ["lookup", "sql", "ledger"]);
+  assert.equal(harness.events[1].sql, source);
+  assert.deepEqual(harness.events[2].params, [
+    "005-own-transaction.sql",
+    sha256(source),
+    12,
+  ]);
 });
 
 test("multiplos arquivos permanecem estritamente sequenciais", async () => {
@@ -308,6 +385,92 @@ test("multiplos arquivos permanecem estritamente sequenciais", async () => {
     "end:first.sql",
     "start:second.sql",
     "end:second.sql",
+  ]);
+});
+
+test("arquivos confirmam por unidade e param apos rollback do segundo", async () => {
+  const files = [
+    "/virtual/101-first.sql",
+    "/virtual/102-second.sql",
+    "/virtual/103-third.sql",
+  ];
+  const sources = new Map([
+    [files[0], "SELECT 'first';"],
+    [files[1], "SELECT 'second';"],
+    [files[2], "SELECT 'third';"],
+  ]);
+  const secondError = new Error("falha controlada no segundo arquivo");
+  const events = [];
+  const times = [5000, 5010, 5020];
+  let currentName;
+
+  const client = {
+    async query(sql, params) {
+      if (isLedgerLookup(sql)) {
+        assertLedgerLookupSql(sql);
+        events.push(`lookup:${params[0]}`);
+        return { rows: [] };
+      }
+
+      if (isLedgerRegistration(sql)) {
+        assertLedgerRegistrationSql(sql);
+        events.push(`ledger:${params[0]}`);
+        return { rows: [] };
+      }
+
+      if (sql === "BEGIN") {
+        events.push(`begin:${currentName}`);
+        return { rows: [] };
+      }
+
+      if (sql === "COMMIT") {
+        events.push(`commit:${currentName}`);
+        return { rows: [] };
+      }
+
+      if (sql === "ROLLBACK") {
+        events.push(`rollback:${currentName}`);
+        return { rows: [] };
+      }
+
+      events.push(`sql:${currentName}`);
+
+      if (currentName === "102-second.sql") {
+        throw secondError;
+      }
+
+      return { rows: [] };
+    },
+  };
+
+  await assert.rejects(
+    applyFilesSequentially(
+      client,
+      files,
+      { output: captureOutput().output },
+      (receivedClient, fullPath, options) =>
+        applyFile(receivedClient, fullPath, options, {
+          readFile: async (receivedPath, encoding) => {
+            assert.equal(encoding, "utf8");
+            currentName = path.basename(receivedPath);
+            return sources.get(receivedPath);
+          },
+          now: () => times.shift(),
+        }),
+    ),
+    (error) => error === secondError,
+  );
+
+  assert.deepEqual(events, [
+    "lookup:101-first.sql",
+    "begin:101-first.sql",
+    "sql:101-first.sql",
+    "ledger:101-first.sql",
+    "commit:101-first.sql",
+    "lookup:102-second.sql",
+    "begin:102-second.sql",
+    "sql:102-second.sql",
+    "rollback:102-second.sql",
   ]);
 });
 

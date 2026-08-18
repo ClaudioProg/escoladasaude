@@ -649,26 +649,84 @@ async function applyFile(client, fullPath, options = {}, dependencies = {}) {
   }
 
   const hasTransaction = sqlHasOwnTransaction(trimmed);
-  const sqlToRun = hasTransaction ? trimmed : `BEGIN;\n${trimmed}\nCOMMIT;`;
-
   const startedAt = now();
 
   try {
-    await client.query(sqlToRun);
+    let elapsedMs;
 
-    const elapsedMs = now() - startedAt;
-
-    await registerAppliedMigration(client, {
-      arquivo: name,
-      sha256,
-      tempo_ms: elapsedMs,
-    });
+    if (hasTransaction) {
+      // Legado temporário: SQL e ledger permanecem separados neste ramo.
+      // O contrato transacional estrito removerá este caminho em commit posterior.
+      await client.query(trimmed);
+      elapsedMs = now() - startedAt;
+      await registerAppliedMigration(client, {
+        arquivo: name,
+        sha256,
+        tempo_ms: elapsedMs,
+      });
+    } else {
+      elapsedMs = await applyRunnerManagedMigration(client, trimmed, {
+        arquivo: name,
+        sha256,
+        startedAt,
+        now,
+        output,
+        sensitiveValues,
+      });
+    }
 
     output.log(`✅ OK (${elapsedMs}ms)`);
   } catch (err) {
     output.error(`❌ Erro em ${name}`);
     prettyPgError(err, { output, sensitiveValues });
     throw err;
+  }
+}
+
+async function applyRunnerManagedMigration(
+  client,
+  sql,
+  { arquivo, sha256, startedAt, now, output, sensitiveValues },
+) {
+  let transactionStarted = false;
+
+  try {
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    await client.query(sql);
+
+    const elapsedMs = now() - startedAt;
+
+    await registerAppliedMigration(client, {
+      arquivo,
+      sha256,
+      tempo_ms: elapsedMs,
+    });
+
+    await client.query("COMMIT");
+    transactionStarted = false;
+
+    return elapsedMs;
+  } catch (err) {
+    if (transactionStarted) {
+      await rollbackBestEffort(client, { output, sensitiveValues });
+    }
+
+    throw err;
+  }
+}
+
+async function rollbackBestEffort(client, { output, sensitiveValues }) {
+  try {
+    await client.query("ROLLBACK");
+  } catch (rollbackError) {
+    try {
+      output.error("⚠️ Falha ao executar ROLLBACK.");
+      prettyPgError(rollbackError, { output, sensitiveValues });
+    } catch {
+      // A observabilidade do rollback nunca pode mascarar o erro primário.
+    }
   }
 }
 
