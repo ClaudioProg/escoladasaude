@@ -41,6 +41,33 @@ const DEFAULT_POSTGRES_PORT = "5432";
 const BACKEND_ROOT = path.resolve(__dirname, "..");
 const OFFICIAL_MIGRATIONS_ROOT = path.join(BACKEND_ROOT, "db", "migrations");
 const FORBIDDEN_TARGET_QUERY_PARAMS = new Set(["host", "port", "options"]);
+const MIGRATION_LEDGER_COLUMN_CONTRACT = Object.freeze([
+  Object.freeze({
+    name: "id",
+    formattedType: "bigint",
+    defaultKind: "owned_sequence",
+  }),
+  Object.freeze({
+    name: "arquivo",
+    formattedType: "text",
+    defaultKind: "none",
+  }),
+  Object.freeze({
+    name: "sha256",
+    formattedType: "text",
+    defaultKind: "none",
+  }),
+  Object.freeze({
+    name: "aplicada_em",
+    formattedType: "timestamp without time zone",
+    defaultKind: "current_timestamp",
+  }),
+  Object.freeze({
+    name: "tempo_ms",
+    formattedType: "integer",
+    defaultKind: "zero",
+  }),
+]);
 const TARGET_DIAGNOSTIC_SQL = `
   SELECT
     current_database() AS database_name,
@@ -750,13 +777,97 @@ async function ensureMigrationTable(client) {
   }
 
   const columnsResult = await client.query(`
-    SELECT column_name, data_type, is_nullable
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = '${MIGRATION_TABLE}'
-    ORDER BY ordinal_position;
+    SELECT
+      column_definition.attname AS column_name,
+      format_type(
+        column_definition.atttypid,
+        column_definition.atttypmod
+      ) AS formatted_type,
+      column_definition.attnotnull AS not_null,
+      column_definition.attisdropped AS is_dropped,
+      column_definition.attidentity AS identity_kind,
+      column_definition.attgenerated AS generated_kind,
+      pg_get_expr(
+        default_definition.adbin,
+        default_definition.adrelid,
+        true
+      ) AS default_expression,
+      EXISTS (
+        SELECT 1
+        FROM pg_depend AS default_dependency
+        JOIN pg_class AS sequence_class
+          ON sequence_class.oid = default_dependency.refobjid
+         AND default_dependency.refclassid = 'pg_class'::regclass
+         AND sequence_class.relkind = 'S'
+        JOIN pg_sequence AS sequence_definition
+          ON sequence_definition.seqrelid = sequence_class.oid
+         AND sequence_definition.seqtypid = 'bigint'::regtype
+        JOIN pg_depend AS ownership_dependency
+          ON ownership_dependency.classid = 'pg_class'::regclass
+         AND ownership_dependency.objid = sequence_class.oid
+         AND ownership_dependency.objsubid = 0
+         AND ownership_dependency.refclassid = 'pg_class'::regclass
+         AND ownership_dependency.refobjid = table_class.oid
+         AND ownership_dependency.refobjsubid = column_definition.attnum
+         AND ownership_dependency.deptype = 'a'
+        WHERE default_dependency.classid = 'pg_attrdef'::regclass
+          AND default_dependency.objid = default_definition.oid
+          AND default_dependency.objsubid = 0
+          AND default_dependency.deptype = 'n'
+      ) AS default_uses_owned_bigint_sequence
+    FROM pg_attribute AS column_definition
+    JOIN pg_class AS table_class
+      ON table_class.oid = column_definition.attrelid
+    JOIN pg_namespace AS table_namespace
+      ON table_namespace.oid = table_class.relnamespace
+    LEFT JOIN pg_attrdef AS default_definition
+      ON default_definition.adrelid = column_definition.attrelid
+     AND default_definition.adnum = column_definition.attnum
+    WHERE table_namespace.nspname = 'public'
+      AND table_class.relname = '${MIGRATION_TABLE}'
+      AND column_definition.attnum > 0
+    ORDER BY column_definition.attnum;
   `);
   validateMigrationLedgerColumns(columnsResult?.rows);
+
+  const primaryKeysResult = await client.query(`
+    SELECT
+      constraint_definition.conname AS constraint_name,
+      ARRAY(
+        SELECT pg_get_indexdef(
+          index_definition.indexrelid,
+          indexed_position.position,
+          true
+        )
+        FROM generate_series(1, index_definition.indnkeyatts)
+          AS indexed_position(position)
+        ORDER BY indexed_position.position
+      ) AS columns,
+      constraint_definition.convalidated AS is_validated,
+      constraint_definition.condeferrable AS is_deferrable,
+      constraint_definition.condeferred AS is_deferred,
+      index_definition.indisprimary AS is_primary,
+      index_definition.indisunique AS is_unique,
+      index_definition.indimmediate AS is_immediate,
+      index_definition.indisvalid AS is_valid,
+      index_definition.indisready AS is_ready,
+      index_definition.indislive AS is_live,
+      index_definition.indpred IS NULL AS is_unconditional,
+      index_definition.indexprs IS NULL AS is_plain
+    FROM pg_constraint AS constraint_definition
+    JOIN pg_class AS table_class
+      ON table_class.oid = constraint_definition.conrelid
+    JOIN pg_namespace AS table_namespace
+      ON table_namespace.oid = table_class.relnamespace
+    JOIN pg_index AS index_definition
+      ON index_definition.indexrelid = constraint_definition.conindid
+     AND index_definition.indrelid = table_class.oid
+    WHERE table_namespace.nspname = 'public'
+      AND table_class.relname = '${MIGRATION_TABLE}'
+      AND constraint_definition.contype = 'p'
+    ORDER BY constraint_definition.conname;
+  `);
+  validateMigrationLedgerPrimaryKey(primaryKeysResult?.rows);
 
   const uniqueIndexesResult = await client.query(`
     SELECT
@@ -771,8 +882,10 @@ async function ensureMigrationTable(client) {
           AS indexed_position(position)
         ORDER BY indexed_position.position
       ) AS columns,
+      index_definition.indimmediate AS is_immediate,
       index_definition.indisvalid AS is_valid,
       index_definition.indisready AS is_ready,
+      index_definition.indislive AS is_live,
       index_definition.indpred IS NULL AS is_unconditional,
       index_definition.indexprs IS NULL AS is_plain
     FROM pg_index AS index_definition
@@ -802,24 +915,114 @@ function validateMigrationLedgerColumns(columns) {
     failLegacyMigrationLedger("catálogo de colunas retornou estrutura inválida");
   }
 
+  const liveColumns = columns.filter((column) => column?.is_dropped === false);
   const columnsByName = new Map(
-    columns.map((column) => [column.column_name, column]),
+    liveColumns.map((column) => [column.column_name, column]),
   );
-  const requiredColumns = new Map([
-    ["arquivo", "text"],
-    ["sha256", "text"],
-    ["aplicada_em", "timestamp without time zone"],
-    ["tempo_ms", "integer"],
-  ]);
 
-  for (const [columnName, dataType] of requiredColumns) {
-    const column = columnsByName.get(columnName);
+  if (
+    liveColumns.length !== MIGRATION_LEDGER_COLUMN_CONTRACT.length ||
+    columnsByName.size !== MIGRATION_LEDGER_COLUMN_CONTRACT.length
+  ) {
+    failLegacyMigrationLedger("conjunto de colunas incompatível");
+  }
 
-    if (column?.data_type !== dataType || column?.is_nullable !== "NO") {
+  for (const contract of MIGRATION_LEDGER_COLUMN_CONTRACT) {
+    const column = columnsByName.get(contract.name);
+
+    if (
+      column?.formatted_type !== contract.formattedType ||
+      column?.not_null !== true ||
+      column?.identity_kind !== "" ||
+      column?.generated_kind !== ""
+    ) {
       failLegacyMigrationLedger(
-        `coluna obrigatória incompatível: ${columnName}`,
+        `coluna obrigatória incompatível: ${contract.name}`,
       );
     }
+
+    validateMigrationLedgerColumnDefault(contract.name, column, contract);
+  }
+}
+
+function validateMigrationLedgerColumnDefault(columnName, column, contract) {
+  const expression = normalizeCatalogExpression(column.default_expression);
+  let isCompatible = false;
+
+  if (contract.defaultKind === "none") {
+    isCompatible = column.default_expression == null;
+  } else if (contract.defaultKind === "owned_sequence") {
+    isCompatible =
+      column.default_uses_owned_bigint_sequence === true &&
+      /^nextval\(.+::regclass\)$/.test(expression);
+  } else if (contract.defaultKind === "current_timestamp") {
+    isCompatible = isCurrentTimestampDefault(expression);
+  } else if (contract.defaultKind === "zero") {
+    isCompatible = isZeroIntegerDefault(expression);
+  }
+
+  if (!isCompatible) {
+    failLegacyMigrationLedger(`default incompatível: ${columnName}`);
+  }
+}
+
+function normalizeCatalogExpression(expression) {
+  if (typeof expression !== "string") return "";
+
+  return expression
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*::\s*/g, "::")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")");
+}
+
+function isCurrentTimestampDefault(expression) {
+  return (
+    /^(?:now\(\)|current_timestamp)$/.test(expression) ||
+    /^\((?:now\(\)|current_timestamp)\)::timestamp without time zone$/.test(
+      expression,
+    ) ||
+    /^(?:now\(\)|current_timestamp)::timestamp without time zone$/.test(
+      expression,
+    )
+  );
+}
+
+function isZeroIntegerDefault(expression) {
+  return /^(?:0|\(0\)|0::integer|\(0\)::integer|'0'::integer)$/.test(
+    expression,
+  );
+}
+
+function validateMigrationLedgerPrimaryKey(primaryKeys) {
+  if (!Array.isArray(primaryKeys)) {
+    failLegacyMigrationLedger(
+      "catálogo de primary key retornou estrutura inválida",
+    );
+  }
+
+  const primaryKey = primaryKeys[0];
+  const isCompatible =
+    primaryKeys.length === 1 &&
+    Array.isArray(primaryKey?.columns) &&
+    primaryKey.columns.length === 1 &&
+    primaryKey.columns[0] === "id" &&
+    primaryKey.is_validated === true &&
+    primaryKey.is_deferrable === false &&
+    primaryKey.is_deferred === false &&
+    primaryKey.is_primary === true &&
+    primaryKey.is_unique === true &&
+    primaryKey.is_immediate === true &&
+    primaryKey.is_valid === true &&
+    primaryKey.is_ready === true &&
+    primaryKey.is_live === true &&
+    primaryKey.is_unconditional === true &&
+    primaryKey.is_plain === true;
+
+  if (!isCompatible) {
+    failLegacyMigrationLedger("PRIMARY KEY simples e válida sobre id ausente");
   }
 }
 
@@ -828,19 +1031,31 @@ function validateMigrationLedgerUniqueness(uniqueIndexes) {
     failLegacyMigrationLedger("catálogo de índices retornou estrutura inválida");
   }
 
-  const hasCanonicalUniqueness = uniqueIndexes.some(
+  const canonicalUniqueIndexes = uniqueIndexes.filter(
     (index) =>
       Array.isArray(index.columns) &&
       index.columns.length === 1 &&
-      index.columns[0] === "arquivo" &&
-      index.is_valid === true &&
-      index.is_ready === true &&
-      index.is_unconditional === true &&
-      index.is_plain === true,
+      index.columns[0] === "arquivo",
   );
 
-  if (!hasCanonicalUniqueness) {
+  if (canonicalUniqueIndexes.length === 0) {
     failLegacyMigrationLedger("unicidade por arquivo canônico ausente");
+  }
+
+  const hasIncompatibleCanonicalUniqueness = canonicalUniqueIndexes.some(
+    (index) =>
+      index.is_immediate !== true ||
+      index.is_valid !== true ||
+      index.is_ready !== true ||
+      index.is_live !== true ||
+      index.is_unconditional !== true ||
+      index.is_plain !== true,
+  );
+
+  if (hasIncompatibleCanonicalUniqueness) {
+    failLegacyMigrationLedger(
+      "estrutura de unicidade por arquivo canônico incompatível",
+    );
   }
 }
 
