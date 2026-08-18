@@ -51,8 +51,9 @@ function isLedgerRegistration(sql) {
 function assertLedgerLookupSql(sql) {
   assert.match(
     sql,
-    /FROM public\.sistema_migracao\s+WHERE arquivo = \$1\s+AND sha256 = \$2/s,
+    /FROM public\.sistema_migracao\s+WHERE arquivo = \$1/s,
   );
+  assert.doesNotMatch(sql, /AND sha256 = \$2|LIMIT 1/);
 }
 
 function assertLedgerRegistrationSql(sql) {
@@ -72,6 +73,10 @@ function makeApplyHarness(options = {}) {
     options.source ??
     "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\nSELECT 42;";
   const fullPath = options.fullPath ?? "/virtual/001-managed.sql";
+  const canonicalMigrationId =
+    options.canonicalMigrationId ??
+    `db/migrations/${path.basename(fullPath)}`;
+  const migration = { fullPath, canonicalMigrationId };
   const failures = options.failures ?? {};
   const times = [...(options.times ?? [1000, 1027])];
   const events = [];
@@ -83,7 +88,11 @@ function makeApplyHarness(options = {}) {
       if (isLedgerLookup(sql)) {
         assertLedgerLookupSql(sql);
         events.push({ stage: "lookup", sql, params });
-        return { rows: options.alreadyApplied ? [options.alreadyApplied] : [] };
+        return {
+          rows:
+            options.lookupRows ??
+            (options.alreadyApplied ? [options.alreadyApplied] : []),
+        };
       }
 
       if (isLedgerRegistration(sql)) {
@@ -141,6 +150,7 @@ function makeApplyHarness(options = {}) {
     client,
     events,
     output,
+    migration,
     source,
     get clockCalls() {
       return clockCalls;
@@ -148,7 +158,7 @@ function makeApplyHarness(options = {}) {
     run() {
       return applyFile(
         client,
-        fullPath,
+        migration,
         {
           output: output.output,
           sensitiveValues: options.sensitiveValues ?? [],
@@ -184,11 +194,10 @@ test("caminho gerenciado confirma SQL e INSERT do ledger na mesma transacao", as
   ]);
   assert.equal(harness.events[2].sql, harness.source);
   assert.deepEqual(harness.events[0].params, [
-    "001-managed.sql",
-    sha256(harness.source),
+    "db/migrations/001-managed.sql",
   ]);
   assert.deepEqual(harness.events[3].params, [
-    "001-managed.sql",
+    "db/migrations/001-managed.sql",
     sha256(harness.source),
     27,
   ]);
@@ -197,12 +206,14 @@ test("caminho gerenciado confirma SQL e INSERT do ledger na mesma transacao", as
 });
 
 test("migration ja aplicada e ignorada sem reexecucao", async () => {
+  const source = "SELECT 42;";
   const harness = makeApplyHarness({
+    source,
     fullPath: "/virtual/002-applied.sql",
     alreadyApplied: {
       id: 10,
-      arquivo: "002-applied.sql",
-      sha256: "hash-ja-aplicado",
+      arquivo: "db/migrations/002-applied.sql",
+      sha256: sha256(source),
       aplicada_em: "2026-08-18T10:00:00.000Z",
       tempo_ms: 5,
     },
@@ -215,6 +226,45 @@ test("migration ja aplicada e ignorada sem reexecucao", async () => {
   assert.doesNotMatch(harness.output.text(), /OK/);
   assert.match(harness.output.text(), /Ignorada: já aplicada/);
   assert.doesNotMatch(harness.output.text(), /force/i);
+});
+
+test("migration registrada com SHA divergente falha antes de BEGIN", async () => {
+  const harness = makeApplyHarness({
+    fullPath: "/virtual/003-divergent.sql",
+    lookupRows: [
+      {
+        id: 11,
+        arquivo: "db/migrations/003-divergent.sql",
+        sha256: "f".repeat(64),
+        aplicada_em: "2026-08-18T10:00:00.000Z",
+        tempo_ms: 5,
+      },
+    ],
+  });
+
+  await assert.rejects(
+    harness.run(),
+    /já registrada com conteúdo diferente.*Restaure.*nova migration forward-only/,
+  );
+
+  assert.deepEqual(stages(harness.events), ["lookup"]);
+  assert.equal(harness.clockCalls, 0);
+  assert.doesNotMatch(harness.output.text(), /OK/);
+});
+
+test("multiplos registros para a mesma identidade falham antes de BEGIN", async () => {
+  const harness = makeApplyHarness({
+    fullPath: "/virtual/004-duplicate-ledger.sql",
+    lookupRows: [
+      { sha256: sha256("primeiro") },
+      { sha256: sha256("segundo") },
+    ],
+  });
+
+  await assert.rejects(harness.run(), /mais de um registro para a mesma migration/);
+
+  assert.deepEqual(stages(harness.events), ["lookup"]);
+  assert.equal(harness.clockCalls, 0);
 });
 
 test("erro de SQL faz rollback sem ledger ou commit", async () => {
@@ -354,37 +404,61 @@ test("SQL lexicalmente invalido e rejeitado antes de qualquer query", async () =
 
 test("multiplos arquivos permanecem estritamente sequenciais", async () => {
   const events = [];
+  const migrations = [
+    {
+      fullPath: "/virtual/first.sql",
+      canonicalMigrationId: "db/migrations/first.sql",
+    },
+    {
+      fullPath: "/virtual/second.sql",
+      canonicalMigrationId: "db/migrations/second.sql",
+    },
+  ];
 
   await applyFilesSequentially(
     {},
-    ["first.sql", "second.sql"],
+    migrations,
     {},
-    async (_client, fullPath, options) => {
-      events.push(`start:${fullPath}`);
+    async (_client, migration, options) => {
+      events.push(`start:${migration.canonicalMigrationId}`);
       assert.deepEqual(options, {});
       await Promise.resolve();
-      events.push(`end:${fullPath}`);
+      events.push(`end:${migration.canonicalMigrationId}`);
     },
   );
 
   assert.deepEqual(events, [
-    "start:first.sql",
-    "end:first.sql",
-    "start:second.sql",
-    "end:second.sql",
+    "start:db/migrations/first.sql",
+    "end:db/migrations/first.sql",
+    "start:db/migrations/second.sql",
+    "end:db/migrations/second.sql",
   ]);
 });
 
 test("arquivos confirmam por unidade e param apos rollback do segundo", async () => {
-  const files = [
+  const fullPaths = [
     "/virtual/101-first.sql",
     "/virtual/102-second.sql",
     "/virtual/103-third.sql",
   ];
+  const files = [
+    {
+      fullPath: fullPaths[0],
+      canonicalMigrationId: "db/migrations/101-first.sql",
+    },
+    {
+      fullPath: fullPaths[1],
+      canonicalMigrationId: "db/migrations/102-second.sql",
+    },
+    {
+      fullPath: fullPaths[2],
+      canonicalMigrationId: "db/migrations/103-third.sql",
+    },
+  ];
   const sources = new Map([
-    [files[0], "SELECT 'first';"],
-    [files[1], "SELECT 'second';"],
-    [files[2], "SELECT 'third';"],
+    [fullPaths[0], "SELECT 'first';"],
+    [fullPaths[1], "SELECT 'second';"],
+    [fullPaths[2], "SELECT 'third';"],
   ]);
   const secondError = new Error("falha controlada no segundo arquivo");
   const events = [];
@@ -435,8 +509,8 @@ test("arquivos confirmam por unidade e param apos rollback do segundo", async ()
       client,
       files,
       { output: captureOutput().output },
-      (receivedClient, fullPath, options) =>
-        applyFile(receivedClient, fullPath, options, {
+      (receivedClient, migration, options) =>
+        applyFile(receivedClient, migration, options, {
           readFile: async (receivedPath, encoding) => {
             assert.equal(encoding, "utf8");
             currentName = path.basename(receivedPath);
@@ -449,12 +523,12 @@ test("arquivos confirmam por unidade e param apos rollback do segundo", async ()
   );
 
   assert.deepEqual(events, [
-    "lookup:101-first.sql",
+    "lookup:db/migrations/101-first.sql",
     "begin:101-first.sql",
     "sql:101-first.sql",
-    "ledger:101-first.sql",
+    "ledger:db/migrations/101-first.sql",
     "commit:101-first.sql",
-    "lookup:102-second.sql",
+    "lookup:db/migrations/102-second.sql",
     "begin:102-second.sql",
     "sql:102-second.sql",
     "rollback:102-second.sql",

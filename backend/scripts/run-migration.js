@@ -7,8 +7,8 @@
  * Runner oficial de migrações SQL PostgreSQL
  *
  * Uso:
- *   node scripts/run-migration.js --file db/migration/2026-05-11-ajuste.sql
- *   node scripts/run-migration.js --dir db/migration --pattern "2026-*.sql"
+ *   node scripts/run-migration.js --file db/migrations/2026-05-11-ajuste.sql
+ *   node scripts/run-migration.js --dir db/migrations --pattern "2026-*.sql"
  *   node scripts/run-migration.js --file x.sql --dry-run
  *
  * Flags:
@@ -30,7 +30,6 @@
  *   - Toda migração aplicada é registrada em public.sistema_migracao.
  */
 
-const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
@@ -39,6 +38,8 @@ const { Pool } = require("pg");
 const DEFAULT_TIMEOUT_MS = 60000;
 const MIGRATION_TABLE = "sistema_migracao";
 const DEFAULT_POSTGRES_PORT = "5432";
+const BACKEND_ROOT = path.resolve(__dirname, "..");
+const OFFICIAL_MIGRATIONS_ROOT = path.join(BACKEND_ROOT, "db", "migrations");
 const FORBIDDEN_TARGET_QUERY_PARAMS = new Set(["host", "port", "options"]);
 const TARGET_DIAGNOSTIC_SQL = `
   SELECT
@@ -67,18 +68,28 @@ async function main(options = {}) {
 
     if (files.length === 0) {
       fail(
-        "Nenhum arquivo .sql encontrado. Use --file caminho.sql ou --dir db/migration.",
+        "Nenhum arquivo .sql encontrado. Use --file caminho.sql ou --dir db/migrations.",
       );
     }
 
     banner(output);
 
     output.log("🗂️  Arquivos encontrados:", files.length);
-    files.forEach((file, index) => {
-      output.log(`   ${String(index + 1).padStart(2, "0")} • ${file}`);
+    files.forEach((migration, index) => {
+      output.log(
+        `   ${String(index + 1).padStart(2, "0")} • ` +
+          migration.canonicalMigrationId,
+      );
     });
 
     if (args.dryRun) {
+      for (const migration of files) {
+        const inspected = await inspectMigrationFile(migration);
+        output.log(
+          `   ${inspected.canonicalMigrationId} sha256=${inspected.sha256}`,
+        );
+      }
+
       output.log("\n💡 Modo dry-run: nada será aplicado ao banco.");
       output.log("✅ Plano validado com sucesso.");
       return { ok: true, dryRun: true };
@@ -289,55 +300,209 @@ function makeLogger(verbose, output = console) {
    Arquivos
 ───────────────────────────────────────── */
 
-async function resolveFiles(args, log) {
-  const files = new Set();
+async function resolveFiles(args, log, dependencies = {}) {
+  const cwd = dependencies.cwd ?? process.cwd();
+  const realpath = dependencies.realpath ?? fsp.realpath;
+  const stat = dependencies.stat ?? fsp.stat;
+  const readdir = dependencies.readdir ?? fsp.readdir;
+  let officialRootReal;
+
+  try {
+    officialRootReal = await realpath(OFFICIAL_MIGRATIONS_ROOT);
+  } catch {
+    fail("A árvore oficial db/migrations não foi encontrada ou está inacessível.");
+  }
+
+  const files = new Map();
 
   for (const file of args.file || []) {
     if (!file) continue;
 
-    const fullPath = path.resolve(process.cwd(), file);
+    const migration = await resolveOfficialMigrationFile(file, {
+      cwd,
+      officialRootReal,
+      realpath,
+      stat,
+    });
 
-    if (!(await exists(fullPath))) {
-      fail(`Arquivo não encontrado: ${fullPath}`);
-    }
-
-    if (!(await isFile(fullPath))) {
-      fail(`O caminho informado não é arquivo: ${fullPath}`);
-    }
-
-    if (!fullPath.toLowerCase().endsWith(".sql")) {
-      fail(`O arquivo precisa ter extensão .sql: ${fullPath}`);
-    }
-
-    files.add(fullPath);
+    files.set(migration.canonicalMigrationId, migration);
   }
 
   if (args.dir) {
-    const dir = path.resolve(process.cwd(), args.dir);
+    const requestedDir = path.resolve(cwd, args.dir);
+    let dir;
+    let dirStat;
 
-    if (!(await exists(dir))) {
-      fail(`Diretório não encontrado: ${dir}`);
+    try {
+      dir = await realpath(requestedDir);
+      dirStat = await stat(dir);
+    } catch {
+      fail(
+        `Diretório de migrations não encontrado ou inacessível: ${safePathLabel(
+          args.dir,
+        )}.`,
+      );
     }
 
-    if (!(await isDirectory(dir))) {
-      fail(`O caminho informado não é diretório: ${dir}`);
+    if (!dirStat.isDirectory()) {
+      fail(`O caminho de --dir não é diretório: ${safePathLabel(args.dir)}.`);
     }
 
-    const list = await fsp.readdir(dir);
+    if (!isPathInsideRoot(officialRootReal, dir, { allowRoot: true })) {
+      fail("--dir deve apontar para a árvore oficial db/migrations.");
+    }
+
+    let list;
+
+    try {
+      list = await readdir(dir);
+    } catch {
+      fail("Não foi possível listar a árvore oficial de migrations.");
+    }
+
     const regex = globToRegex(args.pattern || "*");
 
-    const matched = list
+    const matchedNames = list
       .filter((name) => regex.test(name))
       .filter((name) => name.toLowerCase().endsWith(".sql"))
-      .sort((a, b) => a.localeCompare(b, "pt-BR"))
-      .map((name) => path.join(dir, name));
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
 
-    log.debug("arquivos encontrados no diretório:", matched);
+    for (const name of matchedNames) {
+      const migration = await resolveOfficialMigrationFile(
+        path.join(dir, name),
+        {
+          cwd,
+          officialRootReal,
+          realpath,
+          stat,
+        },
+      );
 
-    matched.forEach((file) => files.add(file));
+      files.set(migration.canonicalMigrationId, migration);
+    }
+
+    log.debug(
+      "arquivos encontrados no diretório:",
+      Array.from(files.values(), (migration) => migration.canonicalMigrationId),
+    );
   }
 
-  return Array.from(files);
+  return Array.from(files.values());
+}
+
+async function resolveOfficialMigrationFile(requestedPath, dependencies) {
+  const { cwd, officialRootReal, realpath, stat } = dependencies;
+  const requestedAbsolute = path.resolve(cwd, requestedPath);
+  let fullPath;
+  let fileStat;
+
+  try {
+    fullPath = await realpath(requestedAbsolute);
+    fileStat = await stat(fullPath);
+  } catch {
+    fail(
+      `Arquivo de migration não encontrado ou inacessível: ${safePathLabel(
+        requestedPath,
+      )}.`,
+    );
+  }
+
+  if (!fileStat.isFile()) {
+    fail(
+      `O caminho de migration não é arquivo regular: ${safePathLabel(
+        requestedPath,
+      )}.`,
+    );
+  }
+
+  if (!fullPath.toLowerCase().endsWith(".sql")) {
+    fail(
+      `O arquivo de migration precisa ter extensão .sql: ${safePathLabel(
+        requestedPath,
+      )}.`,
+    );
+  }
+
+  if (!isPathInsideRoot(officialRootReal, fullPath)) {
+    fail("A migration deve permanecer dentro da árvore oficial db/migrations.");
+  }
+
+  const relativePath = path.relative(officialRootReal, fullPath);
+
+  if (path.sep === "/" && relativePath.includes("\\")) {
+    fail(
+      "O nome da migration contém separador incompatível com a identidade canônica.",
+    );
+  }
+
+  return {
+    fullPath,
+    canonicalMigrationId: buildCanonicalMigrationId(relativePath),
+  };
+}
+
+function isPathInsideRoot(rootPath, candidatePath, options = {}) {
+  const pathApi = options.pathApi ?? path;
+  const relative = pathApi.relative(rootPath, candidatePath);
+
+  if (relative === "") return options.allowRoot === true;
+
+  return (
+    !pathApi.isAbsolute(relative) &&
+    relative !== ".." &&
+    !relative.startsWith(`..${pathApi.sep}`)
+  );
+}
+
+function buildCanonicalMigrationId(relativePath) {
+  const posixRelative = String(relativePath ?? "").replace(/\\/g, "/");
+  const normalized = path.posix.normalize(posixRelative);
+
+  if (
+    !posixRelative ||
+    normalized !== posixRelative ||
+    normalized === "." ||
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    path.posix.isAbsolute(normalized)
+  ) {
+    fail("Não foi possível produzir identidade canônica segura da migration.");
+  }
+
+  const canonicalMigrationId = `db/migrations/${normalized}`;
+
+  if (!isCanonicalMigrationId(canonicalMigrationId)) {
+    fail("Não foi possível produzir identidade canônica segura da migration.");
+  }
+
+  return canonicalMigrationId;
+}
+
+function isCanonicalMigrationId(value) {
+  if (typeof value !== "string" || value.includes("\\")) return false;
+  if (!value.startsWith("db/migrations/")) return false;
+
+  const relative = value.slice("db/migrations/".length);
+
+  return (
+    relative.length > 0 &&
+    !relative.includes(":") &&
+    !/[\u0000-\u001f\u007f]/.test(relative) &&
+    relative.toLowerCase().endsWith(".sql") &&
+    path.posix.normalize(relative) === relative &&
+    !path.posix.isAbsolute(relative) &&
+    relative !== ".." &&
+    !relative.startsWith("../")
+  );
+}
+
+function safePathLabel(value) {
+  const normalized = toSingleLine(value).replace(/\\/g, "/");
+  const basename = path.posix
+    .basename(normalized)
+    .replace(/[\u0000-\u001f\u007f]/g, "?");
+
+  return basename || "caminho informado";
 }
 
 function globToRegex(glob) {
@@ -346,25 +511,6 @@ function globToRegex(glob) {
     .replace(/\*/g, ".*");
 
   return new RegExp(`^${safe}$`, "i");
-}
-
-async function exists(filePath) {
-  try {
-    await fsp.access(filePath, fs.constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function isFile(filePath) {
-  const stat = await fsp.stat(filePath);
-  return stat.isFile();
-}
-
-async function isDirectory(filePath) {
-  const stat = await fsp.stat(filePath);
-  return stat.isDirectory();
 }
 
 /* ─────────────────────────────────────────
@@ -575,26 +721,158 @@ async function validateConnectedTarget(client, expectedDatabase) {
 }
 
 async function ensureMigrationTable(client) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS public.${MIGRATION_TABLE} (
-      id BIGSERIAL PRIMARY KEY,
-      arquivo TEXT NOT NULL,
-      sha256 TEXT NOT NULL,
-      aplicada_em TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
-      tempo_ms INTEGER NOT NULL DEFAULT 0,
-      CONSTRAINT ${MIGRATION_TABLE}_arquivo_sha256_key UNIQUE (arquivo, sha256)
-    );
+  const existenceResult = await client.query(`
+    SELECT to_regclass('public.${MIGRATION_TABLE}') IS NOT NULL AS table_exists;
   `);
+  const existenceRows = existenceResult?.rows;
 
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_${MIGRATION_TABLE}_arquivo
-      ON public.${MIGRATION_TABLE} (arquivo);
-  `);
+  if (!Array.isArray(existenceRows) || existenceRows.length !== 1) {
+    failLegacyMigrationLedger("não foi possível determinar a existência da tabela");
+  }
 
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_${MIGRATION_TABLE}_aplicada_em
-      ON public.${MIGRATION_TABLE} (aplicada_em DESC);
+  if (existenceRows[0].table_exists !== true) {
+    await client.query(`
+      CREATE TABLE public.${MIGRATION_TABLE} (
+        id BIGSERIAL PRIMARY KEY,
+        arquivo TEXT NOT NULL,
+        sha256 TEXT NOT NULL,
+        aplicada_em TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+        tempo_ms INTEGER NOT NULL DEFAULT 0,
+        CONSTRAINT ${MIGRATION_TABLE}_arquivo_key UNIQUE (arquivo)
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX idx_${MIGRATION_TABLE}_aplicada_em
+        ON public.${MIGRATION_TABLE} (aplicada_em DESC);
+    `);
+    return;
+  }
+
+  const columnsResult = await client.query(`
+    SELECT column_name, data_type, is_nullable
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = '${MIGRATION_TABLE}'
+    ORDER BY ordinal_position;
   `);
+  validateMigrationLedgerColumns(columnsResult?.rows);
+
+  const uniqueIndexesResult = await client.query(`
+    SELECT
+      index_class.relname AS index_name,
+      ARRAY(
+        SELECT pg_get_indexdef(
+          index_definition.indexrelid,
+          indexed_position.position,
+          true
+        )
+        FROM generate_series(1, index_definition.indnkeyatts)
+          AS indexed_position(position)
+        ORDER BY indexed_position.position
+      ) AS columns,
+      index_definition.indisvalid AS is_valid,
+      index_definition.indisready AS is_ready,
+      index_definition.indpred IS NULL AS is_unconditional,
+      index_definition.indexprs IS NULL AS is_plain
+    FROM pg_index AS index_definition
+    JOIN pg_class AS table_class
+      ON table_class.oid = index_definition.indrelid
+    JOIN pg_namespace AS table_namespace
+      ON table_namespace.oid = table_class.relnamespace
+    JOIN pg_class AS index_class
+      ON index_class.oid = index_definition.indexrelid
+    WHERE table_namespace.nspname = 'public'
+      AND table_class.relname = '${MIGRATION_TABLE}'
+      AND index_definition.indisunique
+    ORDER BY index_class.relname;
+  `);
+  validateMigrationLedgerUniqueness(uniqueIndexesResult?.rows);
+
+  const recordsResult = await client.query(`
+    SELECT arquivo, sha256
+    FROM public.${MIGRATION_TABLE}
+    ORDER BY arquivo, sha256;
+  `);
+  validateMigrationLedgerRecords(recordsResult?.rows);
+}
+
+function validateMigrationLedgerColumns(columns) {
+  if (!Array.isArray(columns)) {
+    failLegacyMigrationLedger("catálogo de colunas retornou estrutura inválida");
+  }
+
+  const columnsByName = new Map(
+    columns.map((column) => [column.column_name, column]),
+  );
+  const requiredColumns = new Map([
+    ["arquivo", "text"],
+    ["sha256", "text"],
+    ["aplicada_em", "timestamp without time zone"],
+    ["tempo_ms", "integer"],
+  ]);
+
+  for (const [columnName, dataType] of requiredColumns) {
+    const column = columnsByName.get(columnName);
+
+    if (column?.data_type !== dataType || column?.is_nullable !== "NO") {
+      failLegacyMigrationLedger(
+        `coluna obrigatória incompatível: ${columnName}`,
+      );
+    }
+  }
+}
+
+function validateMigrationLedgerUniqueness(uniqueIndexes) {
+  if (!Array.isArray(uniqueIndexes)) {
+    failLegacyMigrationLedger("catálogo de índices retornou estrutura inválida");
+  }
+
+  const hasCanonicalUniqueness = uniqueIndexes.some(
+    (index) =>
+      Array.isArray(index.columns) &&
+      index.columns.length === 1 &&
+      index.columns[0] === "arquivo" &&
+      index.is_valid === true &&
+      index.is_ready === true &&
+      index.is_unconditional === true &&
+      index.is_plain === true,
+  );
+
+  if (!hasCanonicalUniqueness) {
+    failLegacyMigrationLedger("unicidade por arquivo canônico ausente");
+  }
+}
+
+function validateMigrationLedgerRecords(records) {
+  if (!Array.isArray(records)) {
+    failLegacyMigrationLedger("consulta de registros retornou estrutura inválida");
+  }
+
+  const seenFiles = new Set();
+
+  for (const record of records) {
+    if (
+      !isCanonicalMigrationId(record?.arquivo) ||
+      typeof record?.sha256 !== "string" ||
+      !/^[a-f0-9]{64}$/.test(record.sha256)
+    ) {
+      failLegacyMigrationLedger("registro em identidade legada ou inválida");
+    }
+
+    if (seenFiles.has(record.arquivo)) {
+      failLegacyMigrationLedger("mais de um registro para a mesma migration");
+    }
+
+    seenFiles.add(record.arquivo);
+  }
+}
+
+function failLegacyMigrationLedger(reason) {
+  fail(
+    `Ledger public.${MIGRATION_TABLE} legado/incompatível: ${reason}. ` +
+      "Faça a adequação por processo operacional separado antes de executar migrations.",
+  );
 }
 
 /* ─────────────────────────────────────────
@@ -607,14 +885,17 @@ async function applyFilesSequentially(
   options = {},
   applyFileFn = applyFile,
 ) {
-  for (const fullPath of files) {
-    await applyFileFn(client, fullPath, { ...options });
+  for (const migration of files) {
+    await applyFileFn(client, migration, { ...options });
   }
 }
 
 function validateMigrationSql(sql, options = {}) {
+  const suppliedFileName = String(options.fileName ?? "migration.sql");
   const fileName = sanitizeText(
-    path.basename(String(options.fileName ?? "migration.sql")),
+    isCanonicalMigrationId(suppliedFileName)
+      ? suppliedFileName
+      : path.basename(suppliedFileName),
     options.sensitiveValues ?? [],
   );
   let statements;
@@ -1009,30 +1290,22 @@ function nonTransactionalViolation(command) {
   };
 }
 
-async function applyFile(client, fullPath, options = {}, dependencies = {}) {
+async function applyFile(client, migration, options = {}, dependencies = {}) {
   const output = options.output ?? console;
   const sensitiveValues = options.sensitiveValues ?? [];
-  const readFile = dependencies.readFile ?? fsp.readFile;
   const now = dependencies.now ?? Date.now;
-  const name = path.basename(fullPath);
-
-  const sql = await readFile(fullPath, "utf8");
-  const trimmed = sql.trim();
-
-  if (!trimmed) {
-    fail(`Arquivo SQL vazio: ${fullPath}`);
-  }
-
-  validateMigrationSql(trimmed, { fileName: name, sensitiveValues });
-
-  const sha256 = crypto.createHash("sha256").update(sql).digest("hex");
+  const inspected = await inspectMigrationFile(migration, {
+    readFile: dependencies.readFile,
+    sensitiveValues,
+  });
+  const { canonicalMigrationId, sha256, trimmedSql } = inspected;
   const shortHash = sha256.slice(0, 12);
 
-  output.log(`\n▶️  Migração: ${name}`);
+  output.log(`\n▶️  Migração: ${canonicalMigrationId}`);
   output.log(`   sha256: ${shortHash}`);
 
   const alreadyApplied = await findAppliedMigration(client, {
-    arquivo: name,
+    arquivo: canonicalMigrationId,
     sha256,
   });
 
@@ -1048,8 +1321,8 @@ async function applyFile(client, fullPath, options = {}, dependencies = {}) {
   const startedAt = now();
 
   try {
-    const elapsedMs = await applyRunnerManagedMigration(client, trimmed, {
-      arquivo: name,
+    const elapsedMs = await applyRunnerManagedMigration(client, trimmedSql, {
+      arquivo: canonicalMigrationId,
       sha256,
       startedAt,
       now,
@@ -1059,10 +1332,51 @@ async function applyFile(client, fullPath, options = {}, dependencies = {}) {
 
     output.log(`✅ OK (${elapsedMs}ms)`);
   } catch (err) {
-    output.error(`❌ Erro em ${name}`);
+    output.error(`❌ Erro em ${canonicalMigrationId}`);
     prettyPgError(err, { output, sensitiveValues });
     throw err;
   }
+}
+
+async function inspectMigrationFile(migration, dependencies = {}) {
+  if (
+    !migration ||
+    typeof migration !== "object" ||
+    typeof migration.fullPath !== "string" ||
+    !isCanonicalMigrationId(migration.canonicalMigrationId)
+  ) {
+    fail("Descritor de migration oficial inválido.");
+  }
+
+  const readFile = dependencies.readFile ?? fsp.readFile;
+  const sensitiveValues = dependencies.sensitiveValues ?? [];
+  let sql;
+
+  try {
+    sql = await readFile(migration.fullPath, "utf8");
+  } catch {
+    fail(
+      `Não foi possível ler a migration oficial ${migration.canonicalMigrationId}.`,
+    );
+  }
+
+  const trimmedSql = sql.trim();
+
+  if (!trimmedSql) {
+    fail(`Arquivo SQL vazio: ${migration.canonicalMigrationId}.`);
+  }
+
+  validateMigrationSql(trimmedSql, {
+    fileName: migration.canonicalMigrationId,
+    sensitiveValues,
+  });
+
+  return {
+    ...migration,
+    sha256: crypto.createHash("sha256").update(sql).digest("hex"),
+    sql,
+    trimmedSql,
+  };
 }
 
 async function applyRunnerManagedMigration(
@@ -1118,14 +1432,30 @@ async function findAppliedMigration(client, { arquivo, sha256 }) {
       SELECT id, arquivo, sha256, aplicada_em, tempo_ms
       FROM public.${MIGRATION_TABLE}
       WHERE arquivo = $1
-        AND sha256 = $2
-      ORDER BY aplicada_em DESC
-      LIMIT 1
     `,
-    [arquivo, sha256],
+    [arquivo],
   );
 
-  return rows?.[0] || null;
+  if (!Array.isArray(rows)) {
+    failLegacyMigrationLedger("lookup retornou estrutura inválida");
+  }
+
+  if (rows.length > 1) {
+    failLegacyMigrationLedger("mais de um registro para a mesma migration");
+  }
+
+  if (rows.length === 0) return null;
+
+  const applied = rows[0];
+
+  if (applied.sha256 !== sha256) {
+    fail(
+      `Migration ${arquivo} já registrada com conteúdo diferente. ` +
+        "Restaure o arquivo original ou crie uma nova migration forward-only.",
+    );
+  }
+
+  return applied;
 }
 
 async function registerAppliedMigration(client, { arquivo, sha256, tempo_ms }) {
@@ -1244,17 +1574,23 @@ function fail(message) {
 }
 
 module.exports = {
+  BACKEND_ROOT,
+  OFFICIAL_MIGRATIONS_ROOT,
   TARGET_DIAGNOSTIC_SQL,
   applyFile,
   applyFilesSequentially,
+  buildCanonicalMigrationId,
   ensureMigrationTable,
   findAppliedMigration,
   getRequiredConnectionString,
+  inspectMigrationFile,
+  isPathInsideRoot,
   main,
   parseAndValidateTarget,
   parseArgs,
   prettyPgError,
   registerAppliedMigration,
+  resolveFiles,
   sanitizeText,
   validateMigrationSql,
   validateConnectedTarget,
