@@ -58,8 +58,9 @@ function assertLedgerLookupSql(sql) {
 function assertLedgerRegistrationSql(sql) {
   assert.match(
     sql,
-    /ON CONFLICT \(arquivo, sha256\)\s+DO UPDATE SET\s+aplicada_em = now\(\),\s+tempo_ms = EXCLUDED\.tempo_ms/s,
+    /INSERT INTO public\.sistema_migracao\s*\(\s*arquivo,\s*sha256,\s*tempo_ms\s*\)\s*VALUES \(\$1, \$2, \$3\)/s,
   );
+  assert.doesNotMatch(sql, /ON CONFLICT|DO UPDATE/i);
 }
 
 function stages(events) {
@@ -149,7 +150,6 @@ function makeApplyHarness(options = {}) {
         client,
         fullPath,
         {
-          force: options.force,
           output: output.output,
           sensitiveValues: options.sensitiveValues ?? [],
         },
@@ -170,7 +170,7 @@ function makeApplyHarness(options = {}) {
   };
 }
 
-test("caminho gerenciado confirma SQL e ledger na mesma transacao", async () => {
+test("caminho gerenciado confirma SQL e INSERT do ledger na mesma transacao", async () => {
   const harness = makeApplyHarness();
 
   await harness.run();
@@ -196,7 +196,7 @@ test("caminho gerenciado confirma SQL e ledger na mesma transacao", async () => 
   assert.match(harness.output.text(), /OK \(27ms\)/);
 });
 
-test("migration ja aplicada sem --force e ignorada", async () => {
+test("migration ja aplicada e ignorada sem reexecucao", async () => {
   const harness = makeApplyHarness({
     fullPath: "/virtual/002-applied.sql",
     alreadyApplied: {
@@ -213,36 +213,8 @@ test("migration ja aplicada sem --force e ignorada", async () => {
   assert.deepEqual(stages(harness.events), ["lookup"]);
   assert.equal(harness.clockCalls, 0);
   assert.doesNotMatch(harness.output.text(), /OK/);
-});
-
-test("--force preserva reexecucao e registro atual no ledger", async () => {
-  const harness = makeApplyHarness({
-    fullPath: "/virtual/003-force.sql",
-    force: true,
-    times: [2000, 2045],
-    alreadyApplied: {
-      id: 11,
-      arquivo: "003-force.sql",
-      sha256: "hash-ja-aplicado",
-      aplicada_em: "2026-08-18T10:00:00.000Z",
-      tempo_ms: 5,
-    },
-  });
-
-  await harness.run();
-
-  assert.deepEqual(stages(harness.events), [
-    "lookup",
-    "begin",
-    "sql",
-    "ledger",
-    "commit",
-  ]);
-  assert.deepEqual(harness.events[3].params, [
-    "003-force.sql",
-    sha256(harness.source),
-    45,
-  ]);
+  assert.match(harness.output.text(), /Ignorada: já aplicada/);
+  assert.doesNotMatch(harness.output.text(), /force/i);
 });
 
 test("erro de SQL faz rollback sem ledger ou commit", async () => {
@@ -263,7 +235,7 @@ test("erro de SQL faz rollback sem ledger ou commit", async () => {
   assert.doesNotMatch(harness.output.text(), /OK/);
 });
 
-test("erro de ledger faz rollback sem commit", async () => {
+test("erro do INSERT no ledger faz rollback sem commit", async () => {
   const ledgerError = new Error("falha controlada no ledger");
   const harness = makeApplyHarness({ failures: { ledger: ledgerError } });
 
@@ -386,10 +358,10 @@ test("multiplos arquivos permanecem estritamente sequenciais", async () => {
   await applyFilesSequentially(
     {},
     ["first.sql", "second.sql"],
-    { force: true },
+    {},
     async (_client, fullPath, options) => {
       events.push(`start:${fullPath}`);
-      assert.equal(options.force, true);
+      assert.deepEqual(options, {});
       await Promise.resolve();
       events.push(`end:${fullPath}`);
     },

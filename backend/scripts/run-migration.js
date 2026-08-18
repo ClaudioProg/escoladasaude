@@ -20,7 +20,6 @@
  *   --no-ssl         Desativa SSL.
  *   --verbose, -v    Logs detalhados.
  *   --dry-run        Mostra o plano sem conectar e sem executar.
- *   --force          Executa mesmo se a migração já estiver registrada.
  *   --expect-host    Hostname PostgreSQL esperado para execução real.
  *   --expect-database Database PostgreSQL esperada para execução real.
  *
@@ -102,7 +101,6 @@ async function main(options = {}) {
     output.log("🔒 SSL:", ssl ? "on (relaxed)" : "off");
     output.log("⏳ statement_timeout:", `${timeout}ms`);
     output.log("🧾 Registro:", `public.${MIGRATION_TABLE}`);
-    output.log("⚙️  Force:", args.force ? "sim" : "não");
 
     let pool;
 
@@ -155,7 +153,6 @@ async function main(options = {}) {
         client,
         files,
         {
-          force: args.force,
           log,
           output,
           sensitiveValues,
@@ -203,7 +200,6 @@ function parseArgs(argv) {
     dryRun: false,
     ssl: false,
     noSsl: false,
-    force: false,
     expectHost: null,
     expectDatabase: null,
   };
@@ -239,7 +235,10 @@ function parseArgs(argv) {
     } else if (arg === "--dry-run") {
       out.dryRun = true;
     } else if (arg === "--force") {
-      out.force = true;
+      fail(
+        "--force não é suportado. Migrations são imutáveis e forward-only; " +
+          "crie uma nova migration.",
+      );
     } else if (arg === "--expect-host") {
       if (out.expectHost !== null) {
         fail("A flag --expect-host não pode ser repetida.");
@@ -1011,7 +1010,6 @@ function nonTransactionalViolation(command) {
 }
 
 async function applyFile(client, fullPath, options = {}, dependencies = {}) {
-  const force = Boolean(options.force);
   const output = options.output ?? console;
   const sensitiveValues = options.sensitiveValues ?? [];
   const readFile = dependencies.readFile ?? fsp.readFile;
@@ -1038,11 +1036,11 @@ async function applyFile(client, fullPath, options = {}, dependencies = {}) {
     sha256,
   });
 
-  if (alreadyApplied && !force) {
+  if (alreadyApplied) {
     output.log(
       `⏭️  Ignorada: já aplicada em ${formatDateTime(
         alreadyApplied.aplicada_em,
-      )}. Use --force para executar novamente.`,
+      )}.`,
     );
     return;
   }
@@ -1139,10 +1137,6 @@ async function registerAppliedMigration(client, { arquivo, sha256, tempo_ms }) {
         tempo_ms
       )
       VALUES ($1, $2, $3)
-      ON CONFLICT (arquivo, sha256)
-      DO UPDATE SET
-        aplicada_em = now(),
-        tempo_ms = EXCLUDED.tempo_ms
     `,
     [arquivo, sha256, tempo_ms],
   );

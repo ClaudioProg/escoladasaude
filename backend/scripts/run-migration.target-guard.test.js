@@ -158,6 +158,90 @@ test("dry-run não exige conexão nem identificação do alvo", async () => {
   assert.equal(poolConstructed, false);
 });
 
+test("--force é rejeitado antes de ambiente, Pool, ensure e migration", async () => {
+  const secret = "sentinela-force-nao-expor";
+  const capture = captureOutput();
+  let environmentRead = false;
+  let poolConstructed = false;
+  let ensureCalled = false;
+  let migrationCalled = false;
+  const env = new Proxy(
+    {},
+    {
+      get() {
+        environmentRead = true;
+        throw new Error("--force tentou ler o ambiente");
+      },
+    },
+  );
+
+  class ForbiddenPool {
+    constructor() {
+      poolConstructed = true;
+      throw new Error("--force tentou construir Pool");
+    }
+  }
+
+  const result = await main({
+    argv: ["--force", secret],
+    env,
+    PoolClass: ForbiddenPool,
+    output: capture.output,
+    setProcessExitCode: false,
+    ensureMigrationTableFn: async () => {
+      ensureCalled = true;
+    },
+    applyFileFn: async () => {
+      migrationCalled = true;
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(
+    result.error.message,
+    /--force não é suportado.*imutáveis e forward-only.*nova migration/,
+  );
+  assert.equal(environmentRead, false);
+  assert.equal(poolConstructed, false);
+  assert.equal(ensureCalled, false);
+  assert.equal(migrationCalled, false);
+  assert.doesNotMatch(capture.text(), new RegExp(secret));
+});
+
+test("parser preserva opções legítimas sem propriedade force", () => {
+  const args = parseArgs([
+    "--file",
+    "001.sql",
+    "--dir",
+    "db/migrations",
+    "--pattern",
+    "2026-*.sql",
+    "--timeout",
+    "45000",
+    "--ssl",
+    "--verbose",
+    "--dry-run",
+    "--expect-host",
+    EXPECTED_HOST,
+    "--expect-database",
+    EXPECTED_DATABASE,
+  ]);
+
+  assert.deepEqual(args, {
+    file: ["001.sql"],
+    dir: "db/migrations",
+    pattern: "2026-*.sql",
+    timeout: "45000",
+    verbose: true,
+    dryRun: true,
+    ssl: true,
+    noSsl: false,
+    expectHost: EXPECTED_HOST,
+    expectDatabase: EXPECTED_DATABASE,
+  });
+  assert.equal(Object.hasOwn(args, "force"), false);
+});
+
 test("execução real exige exclusivamente DATABASE_URL", async (t) => {
   for (const [name, env] of [
     ["sem variável", {}],
