@@ -2,6 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const {
@@ -27,6 +28,8 @@ const SENTINEL_QUERY = "sentinel_query_73";
 const VALID_DATABASE_URL =
   `postgresql://${SENTINEL_USER}:${SENTINEL_PASSWORD}` +
   `@${EXPECTED_HOST}:5432/saude%5Ftest?sslmode=require&token=${SENTINEL_QUERY}`;
+const STATEMENT_TIMEOUT_SQL =
+  "SELECT set_config('statement_timeout', $1, false);";
 
 function executionArgv(extra = []) {
   return [
@@ -112,6 +115,17 @@ function mainOptions(overrides = {}) {
     ...overrides,
   };
 }
+
+test("runner não contém SET parametrizado inválido", () => {
+  const runnerSource = fs.readFileSync(
+    require.resolve("./run-migration"),
+    "utf8",
+  );
+  const invalidQuery = ["SET statement_timeout", "= $1"].join(" ");
+
+  assert.equal(runnerSource.includes(invalidQuery), false);
+  assert.equal(runnerSource.includes(STATEMENT_TIMEOUT_SQL), true);
+});
 
 test("dry-run não exige conexão nem identificação do alvo", async () => {
   let poolConstructed = false;
@@ -516,17 +530,18 @@ test("diagnóstico exige exatamente uma linha", async () => {
   }
 });
 
-test("diagnóstico aprovado ocorre antes de SET e ensureMigrationTable", async () => {
+test("diagnóstico aprovado configura timeout antes de ensureMigrationTable", async () => {
   const events = [];
   const client = {
-    async query(sql) {
+    async query(sql, params) {
       if (sql === TARGET_DIAGNOSTIC_SQL) {
         events.push("diagnostic");
         return { rows: diagnosticRows(EXPECTED_DATABASE, "custom_schema") };
       }
 
-      assert.match(sql, /^SET statement_timeout/);
-      events.push("set");
+      assert.equal(sql, STATEMENT_TIMEOUT_SQL);
+      assert.deepEqual(params, ["60000ms"]);
+      events.push("set_config");
       return { rows: [] };
     },
     release() {
@@ -548,9 +563,76 @@ test("diagnóstico aprovado ocorre antes de SET e ensureMigrationTable", async (
     "pool",
     "connect",
     "diagnostic",
-    "set",
+    "set_config",
     "ensure",
     "apply",
+    "release",
+    "end",
+  ]);
+});
+
+test("--timeout customizado é enviado ao set_config em milissegundos", async () => {
+  const timeoutCalls = [];
+  const client = {
+    async query(sql, params) {
+      if (sql === TARGET_DIAGNOSTIC_SQL) {
+        return { rows: diagnosticRows() };
+      }
+
+      timeoutCalls.push({ sql, params });
+      return { rows: [] };
+    },
+    release() {},
+  };
+
+  const result = await main(
+    mainOptions({
+      argv: executionArgv(["--timeout", "45000"]),
+      PoolClass: makePoolClass({ client }),
+    }),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(timeoutCalls, [
+    { sql: STATEMENT_TIMEOUT_SQL, params: ["45000ms"] },
+  ]);
+});
+
+test("falha ao configurar timeout impede ensure, migration e mantém cleanup", async () => {
+  const events = [];
+  const timeoutError = new Error("falha controlada no set_config");
+  const client = {
+    async query(sql, params) {
+      if (sql === TARGET_DIAGNOSTIC_SQL) {
+        events.push("diagnostic");
+        return { rows: diagnosticRows() };
+      }
+
+      assert.equal(sql, STATEMENT_TIMEOUT_SQL);
+      assert.deepEqual(params, ["60000ms"]);
+      events.push("set_config");
+      throw timeoutError;
+    },
+    release() {
+      events.push("release");
+    },
+  };
+
+  const result = await main(
+    mainOptions({
+      PoolClass: makePoolClass({ client, events }),
+      ensureMigrationTableFn: async () => events.push("ensure"),
+      applyFileFn: async () => events.push("apply"),
+    }),
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error, timeoutError);
+  assert.deepEqual(events, [
+    "pool",
+    "connect",
+    "diagnostic",
+    "set_config",
     "release",
     "end",
   ]);

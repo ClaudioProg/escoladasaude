@@ -144,7 +144,10 @@ async function main(options = {}) {
         )}`,
       );
 
-      await client.query(`SET statement_timeout = $1;`, [timeout]);
+      await client.query(
+        "SELECT set_config('statement_timeout', $1, false);",
+        [`${timeout}ms`],
+      );
 
       await ensureMigrationTableFn(client);
 
