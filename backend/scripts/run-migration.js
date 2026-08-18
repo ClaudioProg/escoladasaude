@@ -151,14 +151,17 @@ async function main(options = {}) {
 
       await ensureMigrationTableFn(client);
 
-      for (const fullPath of files) {
-        await applyFileFn(client, fullPath, {
+      await applyFilesSequentially(
+        client,
+        files,
+        {
           force: args.force,
           log,
           output,
           sensitiveValues,
-        });
-      }
+        },
+        applyFileFn,
+      );
 
       output.log("\n✅ Todas as migrações concluídas sem erros.");
 
@@ -599,13 +602,26 @@ async function ensureMigrationTable(client) {
    Aplicação
 ───────────────────────────────────────── */
 
-async function applyFile(client, fullPath, options = {}) {
+async function applyFilesSequentially(
+  client,
+  files,
+  options = {},
+  applyFileFn = applyFile,
+) {
+  for (const fullPath of files) {
+    await applyFileFn(client, fullPath, { ...options });
+  }
+}
+
+async function applyFile(client, fullPath, options = {}, dependencies = {}) {
   const force = Boolean(options.force);
   const output = options.output ?? console;
   const sensitiveValues = options.sensitiveValues ?? [];
+  const readFile = dependencies.readFile ?? fsp.readFile;
+  const now = dependencies.now ?? Date.now;
   const name = path.basename(fullPath);
 
-  const sql = await fsp.readFile(fullPath, "utf8");
+  const sql = await readFile(fullPath, "utf8");
   const trimmed = sql.trim();
 
   if (!trimmed) {
@@ -635,12 +651,12 @@ async function applyFile(client, fullPath, options = {}) {
   const hasTransaction = sqlHasOwnTransaction(trimmed);
   const sqlToRun = hasTransaction ? trimmed : `BEGIN;\n${trimmed}\nCOMMIT;`;
 
-  const startedAt = Date.now();
+  const startedAt = now();
 
   try {
     await client.query(sqlToRun);
 
-    const elapsedMs = Date.now() - startedAt;
+    const elapsedMs = now() - startedAt;
 
     await registerAppliedMigration(client, {
       arquivo: name,
@@ -800,12 +816,18 @@ function fail(message) {
 
 module.exports = {
   TARGET_DIAGNOSTIC_SQL,
+  applyFile,
+  applyFilesSequentially,
+  ensureMigrationTable,
+  findAppliedMigration,
   getRequiredConnectionString,
   main,
   parseAndValidateTarget,
   parseArgs,
   prettyPgError,
+  registerAppliedMigration,
   sanitizeText,
+  sqlHasOwnTransaction,
   validateConnectedTarget,
   validateExpectedTarget,
 };
