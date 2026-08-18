@@ -33,6 +33,23 @@ function assertRejected(sql, command, fileName = "rejected.sql") {
   );
 }
 
+function assertLexicallyRejected(
+  sql,
+  category,
+  fileName = "lexically-invalid.sql",
+) {
+  assert.throws(
+    () => validateMigrationSql(sql, { fileName }),
+    (error) => {
+      assert.equal(error.message.includes(fileName), true);
+      assert.match(error.message, /SQL lexicalmente inválido/);
+      assert.equal(error.message.includes(category), true);
+      assert.equal(error.message.includes(sql), false);
+      return true;
+    },
+  );
+}
+
 test("aceita SQL simples compatível com transacao", () => {
   assertAccepted(`
     CREATE TABLE public.contract_test (id integer PRIMARY KEY);
@@ -77,6 +94,17 @@ test("rejeita variantes adicionais de controle transacional", async (t) => {
   }
 });
 
+test("rejeita variantes WORK, TRANSACTION e AND CHAIN", async (t) => {
+  for (const [sql, command] of [
+    ["BEGIN WORK;", "BEGIN"],
+    ["COMMIT TRANSACTION AND CHAIN;", "COMMIT"],
+    ["END WORK AND NO CHAIN;", "END WORK"],
+    ["ROLLBACK TRANSACTION AND CHAIN;", "ROLLBACK"],
+  ]) {
+    await t.test(sql, () => assertRejected(sql, command));
+  }
+});
+
 test("aceita BEGIN e END dentro de DO com dollar quote", () => {
   assertAccepted(`
     DO $$
@@ -100,6 +128,31 @@ test("aceita BEGIN e END em funcao PL/pgSQL com dollar tag", () => {
   `);
 });
 
+test("retoma analise depois de dollar quote fechado", () => {
+  assertRejected(
+    `
+      DO $$
+      BEGIN
+        PERFORM 1;
+      END;
+      $$;
+      COMMIT;
+    `,
+    "COMMIT",
+  );
+});
+
+test("aceita DO dollar-quoted seguido por SELECT normal", () => {
+  assertAccepted(`
+    DO $$
+    BEGIN
+      PERFORM 1;
+    END;
+    $$;
+    SELECT 1;
+  `);
+});
+
 test("ignora transaction control em comentarios lineares e aninhados", () => {
   assertAccepted(`
     -- BEGIN; COMMIT;
@@ -111,12 +164,74 @@ test("ignora transaction control em comentarios lineares e aninhados", () => {
   `);
 });
 
+test("aceita comentario de bloco aninhado corretamente fechado", () => {
+  assertAccepted(`
+    SELECT 1;
+    /* externo
+       /* interno */
+       externo
+    */
+    SELECT 2;
+  `);
+});
+
 test("ignora transaction control em strings com aspas simples", () => {
   assertAccepted("SELECT 'BEGIN; ''COMMIT''; ROLLBACK; ABORT';");
 });
 
+test("rejeita string SQL nao terminada", () => {
+  assertLexicallyRejected(
+    "SELECT 'segredo-sem-fechamento;",
+    "string SQL não terminada",
+  );
+});
+
+test("rejeita identificador quoted nao terminado", () => {
+  assertLexicallyRejected(
+    'CREATE TABLE "identificador_sem_fechamento (id integer);',
+    "identificador quoted não terminado",
+  );
+});
+
+test("rejeita comentario de bloco nao terminado", () => {
+  assertLexicallyRejected(
+    "SELECT 1; /* comentario sem fechamento",
+    "comentário de bloco não terminado",
+  );
+});
+
+test("rejeita dollar quote simples nao terminado", () => {
+  assertLexicallyRejected(
+    "DO $$ BEGIN PERFORM 1; END;",
+    "dollar quote não terminado",
+  );
+});
+
+test("rejeita dollar quote com tag nao terminado", () => {
+  assertLexicallyRejected(
+    "DO $migration_body$ BEGIN PERFORM 1; END;",
+    "dollar quote não terminado",
+  );
+});
+
 test("identificadores quoted não geram falso positivo", () => {
   assertAccepted('CREATE TABLE "BEGIN" ("COMMIT" text, "CALL" text);');
+});
+
+test("aceita escape de aspas em identificador quoted", () => {
+  assertAccepted('CREATE TABLE "BEGIN""COMMIT" (id integer);');
+});
+
+test("BOM no inicio nao interfere", () => {
+  assertAccepted("\uFEFFSELECT 1;");
+});
+
+test("CRLF nao interfere", () => {
+  assertAccepted("SELECT 1;\r\n-- COMMIT dentro do comentario\r\nSELECT 2;\r\n");
+});
+
+test("statements vazios nao interferem", () => {
+  assertAccepted(";;; SELECT 1;;;");
 });
 
 test("rejeita CREATE INDEX CONCURRENTLY", () => {
@@ -145,6 +260,24 @@ test("rejeita REINDEX CONCURRENTLY na posicao sintatica valida", () => {
     "REINDEX (VERBOSE) INDEX CONCURRENTLY public.idx_contract;",
     "REINDEX ... CONCURRENTLY",
   );
+});
+
+test("rejeita REINDEX CONCURRENTLY depois de bloco de opcoes", () => {
+  assertRejected(
+    "REINDEX (TABLESPACE index) TABLE CONCURRENTLY public.exemplo;",
+    "REINDEX ... CONCURRENTLY",
+  );
+});
+
+test("rejeita REINDEX SCHEMA CONCURRENTLY", () => {
+  assertRejected(
+    "REINDEX SCHEMA CONCURRENTLY public;",
+    "REINDEX ... CONCURRENTLY",
+  );
+});
+
+test("aceita REINDEX transacional sem CONCURRENTLY", () => {
+  assertAccepted("REINDEX (TABLESPACE index) TABLE public.exemplo;");
 });
 
 test("rejeita VACUUM", () => {

@@ -618,9 +618,21 @@ function validateMigrationSql(sql, options = {}) {
     path.basename(String(options.fileName ?? "migration.sql")),
     options.sensitiveValues ?? [],
   );
+  let statements;
 
-  for (const words of collectTopLevelStatementWords(sql)) {
-    const violation = classifyProhibitedStatement(words);
+  try {
+    statements = collectTopLevelStatementTokens(sql);
+  } catch (error) {
+    if (!(error instanceof MigrationSqlLexicalError)) throw error;
+
+    fail(
+      `Migration ${fileName} rejeitada: SQL lexicalmente inválido ` +
+        `(${error.category}).`,
+    );
+  }
+
+  for (const tokens of statements) {
+    const violation = classifyProhibitedStatement(tokens);
 
     if (!violation) continue;
 
@@ -631,16 +643,24 @@ function validateMigrationSql(sql, options = {}) {
   }
 }
 
-function collectTopLevelStatementWords(sql) {
+class MigrationSqlLexicalError extends Error {
+  constructor(category) {
+    super(category);
+    this.name = "MigrationSqlLexicalError";
+    this.category = category;
+  }
+}
+
+function collectTopLevelStatementTokens(sql) {
   const source = String(sql ?? "");
   const statements = [];
-  let words = [];
+  let tokens = [];
   let index = 0;
 
   const finishStatement = () => {
-    if (words.length > 0) {
-      statements.push(words);
-      words = [];
+    if (tokens.length > 0) {
+      statements.push(tokens);
+      tokens = [];
     }
   };
 
@@ -654,27 +674,49 @@ function collectTopLevelStatementWords(sql) {
     }
 
     if (current === "/" && next === "*") {
-      index = skipBlockComment(source, index + 2);
+      const commentEnd = skipBlockComment(source, index + 2);
+
+      if (commentEnd === -1) {
+        throw new MigrationSqlLexicalError(
+          "comentário de bloco não terminado",
+        );
+      }
+
+      index = commentEnd;
       continue;
     }
 
     if (current === "'") {
-      index = skipQuotedValue(
+      const quotedValueEnd = skipQuotedValue(
         source,
         index + 1,
         "'",
         hasEscapeStringPrefix(source, index),
       );
+
+      if (quotedValueEnd === -1) {
+        throw new MigrationSqlLexicalError("string SQL não terminada");
+      }
+
+      index = quotedValueEnd;
       continue;
     }
 
     if (current === '"') {
-      index = skipQuotedValue(
+      const quotedValueEnd = skipQuotedValue(
         source,
         index + 1,
         '"',
         hasUnicodeQuotedPrefix(source, index),
       );
+
+      if (quotedValueEnd === -1) {
+        throw new MigrationSqlLexicalError(
+          "identificador quoted não terminado",
+        );
+      }
+
+      index = quotedValueEnd;
       continue;
     }
 
@@ -686,16 +728,24 @@ function collectTopLevelStatementWords(sql) {
           delimiter,
           index + delimiter.length,
         );
-        index =
-          closingIndex === -1
-            ? source.length
-            : closingIndex + delimiter.length;
+
+        if (closingIndex === -1) {
+          throw new MigrationSqlLexicalError("dollar quote não terminado");
+        }
+
+        index = closingIndex + delimiter.length;
         continue;
       }
     }
 
     if (current === ";") {
       finishStatement();
+      index += 1;
+      continue;
+    }
+
+    if (current === "(" || current === ")") {
+      tokens.push(current);
       index += 1;
       continue;
     }
@@ -707,7 +757,7 @@ function collectTopLevelStatementWords(sql) {
         end += 1;
       }
 
-      words.push(source.slice(index, end).toUpperCase());
+      tokens.push(source.slice(index, end).toUpperCase());
       index = end;
       continue;
     }
@@ -745,7 +795,7 @@ function skipBlockComment(sql, start) {
     }
   }
 
-  return index;
+  return depth === 0 ? index : -1;
 }
 
 function skipQuotedValue(sql, start, quote, supportsBackslashEscapes) {
@@ -769,7 +819,7 @@ function skipQuotedValue(sql, start, quote, supportsBackslashEscapes) {
     index += 1;
   }
 
-  return index;
+  return -1;
 }
 
 function hasEscapeStringPrefix(sql, quoteIndex) {
@@ -834,7 +884,10 @@ function isDollarTagPart(value) {
   return typeof value === "string" && /^[A-Za-z0-9_]$/.test(value);
 }
 
-function classifyProhibitedStatement(words) {
+function classifyProhibitedStatement(tokens) {
+  const words = tokens.filter(
+    (token) => token !== "(" && token !== ")",
+  );
   const first = words[0];
   const second = words[1];
 
@@ -894,18 +947,41 @@ function classifyProhibitedStatement(words) {
   }
 
   if (first === "REINDEX") {
-    const targetIndex = words.findIndex(
-      (word, index) =>
-        index > 0 &&
-        ["INDEX", "TABLE", "SCHEMA", "DATABASE", "SYSTEM"].includes(word),
-    );
+    const targetIndex = findReindexTargetIndex(tokens);
 
-    if (targetIndex !== -1 && words[targetIndex + 1] === "CONCURRENTLY") {
+    if (targetIndex !== -1 && tokens[targetIndex + 1] === "CONCURRENTLY") {
       return nonTransactionalViolation("REINDEX ... CONCURRENTLY");
     }
   }
 
   return null;
+}
+
+function findReindexTargetIndex(tokens) {
+  let index = 1;
+
+  if (tokens[index] === "(") {
+    let depth = 1;
+    index += 1;
+
+    while (index < tokens.length && depth > 0) {
+      if (tokens[index] === "(") {
+        depth += 1;
+      } else if (tokens[index] === ")") {
+        depth -= 1;
+      }
+
+      index += 1;
+    }
+
+    if (depth !== 0) return -1;
+  }
+
+  return ["INDEX", "TABLE", "SCHEMA", "DATABASE", "SYSTEM"].includes(
+    tokens[index],
+  )
+    ? index
+    : -1;
 }
 
 function transactionCommandLabel(words) {

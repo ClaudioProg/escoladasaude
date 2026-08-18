@@ -363,6 +363,23 @@ test("SQL com transacao propria e rejeitado antes de qualquer query", async () =
   assert.doesNotMatch(harness.output.text(), /OK/);
 });
 
+test("SQL lexicalmente invalido e rejeitado antes de qualquer query", async () => {
+  const source = "SELECT 'segredo-sem-fechamento;";
+  const harness = makeApplyHarness({
+    source,
+    fullPath: "/virtual/006-lexically-invalid.sql",
+  });
+
+  await assert.rejects(
+    harness.run(),
+    /SQL lexicalmente inválido.*string SQL não terminada/,
+  );
+
+  assert.deepEqual(harness.events, []);
+  assert.equal(harness.clockCalls, 0);
+  assert.doesNotMatch(harness.output.text(), /segredo-sem-fechamento|OK/);
+});
+
 test("multiplos arquivos permanecem estritamente sequenciais", async () => {
   const events = [];
 
