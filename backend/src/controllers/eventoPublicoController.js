@@ -864,7 +864,17 @@ e.criado_em,
       END AS status,
 
       COALESCE(ai.ja_inscrito, FALSE) AS ja_inscrito,
-      COALESCE(atr.ja_organizador, FALSE) AS ja_organizador
+      COALESCE(atr.ja_organizador, FALSE) AS ja_organizador,
+      EXISTS (
+        SELECT 1
+        FROM pre_testes_evento pt
+        JOIN pre_teste_versoes pv
+          ON pv.id = pt.versao_atual_id
+         AND pv.pre_teste_id = pt.id
+         AND pv.status = 'publicado'
+        WHERE pt.evento_id = e.id
+          AND pt.ativo = TRUE
+      ) AS tem_pre_teste
 
     FROM eventos e
     CROSS JOIN agora a
@@ -1399,7 +1409,17 @@ publicado,
         programacao_pdf_nome_original,
         programacao_pdf_updated_at,
         CASE WHEN folder_blob IS NOT NULL THEN TRUE ELSE FALSE END AS tem_folder,
-        CASE WHEN programacao_pdf_blob IS NOT NULL THEN TRUE ELSE FALSE END AS tem_programacao
+        CASE WHEN programacao_pdf_blob IS NOT NULL THEN TRUE ELSE FALSE END AS tem_programacao,
+        EXISTS (
+          SELECT 1
+          FROM pre_testes_evento pt
+          JOIN pre_teste_versoes pv
+            ON pv.id = pt.versao_atual_id
+           AND pv.pre_teste_id = pt.id
+           AND pv.status = 'publicado'
+          WHERE pt.evento_id = eventos.id
+            AND pt.ativo = TRUE
+        ) AS tem_pre_teste
       FROM eventos
       WHERE id = $1
       `,

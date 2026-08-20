@@ -1,37 +1,30 @@
-// ✅ frontend/src/hooks/usePlatformVersionCheck.js — v2.1
-// Atualizado em: 16/06/2026
-//
-// Detecta nova versão da Plataforma Escola da Saúde consultando /version.json sem cache.
-// Resolve especialmente navegadores móveis que seguram build antigo, como Samsung Browser.
+// Detecta incompatibilidade entre o build JavaScript carregado e /version.json.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  buildUpdateUrl,
+  getBuildSignature,
+  getSafeReturnPath,
+  getUrlWithoutUpdateMarker,
+  shouldAttemptAutomaticUpdate,
+} from "../utils/platformVersion";
 
 const STORAGE_KEY = "escola_build_version";
+const ATTEMPT_KEY = "escola_version_update_attempt";
+const CHUNK_ATTEMPT_KEY = "escola_chunk_update_attempt";
 const CHECK_INTERVAL_MS = 2 * 60 * 1000;
+const IS_DEVELOPMENT = Boolean(import.meta.env.DEV);
+const LOADED_BUILD_SIGNATURE = String(
+  import.meta.env.VITE_BUILD_SIGNATURE || "",
+).trim();
 
-function normalizarTexto(valor) {
-  return String(valor || "").trim();
-}
+function limparMarcadorAtualizacao() {
+  const urlAtual = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const urlLimpa = getUrlWithoutUpdateMarker(window.location);
 
-function getBuildSignature(payload) {
-  if (!payload || typeof payload !== "object") {
-    return null;
+  if (urlLimpa !== urlAtual) {
+    window.history.replaceState(window.history.state, "", urlLimpa);
   }
-
-  const app = normalizarTexto(payload.app);
-  const version = normalizarTexto(payload.version);
-  const buildId = normalizarTexto(payload.buildId);
-  const buildAt = normalizarTexto(payload.buildAt);
-
-  if (!app && !version && !buildId && !buildAt) {
-    return null;
-  }
-
-  return [
-    app || "app-desconhecido",
-    version || "sem-versao",
-    buildId || buildAt || "sem-build",
-  ].join("::");
 }
 
 async function buscarVersaoAtual() {
@@ -54,61 +47,58 @@ async function buscarVersaoAtual() {
   return response.json();
 }
 
-async function atualizarServiceWorkers() {
-  if (!("serviceWorker" in navigator)) {
-    return;
-  }
-
-  const registrations = await navigator.serviceWorker.getRegistrations();
-
-  await Promise.all(
-    registrations.map(async (registration) => {
-      try {
-        await registration.update();
-
-        if (registration.waiting) {
-          registration.waiting.postMessage({ type: "SKIP_WAITING" });
-        }
-      } catch (error) {
-        console.warn("[versao-plataforma] falha ao atualizar service worker", {
-          message: error?.message,
-        });
-      }
-    }),
+function registrarTentativa(assinatura) {
+  sessionStorage.setItem(
+    ATTEMPT_KEY,
+    JSON.stringify({ signature: assinatura, attemptedAt: Date.now() }),
   );
 }
 
-async function limparCachesControlados() {
-  if (!("caches" in window)) {
-    return;
-  }
-
-  const cacheNames = await caches.keys();
-
-  await Promise.all(
-    cacheNames
-      .filter((name) => {
-        const normalized = String(name || "").toLowerCase();
-
-        return (
-          normalized.includes("escola") ||
-          normalized.includes("vite") ||
-          normalized.includes("workbox") ||
-          normalized.includes("precache")
-        );
-      })
-      .map((name) => caches.delete(name)),
+function redirecionarParaAtualizacao(assinatura) {
+  const retorno = getSafeReturnPath(window.location);
+  window.location.replace(
+    buildUpdateUrl({ returnPath: retorno, publishedSignature: assinatura }),
   );
 }
 
 export function usePlatformVersionCheck() {
   const [novaVersaoDisponivel, setNovaVersaoDisponivel] = useState(false);
-  const [versaoAtual, setVersaoAtual] = useState(null);
+  const [atualizandoAutomaticamente, setAtualizandoAutomaticamente] =
+    useState(false);
+  const [versaoAtual] = useState(() => ({
+    assinatura: LOADED_BUILD_SIGNATURE,
+  }));
   const [versaoNova, setVersaoNova] = useState(null);
   const verificandoRef = useRef(false);
 
+  const iniciarAtualizacao = useCallback(
+    (assinatura, { forcar = false } = {}) => {
+      if (!assinatura) {
+        return false;
+      }
+
+      const deveAtualizar =
+        forcar ||
+        shouldAttemptAutomaticUpdate({
+          loadedSignature: LOADED_BUILD_SIGNATURE,
+          publishedSignature: assinatura,
+          lastAttempt: sessionStorage.getItem(ATTEMPT_KEY),
+        });
+
+      if (!deveAtualizar) {
+        return false;
+      }
+
+      registrarTentativa(assinatura);
+      setAtualizandoAutomaticamente(true);
+      window.setTimeout(() => redirecionarParaAtualizacao(assinatura), 250);
+      return true;
+    },
+    [],
+  );
+
   const verificarVersao = useCallback(async () => {
-    if (verificandoRef.current) {
+    if (IS_DEVELOPMENT || verificandoRef.current) {
       return;
     }
 
@@ -116,83 +106,85 @@ export function usePlatformVersionCheck() {
 
     try {
       const payload = await buscarVersaoAtual();
-      const assinaturaNova = getBuildSignature(payload);
+      const assinaturaPublicada = getBuildSignature(payload);
 
-      if (!assinaturaNova) {
+      if (!assinaturaPublicada || !LOADED_BUILD_SIGNATURE) {
         return;
       }
 
-      const assinaturaSalva = localStorage.getItem(STORAGE_KEY);
-
-      if (!assinaturaSalva) {
-        localStorage.setItem(STORAGE_KEY, assinaturaNova);
-        setVersaoAtual(payload);
+      if (assinaturaPublicada === LOADED_BUILD_SIGNATURE) {
+        localStorage.setItem(STORAGE_KEY, assinaturaPublicada);
+        sessionStorage.removeItem(ATTEMPT_KEY);
+        sessionStorage.removeItem(CHUNK_ATTEMPT_KEY);
+        setNovaVersaoDisponivel(false);
+        setAtualizandoAutomaticamente(false);
+        setVersaoNova(null);
+        limparMarcadorAtualizacao();
         return;
       }
 
-      setVersaoAtual((atual) => atual || payload);
-
-      if (assinaturaSalva !== assinaturaNova) {
-        setVersaoNova(payload);
-        setNovaVersaoDisponivel(true);
-      }
+      setVersaoNova(payload);
+      setNovaVersaoDisponivel(true);
+      iniciarAtualizacao(assinaturaPublicada);
     } catch (error) {
       console.warn(
         "[versao-plataforma] não foi possível verificar atualização",
-        {
-          message: error?.message,
-        },
+        { message: error?.message },
       );
     } finally {
       verificandoRef.current = false;
     }
-  }, []);
+  }, [iniciarAtualizacao]);
 
   const atualizarPlataforma = useCallback(async () => {
-    try {
-      const payload = await buscarVersaoAtual();
-      const assinaturaNova = getBuildSignature(payload);
-
-      if (assinaturaNova) {
-        localStorage.setItem(STORAGE_KEY, assinaturaNova);
-      }
-
-      await atualizarServiceWorkers();
-      await limparCachesControlados();
-    } catch (error) {
-      console.warn("[versao-plataforma] limpeza controlada incompleta", {
-        message: error?.message,
-      });
-    } finally {
-      window.location.reload();
+    const assinatura = getBuildSignature(versaoNova);
+    if (assinatura) {
+      iniciarAtualizacao(assinatura, { forcar: true });
+      return;
     }
-  }, []);
+
+    window.location.replace(
+      `/atualizar.html?origem=manual&retorno=${encodeURIComponent(
+        getSafeReturnPath(window.location),
+      )}`,
+    );
+  }, [iniciarAtualizacao, versaoNova]);
 
   useEffect(() => {
+    if (IS_DEVELOPMENT) {
+      limparMarcadorAtualizacao();
+      return undefined;
+    }
+
     verificarVersao();
 
     const intervalId = window.setInterval(verificarVersao, CHECK_INTERVAL_MS);
-
     const onFocus = () => verificarVersao();
-
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         verificarVersao();
       }
     };
+    const onApiRouteNotFound = () => verificarVersao();
 
     window.addEventListener("focus", onFocus);
+    window.addEventListener("escola:api-route-not-found", onApiRouteNotFound);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(
+        "escola:api-route-not-found",
+        onApiRouteNotFound,
+      );
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [verificarVersao]);
 
   return {
     novaVersaoDisponivel,
+    atualizandoAutomaticamente,
     versaoAtual,
     versaoNova,
     verificarVersao,

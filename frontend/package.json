@@ -8,9 +8,10 @@
   "scripts": {
     "dev": "vite",
     "dev:https": "vite --https",
-    "build": "node scripts/gerar-versao-build.mjs && vite build",
+    "build": "node scripts/gerar-versao-build.mjs && vite build && node scripts/verificar-versao-build.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint .",
+    "test:version": "node --test src/utils/platformVersion.test.js scripts/build-version.test.mjs",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

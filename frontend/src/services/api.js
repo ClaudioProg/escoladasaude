@@ -712,10 +712,6 @@ async function handle(
 
   syncPerfilHeader(response);
 
-  if (status === 404 && on404 === "silent") {
-    return null;
-  }
-
   let text = "";
   let data = null;
 
@@ -729,6 +725,24 @@ async function handle(
     data = text ? JSON.parse(text) : null;
   } catch {
     data = null;
+  }
+
+  if (
+    status === 404 &&
+    ["ROTA_NAO_ENCONTRADA", "API_ROTA_NAO_ENCONTRADA"].includes(
+      data?.code,
+    ) &&
+    typeof window !== "undefined"
+  ) {
+    window.dispatchEvent(
+      new CustomEvent("escola:api-route-not-found", {
+        detail: { url, code: data.code },
+      }),
+    );
+  }
+
+  if (status === 404 && on404 === "silent") {
+    return null;
   }
 
   if (status === 401) {

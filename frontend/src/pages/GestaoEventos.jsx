@@ -48,6 +48,7 @@ import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 import ModalTurma from "../components/eventos/ModalTurma";
 import ModalQuestionarioEvento from "../components/eventos/ModalQuestionarioEvento";
+import EditorPreTesteEvento from "../components/eventos/EditorPreTesteEvento";
 
 import EventoService, {
   EVENTO_RESTRITO_MODO,
@@ -78,6 +79,14 @@ const TIPOS_EVENTO = [
   "Simpósio",
   "Outros",
 ];
+
+const ETAPAS_EVENTO = Object.freeze([
+  "Informações básicas",
+  "Inscrição e público",
+  "Conteúdo e materiais",
+  "Avaliações",
+  "Revisão e publicação",
+]);
 
 const MAX_FOLDER_MB = 2;
 const MAX_FOLDER_BYTES = MAX_FOLDER_MB * 1024 * 1024;
@@ -525,7 +534,11 @@ function ActionButton({
 }
 
 // SectionCard agora usa paddings menores (p-3 sm:p-4) e arredondamentos menores
-function SectionCard({ id, icon: Icon, title, subtitle, children }) {
+function SectionCard({ id, icon: Icon, title, subtitle, children, show = true }) {
+  if (!show) {
+    return null;
+  }
+
   return (
     <section
       id={id}
@@ -809,6 +822,66 @@ export default function GestaoEventos() {
   const folderInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const prevEventoKeyRef = useRef(null);
+  const proximaEtapaAposSalvarRef = useRef(null);
+
+  const etapaParam = Number(searchParams.get("etapa"));
+  const [etapaAtual, setEtapaAtual] = useState(
+    Number.isInteger(etapaParam) && etapaParam >= 1 && etapaParam <= 5
+      ? etapaParam
+      : 1,
+  );
+  const [preTesteResumo, setPreTesteResumo] = useState(null);
+  const [carregandoPreTesteResumo, setCarregandoPreTesteResumo] =
+    useState(false);
+  const [preTesteResumoErro, setPreTesteResumoErro] = useState("");
+  const handlePreTesteChange = useCallback((configuracao) => {
+    setPreTesteResumo(configuracao);
+    setPreTesteResumoErro("");
+  }, []);
+
+  useEffect(() => {
+    const eventoId = toPositiveIntOrNull(eventoIdParam);
+    if (!eventoId) {
+      setPreTesteResumo(null);
+      setPreTesteResumoErro("");
+      setCarregandoPreTesteResumo(false);
+      return undefined;
+    }
+
+    let ativo = true;
+    setCarregandoPreTesteResumo(true);
+    setPreTesteResumoErro("");
+
+    EventoService.preTeste.admin
+      .carregar(eventoId)
+      .then((configuracao) => {
+        if (ativo) {
+          setPreTesteResumo({
+            ...configuracao,
+            selecionado: Boolean(
+              configuracao?.ativo || configuracao?.rascunho,
+            ),
+          });
+        }
+      })
+      .catch(() => {
+        if (ativo) {
+          setPreTesteResumo(null);
+          setPreTesteResumoErro(
+            "Não foi possível confirmar a configuração do pré-teste.",
+          );
+        }
+      })
+      .finally(() => {
+        if (ativo) {
+          setCarregandoPreTesteResumo(false);
+        }
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, [eventoIdParam]);
 
   const recarregarEvento = useCallback(async () => {
     if (!eventoIdParam) {
@@ -853,7 +926,7 @@ export default function GestaoEventos() {
   }, [recarregarEvento]);
 
   const handleSalvarEvento = useCallback(
-    async (payload) => {
+    async (payload, { publicar = false } = {}) => {
       if (salvando) {
         return;
       }
@@ -861,7 +934,10 @@ export default function GestaoEventos() {
       try {
         setSalvando(true);
         const id = toPositiveIntOrNull(payload?.id || eventoIdParam);
+        const etapaAposSalvar = proximaEtapaAposSalvarRef.current;
         let response = null;
+
+        let eventoIdSalvo = id;
 
         if (id) {
           response = await EventoService.admin.atualizar(
@@ -870,25 +946,49 @@ export default function GestaoEventos() {
             {},
             { on401: "redirect", on403: "silent" },
           );
-          toast.success("Evento atualizado com sucesso.");
-          await recarregarEvento();
-          return response;
+        } else {
+          response = await EventoService.admin.criar(
+            payload,
+            {},
+            { on401: "redirect", on403: "silent" },
+          );
+
+          eventoIdSalvo = toPositiveIntOrNull(
+            response?.data?.id || response?.id || response?.evento_id,
+          );
         }
 
-        response = await EventoService.admin.criar(
-          payload,
-          {},
-          { on401: "redirect", on403: "silent" },
-        );
+        if (!eventoIdSalvo) {
+          throw new Error("Não foi possível identificar o evento salvo.");
+        }
 
-        const novoEventoId = toPositiveIntOrNull(
-          response?.data?.id || response?.id || response?.evento_id,
-        );
+        if (publicar) {
+          await EventoService.admin.publicar(
+            eventoIdSalvo,
+            {
+              pre_teste: {
+                habilitado: Boolean(preTesteResumo?.selecionado),
+              },
+            },
+            { on401: "redirect", on403: "silent" },
+          );
+          toast.success("Evento publicado com sucesso.");
+        } else {
+          toast.success("Rascunho salvo com sucesso.");
+        }
 
-        toast.success("Evento criado com sucesso.");
-
-        if (novoEventoId) {
-          navigate(`/gestao/evento?editar=${novoEventoId}`, { replace: true });
+        if (id) {
+          await recarregarEvento();
+          if (etapaAposSalvar) {
+            setEtapaAtual(etapaAposSalvar);
+          }
+        } else {
+          const etapaDestino = etapaAposSalvar || etapaAtual;
+          setEtapaAtual(etapaDestino);
+          navigate(
+            `/gestao/evento?editar=${eventoIdSalvo}&etapa=${etapaDestino}`,
+            { replace: true },
+          );
         }
         return response;
       } catch (error) {
@@ -901,10 +1001,19 @@ export default function GestaoEventos() {
         toast.error(message);
         return null;
       } finally {
+        proximaEtapaAposSalvarRef.current = null;
         setSalvando(false);
       }
     },
-    [evento, eventoIdParam, navigate, recarregarEvento, salvando],
+    [
+      etapaAtual,
+      evento,
+      eventoIdParam,
+      navigate,
+      preTesteResumo?.selecionado,
+      recarregarEvento,
+      salvando,
+    ],
   );
 
   const [titulo, setTitulo] = useState("");
@@ -1720,19 +1829,7 @@ export default function GestaoEventos() {
     unidadesPermitidas.length,
   ]);
 
-  const handleSubmit = useCallback(
-    (event) => {
-      event.preventDefault();
-      if (salvando) {
-        return;
-      }
-
-      const erro = validarFormulario();
-      if (erro) {
-        toast.error(erro);
-        return;
-      }
-
+  const montarPayloadEvento = useCallback(() => {
       const turmasPayload = normalizarTurmasParaPayload(turmas);
       const registros = [
         ...new Set(registrosPermitidos.filter((r) => /^\d{6}$/.test(r))),
@@ -1762,6 +1859,7 @@ export default function GestaoEventos() {
         publico_alvo: String(publicoAlvo || "").trim(),
         conteudo_programatico:
           String(conteudoProgramatico || "").trim() || null,
+        salvar_como_rascunho: true,
 
         ...(!termoBloqueado
           ? {
@@ -1797,7 +1895,7 @@ export default function GestaoEventos() {
         ...(programacaoFile instanceof File ? { programacaoFile } : {}),
       };
 
-      handleSalvarEvento(payload);
+      return payload;
     },
     [
       cargosPermitidos,
@@ -1806,7 +1904,6 @@ export default function GestaoEventos() {
       evento?.id,
       folderFile,
       local,
-      handleSalvarEvento,
       programacaoFile,
       publicoAlvo,
       registrosPermitidos,
@@ -1814,7 +1911,6 @@ export default function GestaoEventos() {
       removerProgramacaoExistente,
       restricaoUi,
       restrito,
-      salvando,
       tipo,
       titulo,
       termoAtivo,
@@ -1824,9 +1920,161 @@ export default function GestaoEventos() {
       turmas,
       unidadeId,
       unidadesPermitidas,
-      validarFormulario,
     ],
   );
+
+  const handleSubmit = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (salvando) {
+        return;
+      }
+
+      const erro = validarFormulario();
+      if (erro) {
+        toast.error(erro);
+        return;
+      }
+
+      handleSalvarEvento(montarPayloadEvento(), { publicar: true });
+    },
+    [handleSalvarEvento, montarPayloadEvento, salvando, validarFormulario],
+  );
+
+  const validarEtapa = useCallback(
+    (etapa) => {
+      if (etapa === 1) {
+        if (!String(titulo || "").trim()) {
+          return "Informe o título do evento.";
+        }
+        if (!String(tipo || "").trim()) {
+          return "Selecione o tipo do evento.";
+        }
+        if (!String(local || "").trim()) {
+          return "Informe o local do evento.";
+        }
+        if (!toPositiveIntOrNull(unidadeId)) {
+          return "Selecione a unidade.";
+        }
+        if (String(titulo).trim().length > EVENTO_LIMITES.titulo) {
+          return "O título do evento ultrapassou o limite permitido.";
+        }
+        if (String(descricao || "").trim().length > EVENTO_LIMITES.descricao) {
+          return "A descrição do evento ultrapassou o limite permitido.";
+        }
+      }
+
+      if (etapa === 2) {
+        if (String(publicoAlvo || "").trim().length > EVENTO_LIMITES.publico_alvo) {
+          return "O público-alvo ultrapassou o limite permitido.";
+        }
+        if (termoAtivo && !String(termoConteudoHtml || "").trim()) {
+          return "Informe o conteúdo do termo ou desative essa opção.";
+        }
+        if (!Array.isArray(turmas) || !turmas.length) {
+          return "Adicione ao menos uma turma.";
+        }
+        for (const turma of turmas) {
+          if (!String(turma?.nome || "").trim()) {
+            return "Todas as turmas precisam ter nome.";
+          }
+          if (!Array.isArray(turma?.datas) || !turma.datas.length) {
+            return `A turma "${turma?.nome || "Turma"}" precisa ter ao menos uma data.`;
+          }
+          if (!extractIds(turma?.organizadores).length) {
+            return `A turma "${turma?.nome || "Turma"}" precisa ter ao menos um organizador.`;
+          }
+        }
+        if (restrito && !restricaoUi) {
+          return "Defina o tipo de restrição do evento.";
+        }
+        if (
+          restrito &&
+          restricaoUi === RESTRICAO_UI.LISTA_REGISTROS &&
+          !registrosPermitidos.length
+        ) {
+          return "Inclua ao menos um registro autorizado.";
+        }
+        if (
+          restrito &&
+          restricaoUi === RESTRICAO_UI.CARGOS &&
+          !cargosPermitidos.length
+        ) {
+          return "Inclua ao menos um cargo permitido.";
+        }
+        if (
+          restrito &&
+          restricaoUi === RESTRICAO_UI.UNIDADES &&
+          !unidadesPermitidas.length
+        ) {
+          return "Inclua ao menos uma unidade permitida.";
+        }
+      }
+
+      if (
+        etapa === 3 &&
+        String(conteudoProgramatico || "").trim().length >
+          EVENTO_LIMITES.conteudo_programatico
+      ) {
+        return "O conteúdo programático ultrapassou o limite permitido.";
+      }
+
+      return "";
+    },
+    [
+      cargosPermitidos.length,
+      conteudoProgramatico,
+      descricao,
+      local,
+      publicoAlvo,
+      registrosPermitidos.length,
+      restricaoUi,
+      restrito,
+      termoAtivo,
+      termoConteudoHtml,
+      tipo,
+      titulo,
+      turmas,
+      unidadeId,
+      unidadesPermitidas.length,
+    ],
+  );
+
+  const avancarEtapa = useCallback(() => {
+    const erro = validarEtapa(etapaAtual);
+    if (erro) {
+      toast.error(erro);
+      return;
+    }
+
+    proximaEtapaAposSalvarRef.current = Math.min(5, etapaAtual + 1);
+    handleSalvarEvento(montarPayloadEvento());
+  }, [
+    etapaAtual,
+    handleSalvarEvento,
+    montarPayloadEvento,
+    validarEtapa,
+  ]);
+
+  const voltarEtapa = useCallback(() => {
+    if (etapaAtual === 1) {
+      onClose();
+      return;
+    }
+    setEtapaAtual((atual) => Math.max(1, atual - 1));
+  }, [etapaAtual, onClose]);
+
+  const pendenciasRevisao = useMemo(() => {
+    const pendencias = [];
+    const formulario = validarFormulario();
+    if (formulario) {
+      pendencias.push(formulario);
+    }
+    if (preTesteResumoErro) {
+      pendencias.push(preTesteResumoErro);
+    }
+    return pendencias;
+  }, [preTesteResumoErro, validarFormulario]);
 
   const turmasRender = useMemo(() => {
     return (turmas || []).map((turma, index) => {
@@ -2124,12 +2372,51 @@ export default function GestaoEventos() {
 
                     <Chip tone={testeObrigatorio ? "violet" : "zinc"}>
                       <Sparkles className="h-3 w-3" aria-hidden="true" />
-                      {testeObrigatorio ? "Teste obrigatório" : "Sem teste"}
+                      {testeObrigatorio ? "Pós-teste configurado" : "Sem pós-teste"}
                     </Chip>
                   </div>
                 </div>
               </div>
             </header>
+
+            <nav
+              aria-label="Etapas do cadastro do evento"
+              className="border-b border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950 sm:px-5"
+            >
+              <ol className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+                {ETAPAS_EVENTO.map((etapa, index) => {
+                  const numero = index + 1;
+                  const ativa = etapaAtual === numero;
+                  const concluida = etapaAtual > numero;
+                  return (
+                    <li key={etapa}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (numero < etapaAtual) {
+                            setEtapaAtual(numero);
+                          }
+                        }}
+                        disabled={numero > etapaAtual}
+                        aria-current={ativa ? "step" : undefined}
+                        className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-extrabold transition ${
+                          ativa
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100"
+                            : concluida
+                              ? "border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 dark:border-emerald-900 dark:bg-zinc-950 dark:text-emerald-200"
+                              : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50"
+                        }`}
+                      >
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-current/10">
+                          {numero}
+                        </span>
+                        <span className="leading-tight">{etapa}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
 
             <main className="bg-zinc-50/70 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/70 sm:p-4">
               <section
@@ -2209,18 +2496,35 @@ export default function GestaoEventos() {
                 <form
                   id={formId}
                   onSubmit={handleSubmit}
-                  className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"
+                  className="grid min-w-0 grid-cols-1 gap-4"
                   noValidate
                 >
                   <div className="space-y-4">
                     <SectionCard
                       id={`sec-dados-${uid}`}
                       icon={FileText}
-                      title="Dados do evento"
-                      subtitle="Informações principais usadas na divulgação e certificados."
+                      title={
+                        etapaAtual === 1
+                          ? "Informações básicas"
+                          : etapaAtual === 2
+                            ? "Inscrição, público e termo"
+                            : "Conteúdo programático"
+                      }
+                      subtitle={
+                        etapaAtual === 1
+                          ? "Informações principais usadas na divulgação e certificados."
+                          : etapaAtual === 2
+                            ? "Defina o público e preserve a finalidade do termo de presença."
+                            : "Conteúdo que poderá constar nos materiais e certificados."
+                      }
+                      show={[1, 2, 3].includes(etapaAtual)}
                     >
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="grid gap-1 sm:col-span-2">
+                        <div
+                          className={`grid gap-1 sm:col-span-2 ${
+                            etapaAtual === 1 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel htmlFor={`evento-titulo-${uid}`} required>
                             Título
                           </FieldLabel>
@@ -2246,7 +2550,11 @@ export default function GestaoEventos() {
                           />
                         </div>
 
-                        <div className="grid gap-1 sm:col-span-2">
+                        <div
+                          className={`grid gap-1 sm:col-span-2 ${
+                            etapaAtual === 1 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel htmlFor={`evento-descricao-${uid}`}>
                             Descrição
                           </FieldLabel>
@@ -2271,7 +2579,11 @@ export default function GestaoEventos() {
                           />
                         </div>
 
-                        <div className="grid gap-1 sm:col-span-2">
+                        <div
+                          className={`grid gap-1 sm:col-span-2 ${
+                            etapaAtual === 3 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel
                             htmlFor={`evento-conteudo-programatico-${uid}`}
                           >
@@ -2303,7 +2615,11 @@ export default function GestaoEventos() {
                           </p>
                         </div>
 
-                        <div className="grid gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:col-span-2">
+                        <div
+                          className={`grid gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:col-span-2 ${
+                            etapaAtual === 2 ? "" : "hidden"
+                          }`}
+                        >
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <p className="text-sm font-black text-emerald-950 dark:text-emerald-100">
@@ -2405,7 +2721,11 @@ export default function GestaoEventos() {
                           ) : null}
                         </div>
 
-                        <div className="grid gap-1 sm:col-span-2">
+                        <div
+                          className={`grid gap-1 sm:col-span-2 ${
+                            etapaAtual === 2 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel htmlFor={`evento-publico-${uid}`}>
                             Público-alvo
                           </FieldLabel>
@@ -2430,7 +2750,11 @@ export default function GestaoEventos() {
                           />
                         </div>
 
-                        <div className="grid gap-1">
+                        <div
+                          className={`grid gap-1 ${
+                            etapaAtual === 1 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel htmlFor={`evento-local-${uid}`} required>
                             Local
                           </FieldLabel>
@@ -2456,7 +2780,11 @@ export default function GestaoEventos() {
                           />
                         </div>
 
-                        <div className="grid gap-1">
+                        <div
+                          className={`grid gap-1 ${
+                            etapaAtual === 1 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel htmlFor={`evento-tipo-${uid}`} required>
                             Tipo
                           </FieldLabel>
@@ -2475,7 +2803,11 @@ export default function GestaoEventos() {
                           </SelectInput>
                         </div>
 
-                        <div className="grid gap-1 sm:col-span-2">
+                        <div
+                          className={`grid gap-1 sm:col-span-2 ${
+                            etapaAtual === 1 ? "" : "hidden"
+                          }`}
+                        >
                           <FieldLabel
                             htmlFor={`evento-unidade-${uid}`}
                             required
@@ -2511,6 +2843,7 @@ export default function GestaoEventos() {
                       icon={Users}
                       title="Turmas"
                       subtitle="Gerencie os encontros, horários e organizadores de cada turma."
+                      show={etapaAtual === 2}
                     >
                       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap gap-2">
@@ -2550,14 +2883,128 @@ export default function GestaoEventos() {
                         </div>
                       )}
                     </SectionCard>
+
+                    <SectionCard
+                      id={`sec-pre-teste-${uid}`}
+                      icon={ClipboardList}
+                      title="Pré-teste antes da inscrição"
+                      subtitle="Configure o instrumento diagnóstico separado do pós-teste."
+                      show={etapaAtual === 4}
+                    >
+                      {evento?.id ? (
+                        <EditorPreTesteEvento
+                          eventoId={evento.id}
+                          onChange={handlePreTesteChange}
+                        />
+                      ) : (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
+                          O rascunho do evento será salvo antes desta etapa para
+                          permitir a configuração das avaliações.
+                        </div>
+                      )}
+                    </SectionCard>
+
+                    <SectionCard
+                      id={`sec-revisao-${uid}`}
+                      icon={CheckCircle2}
+                      title="Revisão e publicação"
+                      subtitle="Confira o conjunto completo. O evento só ficará disponível após a publicação explícita abaixo."
+                      show={etapaAtual === 5}
+                    >
+                      <dl className="grid gap-3 lg:grid-cols-2">
+                        <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                          <dt className="text-xs font-black uppercase text-zinc-500">Informações básicas</dt>
+                          <dd className="mt-1 text-sm font-bold">{titulo || "Título pendente"}</dd>
+                          <dd className="mt-1 text-xs text-zinc-500">{tipo || "Tipo pendente"} · {local || "Local pendente"}</dd>
+                          <dd className="mt-1 text-xs text-zinc-500">
+                            Unidade: {unidades.find((item) => Number(item.id) === Number(unidadeId))?.nome || "Pendente"}
+                          </dd>
+                          {String(descricao || "").trim() && (
+                            <dd className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
+                              {descricao}
+                            </dd>
+                          )}
+                        </div>
+                        <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                          <dt className="text-xs font-black uppercase text-zinc-500">Inscrição e público</dt>
+                          <dd className="mt-1 text-sm font-bold">
+                            {publicoAlvo || "Público-alvo não informado"}
+                          </dd>
+                          <dd className="mt-1 text-xs text-zinc-500">
+                            {restrito ? "Evento restrito" : "Acesso padrão"} · Termo {termoAtivo ? "ativo" : "inativo"}
+                          </dd>
+                        </div>
+                        <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800 lg:col-span-2">
+                          <dt className="text-xs font-black uppercase text-zinc-500">Turmas, datas, horários e vagas</dt>
+                          <dd className="mt-1 text-sm font-bold">
+                            {turmas.length} turma(s) · {turmas.reduce((total, turma) => total + (Number(turma?.vagas_total) || 0), 0)} vaga(s)
+                          </dd>
+                          <div className="mt-3 grid gap-2 md:grid-cols-2">
+                            {turmas.map((turma, turmaIndex) => (
+                              <div key={turma.id || `revisao-turma-${turmaIndex}`} className="rounded-lg bg-zinc-50 p-2.5 dark:bg-zinc-900/60">
+                                <p className="text-xs font-black text-zinc-800 dark:text-zinc-100">
+                                  {turma.nome || `Turma ${turmaIndex + 1}`} · {Number(turma?.vagas_total) || 0} vagas
+                                </p>
+                                <ul className="mt-1 space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                  {(turma.datas || []).map((encontro, encontroIndex) => (
+                                    <li key={`${encontro.data}-${encontroIndex}`}>
+                                      {formatDateBr(encontro.data)} · {hhmm(encontro.horario_inicio)} às {hhmm(encontro.horario_fim)}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                          <dt className="text-xs font-black uppercase text-zinc-500">Conteúdo e materiais</dt>
+                          <dd className="mt-1 text-sm font-bold">{String(conteudoProgramatico || "").trim() ? "Conteúdo configurado" : "Conteúdo opcional"}</dd>
+                          <dd className="mt-1 text-xs text-zinc-500">Folder {folderFile || folderExistenteUrl ? "configurado" : "não informado"} · PDF {programacaoFile || programacaoExistenteUrl ? "configurado" : "não informado"}</dd>
+                        </div>
+                        <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                          <dt className="text-xs font-black uppercase text-zinc-500">Avaliações</dt>
+                          <dd className="mt-1 text-sm font-bold">
+                            {preTesteResumo?.selecionado
+                              ? `${Number(preTesteResumo?.rascunho?.perguntas?.length ?? preTesteResumo?.versao_publicada?.perguntas?.length ?? 0)} pergunta(s) no pré-teste`
+                              : "Pré-teste não utilizado"}
+                          </dd>
+                          <dd className="mt-1 text-xs text-zinc-500">
+                            {testeObrigatorio
+                              ? `Pós-teste configurado${testeConfig?.questoes_count ? ` · ${testeConfig.questoes_count} questão(ões)` : ""}`
+                              : "Sem pós-teste"}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      {pendenciasRevisao.length ? (
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
+                          <p className="font-black">Pendências antes de publicar:</p>
+                          <ul className="mt-2 list-disc space-y-1 pl-5">
+                            {pendenciasRevisao.map((pendencia) => (
+                              <li key={pendencia}>{pendencia}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-100">
+                          Dados do evento prontos para validação final. Ele
+                          permanece invisível até o clique em Publicar evento.
+                        </div>
+                      )}
+                    </SectionCard>
                   </div>
 
-                  <aside className="space-y-4 xl:sticky xl:top-0 xl:self-start">
+                  <aside
+                    className={`min-w-0 space-y-4 ${
+                      [2, 3, 4].includes(etapaAtual) ? "" : "hidden"
+                    }`}
+                  >
                     <SectionCard
                       id={`sec-arquivos-${uid}`}
                       icon={Paperclip}
                       title="Folder e programação"
                       subtitle="Arquivos persistidos no banco."
+                      show={etapaAtual === 3}
                     >
                       <div className="space-y-3">
                         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/45">
@@ -2738,6 +3185,7 @@ export default function GestaoEventos() {
                       icon={Lock}
                       title="Restrição de inscrição"
                       subtitle="O evento pode ficar com inscrição bloqueada para não elegíveis."
+                      show={etapaAtual === 2}
                     >
                       <label className="inline-flex items-start gap-2">
                         <input
@@ -2977,8 +3425,9 @@ export default function GestaoEventos() {
                     <SectionCard
                       id={`sec-pos-${uid}`}
                       icon={CheckCircle2}
-                      title="Teste obrigatório"
+                      title="Pós-teste / avaliação após o evento"
                       subtitle="Defina se haverá teste avaliativo para emissão do certificado."
+                      show={etapaAtual === 4}
                     >
                       <label className="flex items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900/45">
                         <input
@@ -3050,19 +3499,40 @@ export default function GestaoEventos() {
                     type="button"
                     tone="neutral"
                     disabled={closeBlocked}
-                    onClick={closeBlocked ? undefined : onClose}
+                    onClick={closeBlocked ? undefined : voltarEtapa}
                   >
                     Voltar
                   </ActionButton>
-                  <ActionButton
-                    type="submit"
-                    form={formId}
-                    tone="success"
-                    disabled={salvando}
-                  >
-                    <Save className="h-4 w-4" aria-hidden="true" />
-                    {salvando ? "Salvando..." : "Salvar evento"}
-                  </ActionButton>
+                  {etapaAtual < 5 ? (
+                    <ActionButton
+                      type="button"
+                      tone="success"
+                      disabled={salvando}
+                      onClick={avancarEtapa}
+                    >
+                      {salvando
+                        ? "Salvando rascunho..."
+                        : "Salvar rascunho e continuar"}
+                    </ActionButton>
+                  ) : (
+                    <ActionButton
+                      type="submit"
+                      form={formId}
+                      tone="success"
+                      disabled={
+                        salvando ||
+                        carregandoPreTesteResumo ||
+                        pendenciasRevisao.length > 0
+                      }
+                    >
+                      <Save className="h-4 w-4" aria-hidden="true" />
+                      {salvando
+                        ? "Publicando..."
+                        : carregandoPreTesteResumo
+                          ? "Carregando avaliações..."
+                          : "PUBLICAR EVENTO"}
+                    </ActionButton>
+                  )}
                 </div>
               </div>
             </footer>

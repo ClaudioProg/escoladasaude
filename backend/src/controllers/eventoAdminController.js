@@ -49,6 +49,10 @@ const multer = require("multer");
 
 const db = require("../db");
 const { normalizeListaRegistros } = require("../utils/registro");
+const {
+  PreTesteError,
+  prepararParaPublicacaoDoEvento,
+} = require("../services/preTesteService");
 
 if (
   !db ||
@@ -414,6 +418,7 @@ function normalizeBodyMultipart(body = {}) {
   );
 
   out.restrito = parseBoolean(body.restrito);
+  out.salvar_como_rascunho = parseBoolean(body.salvar_como_rascunho);
   out.remover_folder = parseBoolean(body.remover_folder);
   out.remover_programacao = parseBoolean(body.remover_programacao);
 
@@ -1382,6 +1387,11 @@ async function listarEventosAdmin(req, res) {
         e.termo_atualizado_em,
         e.termo_atualizado_por,
         e.publicado,
+        EXISTS (
+          SELECT 1
+          FROM pre_testes_evento pt
+          WHERE pt.evento_id = e.id
+        ) AS tem_pre_teste,
         e.restrito,
         e.restrito_modo,
         e.visibilidade,
@@ -1639,6 +1649,7 @@ async function criarEvento(req, res) {
     cargos_permitidos,
     unidades_permitidas,
     registros_permitidos,
+    salvar_como_rascunho = false,
   } = body;
 
   logStart(rid, "criarEvento", {
@@ -1672,7 +1683,10 @@ async function criarEvento(req, res) {
     );
   }
 
-  if (!Array.isArray(turmas) || !turmas.length) {
+  if (
+    salvar_como_rascunho !== true &&
+    (!Array.isArray(turmas) || !turmas.length)
+  ) {
     return badRequest(res, "Informe ao menos uma turma para criar o evento.", {
       rid,
     });
@@ -1909,6 +1923,7 @@ async function atualizarEvento(req, res) {
     cargos_permitidos,
     unidades_permitidas,
     registros_permitidos,
+    salvar_como_rascunho = false,
   } = body;
 
   logStart(rid, "atualizarEvento", {
@@ -1953,6 +1968,10 @@ async function atualizarEvento(req, res) {
     function pushSet(sql, value) {
       params.push(value);
       setCols.push(`${sql} = $${params.length}`);
+    }
+
+    if (salvar_como_rascunho === true) {
+      pushSet("publicado", false);
     }
 
     if (typeof titulo !== "undefined") {
@@ -2245,8 +2264,8 @@ async function atualizarEvento(req, res) {
    Validação de publicação
 ─────────────────────────────────────────────────────────────── */
 
-async function validarEventoParaPublicacao(eventoId) {
-  const result = await db.query(
+async function validarEventoParaPublicacao(eventoId, conn = db) {
+  const result = await conn.query(
     `
     SELECT
       e.id,
@@ -2261,7 +2280,15 @@ async function validarEventoParaPublicacao(eventoId) {
       e.unidades_permitidas_ids,
       COUNT(DISTINCT t.id)::int AS total_turmas,
       COUNT(DISTINCT dt.id)::int AS total_datas,
-      COUNT(DISTINCT tr.id)::int AS total_organizadores
+      COUNT(DISTINCT tr.id)::int AS total_organizadores,
+      COUNT(DISTINCT t.id) FILTER (WHERE dt.id IS NULL)::int AS turmas_sem_datas,
+      COUNT(DISTINCT t.id) FILTER (WHERE tr.id IS NULL)::int AS turmas_sem_organizadores,
+      COUNT(DISTINCT dt.id) FILTER (
+        WHERE dt.data IS NULL
+           OR dt.horario_inicio IS NULL
+           OR dt.horario_fim IS NULL
+           OR dt.horario_fim <= dt.horario_inicio
+      )::int AS datas_invalidas
     FROM eventos e
     LEFT JOIN turmas t ON t.evento_id = e.id
     LEFT JOIN datas_turma dt ON dt.turma_id = t.id
@@ -2339,7 +2366,20 @@ async function validarEventoParaPublicacao(eventoId) {
     };
   }
 
-  if (Number(e.total_organizadores) <= 0) {
+  if (Number(e.turmas_sem_datas) > 0 || Number(e.datas_invalidas) > 0) {
+    return {
+      ok: false,
+      status: 400,
+      code: "EVENTO_ENCONTRO_INVALIDO",
+      message:
+        "Todas as turmas precisam ter encontros completos, com data e horários válidos.",
+    };
+  }
+
+  if (
+    Number(e.total_organizadores) <= 0 ||
+    Number(e.turmas_sem_organizadores) > 0
+  ) {
     return {
       ok: false,
       status: 400,
@@ -2432,10 +2472,16 @@ async function publicarEvento(req, res) {
     });
   }
 
+  const client = await db.getClient();
+
   try {
-    const validacao = await validarEventoParaPublicacao(id);
+    await client.query("BEGIN");
+    await client.query("SELECT id FROM eventos WHERE id = $1 FOR UPDATE", [id]);
+
+    const validacao = await validarEventoParaPublicacao(id, client);
 
     if (!validacao.ok) {
+      await client.query("ROLLBACK");
       return sendError(res, {
         status: validacao.status || 400,
         code: validacao.code || "EVENTO_PUBLICACAO_INVALIDA",
@@ -2444,7 +2490,20 @@ async function publicarEvento(req, res) {
       });
     }
 
-    const result = await db.query(
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "pre_teste")) {
+      const habilitado = req.body?.pre_teste?.habilitado;
+      if (typeof habilitado !== "boolean") {
+        await client.query("ROLLBACK");
+        return badRequest(
+          res,
+          "Informe se o evento deve ou não utilizar o pré-teste.",
+          { rid, code: "PRE_TESTE_SELECAO_INVALIDA" },
+        );
+      }
+      await prepararParaPublicacaoDoEvento(client, id, habilitado);
+    }
+
+    const result = await client.query(
       `
       UPDATE eventos
       SET publicado = TRUE
@@ -2454,20 +2513,31 @@ async function publicarEvento(req, res) {
       [id],
     );
 
+    await client.query("COMMIT");
+
     return sendOk(res, {
-      message: "Evento publicado.",
+      message: "Evento publicado com sucesso.",
       data: result.rows[0],
     });
   } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+
     logError(rid, "publicarEvento erro", err);
 
     return sendError(res, {
-      status: 500,
-      code: "EVENTO_PUBLICAR_ERRO",
-      message: "Erro ao publicar evento.",
+      status: err?.status || 500,
+      code: err?.code || "EVENTO_PUBLICAR_ERRO",
+      message:
+        err instanceof PreTesteError
+          ? `Não foi possível publicar o evento. ${err.message}`
+          : "Erro ao publicar evento.",
       rid,
       error: err,
     });
+  } finally {
+    client.release();
   }
 }
 

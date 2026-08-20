@@ -90,6 +90,8 @@ function isDebugEnabled() {
 ───────────────────────────────────────── */
 
 const UPDATE_PAGE_URL = "/atualizar.html";
+const CHUNK_UPDATE_ATTEMPT_KEY = "escola_chunk_update_attempt";
+const CHUNK_UPDATE_COOLDOWN_MS = 5 * 60 * 1000;
 
 function redirectToUpdatePage(reason) {
   if (!isBrowser()) {
@@ -98,7 +100,21 @@ function redirectToUpdatePage(reason) {
 
   try {
     const url = new URL(UPDATE_PAGE_URL, window.location.origin);
-    url.searchParams.set("motivo", reason || "chunk");
+    const tentativaAnterior = Number(
+      sessionStorage.getItem(CHUNK_UPDATE_ATTEMPT_KEY) || 0,
+    );
+    const repetida = Date.now() - tentativaAnterior < CHUNK_UPDATE_COOLDOWN_MS;
+
+    if (!repetida) {
+      sessionStorage.setItem(CHUNK_UPDATE_ATTEMPT_KEY, String(Date.now()));
+      url.searchParams.set("motivo", reason || "chunk");
+    } else {
+      url.searchParams.set("tentativa", "repetida");
+    }
+    url.searchParams.set(
+      "retorno",
+      `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    );
     url.searchParams.set("ts", String(Date.now()));
 
     window.location.replace(url.toString());

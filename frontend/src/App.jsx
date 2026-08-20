@@ -171,6 +171,7 @@ const PendenciasAdmin = lazy(() => import("./pages/PendenciasAdmin"));
 const SaudePlataformaAdmin = lazy(() => import("./pages/SaudePlataformaAdmin"));
 
 const GestaoEventos = lazy(() => import("./pages/GestaoEventos"));
+const ResultadosPreTeste = lazy(() => import("./pages/ResultadosPreTeste"));
 const GestaoInformacoes = lazy(() => import("./pages/GestaoInformacoes"));
 const GestaoUsuarios = lazy(() => import("./pages/GestaoUsuarios"));
 const GestaoOrganizador = lazy(() => import("./pages/GestaoOrganizador"));
@@ -909,6 +910,15 @@ function AdministradorRoutes() {
           <ProtectedPage
             permitido={PERFIL_PERMITIDO.administrador}
             element={<GestaoEventos />}
+          />
+        }
+      />
+      <Route
+        path="gestao/evento/:evento_id/pre-teste/resultados"
+        element={
+          <ProtectedPage
+            permitido={PERFIL_PERMITIDO.administrador}
+            element={<ResultadosPreTeste />}
           />
         }
       />

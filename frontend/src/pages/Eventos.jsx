@@ -49,6 +49,7 @@ import {
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 import ListaTurmasEvento from "../components/eventos/ListaTurmasEvento";
+import ModalPreTesteInscricao from "../components/eventos/ModalPreTesteInscricao";
 import ModalConfirmacao from "../components/ui/ModalConfirmacao";
 import NadaEncontrado from "../components/ui/NadaEncontrado";
 import {
@@ -869,6 +870,13 @@ export default function Eventos() {
   const [carregandoTurmas, setCarregandoTurmas] = useState(null);
   const [inscrevendo, setInscrevendo] = useState(null);
   const [cancelandoId, setCancelandoId] = useState(null);
+  const [preTesteInscricao, setPreTesteInscricao] = useState({
+    open: false,
+    eventoId: null,
+    turmaId: null,
+    eventoTitulo: "",
+    dados: null,
+  });
 
   const [confirmCancel, setConfirmCancel] = useState({
     open: false,
@@ -1262,10 +1270,27 @@ export default function Eventos() {
     [],
   );
 
-  const inscrever = useCallback(
-    async (turmaId, eventoId) => {
+  const concluirInscricao = useCallback(
+    async (
+      turmaId,
+      eventoId,
+      preTeste = null,
+      { propagarErro = false } = {},
+    ) => {
+      const interromper = (mensagem, { notificar = true } = {}) => {
+        if (propagarErro) {
+          throw new Error(mensagem);
+        }
+        if (notificar) {
+          notifyWarning(mensagem);
+        }
+        return false;
+      };
+
       if (inscrevendo) {
-        return;
+        return interromper("A inscrição já está sendo processada.", {
+          notificar: false,
+        });
       }
 
       const eventoRef = eventos.find(
@@ -1273,46 +1298,28 @@ export default function Eventos() {
       );
 
       if (!eventoRef) {
-        return;
+        return interromper("Não foi possível localizar o evento selecionado.");
       }
 
       const { podeSeInscrever, motivoBloqueio } =
         getEventoElegibilidade(eventoRef);
 
       if (!podeSeInscrever) {
-        notifyWarning(
+        return interromper(
           motivoBloqueio ||
             "Este evento está visível para você, mas a inscrição não está disponível para seu perfil.",
         );
-        return;
       }
 
       if (eventoRef?.ja_organizador) {
-        notifyWarning(
+        return interromper(
           "Você é organizador deste evento e não pode se inscrever como participante.",
         );
-        return;
       }
 
+      let conflitoAtual = null;
       try {
-        const conflitoAtual = await consultarConflitoTurma(turmaId);
-
-        if (conflitoAtual?.conflito) {
-          setTurmasConflitoPorEvento((prev) => {
-            const atuais = new Set(
-              (prev?.[eventoId] || []).map((item) => Number(item)),
-            );
-            atuais.add(Number(turmaId));
-
-            return {
-              ...prev,
-              [eventoId]: Array.from(atuais),
-            };
-          });
-
-          notifyWarning(MENSAGEM_CONFLITO_HORARIO);
-          return;
-        }
+        conflitoAtual = await consultarConflitoTurma(turmaId);
       } catch (error) {
         if (import.meta.env?.DEV) {
           console.warn("[Eventos] não foi possível pré-validar conflito", {
@@ -1322,10 +1329,26 @@ export default function Eventos() {
         }
       }
 
+      if (conflitoAtual?.conflito) {
+        setTurmasConflitoPorEvento((prev) => {
+          const atuais = new Set(
+            (prev?.[eventoId] || []).map((item) => Number(item)),
+          );
+          atuais.add(Number(turmaId));
+
+          return {
+            ...prev,
+            [eventoId]: Array.from(atuais),
+          };
+        });
+
+        return interromper(MENSAGEM_CONFLITO_HORARIO);
+      }
+
       setInscrevendo(turmaId);
 
       try {
-        await EventoService.inscricao.inscrever(turmaId);
+        await EventoService.inscricao.inscrever(turmaId, preTeste);
 
         notifySuccess("Inscrição realizada com sucesso.");
 
@@ -1335,6 +1358,12 @@ export default function Eventos() {
         const status = Number(error?.status || 0);
         const serverMsg =
           error?.data?.message || error?.message || "Erro ao se inscrever.";
+
+        if (propagarErro) {
+          const amigavel = new Error(serverMsg);
+          amigavel.status = status;
+          throw amigavel;
+        }
 
         if (status === 409) {
           const motivo = String(error?.data?.details?.motivo || "");
@@ -1368,6 +1397,85 @@ export default function Eventos() {
     },
     [atualizarTurmasDoEvento, carregarInscricoes, eventos, inscrevendo],
   );
+
+  const inscrever = useCallback(
+    async (turmaId, eventoId) => {
+      const eventoRef = eventos.find(
+        (evento) => Number(evento.id) === Number(eventoId),
+      );
+
+      if (!eventoRef?.tem_pre_teste) {
+        await concluirInscricao(turmaId, eventoId);
+        return;
+      }
+
+      if (inscrevendo) {
+        return;
+      }
+
+      setInscrevendo(turmaId);
+
+      try {
+        const preTeste =
+          await EventoService.preTeste.participante.carregar(eventoId);
+
+        if (!preTeste?.tem_pre_teste || preTeste?.ja_concluido) {
+          setInscrevendo(null);
+          await concluirInscricao(turmaId, eventoId);
+          return;
+        }
+
+        setPreTesteInscricao({
+          open: true,
+          eventoId: Number(eventoId),
+          turmaId: Number(turmaId),
+          eventoTitulo: eventoRef.titulo || "",
+          dados: preTeste,
+        });
+      } catch (error) {
+        notifyError(
+          error?.data?.message ||
+            "Não foi possível carregar o pré-teste deste evento.",
+        );
+      } finally {
+        setInscrevendo(null);
+      }
+    },
+    [concluirInscricao, eventos, inscrevendo],
+  );
+
+  const enviarPreTesteEInscrever = useCallback(
+    async (payload) => {
+      const { turmaId, eventoId } = preTesteInscricao;
+
+      await concluirInscricao(turmaId, eventoId, payload, {
+        propagarErro: true,
+      });
+
+      setPreTesteInscricao({
+        open: false,
+        eventoId: null,
+        turmaId: null,
+        eventoTitulo: "",
+        dados: null,
+      });
+    },
+    [concluirInscricao, preTesteInscricao],
+  );
+
+  const fecharPreTesteInscricao = useCallback(() => {
+    if (inscrevendo) {
+      return;
+    }
+
+    setPreTesteInscricao({
+      open: false,
+      eventoId: null,
+      turmaId: null,
+      eventoTitulo: "",
+      dados: null,
+    });
+  }, [inscrevendo]);
 
   const cancelarInscricaoByTurmaId = useCallback(
     async (turmaId, turmaNome = "", eventoId = null) => {
@@ -1758,6 +1866,14 @@ export default function Eventos() {
                           </div>
                         )}
 
+                        {evento.tem_pre_teste && (
+                          <div className="mt-4 rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-3 py-2 text-xs font-semibold leading-relaxed text-fuchsia-900 dark:border-fuchsia-900/60 dark:bg-fuchsia-950/20 dark:text-fuchsia-100">
+                            Este evento possui um pré-teste diagnóstico que
+                            deverá ser respondido antes da confirmação da
+                            inscrição.
+                          </div>
+                        )}
+
                         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex flex-wrap items-center gap-2">
                             <BotaoProgramacao evento={evento} />
@@ -1844,6 +1960,18 @@ export default function Eventos() {
       </main>
 
       <Footer />
+
+      <ModalPreTesteInscricao
+        open={!!preTesteInscricao.open}
+        preTeste={preTesteInscricao.dados}
+        eventoTitulo={preTesteInscricao.eventoTitulo}
+        enviando={
+          Number(inscrevendo) === Number(preTesteInscricao.turmaId) &&
+          !!preTesteInscricao.open
+        }
+        onClose={fecharPreTesteInscricao}
+        onSubmit={enviarPreTesteEInscrever}
+      />
 
       <ModalConfirmacao
         open={!!confirmCancel.open}

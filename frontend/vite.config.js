@@ -1,20 +1,42 @@
 // 📁 vite.config.js — Escola da Saúde
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import fs from "node:fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { validarIdentidadeBuild } from "./scripts/build-version.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+function obterAssinaturaBuild(root, appVersion, isProd) {
+  if (!isProd) {
+    return "";
+  }
+
+  const versionPath = path.join(root, "public", "version.json");
+  const payload = JSON.parse(fs.readFileSync(versionPath, "utf8"));
+  const assinatura = validarIdentidadeBuild(payload);
+
+  if (String(payload.version).trim() !== appVersion) {
+    throw new Error(
+      `version.json declara ${payload.version}, mas package.json declara ${appVersion}.`,
+    );
+  }
+
+  return assinatura;
+}
 
 export default defineConfig(({ mode }) => {
   const root = process.cwd();
   const env = loadEnv(mode, root, "");
 
   const isProd = mode === "production";
+  const appVersion = process.env.npm_package_version || "0.0.0";
+  const buildSignature = obterAssinaturaBuild(root, appVersion, isProd);
 
   const proxyTarget = String(
-    env.VITE_DEV_PROXY_TARGET || "http://localhost:3000"
+    env.VITE_DEV_PROXY_TARGET || "http://localhost:3000",
   ).replace(/\/+$/, "");
 
   const proxySecure = /^https:/i.test(proxyTarget);
@@ -61,7 +83,8 @@ export default defineConfig(({ mode }) => {
     },
 
     define: {
-      __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "0.0.0"),
+      __APP_VERSION__: JSON.stringify(appVersion),
+      "import.meta.env.VITE_BUILD_SIGNATURE": JSON.stringify(buildSignature),
     },
 
     build: {

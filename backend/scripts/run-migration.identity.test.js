@@ -27,6 +27,8 @@ const LEGACY_2025 = path.join(
 );
 const CANONICAL_2026 =
   "db/migrations/2026-08-07-auth-perfis-independentes-expand.sql";
+const CANONICAL_PRE_TESTE =
+  "db/migrations/2026-08-20-pre-teste-evento.sql";
 const SHA_2026 =
   "0086dae4d66ba9f80663f31eb06d7517f78d5e72c6c8415ebf8e4e6f33ebd1d9";
 
@@ -355,7 +357,7 @@ test("--dir aceita somente a arvore oficial", async () => {
 
   assert.deepEqual(
     official.map((migration) => migration.canonicalMigrationId),
-    [CANONICAL_2026],
+    [CANONICAL_2026, CANONICAL_PRE_TESTE],
   );
 
   await assert.rejects(

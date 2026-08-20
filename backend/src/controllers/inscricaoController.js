@@ -55,6 +55,10 @@ const { criarNotificacao } = require("./notificacaoController");
 const {
   podeAcessarEvento,
 } = require("../services/eventoAcessoRegistroService");
+const {
+  PreTesteError,
+  processarPreTesteInscricao,
+} = require("../services/preTesteService");
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -970,6 +974,13 @@ async function inscreverEmTurma(req, res) {
         };
       }
 
+      await processarPreTesteInscricao({
+        q,
+        eventoId: turma.evento_id,
+        usuarioId,
+        preTeste: req.body?.pre_teste,
+      });
+
       const insert = await q(
         `
         INSERT INTO inscricoes (
@@ -1030,6 +1041,12 @@ async function inscreverEmTurma(req, res) {
       201,
     );
   } catch (error) {
+    if (error instanceof PreTesteError) {
+      return fail(res, error.status, error.message, {
+        motivo: error.code,
+      });
+    }
+
     const conhecido = motivoHttpConflito(error);
 
     if (conhecido) {

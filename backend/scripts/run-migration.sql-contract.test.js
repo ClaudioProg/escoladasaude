@@ -11,6 +11,10 @@ const MIGRATION_2026 = path.resolve(
   __dirname,
   "../db/migrations/2026-08-07-auth-perfis-independentes-expand.sql",
 );
+const MIGRATION_PRE_TESTE = path.resolve(
+  __dirname,
+  "../db/migrations/2026-08-20-pre-teste-evento.sql",
+);
 const MIGRATION_LEGACY_2025 = path.resolve(
   __dirname,
   "../db/migration-legacy/2025-08-27-inscricoes-multipla-congresso.sql",
@@ -310,6 +314,12 @@ test("migration executavel de 2026 passa no contrato estrito", () => {
   const sql = fs.readFileSync(MIGRATION_2026, "utf8");
 
   assertAccepted(sql, path.basename(MIGRATION_2026));
+});
+
+test("migration de pre-teste passa no contrato estrito", () => {
+  const sql = fs.readFileSync(MIGRATION_PRE_TESTE, "utf8");
+
+  assertAccepted(sql, path.basename(MIGRATION_PRE_TESTE));
 });
 
 test("migration legacy de 2025 e rejeitada por BEGIN de topo", () => {
