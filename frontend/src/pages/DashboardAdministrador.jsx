@@ -8,6 +8,7 @@ import "react-loading-skeleton/dist/skeleton.css";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
+  BarChart3,
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
@@ -506,6 +507,8 @@ function QuickAction({
       "border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/25 dark:text-violet-200",
     certificado:
       "border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-200",
+    preteste:
+      "border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100 dark:border-teal-900/40 dark:bg-teal-950/25 dark:text-teal-200",
     publicar:
       "border-lime-200 bg-lime-50 text-lime-800 hover:bg-lime-100 dark:border-lime-900/40 dark:bg-lime-950/25 dark:text-lime-200",
     excluir:
@@ -820,6 +823,17 @@ function EventCard({
               Certificado
             </QuickAction>
 
+            {evento?.tem_pre_teste ? (
+              <QuickAction
+                tone="preteste"
+                onClick={() => onAcao(evento.id, "preteste")}
+                icon={BarChart3}
+                disabled={publicando || excluindo}
+              >
+                Resultados pré-teste
+              </QuickAction>
+            ) : null}
+
             <QuickAction
               tone="publicar"
               onClick={() => onPublicar(evento.id)}
@@ -1087,6 +1101,7 @@ export default function DashboardAdministrador() {
         presenca: `/gestao/presenca?evento_id=${id}`,
         avaliacao: `/gestao/avaliacao?evento_id=${id}`,
         certificado: `/gestao/certificado?evento_id=${id}`,
+        preteste: `/gestao/evento/${id}/pre-teste/resultados`,
       };
 
       navigate(rotas[acao] || rotas.evento);

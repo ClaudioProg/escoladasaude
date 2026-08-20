@@ -44,6 +44,9 @@
 const db = require("../db");
 const PDFDocument = require("pdfkit");
 const jwt = require("jsonwebtoken");
+const {
+  classificarStatusEncontro,
+} = require("../services/presencaStatusService");
 
 let gerarNotificacaoDeAvaliacao = async () => {};
 try {
@@ -2599,18 +2602,29 @@ async function obterMeuResumoPresencas(req, res) {
         JOIN turmas t ON t.id = i.turma_id
         WHERE i.usuario_id = $1
       ),
-      datas_base AS (
+      encontros AS (
         SELECT
           mt.turma_id,
-          dt.data::date AS data_presenca
+          dt.data::date AS data_presenca,
+          dt.data::date
+            + COALESCE(dt.horario_inicio, t.horario_inicio, '00:00'::time)
+              AS inicio_ts,
+          dt.data::date
+            + COALESCE(dt.horario_fim, t.horario_fim, '23:59'::time)
+              AS fim_ts
         FROM minhas_turmas mt
+        JOIN turmas t ON t.id = mt.turma_id
         JOIN datas_turma dt ON dt.turma_id = mt.turma_id
 
         UNION ALL
 
         SELECT
           mt.turma_id,
-          t.data_inicio::date AS data_presenca
+          t.data_inicio::date AS data_presenca,
+          t.data_inicio::date + COALESCE(t.horario_inicio, '00:00'::time)
+            AS inicio_ts,
+          t.data_fim::date + COALESCE(t.horario_fim, '23:59'::time)
+            AS fim_ts
         FROM minhas_turmas mt
         JOIN turmas t ON t.id = mt.turma_id
         WHERE NOT EXISTS (
@@ -2627,22 +2641,34 @@ async function obterMeuResumoPresencas(req, res) {
         FROM presencas
         WHERE usuario_id = $1
         GROUP BY turma_id, data_presenca::date
+      ),
+      agora AS (
+        SELECT (NOW() AT TIME ZONE $2)::timestamp AS valor
       )
       SELECT
         COUNT(*) FILTER (
-          WHERE db.data_presenca <= CURRENT_DATE
-            AND p.presente IS TRUE
+          WHERE p.presente IS TRUE
         )::int AS presencas_total,
         COUNT(*) FILTER (
-          WHERE db.data_presenca <= CURRENT_DATE
-            AND COALESCE(p.presente, FALSE) IS NOT TRUE
-        )::int AS faltas_total
-      FROM datas_base db
+          WHERE COALESCE(p.presente, FALSE) IS NOT TRUE
+            AND agora.valor > e.fim_ts
+        )::int AS faltas_total,
+        COUNT(*) FILTER (
+          WHERE COALESCE(p.presente, FALSE) IS NOT TRUE
+            AND agora.valor < e.inicio_ts
+        )::int AS aguardando_evento_total,
+        COUNT(*) FILTER (
+          WHERE COALESCE(p.presente, FALSE) IS NOT TRUE
+            AND agora.valor >= e.inicio_ts
+            AND agora.valor <= e.fim_ts
+        )::int AS aguardando_confirmacao_total
+      FROM encontros e
+      CROSS JOIN agora
       LEFT JOIN pres p
-        ON p.turma_id = db.turma_id
-       AND p.data_presenca = db.data_presenca
+        ON p.turma_id = e.turma_id
+       AND p.data_presenca = e.data_presenca
       `,
-      [usuarioId],
+      [usuarioId, TZ],
     );
 
     return ok(
@@ -2650,6 +2676,12 @@ async function obterMeuResumoPresencas(req, res) {
       {
         presencas_total: Number(result.rows?.[0]?.presencas_total || 0),
         faltas_total: Number(result.rows?.[0]?.faltas_total || 0),
+        aguardando_evento_total: Number(
+          result.rows?.[0]?.aguardando_evento_total || 0,
+        ),
+        aguardando_confirmacao_total: Number(
+          result.rows?.[0]?.aguardando_confirmacao_total || 0,
+        ),
       },
       "Resumo de presenças carregado.",
     );
@@ -2671,7 +2703,7 @@ async function listarMinhasPresencas(req, res) {
 
     const result = await query(
       `
-      WITH base AS (
+      WITH turmas_base AS (
         SELECT
           t.id AS turma_id,
           e.id AS evento_id,
@@ -2681,99 +2713,151 @@ async function listarMinhasPresencas(req, res) {
           to_char(t.data_fim::date, 'YYYY-MM-DD') AS data_fim,
           to_char(t.horario_inicio::time, 'HH24:MI') AS horario_inicio,
           to_char(t.horario_fim::time, 'HH24:MI') AS horario_fim,
-          (t.data_inicio::date + COALESCE(t.horario_inicio::time, '00:00'::time))::timestamp AS inicio_ts,
-          (t.data_fim::date + COALESCE(t.horario_fim::time, '23:59'::time))::timestamp AS fim_ts,
-COALESCE((
-  SELECT COUNT(*)::int
-  FROM datas_turma dt
-  WHERE dt.turma_id = t.id
-), 0) AS total_encontros_datas_turma,
-
-COALESCE((
-  SELECT COUNT(*)::int
-  FROM datas_turma dt
-  WHERE dt.turma_id = t.id
-), 0) AS total_encontros_datas_turma,
-
-COALESCE((
-  SELECT ARRAY_AGG(to_char(dt.data::date, 'YYYY-MM-DD') ORDER BY dt.data::date)
-  FROM datas_turma dt
-  WHERE dt.turma_id = t.id
-), ARRAY[to_char(t.data_inicio::date, 'YYYY-MM-DD')]) AS datas_encontros,
-
-COALESCE(SUM(CASE WHEN p.presente IS TRUE THEN 1 ELSE 0 END), 0)::int AS presentes_usuario,
-          COALESCE(SUM(CASE WHEN p.presente IS FALSE THEN 1 ELSE 0 END), 0)::int AS ausencias_usuario,
-          COALESCE(
-            ARRAY_REMOVE(
-              ARRAY_AGG(DISTINCT CASE WHEN p.data_presenca IS NOT NULL THEN to_char(p.data_presenca::date, 'YYYY-MM-DD') END),
-              NULL
-            ),
-            '{}'
-          ) AS datas_registradas,
-          COALESCE(
-            ARRAY_REMOVE(
-              ARRAY_AGG(DISTINCT CASE WHEN p.presente IS TRUE THEN to_char(p.data_presenca::date, 'YYYY-MM-DD') END),
-              NULL
-            ),
-            '{}'
-          ) AS datas_presentes,
-          COALESCE(
-            ARRAY_REMOVE(
-              ARRAY_AGG(DISTINCT CASE WHEN p.presente IS FALSE THEN to_char(p.data_presenca::date, 'YYYY-MM-DD') END),
-              NULL
-            ),
-            '{}'
-          ) AS datas_ausencias,
-          (NOW() AT TIME ZONE $2)::timestamp AS agora_sp
+          t.data_inicio::date AS data_inicio_ordem
         FROM inscricoes i
         JOIN turmas t ON t.id = i.turma_id
         JOIN eventos e ON e.id = t.evento_id
-        LEFT JOIN presencas p
-          ON p.usuario_id = i.usuario_id
-         AND p.turma_id = t.id
         WHERE i.usuario_id = $1
-        GROUP BY
-          t.id,
-          e.id,
-          e.titulo,
-          t.nome,
-          t.data_inicio,
-          t.data_fim,
-          t.horario_inicio,
-          t.horario_fim
+      ),
+      encontros_base AS (
+        SELECT
+          tb.turma_id,
+          dt.data::date AS data_encontro,
+          dt.data::date AS data_fim_encontro,
+          COALESCE(dt.horario_inicio, t.horario_inicio, '00:00'::time)
+            AS horario_inicio,
+          COALESCE(dt.horario_fim, t.horario_fim, '23:59'::time)
+            AS horario_fim
+        FROM turmas_base tb
+        JOIN turmas t ON t.id = tb.turma_id
+        JOIN datas_turma dt ON dt.turma_id = tb.turma_id
+
+        UNION ALL
+
+        SELECT
+          tb.turma_id,
+          t.data_inicio::date AS data_encontro,
+          t.data_fim::date AS data_fim_encontro,
+          COALESCE(t.horario_inicio, '00:00'::time) AS horario_inicio,
+          COALESCE(t.horario_fim, '23:59'::time) AS horario_fim
+        FROM turmas_base tb
+        JOIN turmas t ON t.id = tb.turma_id
+        WHERE NOT EXISTS (
+          SELECT 1 FROM datas_turma dt WHERE dt.turma_id = tb.turma_id
+        )
+      ),
+      pres AS (
+        SELECT
+          turma_id,
+          data_presenca::date AS data_presenca,
+          BOOL_OR(presente) AS presente,
+          TRUE AS registrada
+        FROM presencas
+        WHERE usuario_id = $1
+        GROUP BY turma_id, data_presenca::date
+      ),
+      encontros_status AS (
+        SELECT
+          eb.*,
+          COALESCE(p.registrada, FALSE) AS registrada,
+          CASE
+            WHEN p.presente IS TRUE THEN 'presenca_confirmada'
+            WHEN (NOW() AT TIME ZONE $2)::timestamp
+              < (eb.data_encontro + eb.horario_inicio) THEN 'aguardando_evento'
+            WHEN (NOW() AT TIME ZONE $2)::timestamp
+              <= (eb.data_fim_encontro + eb.horario_fim) THEN 'aguardando_confirmacao'
+            ELSE 'falta'
+          END AS status_encontro
+        FROM encontros_base eb
+        LEFT JOIN pres p
+          ON p.turma_id = eb.turma_id
+         AND p.data_presenca = eb.data_encontro
+      ),
+      encontros_agregados AS (
+        SELECT
+          turma_id,
+          COUNT(*)::int AS total_encontros,
+          COUNT(*) FILTER (WHERE status_encontro = 'presenca_confirmada')::int AS presentes,
+          COUNT(*) FILTER (WHERE status_encontro = 'falta')::int AS ausencias,
+          COUNT(*) FILTER (WHERE status_encontro = 'aguardando_evento')::int AS aguardando_evento,
+          COUNT(*) FILTER (WHERE status_encontro = 'aguardando_confirmacao')::int AS aguardando_confirmacao,
+          JSONB_AGG(
+            JSONB_BUILD_OBJECT(
+              'data', to_char(data_encontro, 'YYYY-MM-DD'),
+              'horario_inicio', to_char(horario_inicio, 'HH24:MI'),
+              'horario_fim', to_char(horario_fim, 'HH24:MI'),
+              'presente', status_encontro = 'presenca_confirmada',
+              'agora_local', to_char((NOW() AT TIME ZONE $2)::timestamp, 'YYYY-MM-DD"T"HH24:MI:SS.MS'),
+              'inicio_local', to_char(data_encontro + horario_inicio, 'YYYY-MM-DD"T"HH24:MI:SS.MS'),
+              'fim_local', to_char(data_fim_encontro + horario_fim, 'YYYY-MM-DD"T"HH24:MI:SS.MS'),
+              'status', status_encontro
+            )
+            ORDER BY data_encontro, horario_inicio
+          ) AS encontros,
+          ARRAY_AGG(to_char(data_encontro, 'YYYY-MM-DD') ORDER BY data_encontro) AS datas_encontros,
+          ARRAY_AGG(to_char(data_encontro, 'YYYY-MM-DD') ORDER BY data_encontro)
+            FILTER (WHERE registrada) AS datas_registradas,
+          ARRAY_AGG(to_char(data_encontro, 'YYYY-MM-DD') ORDER BY data_encontro)
+            FILTER (WHERE status_encontro = 'presenca_confirmada') AS datas_presentes,
+          ARRAY_AGG(to_char(data_encontro, 'YYYY-MM-DD') ORDER BY data_encontro)
+            FILTER (WHERE status_encontro = 'falta') AS datas_ausencias
+        FROM encontros_status
+        GROUP BY turma_id
       )
-      SELECT *
-      FROM base
-      ORDER BY data_inicio DESC, turma_id DESC
+      SELECT tb.*, ea.*
+      FROM turmas_base tb
+      JOIN encontros_agregados ea ON ea.turma_id = tb.turma_id
+      ORDER BY tb.data_inicio_ordem DESC, tb.turma_id DESC
       `,
       [usuarioId, TZ],
     );
 
     const turmas = (result.rows || []).map((row) => {
-      const datasEncontros = Array.isArray(row.datas_encontros)
-        ? row.datas_encontros.filter(Boolean)
-        : [];
-
-      const datasPresentes = Array.isArray(row.datas_presentes)
-        ? row.datas_presentes.filter(Boolean)
-        : [];
-
-      const datasAusencias = datasEncontros.filter(
-        (data) => !datasPresentes.includes(data),
+      const encontros = (Array.isArray(row.encontros) ? row.encontros : []).map(
+        (item) => ({
+          data: item.data,
+          horario_inicio: item.horario_inicio,
+          horario_fim: item.horario_fim,
+          status: classificarStatusEncontro({
+            presente: item.presente === true,
+            agora: item.agora_local,
+            inicio: item.inicio_local,
+            fim: item.fim_local,
+          }),
+        }),
       );
+      const datasEncontros = encontros.map((item) => item.data).filter(Boolean);
+      const datasPresentes = encontros
+        .filter((item) => item.status === "presenca_confirmada")
+        .map((item) => item.data);
+      const datasAusencias = encontros
+        .filter((item) => item.status === "falta")
+        .map((item) => item.data);
 
-      const totalDatas = datasEncontros.length;
-      const totalEncontros = totalDatas > 0 ? totalDatas : 1;
-      const presentes = datasPresentes.length;
-      const ausencias = datasAusencias.length;
+      const totalEncontros = Number(row.total_encontros || encontros.length);
+      const presentes = encontros.filter(
+        (item) => item.status === "presenca_confirmada",
+      ).length;
+      const ausencias = encontros.filter(
+        (item) => item.status === "falta",
+      ).length;
+      const aguardandoEvento = encontros.filter(
+        (item) => item.status === "aguardando_evento",
+      ).length;
+      const aguardandoConfirmacao = encontros.filter(
+        (item) => item.status === "aguardando_confirmacao",
+      ).length;
 
       let status = "programado";
 
-      if (row.agora_sp >= row.inicio_ts && row.agora_sp <= row.fim_ts) {
+      if (
+        aguardandoConfirmacao > 0 ||
+        (aguardandoEvento > 0 && presentes + ausencias > 0)
+      ) {
         status = "andamento";
       }
 
-      if (row.agora_sp > row.fim_ts) {
+      if (aguardandoEvento === 0 && aguardandoConfirmacao === 0) {
         status = "encerrado";
       }
 
@@ -2796,6 +2880,9 @@ COALESCE(SUM(CASE WHEN p.presente IS TRUE THEN 1 ELSE 0 END), 0)::int AS present
         total_encontros: totalEncontros,
         presentes,
         ausencias,
+        aguardando_evento: aguardandoEvento,
+        aguardando_confirmacao: aguardandoConfirmacao,
+        encontros,
         pre_elegivel_avaliacao:
           status === "encerrado" && frequenciaDecimal >= 0.75,
         frequencia,

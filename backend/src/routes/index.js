@@ -142,6 +142,7 @@ const uploadRoute = require("./uploadRoute");
 const eventoRoute = require("./eventoRoute");
 const turmaRoute = require("./turmaRoute");
 const inscricaoRoute = require("./inscricaoRoute");
+const preTesteRoute = require("./preTesteRoute");
 const agendaRoute = require("./agendaRoute");
 
 // Calendário
@@ -242,6 +243,7 @@ mount("/upload", uploadRoute, "uploadRoute");
 mount("/evento", eventoRoute, "eventoRoute");
 mount("/turma", turmaRoute, "turmaRoute");
 mount("/inscricao", inscricaoRoute, "inscricaoRoute");
+mount("/pre-teste", preTesteRoute, "preTesteRoute");
 mount("/agenda", agendaRoute, "agendaRoute");
 
 /* ─────────────────────────────────────────────────────────────

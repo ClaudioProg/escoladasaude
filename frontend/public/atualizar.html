@@ -16,7 +16,10 @@
       content="Página de atualização da Plataforma Escola da Saúde."
     />
 
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-store, no-cache, must-revalidate"
+    />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
@@ -42,10 +45,19 @@
         margin: 0;
         min-height: 100vh;
         font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
         background:
-          radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 34rem),
+          radial-gradient(
+            circle at top left,
+            rgba(16, 185, 129, 0.18),
+            transparent 34rem
+          ),
           linear-gradient(135deg, #ecfdf5 0%, #ffffff 48%, #ecfeff 100%);
         color: var(--text);
       }
@@ -190,14 +202,15 @@
         <h1 id="titulo">Atualizar plataforma</h1>
 
         <p>
-          Use esta página quando a plataforma estiver mostrando uma versão antiga,
-          quando uma atualização não aparecer no celular ou quando o navegador estiver
-          mantendo arquivos antigos em cache.
+          Use esta página quando a plataforma estiver mostrando uma versão
+          antiga, quando uma atualização não aparecer no celular ou quando o
+          navegador estiver mantendo arquivos antigos em cache.
         </p>
 
         <p>
-          Ao continuar, serão limpos apenas os caches técnicos relacionados à plataforma.
-          Seus dados de login e informações institucionais não serão apagados.
+          Ao continuar, serão limpos apenas os caches técnicos relacionados à
+          plataforma. Seus dados de login e informações institucionais não serão
+          apagados.
         </p>
 
         <div class="actions">
@@ -205,9 +218,9 @@
             Atualizar plataforma agora
           </button>
 
-         <a id="linkVoltar" href="/login?atualizado=1">
-  Voltar para o login
-</a>
+          <a id="linkVoltar" href="/login?atualizado=1">
+            Voltar para a plataforma
+          </a>
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite">
@@ -215,28 +228,47 @@
         </div>
 
         <p class="hint">
-          Se a plataforma continuar exibindo versão antiga após atualizar, feche todas
-          as abas abertas da Escola da Saúde e acesse novamente.
+          Se a plataforma continuar exibindo versão antiga após atualizar, feche
+          todas as abas abertas da Escola da Saúde e acesse novamente.
         </p>
       </section>
     </main>
 
     <script>
       (function () {
-        const STORAGE_KEYS_TO_REMOVE = [
-          "escola_build_version"
-        ];
+        const STORAGE_KEYS_TO_REMOVE = ["escola_build_version"];
 
         const CACHE_NAME_TERMS = [
           "escola",
           "vite",
           "workbox",
           "precache",
-          "runtime"
+          "runtime",
         ];
 
         const btn = document.getElementById("btnAtualizar");
         const status = document.getElementById("status");
+        const linkVoltar = document.getElementById("linkVoltar");
+        const params = new URLSearchParams(window.location.search);
+        const marcadorAtualizacao = String(params.get("versao") || "1");
+
+        function obterDestinoSeguro() {
+          const retorno = String(params.get("retorno") || "/login");
+
+          if (!retorno.startsWith("/") || retorno.startsWith("//")) {
+            return `/login?atualizado=${encodeURIComponent(marcadorAtualizacao)}`;
+          }
+
+          const destino = new URL(retorno, window.location.origin);
+          if (destino.origin !== window.location.origin) {
+            return `/login?atualizado=${encodeURIComponent(marcadorAtualizacao)}`;
+          }
+
+          destino.searchParams.set("atualizado", marcadorAtualizacao);
+          return `${destino.pathname}${destino.search}${destino.hash}`;
+        }
+
+        linkVoltar.href = obterDestinoSeguro();
 
         function setStatus(message, isError) {
           status.textContent = message;
@@ -268,14 +300,15 @@
             return "Service Worker não disponível neste navegador.";
           }
 
-          const registrations = await navigator.serviceWorker.getRegistrations();
+          const registrations =
+            await navigator.serviceWorker.getRegistrations();
 
           if (!registrations.length) {
             return "Nenhum Service Worker registrado.";
           }
 
           await Promise.all(
-            registrations.map((registration) => registration.unregister())
+            registrations.map((registration) => registration.unregister()),
           );
 
           return `${registrations.length} Service Worker(s) removido(s).`;
@@ -308,10 +341,10 @@
             resultados.push(await limparServiceWorkers());
 
             setStatus(
-              `${resultados.join("\n")}\n\nRedirecionando para a plataforma atualizada...`
+              `${resultados.join("\n")}\n\nRedirecionando para a plataforma atualizada...`,
             );
 
-            const destino = `/login?atualizado=${Date.now()}`;
+            const destino = obterDestinoSeguro();
 
             window.setTimeout(() => {
               window.location.replace(destino);
@@ -323,7 +356,7 @@
               "Não foi possível concluir toda a limpeza automaticamente.\n\n" +
                 "Tente fechar todas as abas da plataforma e abrir novamente.\n\n" +
                 `Detalhe técnico: ${error && error.message ? error.message : "erro desconhecido"}`,
-              true
+              true,
             );
 
             btn.disabled = false;
@@ -333,18 +366,19 @@
 
         btn.addEventListener("click", atualizarPlataforma);
 
-const params = new URLSearchParams(window.location.search);
-const deveAtualizarAutomatico =
-  params.has("origem") ||
-  params.has("forcar") ||
-  params.get("motivo") === "chunk" ||
-  params.get("motivo") === "module";
+        const deveAtualizarAutomatico =
+          params.has("origem") ||
+          params.has("forcar") ||
+          params.get("motivo") === "chunk" ||
+          params.get("motivo") === "module" ||
+          params.get("motivo") === "dynamic-import";
 
-if (deveAtualizarAutomatico) {
-  window.setTimeout(() => {
-    atualizarPlataforma();
-  }, 300);
-}
+        if (deveAtualizarAutomatico) {
+          setStatus("Atualizando a plataforma automaticamente...");
+          window.setTimeout(() => {
+            atualizarPlataforma();
+          }, 300);
+        }
       })();
     </script>
   </body>

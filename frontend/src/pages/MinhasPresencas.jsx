@@ -217,12 +217,6 @@ function statusInfo(status) {
   };
 }
 
-function extrairDatasPresentes(turma) {
-  const datas = turma?.datas?.presentes;
-
-  return Array.isArray(datas) ? datas.map(ymd).filter(Boolean) : [];
-}
-
 function extrairDatasAusencias(turma) {
   const diretas =
     turma?.datas?.ausencias ||
@@ -230,43 +224,53 @@ function extrairDatasAusencias(turma) {
     turma?.datas_ausencias ||
     turma?.datasAusencias;
 
-  if (Array.isArray(diretas) && diretas.length) {
+  if (Array.isArray(diretas)) {
     return diretas.map(ymd).filter(Boolean);
   }
 
-  const todas =
-    turma?.datas?.todas ||
-    turma?.datas?.encontros ||
-    turma?.datas?.aulas ||
-    turma?.encontros ||
-    turma?.todas_datas ||
-    turma?.datas_encontros;
-
-  if (!Array.isArray(todas) || todas.length === 0) {
-    return [];
-  }
-
-  const presentes = new Set(extrairDatasPresentes(turma));
-
-  return todas
-    .map(ymd)
-    .filter(Boolean)
-    .filter((data) => !presentes.has(data));
+  return Array.isArray(turma?.encontros)
+    ? turma.encontros
+        .filter((encontro) => encontro?.status === "falta")
+        .map((encontro) => ymd(encontro?.data))
+        .filter(Boolean)
+    : [];
 }
 
 function calcularAusencias(turma) {
-  const total = Number(turma?.total_encontros || 0);
-  const presentes = Number(turma?.presentes || 0);
-
-  const derivadas = Math.max(0, total - presentes);
-
-  const datasAusencias = extrairDatasAusencias(turma);
-
-  if (datasAusencias.length > 0) {
-    return datasAusencias.length;
+  const informadas = Number(turma?.ausencias);
+  if (Number.isFinite(informadas) && informadas >= 0) {
+    return informadas;
   }
 
-  return derivadas;
+  const datasAusencias = extrairDatasAusencias(turma);
+  return datasAusencias.length;
+}
+
+function extrairEncontros(turma) {
+  return Array.isArray(turma?.encontros) ? turma.encontros : [];
+}
+
+function encontroStatusInfo(status) {
+  const mapa = {
+    aguardando_evento: {
+      label: "Aguardando evento",
+      tone: "info",
+      icon: CalendarDays,
+    },
+    aguardando_confirmacao: {
+      label: "Aguardando confirmação",
+      tone: "warn",
+      icon: Clock,
+    },
+    presenca_confirmada: {
+      label: "Presença confirmada",
+      tone: "success",
+      icon: CheckCircle2,
+    },
+    falta: { label: "Falta", tone: "danger", icon: XCircle },
+  };
+
+  return mapa[String(status || "").toLowerCase()] || mapa.aguardando_evento;
 }
 
 function getPeriodoInicio(turma) {
@@ -593,10 +597,12 @@ function PresencaCard({ turma, index, reduceMotion }) {
     turma?.pre_elegivel_avaliacao === true ||
     (freq >= CERT_THRESHOLD && encerrado);
 
-  const datasPresentes = extrairDatasPresentes(turma);
-  const datasAusencias = extrairDatasAusencias(turma);
-  const precisaFallbackAusencia =
-    (!datasAusencias || datasAusencias.length === 0) && ausencias > 0;
+  const encontros = extrairEncontros(turma);
+  const possuiEncontroPendente = encontros.some((encontro) =>
+    ["aguardando_evento", "aguardando_confirmacao"].includes(
+      encontro?.status,
+    ),
+  );
 
   return (
     <motion.article
@@ -702,66 +708,51 @@ function PresencaCard({ turma, index, reduceMotion }) {
         <ProgressBar value={freq} threshold={CERT_THRESHOLD} />
 
         <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-          {freq >= CERT_THRESHOLD
-            ? "Requisito mínimo de 75% atendido."
-            : "Atenção: frequência abaixo do requisito mínimo de 75%."}
+          {possuiEncontroPendente
+            ? "A frequência será consolidada após o encerramento dos encontros pendentes."
+            : freq >= CERT_THRESHOLD
+              ? "Requisito mínimo de 75% atendido."
+              : "Atenção: frequência abaixo do requisito mínimo de 75%."}
         </p>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
-          <div className="mb-2 flex items-center gap-2 text-slate-800 dark:text-slate-100">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-sm font-black">Datas com presença</span>
-          </div>
-
-          {datasPresentes.length ? (
-            <div className="flex flex-wrap gap-2">
-              {datasPresentes.map((data) => (
-                <span
-                  key={data}
-                  className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-                >
-                  {formatarDataBR(data)}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Nenhuma data confirmada.
-            </div>
-          )}
+      <div className="mt-5 rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
+        <div className="mb-3 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+          <CalendarDays className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+          <span className="text-sm font-black">Situação por encontro</span>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
-          <div className="mb-2 flex items-center gap-2 text-slate-800 dark:text-slate-100">
-            <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-            <span className="text-sm font-black">Datas de ausência</span>
-          </div>
+        {encontros.length ? (
+          <div className="grid gap-2">
+            {encontros.map((encontro, encontroIndex) => {
+              const info = encontroStatusInfo(encontro?.status);
+              const EncontroIcon = info.icon;
+              const inicio = formatarHora(encontro?.horario_inicio);
+              const fim = formatarHora(encontro?.horario_fim);
 
-          {datasAusencias.length ? (
-            <div className="flex flex-wrap gap-2">
-              {datasAusencias.map((data) => (
-                <span
-                  key={data}
-                  className="rounded-lg bg-rose-50 px-2 py-1 text-xs font-bold text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+              return (
+                <div
+                  key={`${encontro?.data || "encontro"}-${inicio}-${encontroIndex}`}
+                  className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  {formatarDataBR(data)}
-                </span>
-              ))}
-            </div>
-          ) : precisaFallbackAusencia ? (
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              {ausencias === 1
-                ? "1 ausência registrada sem data detalhada."
-                : `${ausencias} ausências registradas sem datas detalhadas.`}
-            </div>
-          ) : (
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Nenhuma ausência registrada.
-            </div>
-          )}
-        </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                    {formatarDataBR(encontro?.data)}
+                    {inicio ? ` · ${inicio}` : ""}
+                    {fim ? ` às ${fim}` : ""}
+                  </span>
+                  <Badge tone={info.tone} title="Situação deste encontro">
+                    <EncontroIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {info.label}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Os encontros ainda não possuem detalhamento disponível.
+          </p>
+        )}
       </div>
     </motion.article>
   );

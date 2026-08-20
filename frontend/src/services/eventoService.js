@@ -75,6 +75,7 @@ export const EVENTO_STATUS = Object.freeze({
 const EVENTO_BASE = "/evento";
 const TURMA_BASE = "/turma";
 const INSCRICAO_BASE = "/inscricao";
+const PRE_TESTE_BASE = "/pre-teste";
 
 const RAFAELLA_PITOL_ID = 17;
 const FABIO_LOPEZ_ID = 2474;
@@ -655,7 +656,7 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
       : [];
 
   const turmasFonte =
-    Array.isArray(source?.turmas) && source.turmas.length
+    Array.isArray(source?.turmas)
       ? source.turmas
       : Array.isArray(base?.turmas) && base.turmas.length
         ? base.turmas
@@ -681,6 +682,7 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
     tipo,
     unidade_id: unidadeId,
     publico_alvo: publicoAlvo,
+    salvar_como_rascunho: source?.salvar_como_rascunho === true,
 
     restrito,
     restrito_modo: restrito ? restritoModo : null,
@@ -736,13 +738,18 @@ export function validateEventoPayload(payload = {}) {
     return "Informe a unidade do evento.";
   }
 
-  if (!Array.isArray(payload?.turmas) || !payload.turmas.length) {
+  if (
+    payload?.salvar_como_rascunho !== true &&
+    (!Array.isArray(payload?.turmas) || !payload.turmas.length)
+  ) {
     return "Informe ao menos uma turma para o evento.";
   }
 
-  const erroTurmas = validarTurmasComorganizadores(payload.turmas);
-  if (erroTurmas) {
-    return erroTurmas;
+  if (Array.isArray(payload?.turmas) && payload.turmas.length) {
+    const erroTurmas = validarTurmasComorganizadores(payload.turmas);
+    if (erroTurmas) {
+      return erroTurmas;
+    }
   }
 
   if (
@@ -1123,18 +1130,29 @@ export async function excluirEvento(eventoId, opts = {}) {
   });
 }
 
-export async function publicarEvento(eventoId, opts = {}) {
+export async function publicarEvento(
+  eventoId,
+  dadosOuOpts = {},
+  opts = {},
+) {
   const id = toPositiveIntOrNull(eventoId);
 
   if (!id) {
     throw new Error("evento_id é obrigatório.");
   }
 
-  return apiPost(`${EVENTO_BASE}/${id}/publicar`, null, {
+  const possuiContratoPreTeste = Object.prototype.hasOwnProperty.call(
+    dadosOuOpts || {},
+    "pre_teste",
+  );
+  const dados = possuiContratoPreTeste ? dadosOuOpts : null;
+  const requestOpts = possuiContratoPreTeste ? opts : dadosOuOpts;
+
+  return apiPost(`${EVENTO_BASE}/${id}/publicar`, dados, {
     auth: true,
     on401: "redirect",
     on403: "silent",
-    ...opts,
+    ...requestOpts,
   });
 }
 
@@ -1346,23 +1364,253 @@ export async function listarInscritosDaTurma(turmaId, opts = {}) {
   return unwrapDataArray(response);
 }
 
-export async function inscreverNaTurma(turmaId, opts = {}) {
+export async function inscreverNaTurma(
+  turmaId,
+  preTesteOuOpts = null,
+  opts = {},
+) {
   const id = toPositiveIntOrNull(turmaId);
 
   if (!id) {
     throw new Error("turma_id é obrigatório.");
   }
 
+  const segundoArgumentoEhPreTeste = Boolean(
+    preTesteOuOpts &&
+      typeof preTesteOuOpts === "object" &&
+      (Object.prototype.hasOwnProperty.call(preTesteOuOpts, "versao_id") ||
+        Object.prototype.hasOwnProperty.call(preTesteOuOpts, "respostas")),
+  );
+  const preTeste = segundoArgumentoEhPreTeste ? preTesteOuOpts : null;
+  const opcoes = segundoArgumentoEhPreTeste
+    ? opts
+    : preTesteOuOpts && typeof preTesteOuOpts === "object"
+      ? preTesteOuOpts
+      : opts;
+
   return apiPost(
     INSCRICAO_BASE,
-    { turma_id: id },
+    {
+      turma_id: id,
+      ...(preTeste ? { pre_teste: preTeste } : {}),
+    },
     {
       auth: true,
       on401: "redirect",
       on403: "silent",
-      ...opts,
+      ...opcoes,
     },
   );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   API — pré-teste diagnóstico
+───────────────────────────────────────────────────────────────────────────── */
+
+export async function carregarPreTesteAdmin(eventoId, opts = {}) {
+  const id = toPositiveIntOrNull(eventoId);
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
+  const response = await apiGet(`${PRE_TESTE_BASE}/evento/${id}`, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+  return unwrapDataObject(response);
+}
+
+export async function criarRascunhoPreTeste(eventoId, opts = {}) {
+  const id = toPositiveIntOrNull(eventoId);
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
+  const response = await apiPost(
+    `${PRE_TESTE_BASE}/evento/${id}/rascunho`,
+    {},
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function adicionarPerguntaPreTeste(versaoId, dados, opts = {}) {
+  const id = toPositiveIntOrNull(versaoId);
+  if (!id) {
+    throw new Error("versao_id é obrigatório.");
+  }
+  const response = await apiPost(
+    `${PRE_TESTE_BASE}/versao/${id}/pergunta`,
+    dados,
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function atualizarPerguntaPreTeste(
+  versaoId,
+  perguntaId,
+  dados,
+  opts = {},
+) {
+  const vid = toPositiveIntOrNull(versaoId);
+  const pid = toPositiveIntOrNull(perguntaId);
+  if (!vid || !pid) {
+    throw new Error("Pergunta do pré-teste inválida.");
+  }
+  const response = await apiPut(
+    `${PRE_TESTE_BASE}/versao/${vid}/pergunta/${pid}`,
+    dados,
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function excluirPerguntaPreTeste(
+  versaoId,
+  perguntaId,
+  opts = {},
+) {
+  const vid = toPositiveIntOrNull(versaoId);
+  const pid = toPositiveIntOrNull(perguntaId);
+  if (!vid || !pid) {
+    throw new Error("Pergunta do pré-teste inválida.");
+  }
+  return apiDelete(
+    `${PRE_TESTE_BASE}/versao/${vid}/pergunta/${pid}`,
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+}
+
+export async function reordenarPerguntasPreTeste(versaoId, ids, opts = {}) {
+  const id = toPositiveIntOrNull(versaoId);
+  if (!id) {
+    throw new Error("versao_id é obrigatório.");
+  }
+  const response = await apiPut(
+    `${PRE_TESTE_BASE}/versao/${id}/perguntas/ordem`,
+    { ids },
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function adicionarAlternativaPreTeste(
+  perguntaId,
+  dados,
+  opts = {},
+) {
+  const id = toPositiveIntOrNull(perguntaId);
+  if (!id) {
+    throw new Error("pergunta_id é obrigatório.");
+  }
+  const response = await apiPost(
+    `${PRE_TESTE_BASE}/pergunta/${id}/alternativa`,
+    dados,
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function atualizarAlternativaPreTeste(
+  alternativaId,
+  dados,
+  opts = {},
+) {
+  const id = toPositiveIntOrNull(alternativaId);
+  if (!id) {
+    throw new Error("alternativa_id é obrigatório.");
+  }
+  const response = await apiPut(
+    `${PRE_TESTE_BASE}/alternativa/${id}`,
+    dados,
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function excluirAlternativaPreTeste(alternativaId, opts = {}) {
+  const id = toPositiveIntOrNull(alternativaId);
+  if (!id) {
+    throw new Error("alternativa_id é obrigatório.");
+  }
+  return apiDelete(`${PRE_TESTE_BASE}/alternativa/${id}`, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
+}
+
+export async function reordenarAlternativasPreTeste(
+  perguntaId,
+  ids,
+  opts = {},
+) {
+  const id = toPositiveIntOrNull(perguntaId);
+  if (!id) {
+    throw new Error("pergunta_id é obrigatório.");
+  }
+  const response = await apiPut(
+    `${PRE_TESTE_BASE}/pergunta/${id}/alternativas/ordem`,
+    { ids },
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function publicarPreTeste(versaoId, opts = {}) {
+  const id = toPositiveIntOrNull(versaoId);
+  if (!id) {
+    throw new Error("versao_id é obrigatório.");
+  }
+  const response = await apiPost(
+    `${PRE_TESTE_BASE}/versao/${id}/publicar`,
+    {},
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function definirPreTesteAtivo(
+  eventoId,
+  ativo,
+  configuracaoOuOpts = {},
+  opts = {},
+) {
+  const id = toPositiveIntOrNull(eventoId);
+  if (!id || typeof ativo !== "boolean") {
+    throw new Error("Evento e estado do pré-teste são obrigatórios.");
+  }
+  const descartarRascunho =
+    configuracaoOuOpts?.descartarRascunho === true;
+  const possuiConfiguracao = Object.prototype.hasOwnProperty.call(
+    configuracaoOuOpts || {},
+    "descartarRascunho",
+  );
+  const response = await apiPut(
+    `${PRE_TESTE_BASE}/evento/${id}/ativacao`,
+    { ativo, descartar_rascunho: descartarRascunho },
+    {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...(possuiConfiguracao ? opts : configuracaoOuOpts),
+    },
+  );
+  return unwrapDataObject(response);
+}
+
+export async function carregarPreTesteParticipante(eventoId, opts = {}) {
+  const id = toPositiveIntOrNull(eventoId);
+  if (!id) {
+    throw new Error("evento_id é obrigatório.");
+  }
+  const response = await apiGet(
+    `${PRE_TESTE_BASE}/evento/${id}/responder`,
+    { auth: true, on401: "redirect", on403: "silent", ...opts },
+  );
+  return unwrapDataObject(response);
 }
 
 export async function cancelarInscricao(inscricaoId, opts = {}) {
@@ -1513,6 +1761,26 @@ export const EventoService = {
     cancelarMinhaPorTurma: cancelarMinhaInscricaoPorTurma,
     verificarConflitoTurma,
     getPorTurmaId: getInscricaoPorTurmaId,
+  },
+
+  preTeste: {
+    admin: {
+      carregar: carregarPreTesteAdmin,
+      criarRascunho: criarRascunhoPreTeste,
+      adicionarPergunta: adicionarPerguntaPreTeste,
+      atualizarPergunta: atualizarPerguntaPreTeste,
+      excluirPergunta: excluirPerguntaPreTeste,
+      reordenarPerguntas: reordenarPerguntasPreTeste,
+      adicionarAlternativa: adicionarAlternativaPreTeste,
+      atualizarAlternativa: atualizarAlternativaPreTeste,
+      excluirAlternativa: excluirAlternativaPreTeste,
+      reordenarAlternativas: reordenarAlternativasPreTeste,
+      publicar: publicarPreTeste,
+      definirAtivo: definirPreTesteAtivo,
+    },
+    participante: {
+      carregar: carregarPreTesteParticipante,
+    },
   },
 };
 
