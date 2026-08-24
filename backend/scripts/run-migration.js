@@ -38,6 +38,12 @@ const { Pool } = require("pg");
 const DEFAULT_TIMEOUT_MS = 60000;
 const MIGRATION_TABLE = "sistema_migracao";
 const DEFAULT_POSTGRES_PORT = "5432";
+const MIGRATION_RUNNER_ADVISORY_LOCK_KEY_1 = 1163082829;
+const MIGRATION_RUNNER_ADVISORY_LOCK_KEY_2 = 1381320274;
+const MIGRATION_RUNNER_ADVISORY_LOCK_SQL =
+  "SELECT pg_try_advisory_lock($1, $2) AS acquired;";
+const MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL =
+  "SELECT pg_advisory_unlock($1, $2) AS released;";
 const BACKEND_ROOT = path.resolve(__dirname, "..");
 const OFFICIAL_MIGRATIONS_ROOT = path.join(BACKEND_ROOT, "db", "migrations");
 const FORBIDDEN_TARGET_QUERY_PARAMS = new Set(["host", "port", "options"]);
@@ -185,23 +191,46 @@ async function main(options = {}) {
         [`${timeout}ms`],
       );
 
-      await ensureMigrationTableFn(client);
+      await acquireMigrationRunnerAdvisoryLock(client);
+      let executionError;
 
-      await applyFilesSequentially(
-        client,
-        files,
-        {
-          log,
-          output,
-          sensitiveValues,
-        },
-        applyFileFn,
-      );
+      try {
+        await ensureMigrationTableFn(client);
 
-      output.log("\n✅ Todas as migrações concluídas sem erros.");
+        await applyFilesSequentially(
+          client,
+          files,
+          {
+            log,
+            output,
+            sensitiveValues,
+          },
+          applyFileFn,
+        );
 
-      const secs = ((Date.now() - startedAt) / 1000).toFixed(2);
-      output.log(`⏱️  Tempo total: ${secs}s`);
+        output.log("\n✅ Todas as migrações concluídas sem erros.");
+
+        const secs = ((Date.now() - startedAt) / 1000).toFixed(2);
+        output.log(`⏱️  Tempo total: ${secs}s`);
+      } catch (err) {
+        executionError = err;
+        throw err;
+      } finally {
+        try {
+          await releaseMigrationRunnerAdvisoryLock(client);
+        } catch (unlockError) {
+          if (executionError) {
+            output.error(
+              `Diagnóstico: falha ao liberar advisory lock: ${sanitizeText(
+                unlockError.message,
+                sensitiveValues,
+              )}`,
+            );
+          } else {
+            throw unlockError;
+          }
+        }
+      }
     } finally {
       client.release();
       await pool.end().catch(() => {});
@@ -705,6 +734,34 @@ function decideSSL(connectionString, args, env = process.env) {
     /neon\.tech/i.test(connectionString);
 
   return envSSL || urlRequiresSSL ? { rejectUnauthorized: false } : false;
+}
+
+async function acquireMigrationRunnerAdvisoryLock(client) {
+  const result = await client.query(MIGRATION_RUNNER_ADVISORY_LOCK_SQL, [
+    MIGRATION_RUNNER_ADVISORY_LOCK_KEY_1,
+    MIGRATION_RUNNER_ADVISORY_LOCK_KEY_2,
+  ]);
+
+  if (result.rows?.[0]?.acquired !== true) {
+    fail("Outro runner de migrations ja esta em execucao.");
+  }
+}
+
+async function releaseMigrationRunnerAdvisoryLock(client) {
+  let result;
+
+  try {
+    result = await client.query(MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL, [
+      MIGRATION_RUNNER_ADVISORY_LOCK_KEY_1,
+      MIGRATION_RUNNER_ADVISORY_LOCK_KEY_2,
+    ]);
+  } catch {
+    fail("Falha operacional ao liberar advisory lock do runner.");
+  }
+
+  if (result.rows?.[0]?.released !== true) {
+    fail("Inconsistencia: advisory lock do runner nao estava adquirido.");
+  }
 }
 
 async function validateConnectedTarget(client, expectedDatabase) {
@@ -1790,8 +1847,13 @@ function fail(message) {
 
 module.exports = {
   BACKEND_ROOT,
+  MIGRATION_RUNNER_ADVISORY_LOCK_KEY_1,
+  MIGRATION_RUNNER_ADVISORY_LOCK_KEY_2,
+  MIGRATION_RUNNER_ADVISORY_LOCK_SQL,
+  MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL,
   OFFICIAL_MIGRATIONS_ROOT,
   TARGET_DIAGNOSTIC_SQL,
+  acquireMigrationRunnerAdvisoryLock,
   applyFile,
   applyFilesSequentially,
   buildCanonicalMigrationId,
@@ -1806,6 +1868,7 @@ module.exports = {
   prettyPgError,
   registerAppliedMigration,
   resolveFiles,
+  releaseMigrationRunnerAdvisoryLock,
   sanitizeText,
   validateMigrationSql,
   validateConnectedTarget,

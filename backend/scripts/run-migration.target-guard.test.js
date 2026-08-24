@@ -6,6 +6,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const {
+  MIGRATION_RUNNER_ADVISORY_LOCK_SQL,
+  MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL,
   TARGET_DIAGNOSTIC_SQL,
   getRequiredConnectionString,
   main,
@@ -70,6 +72,18 @@ function diagnosticRows(database = EXPECTED_DATABASE, schema = "public") {
       server_version: "17.5",
     },
   ];
+}
+
+function advisoryLockResult(sql) {
+  if (sql === MIGRATION_RUNNER_ADVISORY_LOCK_SQL) {
+    return { rows: [{ acquired: true }] };
+  }
+
+  if (sql === MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL) {
+    return { rows: [{ released: true }] };
+  }
+
+  return null;
 }
 
 function makePoolClass(options = {}) {
@@ -287,6 +301,9 @@ test("DATABASE_URL é lida uma única vez e a mesma string chega ao Pool", async
         events.push("diagnostic");
         return { rows: diagnosticRows() };
       }
+
+      const advisoryResult = advisoryLockResult(sql);
+      if (advisoryResult) return advisoryResult;
 
       events.push("set");
       return { rows: [] };
@@ -623,6 +640,12 @@ test("diagnóstico aprovado configura timeout antes de ensureMigrationTable", as
         return { rows: diagnosticRows(EXPECTED_DATABASE, "custom_schema") };
       }
 
+      const advisoryResult = advisoryLockResult(sql);
+      if (advisoryResult) {
+        events.push(sql === MIGRATION_RUNNER_ADVISORY_LOCK_SQL ? "lock" : "unlock");
+        return advisoryResult;
+      }
+
       assert.equal(sql, STATEMENT_TIMEOUT_SQL);
       assert.deepEqual(params, ["60000ms"]);
       events.push("set_config");
@@ -648,8 +671,10 @@ test("diagnóstico aprovado configura timeout antes de ensureMigrationTable", as
     "connect",
     "diagnostic",
     "set_config",
+    "lock",
     "ensure",
     "apply",
+    "unlock",
     "release",
     "end",
   ]);
@@ -662,6 +687,9 @@ test("--timeout customizado é enviado ao set_config em milissegundos", async ()
       if (sql === TARGET_DIAGNOSTIC_SQL) {
         return { rows: diagnosticRows() };
       }
+
+      const advisoryResult = advisoryLockResult(sql);
+      if (advisoryResult) return advisoryResult;
 
       timeoutCalls.push({ sql, params });
       return { rows: [] };
@@ -729,6 +757,9 @@ test("saída de sucesso não contém URL, usuário, senha ou query", async () =>
       if (sql === TARGET_DIAGNOSTIC_SQL) {
         return { rows: diagnosticRows() };
       }
+
+      const advisoryResult = advisoryLockResult(sql);
+      if (advisoryResult) return advisoryResult;
 
       return { rows: [] };
     },

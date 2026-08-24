@@ -7,6 +7,8 @@ const path = require("node:path");
 
 const {
   TARGET_DIAGNOSTIC_SQL,
+  MIGRATION_RUNNER_ADVISORY_LOCK_SQL,
+  MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL,
   applyFile,
   applyFilesSequentially,
   main,
@@ -554,6 +556,16 @@ test("falha na aplicacao interrompe o fluxo e mantem cleanup", async () => {
         };
       }
 
+      if (sql === MIGRATION_RUNNER_ADVISORY_LOCK_SQL) {
+        events.push("lock");
+        return { rows: [{ acquired: true }] };
+      }
+
+      if (sql === MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL) {
+        events.push("unlock");
+        return { rows: [{ released: true }] };
+      }
+
       assert.equal(sql, STATEMENT_TIMEOUT_SQL);
       assert.deepEqual(params, ["60000ms"]);
       events.push("set_config");
@@ -607,8 +619,10 @@ test("falha na aplicacao interrompe o fluxo e mantem cleanup", async () => {
     "connect",
     "diagnostic",
     "set_config",
+    "lock",
     "ensure",
     "apply",
+    "unlock",
     "release",
     "end",
   ]);
