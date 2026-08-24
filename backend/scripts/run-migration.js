@@ -37,6 +37,8 @@ const { Pool } = require("pg");
 
 const DEFAULT_TIMEOUT_MS = 60000;
 const MIGRATION_TABLE = "sistema_migracao";
+const MIGRATION_LEDGER_APPLIED_AT_INDEX =
+  "idx_sistema_migracao_aplicada_em";
 const DEFAULT_POSTGRES_PORT = "5432";
 const MIGRATION_RUNNER_ADVISORY_LOCK_KEY_1 = 1163082829;
 const MIGRATION_RUNNER_ADVISORY_LOCK_KEY_2 = 1381320274;
@@ -169,7 +171,10 @@ async function main(options = {}) {
       fail("Falha segura ao conectar ao alvo PostgreSQL esperado.");
     }
 
+    let primaryError;
+
     try {
+      try {
       const diagnostic = await validateConnectedTarget(
         client,
         expectedTarget.database,
@@ -231,9 +236,20 @@ async function main(options = {}) {
           }
         }
       }
+      } catch (err) {
+        primaryError = err;
+        throw err;
+      }
     } finally {
-      client.release();
-      await pool.end().catch(() => {});
+      const cleanupError = await cleanupRunnerResources(client, pool, {
+        output,
+        sensitiveValues,
+        primaryError,
+      });
+
+      if (!primaryError && cleanupError) {
+        throw cleanupError;
+      }
     }
 
     return { ok: true, dryRun: false };
@@ -764,6 +780,45 @@ async function releaseMigrationRunnerAdvisoryLock(client) {
   }
 }
 
+async function cleanupRunnerResources(
+  client,
+  pool,
+  { output, sensitiveValues, primaryError },
+) {
+  const cleanupFailures = [];
+
+  try {
+    client.release();
+  } catch {
+    cleanupFailures.push("client.release");
+  }
+
+  try {
+    await pool.end();
+  } catch {
+    cleanupFailures.push("pool.end");
+  }
+
+  for (const stage of cleanupFailures) {
+    output.error(
+      `Diagnostico: falha no cleanup ${sanitizeText(
+        stage,
+        sensitiveValues,
+      )}.`,
+    );
+  }
+
+  if (primaryError || cleanupFailures.length === 0) {
+    return null;
+  }
+
+  const cleanupError = new Error(
+    `Falha operacional durante cleanup do runner: ${cleanupFailures[0]}.`,
+  );
+  cleanupError.isOperational = true;
+  return cleanupError;
+}
+
 async function validateConnectedTarget(client, expectedDatabase) {
   let result;
 
@@ -955,9 +1010,46 @@ async function ensureMigrationTable(client) {
     WHERE table_namespace.nspname = 'public'
       AND table_class.relname = '${MIGRATION_TABLE}'
       AND index_definition.indisunique
+      AND NOT index_definition.indisprimary
     ORDER BY index_class.relname;
   `);
   validateMigrationLedgerUniqueness(uniqueIndexesResult?.rows);
+
+  const appliedAtIndexesResult = await client.query(`
+    SELECT
+      index_class.relname AS index_name,
+      access_method.amname AS access_method,
+      ARRAY(
+        SELECT pg_get_indexdef(
+          index_definition.indexrelid,
+          indexed_position.position,
+          true
+        )
+        FROM generate_series(1, index_definition.indnkeyatts)
+          AS indexed_position(position)
+        ORDER BY indexed_position.position
+      ) AS columns,
+      index_definition.indisunique AS is_unique,
+      index_definition.indisvalid AS is_valid,
+      index_definition.indisready AS is_ready,
+      index_definition.indislive AS is_live,
+      index_definition.indpred IS NULL AS is_unconditional,
+      index_definition.indexprs IS NULL AS is_plain
+    FROM pg_index AS index_definition
+    JOIN pg_class AS table_class
+      ON table_class.oid = index_definition.indrelid
+    JOIN pg_namespace AS table_namespace
+      ON table_namespace.oid = table_class.relnamespace
+    JOIN pg_class AS index_class
+      ON index_class.oid = index_definition.indexrelid
+    JOIN pg_am AS access_method
+      ON access_method.oid = index_class.relam
+    WHERE table_namespace.nspname = 'public'
+      AND table_class.relname = '${MIGRATION_TABLE}'
+      AND index_class.relname = '${MIGRATION_LEDGER_APPLIED_AT_INDEX}'
+    ORDER BY index_class.relname;
+  `);
+  validateMigrationLedgerAppliedAtIndex(appliedAtIndexesResult?.rows);
 
   const recordsResult = await client.query(`
     SELECT arquivo, sha256
@@ -1084,6 +1176,11 @@ function validateMigrationLedgerPrimaryKey(primaryKeys) {
 }
 
 function validateMigrationLedgerUniqueness(uniqueIndexes) {
+  if (Array.isArray(uniqueIndexes) && uniqueIndexes.length > 1) {
+    failLegacyMigrationLedger(
+      "estrutura de unicidade por arquivo canônico incompatível",
+    );
+  }
   if (!Array.isArray(uniqueIndexes)) {
     failLegacyMigrationLedger("catálogo de índices retornou estrutura inválida");
   }
@@ -1113,6 +1210,31 @@ function validateMigrationLedgerUniqueness(uniqueIndexes) {
     failLegacyMigrationLedger(
       "estrutura de unicidade por arquivo canônico incompatível",
     );
+  }
+}
+
+function validateMigrationLedgerAppliedAtIndex(indexes) {
+  if (!Array.isArray(indexes)) {
+    failLegacyMigrationLedger("catalogo do indice aplicada_em retornou estrutura invalida");
+  }
+
+  const index = indexes[0];
+  const isCompatible =
+    indexes.length === 1 &&
+    index?.index_name === MIGRATION_LEDGER_APPLIED_AT_INDEX &&
+    index.access_method === "btree" &&
+    Array.isArray(index.columns) &&
+    index.columns.length === 1 &&
+    index.columns[0] === "aplicada_em DESC" &&
+    index.is_unique === false &&
+    index.is_valid === true &&
+    index.is_ready === true &&
+    index.is_live === true &&
+    index.is_unconditional === true &&
+    index.is_plain === true;
+
+  if (!isCompatible) {
+    failLegacyMigrationLedger("indice aplicada_em incompativel");
   }
 }
 

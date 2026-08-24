@@ -73,6 +73,7 @@ function makeHarness(options = {}) {
     },
     release() {
       events.push("release");
+      if (options.releaseError) throw options.releaseError;
     },
   };
 
@@ -84,6 +85,7 @@ function makeHarness(options = {}) {
 
     async end() {
       events.push("end");
+      if (options.endError) throw options.endError;
     }
   }
 
@@ -218,6 +220,67 @@ test("erro de aquisicao nao tenta unlock e lock e unlock compartilham chaves", a
   assert.equal(MIGRATION_RUNNER_ADVISORY_LOCK_KEY_1, 1163082829);
   assert.equal(MIGRATION_RUNNER_ADVISORY_LOCK_KEY_2, 1381320274);
   assert.match(MIGRATION_RUNNER_ADVISORY_UNLOCK_SQL, /pg_advisory_unlock/);
+});
+
+test("release falha apos erro principal, preserva a causa e ainda encerra o pool", async () => {
+  const primaryError = new Error("falha principal");
+  const harness = makeHarness({ releaseError: new Error("falha release") });
+  const result = await harness.run({
+    ensureMigrationTableFn: async () => {
+      harness.events.push("ensure");
+      throw primaryError;
+    },
+  });
+
+  assert.equal(result.error, primaryError);
+  assert.deepEqual(harness.events.slice(-3), ["unlock", "release", "end"]);
+  assert.match(harness.output(), /falha no cleanup client\.release/);
+});
+
+test("release e pool.end falhos sem erro principal retornam falha operacional deterministica", async () => {
+  const harness = makeHarness({
+    releaseError: new Error("falha release"),
+    endError: new Error("falha end"),
+  });
+  const result = await harness.run();
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.isOperational, true);
+  assert.match(result.error.message, /client\.release/);
+  assert.deepEqual(harness.events.slice(-3), ["unlock", "release", "end"]);
+  assert.match(harness.output(), /falha no cleanup client\.release/);
+  assert.match(harness.output(), /falha no cleanup pool\.end/);
+});
+
+test("pool.end falho sem erro anterior retorna falha operacional", async () => {
+  const harness = makeHarness({ endError: new Error("falha end") });
+  const result = await harness.run();
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.isOperational, true);
+  assert.match(result.error.message, /pool\.end/);
+  assert.deepEqual(harness.events.slice(-3), ["unlock", "release", "end"]);
+});
+
+test("unlock e cleanup falhos nao mascaram erro principal", async () => {
+  const primaryError = new Error("falha principal");
+  const harness = makeHarness({
+    unlockError: new Error("falha unlock"),
+    releaseError: new Error("falha release"),
+    endError: new Error("falha end"),
+  });
+  const result = await harness.run({
+    ensureMigrationTableFn: async () => {
+      harness.events.push("ensure");
+      throw primaryError;
+    },
+  });
+
+  assert.equal(result.error, primaryError);
+  assert.deepEqual(harness.events.slice(-3), ["unlock", "release", "end"]);
+  assert.match(harness.output(), /falha ao liberar advisory lock/);
+  assert.match(harness.output(), /falha no cleanup client\.release/);
+  assert.match(harness.output(), /falha no cleanup pool\.end/);
 });
 
 test("dry-run, target guard e falha de timeout nao adquirem lock", async () => {

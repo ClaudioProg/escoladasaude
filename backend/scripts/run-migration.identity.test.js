@@ -2,6 +2,8 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const {
@@ -31,6 +33,7 @@ const CANONICAL_PRE_TESTE =
   "db/migrations/2026-08-20-pre-teste-evento.sql";
 const SHA_2026 =
   "0086dae4d66ba9f80663f31eb06d7517f78d5e72c6c8415ebf8e4e6f33ebd1d9";
+const ROOT_GIT_ATTRIBUTES = path.resolve(BACKEND_ROOT, "..", ".gitattributes");
 
 function quietLogger() {
   return { debug() {} };
@@ -120,10 +123,26 @@ function uniqueIndex(columns, overrides = {}) {
   };
 }
 
+function appliedAtIndex(overrides = {}) {
+  return {
+    index_name: "idx_sistema_migracao_aplicada_em",
+    access_method: "btree",
+    columns: ["aplicada_em DESC"],
+    is_unique: false,
+    is_valid: true,
+    is_ready: true,
+    is_live: true,
+    is_unconditional: true,
+    is_plain: true,
+    ...overrides,
+  };
+}
+
 function makeExistingLedgerClient({
   columns = completeLedgerColumns(),
   primaryKeys = [primaryKey()],
   uniqueIndexes = [uniqueIndex(["arquivo"])],
+  appliedAtIndexes = [appliedAtIndex()],
   records = [],
 } = {}) {
   const queries = [];
@@ -144,6 +163,10 @@ function makeExistingLedgerClient({
 
         if (sql.includes("FROM pg_constraint")) {
           return { rows: primaryKeys };
+        }
+
+        if (sql.includes("AS access_method")) {
+          return { rows: appliedAtIndexes };
         }
 
         if (sql.includes("FROM pg_index")) {
@@ -187,6 +210,25 @@ test("arquivo oficial produz identidade canonica e SHA esperados", async () => {
   assert.equal(migration.canonicalMigrationId, CANONICAL_2026);
   assert.notEqual(migration.canonicalMigrationId, path.basename(MIGRATION_2026));
   assert.equal(inspected.sha256, SHA_2026);
+});
+
+test("atributos Git preservam LF e SHA fisico das migrations oficiais", () => {
+  const attributes = fs.readFileSync(ROOT_GIT_ATTRIBUTES, "utf8");
+  const officialSql = fs.readFileSync(MIGRATION_2026);
+
+  assert.match(
+    attributes,
+    /^backend\/db\/migrations\/\*\.sql text eol=lf$/m,
+  );
+  assert.match(
+    attributes,
+    /^backend\/db\/migrations\/\*\*\/\*\.sql text eol=lf$/m,
+  );
+  assert.equal(officialSql.includes(Buffer.from("\r\n")), false);
+  assert.equal(
+    crypto.createHash("sha256").update(officialSql).digest("hex"),
+    SHA_2026,
+  );
 });
 
 test("identidade canonica nao depende do CWD", async () => {
@@ -443,7 +485,7 @@ test("ledger exatamente novo e aceito sem mutacao", async () => {
 
   await ensureMigrationTable(harness.client);
 
-  assert.equal(harness.queries.length, 5);
+  assert.equal(harness.queries.length, 6);
   assert.match(harness.queries[1], /format_type\(/);
   assert.match(harness.queries[1], /pg_get_expr\(/);
   assert.match(harness.queries[1], /attidentity AS identity_kind/);
@@ -455,7 +497,43 @@ test("ledger exatamente novo e aceito sem mutacao", async () => {
   assert.match(harness.queries[2], /indimmediate AS is_immediate/);
   assert.match(harness.queries[2], /index_definition\.indislive AS is_live/);
   assert.match(harness.queries[3], /FROM pg_index AS index_definition/);
+  assert.match(harness.queries[4], /AS access_method/);
   assertOnlyReadOnlyCatalogQueries(harness.queries);
+});
+
+test("indice aplicada_em ausente ou estruturalmente incompativel falha fechado", async (t) => {
+  const cases = [
+    { name: "ausente", appliedAtIndexes: [] },
+    {
+      name: "coluna errada",
+      appliedAtIndexes: [appliedAtIndex({ columns: ["arquivo DESC"] })],
+    },
+    {
+      name: "parcial",
+      appliedAtIndexes: [appliedAtIndex({ is_unconditional: false })],
+    },
+    {
+      name: "expressao",
+      appliedAtIndexes: [appliedAtIndex({ is_plain: false })],
+    },
+    {
+      name: "invalido",
+      appliedAtIndexes: [appliedAtIndex({ is_valid: false })],
+    },
+  ];
+
+  for (const testCase of cases) {
+    await t.test(testCase.name, async () => {
+      const harness = makeExistingLedgerClient(testCase);
+
+      await assert.rejects(
+        ensureMigrationTable(harness.client),
+        /indice aplicada_em incompativel/i,
+      );
+      assert.equal(harness.queries.length, 5);
+      assertOnlyReadOnlyCatalogQueries(harness.queries);
+    });
+  }
 });
 
 test("defaults equivalentes normalmente deparseados pelo PostgreSQL sao aceitos", async () => {
@@ -782,6 +860,23 @@ test("estruturas UNIQUE simples conflitantes sao rejeitadas", async () => {
     /estrutura de unicidade por arquivo canônico incompatível/i,
   );
   assertOnlyReadOnlyCatalogQueries(harness.queries);
+});
+
+test("UNIQUE extra em sha256 ou composto falha fechado", async (t) => {
+  for (const columns of [["arquivo", "sha256"], ["sha256"]]) {
+    await t.test(columns.join(","), async () => {
+      const harness = makeExistingLedgerClient({
+        uniqueIndexes: [uniqueIndex(["arquivo"]), uniqueIndex(columns)],
+      });
+
+      await assert.rejects(
+        ensureMigrationTable(harness.client),
+        /estrutura de unicidade por arquivo can.nico incompat.vel/i,
+      );
+      assert.equal(harness.queries.length, 4);
+      assertOnlyReadOnlyCatalogQueries(harness.queries);
+    });
+  }
 });
 
 test("ledger legado com UNIQUE arquivo mais SHA falha sem mutacao", async () => {
