@@ -1019,16 +1019,10 @@ async function ensureMigrationTable(client) {
     SELECT
       index_class.relname AS index_name,
       access_method.amname AS access_method,
-      ARRAY(
-        SELECT pg_get_indexdef(
-          index_definition.indexrelid,
-          indexed_position.position,
-          true
-        )
-        FROM generate_series(1, index_definition.indnkeyatts)
-          AS indexed_position(position)
-        ORDER BY indexed_position.position
-      ) AS columns,
+      index_definition.indnkeyatts AS key_attribute_count,
+      index_definition.indnatts AS attribute_count,
+      index_definition.indkey[0] AS key_attribute_number,
+      index_definition.indoption[0] AS key_option,
       index_definition.indisunique AS is_unique,
       index_definition.indisvalid AS is_valid,
       index_definition.indisready AS is_ready,
@@ -1223,9 +1217,10 @@ function validateMigrationLedgerAppliedAtIndex(indexes) {
     indexes.length === 1 &&
     index?.index_name === MIGRATION_LEDGER_APPLIED_AT_INDEX &&
     index.access_method === "btree" &&
-    Array.isArray(index.columns) &&
-    index.columns.length === 1 &&
-    index.columns[0] === "aplicada_em DESC" &&
+    index.key_attribute_count === 1 &&
+    index.attribute_count === 1 &&
+    index.key_attribute_number === 4 &&
+    index.key_option === 3 &&
     index.is_unique === false &&
     index.is_valid === true &&
     index.is_ready === true &&

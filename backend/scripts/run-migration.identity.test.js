@@ -127,7 +127,10 @@ function appliedAtIndex(overrides = {}) {
   return {
     index_name: "idx_sistema_migracao_aplicada_em",
     access_method: "btree",
-    columns: ["aplicada_em DESC"],
+    key_attribute_count: 1,
+    attribute_count: 1,
+    key_attribute_number: 4,
+    key_option: 3,
     is_unique: false,
     is_valid: true,
     is_ready: true,
@@ -478,7 +481,7 @@ test("ledger ausente cria o shape fisico novo completo", async () => {
   assert.doesNotMatch(queries[1], /IF NOT EXISTS/);
 });
 
-test("ledger exatamente novo e aceito sem mutacao", async () => {
+test("ledger oficial com indoption real 3 e aceito sem mutacao", async () => {
   const harness = makeExistingLedgerClient({
     records: [{ arquivo: CANONICAL_2026, sha256: SHA_2026 }],
   });
@@ -498,6 +501,8 @@ test("ledger exatamente novo e aceito sem mutacao", async () => {
   assert.match(harness.queries[2], /index_definition\.indislive AS is_live/);
   assert.match(harness.queries[3], /FROM pg_index AS index_definition/);
   assert.match(harness.queries[4], /AS access_method/);
+  assert.match(harness.queries[4], /index_definition\.indkey\[0\] AS key_attribute_number/);
+  assert.match(harness.queries[4], /index_definition\.indoption\[0\] AS key_option/);
   assertOnlyReadOnlyCatalogQueries(harness.queries);
 });
 
@@ -506,7 +511,15 @@ test("indice aplicada_em ausente ou estruturalmente incompativel falha fechado",
     { name: "ausente", appliedAtIndexes: [] },
     {
       name: "coluna errada",
-      appliedAtIndexes: [appliedAtIndex({ columns: ["arquivo DESC"] })],
+      appliedAtIndexes: [appliedAtIndex({ key_attribute_number: 2 })],
+    },
+    {
+      name: "ASC incompativel",
+      appliedAtIndexes: [appliedAtIndex({ key_option: 0 })],
+    },
+    {
+      name: "DESC com comportamento de nulos incompativel",
+      appliedAtIndexes: [appliedAtIndex({ key_option: 1 })],
     },
     {
       name: "parcial",
