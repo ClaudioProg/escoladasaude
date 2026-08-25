@@ -103,23 +103,48 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
   async function validateSession(token) {
     const instant = now();
     const tokenHash = hashToken(token, cryptoApi);
-    const result = await db.query(
+    const loadSession = async (whereSql, params) => db.query(
       `SELECT s.id, s.usuario_id, s.area_ativa, s.expira_em, s.limite_absoluto_em,
               s.revogada_em, u.deleted_at
          FROM public.auth_sessao s JOIN public.usuarios u ON u.id = s.usuario_id
-        WHERE s.token_hash = $1`, [tokenHash],
+        WHERE ${whereSql}`, params,
     );
-    const session = rows(result)[0];
-    if (!session || session.revogada_em || session.deleted_at || new Date(session.expira_em) <= instant ||
-      (session.limite_absoluto_em && new Date(session.limite_absoluto_em) <= instant)) {
+    const isLive = (session) => session && !session.revogada_em && !session.deleted_at &&
+      new Date(session.expira_em) > instant &&
+      (!session.limite_absoluto_em || new Date(session.limite_absoluto_em) > instant);
+    let session = rows(await loadSession("s.token_hash = $1", [tokenHash]))[0];
+    if (!isLive(session)) {
       throw new AuthSessionError("AUTH_SESSION_INVALID");
     }
-    const perfis = await getProfiles(db, session.usuario_id);
+    let perfis = await getProfiles(db, session.usuario_id);
     if (!perfis.includes("usuario")) throw new AuthSessionError("AUTH_SESSION_INVALID");
     let areaAtiva = session.area_ativa;
     if (!perfis.includes(areaAtiva)) {
-      areaAtiva = "usuario";
-      await db.query(`UPDATE public.auth_sessao SET area_ativa = $2 WHERE id = $1`, [session.id, areaAtiva]);
+      const cas = await db.query(
+        `UPDATE public.auth_sessao SET area_ativa = 'usuario'
+          WHERE id = $1 AND area_ativa = $2 AND revogada_em IS NULL AND expira_em > $3
+            AND (limite_absoluto_em IS NULL OR limite_absoluto_em > $3)
+          RETURNING area_ativa`, [session.id, areaAtiva, instant],
+      );
+      if (rows(cas).length === 1) {
+        areaAtiva = "usuario";
+      } else {
+        session = rows(await loadSession("s.id = $1", [session.id]))[0];
+        if (!isLive(session)) throw new AuthSessionError("AUTH_SESSION_INVALID");
+        perfis = await getProfiles(db, session.usuario_id);
+        if (!perfis.includes("usuario")) throw new AuthSessionError("AUTH_SESSION_INVALID");
+        areaAtiva = session.area_ativa;
+        if (!perfis.includes(areaAtiva)) {
+          const finalCas = await db.query(
+            `UPDATE public.auth_sessao SET area_ativa = 'usuario'
+              WHERE id = $1 AND area_ativa = $2 AND revogada_em IS NULL AND expira_em > $3
+                AND (limite_absoluto_em IS NULL OR limite_absoluto_em > $3)
+              RETURNING area_ativa`, [session.id, areaAtiva, instant],
+          );
+          if (rows(finalCas).length !== 1) throw new AuthSessionError("AUTH_SESSION_INVALID");
+          areaAtiva = "usuario";
+        }
+      }
     }
     return { id: session.usuario_id, perfis, areaAtiva, sessionId: session.id };
   }
@@ -140,11 +165,12 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
     return { written: rows(result).length === 1 };
   }
 
-  async function revokeSession(sessionId, reason) {
+  async function revokeSession(usuarioId, sessionId, reason) {
     assertReason(reason);
     const result = await db.query(
-      `UPDATE public.auth_sessao SET revogada_em = $2, motivo_revogacao = $3
-        WHERE id = $1 AND revogada_em IS NULL RETURNING id`, [sessionId, now(), reason],
+      `UPDATE public.auth_sessao SET revogada_em = $3, motivo_revogacao = $4
+        WHERE id = $1 AND usuario_id = $2 AND revogada_em IS NULL RETURNING id`,
+      [sessionId, usuarioId, now(), reason],
     );
     return { revoked: rows(result).length === 1 };
   }
