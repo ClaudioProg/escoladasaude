@@ -402,7 +402,11 @@ test("--dir aceita somente a arvore oficial", async () => {
 
   assert.deepEqual(
     official.map((migration) => migration.canonicalMigrationId),
-    [CANONICAL_2026, CANONICAL_PRE_TESTE],
+    [
+      CANONICAL_2026,
+      CANONICAL_PRE_TESTE,
+      "db/migrations/2026-08-25-auth-sessoes-contexto-expand.sql",
+    ],
   );
 
   await assert.rejects(
