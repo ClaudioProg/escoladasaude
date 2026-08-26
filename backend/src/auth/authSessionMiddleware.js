@@ -2,6 +2,7 @@
 
 const cookie = require("cookie");
 const { AuthSessionError } = require("../services/authSessionService");
+const { validProfiles } = require("./sessionAuthorization");
 
 const SESSION_COOKIE_PRODUCTION = "__Host-escola_saude_session";
 const SESSION_COOKIE_DEVELOPMENT = "escola_saude_session";
@@ -17,6 +18,13 @@ function sendUnauthorized(res) {
     message: "Não autenticado.",
     data: null,
   });
+}
+
+function validIdentity(identity) {
+  return identity && typeof identity === "object" && !Array.isArray(identity) &&
+    Number.isInteger(identity.id) && validProfiles(identity.perfis) &&
+    typeof identity.areaAtiva === "string" && typeof identity.sessionId === "string" &&
+    identity.sessionId.length > 0;
 }
 
 function createAuthSessionMiddleware({ sessionService, isProduction = false } = {}) {
@@ -36,9 +44,7 @@ function createAuthSessionMiddleware({ sessionService, isProduction = false } = 
 
     try {
       const identity = await sessionService.validateSession(token);
-      if (!identity || !Number.isInteger(identity.id) || !Array.isArray(identity.perfis) ||
-        !identity.perfis.every((perfil) => typeof perfil === "string") ||
-        typeof identity.areaAtiva !== "string" || typeof identity.sessionId !== "string") {
+      if (!validIdentity(identity)) {
         return sendUnauthorized(res);
       }
       req.user = {
@@ -52,9 +58,7 @@ function createAuthSessionMiddleware({ sessionService, isProduction = false } = 
       if (error instanceof AuthSessionError || error?.code === "AUTH_SESSION_INVALID") {
         return sendUnauthorized(res);
       }
-      const operational = new Error("AUTH_SESSION_OPERATIONAL_FAILURE");
-      operational.code = "AUTH_SESSION_OPERATIONAL_FAILURE";
-      return next(operational);
+      return next(error);
     }
   };
 }
