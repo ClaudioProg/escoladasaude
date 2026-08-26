@@ -195,7 +195,9 @@ async function buscarUsuarioPorCpf(req, cpf) {
 
 async function loginUsuario(req, res, next) {
   const rid = mkRid();
-  let sessionCreationStarted = false;
+  let sessionService = null;
+  let createdSession = null;
+  let usuarioIdDaSessao = null;
 
   setNoStoreHeaders(res);
 
@@ -283,15 +285,6 @@ async function loginUsuario(req, res, next) {
       });
     }
 
-    sessionCreationStarted = true;
-    const sessionService = createAuthSessionService({ db: getDb(req) });
-    const createdSession = await sessionService.createSession({
-      usuarioId: usuario.id,
-      manterConectado,
-      userAgent: typeof req.get === "function" ? req.get("user-agent") : req.headers?.["user-agent"],
-      ip: req.ip ?? null,
-    });
-
     // JWT legado permanece apenas durante a transição até o cutover de login/cookie.
     const token = generateToken(
       {
@@ -300,6 +293,15 @@ async function loginUsuario(req, res, next) {
       },
       "1d",
     );
+
+    sessionService = createAuthSessionService({ db: getDb(req) });
+    usuarioIdDaSessao = usuario.id;
+    createdSession = await sessionService.createSession({
+      usuarioId: usuario.id,
+      manterConectado,
+      userAgent: typeof req.get === "function" ? req.get("user-agent") : req.headers?.["user-agent"],
+      ip: req.ip ?? null,
+    });
 
     const usuarioResponse = sanitizeUserForResponse(usuario, perfil);
 
@@ -314,28 +316,44 @@ async function loginUsuario(req, res, next) {
       );
     }
 
-    log(rid, "info", "login OK", {
-      usuarioId: usuario.id,
-      perfil,
-    });
-
     res.cookie(
       sessionCookieName(IS_PROD),
       createdSession.token,
       sessionCookieOptions(IS_PROD, manterConectado),
     );
 
-    return res.status(200).json({
+    const response = res.status(200).json({
       ok: true,
       code: "AUTH-200-LOGIN",
       message: "Login realizado com sucesso.",
       token,
       usuario: usuarioResponse,
     });
+
+    log(rid, "info", "login OK", {
+      usuarioId: usuario.id,
+      perfil,
+    });
+
+    return response;
   } catch (error) {
     log(rid, "error", "Erro no login", error);
 
-    if (sessionCreationStarted && typeof next === "function") return next(error);
+    if (createdSession?.session?.id && sessionService && usuarioIdDaSessao !== null) {
+      try {
+        await sessionService.revokeSession(
+          usuarioIdDaSessao,
+          createdSession.session.id,
+          "login_response_failure",
+        );
+      } catch (revokeError) {
+        log(rid, "error", "Falha na revogação compensatória da sessão", {
+          code: revokeError?.code || "AUTH_SESSION_REVOKE_FAILED",
+        });
+      }
+    }
+
+    if (typeof next === "function") return next(error);
 
     return res.status(500).json({
       ok: false,

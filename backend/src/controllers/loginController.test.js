@@ -17,7 +17,7 @@ const USER = {
   imagem_base64: null,
 };
 
-function loadLoginController({ compare = async () => true, createSession, generateJwt = () => "legacy.jwt", notify = async () => {} } = {}) {
+function loadLoginController({ compare = async () => true, createSession, revokeSession = async () => {}, generateJwt = () => "legacy.jwt", notify = async () => {} } = {}) {
   delete require.cache[LOGIN_CONTROLLER_PATH];
   const originalLoad = Module._load;
   Module._load = function mockLoginDependencies(request, parent, isMain) {
@@ -26,7 +26,7 @@ function loadLoginController({ compare = async () => true, createSession, genera
       if (request === "../db") return { query() {} };
       if (request === "../auth/generateToken") return generateJwt;
       if (request === "./notificacaoController") return { gerarNotificacaoDeAvaliacao: notify };
-      if (request === "../services/authSessionService") return { createAuthSessionService: () => ({ createSession }) };
+      if (request === "../services/authSessionService") return { createAuthSessionService: () => ({ createSession, revokeSession }) };
     }
     return originalLoad.call(this, request, parent, isMain);
   };
@@ -37,12 +37,12 @@ function loadLoginController({ compare = async () => true, createSession, genera
   }
 }
 
-function response() {
+function response({ cookieError = null, jsonError = null } = {}) {
   const out = { statusCode: null, body: null, cookies: [], headers: {} };
   out.set = (name, value) => { out.headers[name] = value; return out; };
   out.status = (code) => { out.statusCode = code; return out; };
-  out.json = (body) => { out.body = body; return out; };
-  out.cookie = (name, value, options) => { out.cookies.push({ name, value, options }); return out; };
+  out.json = (body) => { if (jsonError) throw jsonError; out.body = body; return out; };
+  out.cookie = (name, value, options) => { if (cookieError) throw cookieError; out.cookies.push({ name, value, options }); return out; };
   return out;
 }
 
@@ -58,9 +58,11 @@ function request(body = {}) {
 
 test("login local cria sessao, preserva JWT e nunca expoe ou registra token opaco", async () => {
   let sessionArgs;
+  let revocations = 0;
   const opaqueToken = "opaque-session-token";
   const { loginUsuario } = loadLoginController({
     createSession: async (args) => { sessionArgs = args; return { token: opaqueToken, session: { id: "s1" } }; },
+    revokeSession: async () => { revocations += 1; },
   });
   const res = response();
   const logged = [];
@@ -83,6 +85,7 @@ test("login local cria sessao, preserva JWT e nunca expoe ou registra token opac
   assert.deepEqual(Object.keys(res.body).sort(), ["code", "message", "ok", "token", "usuario"]);
   assert.equal(JSON.stringify(res.body).includes(opaqueToken), false);
   assert.equal(logged.join(" ").includes(opaqueToken), false);
+  assert.equal(revocations, 0);
   assert.deepEqual(res.cookies, [{
     name: "escola_saude_session",
     value: opaqueToken,
@@ -91,7 +94,7 @@ test("login local cria sessao, preserva JWT e nunca expoe ou registra token opac
 });
 
 test("manter_conectado aceita apenas boolean true e controla Max-Age", async () => {
-  for (const [value, expected] of [[true, true], [false, false], [undefined, false], ["false", false]]) {
+  for (const [value, expected] of [[true, true], [false, false], [undefined, false], ["true", false], ["false", false], [1, false], [0, false], [null, false], [{}, false], [[], false]]) {
     let sessionArgs;
     const { loginUsuario } = loadLoginController({
       createSession: async (args) => { sessionArgs = args; return { token: "opaque", session: { id: "s1" } }; },
@@ -134,17 +137,74 @@ test("credenciais invalidas nao criam sessao ou cookie e preservam resposta publ
 
 test("falha operacional ao criar sessao nao emite cookie ou JWT e preserva o erro", async () => {
   const original = new Error("session backend unavailable");
-  let generated = false;
+  let revocations = 0;
   const { loginUsuario } = loadLoginController({
     createSession: async () => { throw original; },
-    generateJwt: () => { generated = true; return "legacy.jwt"; },
+    revokeSession: async () => { revocations += 1; },
   });
   const res = response();
   let nextError;
   await loginUsuario(request(), res, (error) => { nextError = error; });
   assert.equal(nextError, original);
-  assert.equal(generated, false);
+  assert.equal(revocations, 0);
   assert.equal(res.statusCode, null);
   assert.equal(res.body, null);
   assert.equal(res.cookies.length, 0);
+});
+
+test("falha de JWT ocorre antes de createSession sem cookie ou revogacao", async () => {
+  const original = new Error("jwt generation failed");
+  let creations = 0;
+  let revocations = 0;
+  const { loginUsuario } = loadLoginController({
+    createSession: async () => { creations += 1; return { token: "opaque", session: { id: "s1" } }; },
+    revokeSession: async () => { revocations += 1; },
+    generateJwt: () => { throw original; },
+  });
+  const res = response();
+  let nextError;
+  await loginUsuario(request(), res, (error) => { nextError = error; });
+  assert.equal(nextError, original);
+  assert.equal(creations, 0);
+  assert.equal(revocations, 0);
+  assert.equal(res.cookies.length, 0);
+  assert.equal(res.body, null);
+});
+
+test("falhas de cookie ou resposta revogam a sessao e preservam o erro principal", async () => {
+  for (const [phase, options] of [["cookie", { cookieError: new Error("cookie failed") }], ["json", { jsonError: new Error("json failed") }]]) {
+    const original = phase === "cookie" ? options.cookieError : options.jsonError;
+    const revocations = [];
+    const { loginUsuario } = loadLoginController({
+      createSession: async () => ({ token: "opaque", session: { id: "session-7" } }),
+      revokeSession: async (...args) => { revocations.push(args); },
+    });
+    const res = response(options);
+    let nextError;
+    await loginUsuario(request(), res, (error) => { nextError = error; });
+    assert.equal(nextError, original);
+    assert.deepEqual(revocations, [[7, "session-7", "login_response_failure"]]);
+  }
+});
+
+test("falha da revogacao compensatoria nao mascara erro ou registra segredo", async () => {
+  const original = new Error("response failed");
+  const revokeFailure = Object.assign(new Error("opaque-revoke-secret"), { code: "DB_FAILURE" });
+  const { loginUsuario } = loadLoginController({
+    createSession: async () => ({ token: "opaque-session-token", session: { id: "session-7" } }),
+    revokeSession: async () => { throw revokeFailure; },
+  });
+  const errors = [];
+  const originalError = console.error;
+  console.error = (...args) => errors.push(args.join(" "));
+  try {
+    const res = response({ cookieError: original });
+    let nextError;
+    await loginUsuario(request(), res, (error) => { nextError = error; });
+    assert.equal(nextError, original);
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(errors.join(" ").includes("opaque-session-token"), false);
+  assert.equal(errors.join(" ").includes("opaque-revoke-secret"), false);
 });
