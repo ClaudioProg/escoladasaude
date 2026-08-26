@@ -3,6 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const { createAuthSessionMiddleware, SESSION_COOKIE_PRODUCTION, SESSION_COOKIE_DEVELOPMENT, sessionCookieName } = require("./authSessionMiddleware");
+const { AuthSessionError } = require("../services/authSessionService");
 const { requireProfile, requireAnyProfile, validProfile, validProfiles } = require("./sessionAuthorization");
 
 const EXPECTED_PROFILES = [
@@ -108,7 +109,7 @@ test("touch falha fechado sem publicar identidade e preserva erro operacional", 
 
   const invalid = createAuthSessionMiddleware({ sessionService: {
     validateSession: async () => user(),
-    touchSession: async () => { const error = new Error("invalid"); error.code = "AUTH_SESSION_INVALID"; throw error; },
+    touchSession: async () => { throw new AuthSessionError("AUTH_SESSION_INVALID"); },
   } });
   const invalidReq = { headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=safe` } };
   const invalidRes = response(); let advanced = false;

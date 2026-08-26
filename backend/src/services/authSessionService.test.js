@@ -7,7 +7,7 @@ const { AuthSessionError, createAuthSessionService, hashToken, makeToken } = req
 
 const NOW = new Date("2026-08-25T12:00:00.000Z");
 
-function fakeDb({ profiles = ["usuario"], context = null, active = [], session = null, touchRows = [], updateRows = [] } = {}) {
+function fakeDb({ profiles = ["usuario"], context = null, active = [], session = null, touchState = { valid: true, written: false }, touchError = null, updateRows = [] } = {}) {
   const calls = [];
   const query = async (sql, params = []) => {
     calls.push({ sql, params });
@@ -16,7 +16,11 @@ function fakeDb({ profiles = ["usuario"], context = null, active = [], session =
     if (sql.includes("SELECT ultima_area_ativa")) return { rows: context ? [{ ultima_area_ativa: context }] : [] };
     if (sql.includes("ORDER BY criada_em")) return { rows: active };
     if (sql.includes("JOIN public.usuarios")) return { rows: session ? [session] : [] };
-    if (sql.includes("RETURNING id")) return { rows: touchRows.length ? touchRows : updateRows, rowCount: updateRows.length };
+    if (sql.includes("WITH locked AS MATERIALIZED")) {
+      if (touchError) throw touchError;
+      return { rows: touchState === null ? [] : [touchState] };
+    }
+    if (sql.includes("RETURNING id")) return { rows: updateRows, rowCount: updateRows.length };
     if (sql.startsWith("UPDATE public.auth_sessao") || sql.startsWith("UPDATE public.auth_usuario_contexto")) return { rows: updateRows, rowCount: updateRows.length };
     return { rows: [], rowCount: 0 };
   };
@@ -78,12 +82,26 @@ test("validacao, touch, revogacao e area mantem contratos", async (t) => {
       await assert.rejects(createAuthSessionService({ db: fakeDb({ session }), now: () => NOW }).validateSession("x"), AuthSessionError);
     }
   });
-  await t.test("touch so escreve apos 60s e respeita limite", async () => {
-    const noWrite = fakeDb();
+  await t.test("touch distingue escrita de sessao valida sem escrita", async () => {
+    const noWrite = fakeDb({ touchState: { valid: true, written: false } });
     assert.equal((await createAuthSessionService({ db: noWrite, now: () => NOW }).touchSession("s1")).written, false);
-    const written = fakeDb({ touchRows: [{ id: "s1" }] });
+    const written = fakeDb({ touchState: { valid: true, written: true } });
     assert.equal((await createAuthSessionService({ db: written, now: () => NOW }).touchSession("s1")).written, true);
-    assert.match(written.calls[0].sql, /LEAST\(\$3, limite_absoluto_em\)/);
+    assert.match(written.calls[0].sql, /LEAST\(\$3, s\.limite_absoluto_em\)/);
+  });
+  await t.test("touch rejeita sessao inexistente, revogada ou expirada", async () => {
+    for (const [label, touchState] of [
+      ["inexistente", null],
+      ["revogada", { valid: false, written: false }],
+      ["expirada por inatividade", { valid: false, written: false }],
+      ["expirada pelo limite absoluto", { valid: false, written: false }],
+    ]) {
+      await assert.rejects(
+        createAuthSessionService({ db: fakeDb({ touchState }), now: () => NOW }).touchSession("s1"),
+        (error) => error instanceof AuthSessionError && error.code === "AUTH_SESSION_INVALID",
+        label,
+      );
+    }
   });
   await t.test("revogacoes sao idempotentes e motivo e tecnico", async () => {
     const service = createAuthSessionService({ db: fakeDb(), now: () => NOW });
@@ -108,14 +126,24 @@ test("hardening prova predicates de limite, touch e revogacao", async (t) => {
     assert.match(activeQuery.sql, /ORDER BY criada_em ASC, id ASC FOR UPDATE/);
     assert.equal(db.calls.filter((call) => call.sql.includes("session_limit")).length, 2);
   });
-  await t.test("touch contem guards atomicos de revogada, expiracao, limite e 60 segundos", async () => {
+  await t.test("touch bloqueia a linha e distingue estado invalido sem UPDATE no-op", async () => {
     const db = fakeDb();
     await createAuthSessionService({ db, now: () => NOW }).touchSession("s1");
     const sql = db.calls[0].sql;
-    assert.match(sql, /revogada_em IS NULL AND expira_em > \$2/);
-    assert.match(sql, /limite_absoluto_em IS NULL OR limite_absoluto_em > \$2/);
-    assert.match(sql, /ultimo_uso_em <= \$4/);
-    assert.match(sql, /LEAST\(\$3, limite_absoluto_em\)/);
+    assert.match(sql, /WITH locked AS MATERIALIZED/);
+    assert.match(sql, /WHERE id = \$1\s+FOR UPDATE/);
+    assert.match(sql, /locked\.revogada_em IS NULL AND locked\.expira_em > \$2/);
+    assert.match(sql, /locked\.limite_absoluto_em IS NULL OR locked\.limite_absoluto_em > \$2/);
+    assert.match(sql, /locked\.ultimo_uso_em <= \$4/);
+    assert.match(sql, /EXISTS \(\s*SELECT 1 FROM locked/);
+    assert.match(sql, /LEAST\(\$3, s\.limite_absoluto_em\)/);
+  });
+  await t.test("erro operacional de touch preserva a causa", async () => {
+    const original = new Error("database unavailable");
+    await assert.rejects(
+      createAuthSessionService({ db: fakeDb({ touchError: original }), now: () => NOW }).touchSession("s1"),
+      (error) => error === original,
+    );
   });
   await t.test("revogacao especifica exige usuario proprietario e e idempotente", async () => {
     const db = fakeDb({ updateRows: [{ id: "s1" }] });

@@ -153,16 +153,33 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
     const instant = now();
     const candidate = addMs(instant, IDLE_MS);
     const result = await db.query(
-      `UPDATE public.auth_sessao
-          SET ultimo_uso_em = $2,
-              expira_em = CASE WHEN limite_absoluto_em IS NULL THEN $3 ELSE LEAST($3, limite_absoluto_em) END
-        WHERE id = $1 AND revogada_em IS NULL AND expira_em > $2
-          AND (limite_absoluto_em IS NULL OR limite_absoluto_em > $2)
-          AND ultimo_uso_em <= $4
-        RETURNING id`,
+      `WITH locked AS MATERIALIZED (
+         SELECT id, revogada_em, expira_em, limite_absoluto_em, ultimo_uso_em
+           FROM public.auth_sessao
+          WHERE id = $1
+          FOR UPDATE
+       ), touched AS (
+         UPDATE public.auth_sessao AS s
+            SET ultimo_uso_em = $2,
+                expira_em = CASE WHEN s.limite_absoluto_em IS NULL THEN $3 ELSE LEAST($3, s.limite_absoluto_em) END
+           FROM locked
+          WHERE s.id = locked.id
+            AND locked.revogada_em IS NULL AND locked.expira_em > $2
+            AND (locked.limite_absoluto_em IS NULL OR locked.limite_absoluto_em > $2)
+            AND locked.ultimo_uso_em <= $4
+         RETURNING s.id
+       )
+       SELECT EXISTS (
+         SELECT 1 FROM locked
+          WHERE revogada_em IS NULL AND expira_em > $2
+            AND (limite_absoluto_em IS NULL OR limite_absoluto_em > $2)
+       ) AS valid,
+       EXISTS (SELECT 1 FROM touched) AS written`,
       [sessionId, instant, candidate, addMs(instant, -TOUCH_MS)],
     );
-    return { written: rows(result).length === 1 };
+    const state = rows(result)[0];
+    if (state?.valid !== true) throw new AuthSessionError("AUTH_SESSION_INVALID");
+    return { written: state.written === true };
   }
 
   async function revokeSession(usuarioId, sessionId, reason) {
