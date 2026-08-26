@@ -42,6 +42,8 @@ import Footer from "../components/layout/Footer";
 import QrSiteEscola from "../components/institucional/QrSiteEscola";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
+import { completeAuthLogin } from "../auth/completeAuthLogin";
+import { sanitizePostLoginRedirect } from "../auth/postLoginRedirect";
 import {
   apiAuthLogin,
   apiAuthGoogle,
@@ -80,33 +82,6 @@ function errorDev(...args) {
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
-}
-
-function sanitizeRedirectPath(raw) {
-  const value = String(raw || "").trim();
-
-  if (!value) {
-    return "/painel";
-  }
-  if (!value.startsWith("/")) {
-    return "/painel";
-  }
-  if (value.startsWith("//")) {
-    return "/painel";
-  }
-
-  const blockedPrefixes = [
-    "/login",
-    "/cadastro",
-    "/esqueci-senha",
-    "/redefinir-senha",
-  ];
-
-  if (blockedPrefixes.some((prefix) => value.startsWith(prefix))) {
-    return "/painel";
-  }
-
-  return value;
 }
 
 function apenasDigitos(value) {
@@ -594,7 +569,7 @@ export default function Login() {
     try {
       const params = new URLSearchParams(location.search);
       const raw = params.get("next") || "";
-      return sanitizeRedirectPath(raw);
+      return sanitizePostLoginRedirect(raw);
     } catch {
       return "/painel";
     }
@@ -742,16 +717,19 @@ export default function Login() {
   }, []);
 
   const redirecionarPosLogin = useCallback(
-    (payload) => {
-      persistirSessao(payload);
-
+    (payload, successMessage) => {
       const destino = redirectPath || "/painel";
 
-      logDev("redirecionando pós-login", { destino });
+      completeAuthLogin({
+        response: payload,
+        persistSession: persistirSessao,
+        successMessage,
+        showSuccess: toast.success,
+        navigate,
+        destination: destino,
+      });
 
-      window.setTimeout(() => {
-        navigate(destino, { replace: true });
-      }, 0);
+      logDev("redirecionando pós-login", { destino });
     },
     [navigate, persistirSessao, redirectPath],
   );
@@ -812,8 +790,7 @@ export default function Login() {
         },
       );
 
-      toast.success("Login realizado com sucesso!");
-      redirecionarPosLogin(response);
+      redirecionarPosLogin(response, "Login realizado com sucesso!");
     } catch (error) {
       const serverMsg = getApiErrorMessage(
         error,
@@ -863,8 +840,7 @@ export default function Login() {
         },
       );
 
-      toast.success("Login com Google realizado com sucesso!");
-      redirecionarPosLogin(response);
+      redirecionarPosLogin(response, "Login com Google realizado com sucesso!");
     } catch (error) {
       const serverMsg = getApiErrorMessage(
         error,

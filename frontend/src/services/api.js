@@ -24,6 +24,8 @@
  * - Respostas diagnosticáveis.
  */
 
+import { persistAuthStorage } from "../auth/authSessionStorage";
+
 const IS_DEV = Boolean(import.meta.env.DEV);
 
 /* ─────────────────────────────────────────────────────────────
@@ -316,36 +318,14 @@ export function persistAuthSession(token, usuario = null, options = {}) {
   const { emitEvent = true } = options;
 
   try {
-    const normalizedToken = token
-      ? String(token)
-          .replace(/^Bearer\s+/i, "")
-          .trim()
-      : null;
+    const { changed, normalizedToken, perfil } = persistAuthStorage(
+      localStorage,
+      token,
+      usuario,
+    );
 
-    const prevToken = localStorage.getItem(STORAGE_TOKEN_KEY);
-    const prevUsuario = localStorage.getItem(STORAGE_USUARIO_KEY);
-    const nextUsuario = usuario ? JSON.stringify(usuario) : null;
-
-    let changed = false;
-
-    if (normalizedToken && prevToken !== normalizedToken) {
-      localStorage.setItem(STORAGE_TOKEN_KEY, normalizedToken);
-      changed = true;
-    }
-
-    if (nextUsuario && prevUsuario !== nextUsuario) {
-      localStorage.setItem(STORAGE_USUARIO_KEY, nextUsuario);
-      changed = true;
-    }
-
-    if (usuario?.perfil) {
-      const perfil = String(usuario.perfil || "").trim();
-
-      if (perfil && localStorage.getItem(STORAGE_PERFIL_KEY) !== perfil) {
-        localStorage.setItem(STORAGE_PERFIL_KEY, perfil);
-        emitPerfilChange(perfil);
-        changed = true;
-      }
+    if (changed) {
+      emitPerfilChange(perfil);
     }
 
     if (emitEvent && changed && typeof window !== "undefined") {
@@ -366,7 +346,17 @@ export function persistAuthSession(token, usuario = null, options = {}) {
       perfil: usuario?.perfil || null,
     });
   } catch (error) {
-    errorDev("erro ao persistir sessão", error);
+    errorDev("erro ao persistir sessão", {
+      name: error?.name,
+      message: error?.message,
+    });
+
+    const persistenceError = new Error(
+      "Não foi possível salvar sua sessão neste navegador.",
+    );
+
+    persistenceError.code = "AUTH_SESSION_PERSISTENCE_FAILED";
+    throw persistenceError;
   }
 }
 
