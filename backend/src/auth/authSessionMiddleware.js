@@ -40,7 +40,8 @@ function validIdentity(identity) {
 }
 
 function createAuthSessionMiddleware({ sessionService, isProduction = false } = {}) {
-  if (!sessionService || typeof sessionService.validateSession !== "function") {
+  if (!sessionService || typeof sessionService.validateSession !== "function" ||
+    typeof sessionService.touchSession !== "function") {
     throw new Error("AUTH_SESSION_SERVICE_REQUIRED");
   }
   const cookieName = sessionCookieName(isProduction);
@@ -59,6 +60,7 @@ function createAuthSessionMiddleware({ sessionService, isProduction = false } = 
       if (!validIdentity(identity)) {
         return sendUnauthorized(res);
       }
+      await sessionService.touchSession(identity.sessionId);
       req.user = {
         id: identity.id,
         perfis: [...identity.perfis],

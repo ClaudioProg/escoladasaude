@@ -27,18 +27,25 @@ test("cookie oficial autentica uma vez e publica identidade sem aliases", async 
   assert.equal(sessionCookieName(true), "__Host-escola_saude_session");
   assert.equal(sessionCookieName(false), "escola_saude_session");
   let calls = 0;
-  const middleware = createAuthSessionMiddleware({ sessionService: { validateSession: async () => { calls += 1; return { id: 7, perfis: ["usuario", "gestor"], areaAtiva: "gestor", sessionId: "s1" }; } }, isProduction: true });
+  const touches = [];
+  const middleware = createAuthSessionMiddleware({ sessionService: {
+    validateSession: async () => { calls += 1; return { id: 7, perfis: ["usuario", "gestor"], areaAtiva: "gestor", sessionId: "s1" }; },
+    touchSession: async (sessionId) => { touches.push(sessionId); return { written: false }; },
+  }, isProduction: true });
   const req = { headers: { cookie: `${SESSION_COOKIE_PRODUCTION}=opaque; other=x` } };
   const res = response(); let nextCalled = false;
   await middleware(req, res, () => { nextCalled = true; });
-  assert.equal(calls, 1); assert.equal(nextCalled, true);
+  assert.equal(calls, 1); assert.deepEqual(touches, ["s1"]); assert.equal(nextCalled, true);
   assert.deepEqual(req.user, { id: 7, perfis: ["usuario", "gestor"], areaAtiva: "gestor", sessionId: "s1" });
   assert.equal(req.userId, undefined); assert.equal(req.perfil, undefined); assert.equal(req.user.perfil, undefined);
 });
 
 test("middleware rejeita credenciais ausentes ou invalidas sem chamar service indevidamente", async () => {
-  let calls = 0;
-  const invalid = createAuthSessionMiddleware({ sessionService: { validateSession: async () => { calls += 1; const e = new Error(); e.code = "AUTH_SESSION_INVALID"; throw e; } } });
+  let calls = 0; let touches = 0;
+  const invalid = createAuthSessionMiddleware({ sessionService: {
+    validateSession: async () => { calls += 1; const e = new Error(); e.code = "AUTH_SESSION_INVALID"; throw e; },
+    touchSession: async () => { touches += 1; return { written: false }; },
+  } });
   for (const req of [
     { headers: {} },
     { headers: { authorization: "Bearer token" } },
@@ -49,15 +56,18 @@ test("middleware rejeita credenciais ausentes ou invalidas sem chamar service in
     const res = response(); let nextError; await invalid(req, res, (err) => { nextError = err; });
     assert.equal(res.statusCode, 401); assert.equal(res.body.code, "AUTH-401-SESSION-INVALID"); assert.equal(nextError, undefined);
   }
-  assert.equal(calls, 0);
+  assert.equal(calls, 0); assert.equal(touches, 0);
   const validCookie = { headers: { cookie: `other=x; ${SESSION_COOKIE_DEVELOPMENT}=x; extra=y` } };
   const validRes = response(); await invalid(validCookie, validRes, () => {});
-  assert.equal(calls, 1); assert.equal(validRes.statusCode, 401);
+  assert.equal(calls, 1); assert.equal(touches, 0); assert.equal(validRes.statusCode, 401);
 });
 
 test("middleware preserva erro operacional original e rejeita identidade malformada", async () => {
   const original = new Error("database unavailable");
-  const operational = createAuthSessionMiddleware({ sessionService: { validateSession: async () => { throw original; } } });
+  const operational = createAuthSessionMiddleware({ sessionService: {
+    validateSession: async () => { throw original; },
+    touchSession: async () => ({ written: false }),
+  } });
   const res = response(); let nextError; await operational({ headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=secret` } }, res, (err) => { nextError = err; });
   assert.equal(res.statusCode, null); assert.equal(nextError, original); assert.equal(res.body, null);
   assert.deepEqual(officialProfilesFromSource(), EXPECTED_PROFILES);
@@ -65,17 +75,48 @@ test("middleware preserva erro operacional original e rejeita identidade malform
   assert.ok(EXPECTED_PROFILES.every(validProfile));
   assert.ok(validProfiles(EXPECTED_PROFILES));
   for (const perfis of [undefined, null, [], "usuario", ["usuario", 1], ["usuario", "perfil_inexistente"], ["gestor"], ["usuario", "usuario"], [" usuario"], ["usuario "], ["usuario,gestor"]]) {
-    const middleware = createAuthSessionMiddleware({ sessionService: { validateSession: async () => ({ id: 7, perfis, areaAtiva: "usuario", sessionId: "s1" }) } });
+    const middleware = createAuthSessionMiddleware({ sessionService: {
+      validateSession: async () => ({ id: 7, perfis, areaAtiva: "usuario", sessionId: "s1" }),
+      touchSession: async () => ({ written: false }),
+    } });
     const invalidRes = response(); let advanced = false;
     await middleware({ headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=secret` } }, invalidRes, () => { advanced = true; });
     assert.equal(invalidRes.statusCode, 401); assert.equal(advanced, false);
   }
-  for (const perfis of [["usuario"], ["usuario", "gestor"], EXPECTED_PROFILES]) {
-    const middleware = createAuthSessionMiddleware({ sessionService: { validateSession: async () => user(perfis) } });
+  for (const [perfis, written] of [[["usuario"], false], [["usuario", "gestor"], true], [EXPECTED_PROFILES, false]]) {
+    const touched = [];
+    const middleware = createAuthSessionMiddleware({ sessionService: {
+      validateSession: async () => user(perfis),
+      touchSession: async (sessionId) => { touched.push(sessionId); return { written }; },
+    } });
     const validRes = response(); let advanced = false;
     await middleware({ headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=safe` } }, validRes, () => { advanced = true; });
-    assert.equal(validRes.statusCode, null); assert.equal(advanced, true);
+    assert.equal(validRes.statusCode, null); assert.deepEqual(touched, ["s1"]); assert.equal(advanced, true);
   }
+});
+
+test("touch falha fechado sem publicar identidade e preserva erro operacional", async () => {
+  const operational = new Error("touch database unavailable");
+  const errorMiddleware = createAuthSessionMiddleware({ sessionService: {
+    validateSession: async () => user(),
+    touchSession: async () => { throw operational; },
+  } });
+  const operationalReq = { headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=safe` } };
+  const operationalRes = response(); let nextError;
+  await errorMiddleware(operationalReq, operationalRes, (error) => { nextError = error; });
+  assert.equal(nextError, operational); assert.equal(operationalReq.user, undefined); assert.equal(operationalRes.statusCode, null);
+
+  const invalid = createAuthSessionMiddleware({ sessionService: {
+    validateSession: async () => user(),
+    touchSession: async () => { const error = new Error("invalid"); error.code = "AUTH_SESSION_INVALID"; throw error; },
+  } });
+  const invalidReq = { headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=safe` } };
+  const invalidRes = response(); let advanced = false;
+  await invalid(invalidReq, invalidRes, () => { advanced = true; });
+  assert.equal(invalidRes.statusCode, 401); assert.equal(invalidReq.user, undefined); assert.equal(advanced, false);
+
+  const source = fs.readFileSync(require.resolve("./authSessionMiddleware"), "utf8");
+  assert.doesNotMatch(source, /setInterval|setTimeout|heartbeat/i);
 });
 
 test("autorizacao nova e fail-closed sem bypass", () => {
