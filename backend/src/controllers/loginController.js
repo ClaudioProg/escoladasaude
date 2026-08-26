@@ -30,6 +30,8 @@ const bcrypt = require("bcrypt");
 const dbModule = require("../db");
 const generateToken = require("../auth/generateToken");
 const { gerarNotificacaoDeAvaliacao } = require("./notificacaoController");
+const { createAuthSessionService } = require("../services/authSessionService");
+const { sessionCookieName, sessionCookieOptions } = require("../auth/authSessionMiddleware");
 
 /* ────────────────────────────────────────────────────────────────
    DB
@@ -191,8 +193,9 @@ async function buscarUsuarioPorCpf(req, cpf) {
    POST /api/login
 ──────────────────────────────────────────────────────────────── */
 
-async function loginUsuario(req, res) {
+async function loginUsuario(req, res, next) {
   const rid = mkRid();
+  let sessionCreationStarted = false;
 
   setNoStoreHeaders(res);
 
@@ -202,6 +205,7 @@ async function loginUsuario(req, res) {
       typeof req.body?.senha === "string"
         ? req.body.senha
         : String(req.body?.senha || "");
+    const manterConectado = req.body?.manter_conectado === true;
 
     const fieldErrors = {};
 
@@ -279,6 +283,16 @@ async function loginUsuario(req, res) {
       });
     }
 
+    sessionCreationStarted = true;
+    const sessionService = createAuthSessionService({ db: getDb(req) });
+    const createdSession = await sessionService.createSession({
+      usuarioId: usuario.id,
+      manterConectado,
+      userAgent: typeof req.get === "function" ? req.get("user-agent") : req.headers?.["user-agent"],
+      ip: req.ip ?? null,
+    });
+
+    // JWT legado permanece apenas durante a transição até o cutover de login/cookie.
     const token = generateToken(
       {
         id: usuario.id,
@@ -305,6 +319,12 @@ async function loginUsuario(req, res) {
       perfil,
     });
 
+    res.cookie(
+      sessionCookieName(IS_PROD),
+      createdSession.token,
+      sessionCookieOptions(IS_PROD, manterConectado),
+    );
+
     return res.status(200).json({
       ok: true,
       code: "AUTH-200-LOGIN",
@@ -314,6 +334,8 @@ async function loginUsuario(req, res) {
     });
   } catch (error) {
     log(rid, "error", "Erro no login", error);
+
+    if (sessionCreationStarted && typeof next === "function") return next(error);
 
     return res.status(500).json({
       ok: false,

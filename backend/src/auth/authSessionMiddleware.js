@@ -6,9 +6,21 @@ const { validProfiles } = require("./sessionAuthorization");
 
 const SESSION_COOKIE_PRODUCTION = "__Host-escola_saude_session";
 const SESSION_COOKIE_DEVELOPMENT = "escola_saude_session";
+const SESSION_COOKIE_PERSISTENT_MS = 30 * 24 * 60 * 60 * 1000;
 
 function sessionCookieName(isProduction) {
   return isProduction ? SESSION_COOKIE_PRODUCTION : SESSION_COOKIE_DEVELOPMENT;
+}
+
+function sessionCookieOptions(isProduction, manterConectado) {
+  const options = {
+    httpOnly: true,
+    secure: Boolean(isProduction),
+    sameSite: "lax",
+    path: "/",
+  };
+  if (manterConectado) options.maxAge = SESSION_COOKIE_PERSISTENT_MS;
+  return options;
 }
 
 function sendUnauthorized(res) {
@@ -63,4 +75,11 @@ function createAuthSessionMiddleware({ sessionService, isProduction = false } = 
   };
 }
 
-module.exports = { createAuthSessionMiddleware, SESSION_COOKIE_PRODUCTION, SESSION_COOKIE_DEVELOPMENT, sessionCookieName };
+module.exports = {
+  createAuthSessionMiddleware,
+  SESSION_COOKIE_PRODUCTION,
+  SESSION_COOKIE_DEVELOPMENT,
+  SESSION_COOKIE_PERSISTENT_MS,
+  sessionCookieName,
+  sessionCookieOptions,
+};
