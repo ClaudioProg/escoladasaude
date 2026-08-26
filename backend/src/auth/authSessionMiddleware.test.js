@@ -1,12 +1,25 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const { createAuthSessionMiddleware, SESSION_COOKIE_PRODUCTION, SESSION_COOKIE_DEVELOPMENT, sessionCookieName } = require("./authSessionMiddleware");
-const { requireProfile, requireAnyProfile } = require("./sessionAuthorization");
+const { requireProfile, requireAnyProfile, validProfile, validProfiles } = require("./sessionAuthorization");
+
+const EXPECTED_PROFILES = [
+  "usuario", "institucional", "organizador", "administrador", "gestor",
+  "diagnostico", "avaliador", "relator", "cai_administrador", "cai_coordenador",
+];
 
 function response() { const out = { statusCode: null, body: null }; out.status = (code) => { out.statusCode = code; return out; }; out.json = (body) => { out.body = body; return out; }; return out; }
 function run(middleware, req = {}) { const res = response(); let nextError; middleware(req, res, (error) => { nextError = error || true; }); return { res, nextError }; }
 function user(perfis = ["usuario"], areaAtiva = "usuario") { return { id: 7, perfis, areaAtiva, sessionId: "s1" }; }
+
+function officialProfilesFromSource() {
+  const source = fs.readFileSync(require.resolve("./sessionAuthorization"), "utf8");
+  const declaration = source.match(/const OFFICIAL_PROFILES = new Set\(\[([\s\S]*?)\]\);/);
+  assert.ok(declaration, "OFFICIAL_PROFILES deve permanecer uma lista declarada explicitamente");
+  return [...declaration[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+}
 
 test("cookie oficial autentica uma vez e publica identidade sem aliases", async () => {
   assert.equal(SESSION_COOKIE_PRODUCTION, "__Host-escola_saude_session");
@@ -47,13 +60,17 @@ test("middleware preserva erro operacional original e rejeita identidade malform
   const operational = createAuthSessionMiddleware({ sessionService: { validateSession: async () => { throw original; } } });
   const res = response(); let nextError; await operational({ headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=secret` } }, res, (err) => { nextError = err; });
   assert.equal(res.statusCode, null); assert.equal(nextError, original); assert.equal(res.body, null);
-  for (const perfis of [[], "usuario", ["usuario", "perfil_inexistente"], ["gestor"], ["usuario", "usuario"], [" usuario"]]) {
-    const middleware = createAuthSessionMiddleware({ sessionService: { validateSession: async () => user(perfis, "usuario") } });
+  assert.deepEqual(officialProfilesFromSource(), EXPECTED_PROFILES);
+  assert.equal(EXPECTED_PROFILES.length, 10);
+  assert.ok(EXPECTED_PROFILES.every(validProfile));
+  assert.ok(validProfiles(EXPECTED_PROFILES));
+  for (const perfis of [undefined, null, [], "usuario", ["usuario", 1], ["usuario", "perfil_inexistente"], ["gestor"], ["usuario", "usuario"], [" usuario"], ["usuario "], ["usuario,gestor"]]) {
+    const middleware = createAuthSessionMiddleware({ sessionService: { validateSession: async () => ({ id: 7, perfis, areaAtiva: "usuario", sessionId: "s1" }) } });
     const invalidRes = response(); let advanced = false;
     await middleware({ headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=secret` } }, invalidRes, () => { advanced = true; });
     assert.equal(invalidRes.statusCode, 401); assert.equal(advanced, false);
   }
-  for (const perfis of [["usuario"], ["usuario", "gestor"]]) {
+  for (const perfis of [["usuario"], ["usuario", "gestor"], EXPECTED_PROFILES]) {
     const middleware = createAuthSessionMiddleware({ sessionService: { validateSession: async () => user(perfis) } });
     const validRes = response(); let advanced = false;
     await middleware({ headers: { cookie: `${SESSION_COOKIE_DEVELOPMENT}=safe` } }, validRes, () => { advanced = true; });
@@ -70,7 +87,19 @@ test("autorizacao nova e fail-closed sem bypass", () => {
   assert.equal(run(requireProfile("administrador"), valid).res.statusCode, 403);
   assert.equal(run(requireProfile("gestor"), { user: user(["usuario", "administrador"]) }).res.statusCode, 403);
   assert.equal(run(requireProfile("gestor"), { user: user(["usuario"], "gestor") }).res.statusCode, 403);
-  assert.equal(run(requireProfile("gestor"), { user: { id: 7, perfis: "gestor" } }).res.statusCode, 401);
+  for (const req of [
+    {}, { user: null }, { user: 7 }, { user: [] },
+    { user: { perfis: ["usuario"], areaAtiva: "usuario", sessionId: "s1" } },
+    { user: { id: null, perfis: ["usuario"], areaAtiva: "usuario", sessionId: "s1" } },
+    { user: { id: "7", perfis: ["usuario"], areaAtiva: "usuario", sessionId: "s1" } },
+    { user: { id: 7.5, perfis: ["usuario"], areaAtiva: "usuario", sessionId: "s1" } },
+    { user: { id: 7, perfis: ["usuario"], areaAtiva: "usuario" } },
+    { user: { id: 7, perfis: ["usuario"], areaAtiva: "usuario", sessionId: "" } },
+    { user: { id: 7, perfis: ["usuario"], areaAtiva: "usuario", sessionId: 1 } },
+    { user: { id: 7, perfis: ["usuario"], sessionId: "s1" } },
+    { user: { id: 7, perfis: ["usuario"], areaAtiva: null, sessionId: "s1" } },
+    { user: { id: 7, perfis: ["usuario"], areaAtiva: 1, sessionId: "s1" } },
+  ]) assert.equal(run(requireProfile("usuario"), req).res.statusCode, 401);
   assert.equal(run(requireAnyProfile(["gestor", "diagnostico"]), { user: user(["usuario"]) }).res.statusCode, 403);
   assert.equal(run(requireAnyProfile(["gestor"]), { user: user([]) }).res.statusCode, 401);
   assert.throws(() => requireAnyProfile([])); assert.throws(() => requireAnyProfile(["gestor", "gestor"]));
