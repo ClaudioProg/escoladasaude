@@ -88,6 +88,27 @@
       ]
     },
     {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    },
+    {
       "source": "/index.html",
       "headers": [
         {
@@ -131,7 +152,7 @@
       ]
     },
 {
-  "source": "/((?!api/|assets/|icons/|banners/|manifest.webmanifest|version.json|atualizar.html|favicon.ico|robots.txt).*)",
+"source": "/((?!api/|assets/|icons/|banners/|manifest.webmanifest|version.json|atualizar.html|sw.js|favicon.ico|robots.txt).*)",
   "headers": [
     {
       "key": "Cache-Control",
@@ -179,7 +200,7 @@
     "destination": "https://escola-saude-api.onrender.com/api/$1"
   },
   {
-    "source": "/((?!assets/|icons/|banners/|manifest.webmanifest|version.json|atualizar.html|favicon.ico|robots.txt).*)",
+    "source": "/((?!assets/|icons/|banners/|manifest.webmanifest|version.json|atualizar.html|sw.js|favicon.ico|robots.txt).*)",
     "destination": "/index.html"
   }
 ]

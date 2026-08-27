@@ -38,6 +38,17 @@ function routeTag(tag) {
   };
 }
 
+function legacyUsageTelemetry(req, _res, next) {
+  // Telemetria transitória: suficiente para acompanhar a retirada, sem JWT,
+  // CPF, nome, e-mail ou qualquer outro dado pessoal.
+  console.info("[legacy-compat]", {
+    route: "GET /api/dashboard-usuario",
+    userId: req.user?.id || null,
+    requestId: req.requestId || null,
+  });
+  return next();
+}
+
 function noStore(_req, res, next) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Pragma", "no-cache");
@@ -73,6 +84,7 @@ router.get(
   "/",
   requireAuth,
   noStore,
+  legacyUsageTelemetry,
   routeTag("dashboardLegacyCompat:v1:GET /dashboard-usuario"),
   asyncHandler(async (req, res) => {
     const data = await dashboardController.obterResumoDashboardUsuario(

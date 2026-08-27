@@ -236,14 +236,18 @@
 
     <script>
       (function () {
+        // Preserva a sessão oficial: token, usuario e perfil nunca são
+        // removidos por esta recuperação técnica.
         const STORAGE_KEYS_TO_REMOVE = ["escola_build_version"];
 
         const CACHE_NAME_TERMS = [
-          "escola",
-          "vite",
-          "workbox",
-          "precache",
-          "runtime",
+          "workbox-precache-",
+          "workbox-runtime",
+          "api-cache",
+          "google-fonts",
+          "images",
+          "escola-",
+          "vite-",
         ];
 
         const btn = document.getElementById("btnAtualizar");
@@ -285,7 +289,10 @@
           const selecionados = cacheNames.filter((name) => {
             const normalized = String(name || "").toLowerCase();
 
-            return CACHE_NAME_TERMS.some((term) => normalized.includes(term));
+            return CACHE_NAME_TERMS.some(
+              (term) =>
+                normalized === term || normalized.startsWith(term),
+            );
           });
 
           await Promise.all(selecionados.map((name) => caches.delete(name)));
