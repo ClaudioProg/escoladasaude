@@ -43,6 +43,10 @@ import QrSiteEscola from "../components/institucional/QrSiteEscola";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
 import { completeAuthLogin } from "../auth/completeAuthLogin";
+import {
+  erroIndicaSessaoInvalida,
+  usuarioSessaoValido,
+} from "../auth/authSessionStorage";
 import { sanitizePostLoginRedirect } from "../auth/postLoginRedirect";
 import {
   apiAuthLogin,
@@ -159,17 +163,6 @@ function getAuthPayload(response) {
     token: payload.token,
     usuario: payload.usuario,
   };
-}
-
-function usuarioSessaoValido(usuario) {
-  return Boolean(
-    usuario &&
-    typeof usuario === "object" &&
-    Number.isFinite(Number(usuario.id)) &&
-    typeof usuario.perfil === "string" &&
-    usuario.perfil.trim() === usuario.perfil &&
-    usuario.perfil.length > 0,
-  );
 }
 
 function useQrSize() {
@@ -657,7 +650,9 @@ export default function Login() {
           status: error?.status || null,
         });
 
-        clearAuthSession();
+        if (erroIndicaSessaoInvalida(error)) {
+          clearAuthSession();
+        }
       } finally {
         if (!cancelled && mountedRef.current) {
           setLoadingSessionCheck(false);

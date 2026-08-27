@@ -1,3 +1,35 @@
+export const PERFIS_SESSAO_OFICIAIS = new Set([
+  "usuario",
+  "organizador",
+  "administrador",
+]);
+
+export function perfilSessaoOficial(perfil) {
+  return typeof perfil === "string" && PERFIS_SESSAO_OFICIAIS.has(perfil)
+    ? perfil
+    : null;
+}
+
+export function usuarioSessaoValido(usuario) {
+  return Boolean(
+    usuario &&
+      typeof usuario === "object" &&
+      Number.isSafeInteger(Number(usuario.id)) &&
+      Number(usuario.id) > 0 &&
+      perfilSessaoOficial(usuario.perfil) === usuario.perfil,
+  );
+}
+
+export function erroIndicaSessaoInvalida(error) {
+  const status = Number(error?.status ?? error?.response?.status);
+
+  return status === 401;
+}
+
+export function tokenMudouDuranteValidacao(tokenDaRequisicao, tokenAtual) {
+  return tokenDaRequisicao !== tokenAtual;
+}
+
 export function persistAuthStorage(storage, token, usuario) {
   const normalizedToken = token
     ? String(token)
@@ -7,19 +39,9 @@ export function persistAuthStorage(storage, token, usuario) {
 
   if (
     !normalizedToken ||
-    !usuario ||
-    typeof usuario !== "object" ||
-    !Number.isFinite(Number(usuario.id))
+    !usuarioSessaoValido(usuario)
   ) {
     throw new Error("Dados de sessão ausentes.");
-  }
-
-  if (
-    typeof usuario.perfil !== "string" ||
-    !usuario.perfil ||
-    usuario.perfil.trim() !== usuario.perfil
-  ) {
-    throw new Error("Perfil de sessão ausente.");
   }
 
   const perfil = usuario.perfil;

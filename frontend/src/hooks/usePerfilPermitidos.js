@@ -82,7 +82,9 @@ function lerPerfilStorage() {
   }
 
   try {
-    return filtrarPerfilOficial(localStorageSafe.getItem(STORAGE_KEY_PERFIL));
+    const perfil = localStorageSafe.getItem(STORAGE_KEY_PERFIL);
+
+    return PERFIL_OFICIAL.has(perfil) ? [perfil] : [];
   } catch {
     return [];
   }

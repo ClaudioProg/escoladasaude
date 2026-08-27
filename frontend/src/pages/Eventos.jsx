@@ -72,6 +72,7 @@ import EventoService, {
   sortEventosPublicos,
   ymd,
 } from "../services/eventoService";
+import { getToken } from "../services/api";
 
 /* ─────────────────────────────────────────────────────────────
    Constantes e helpers date-only
@@ -261,16 +262,7 @@ function getEventoElegibilidade(evento) {
 }
 
 function getAuthToken() {
-  try {
-    return (
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("access_token") ||
-      ""
-    );
-  } catch {
-    return "";
-  }
+  return getToken() || "";
 }
 
 function apiBaseUrl() {

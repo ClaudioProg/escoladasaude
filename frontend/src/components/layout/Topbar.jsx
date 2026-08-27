@@ -30,12 +30,15 @@ import {
   apiNotificacaoMarcarLida,
   apiNotificacaoMarcarTodasLidas,
   clearAuthSession,
+  getToken,
+  getUsuarioLocal,
 } from "../../services/api";
 import { notifyApiError, notifyError, notifySuccess } from "../ui/AppToast";
 import { getCampanhaSaudeVisual } from "../../utils/campanhaSaudeVisual";
 import ThemeToggleButton from "./ThemeToggleButton";
 
 const STORAGE_TOKEN_KEY = "token";
+const STORAGE_USUARIO_KEY = "usuario";
 const STORAGE_PERFIL_KEY = "perfil";
 
 const NOTIFICACAO_TIPO = {
@@ -117,20 +120,19 @@ function getStoredToken() {
   }
 
   try {
-    return localStorage.getItem(STORAGE_TOKEN_KEY) || null;
+    return getToken();
   } catch {
     return null;
   }
 }
 
-function getStoredPerfil() {
+function getStoredUsuario() {
   if (!isBrowser()) {
     return null;
   }
 
   try {
-    const raw = localStorage.getItem(STORAGE_PERFIL_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return getUsuarioLocal();
   } catch {
     return null;
   }
@@ -144,8 +146,9 @@ function limparSessao() {
   try {
     clearAuthSession();
   } catch {
-    localStorage.removeItem(STORAGE_TOKEN_KEY);
-    localStorage.removeItem(STORAGE_PERFIL_KEY);
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
+      localStorage.removeItem(STORAGE_USUARIO_KEY);
+      localStorage.removeItem(STORAGE_PERFIL_KEY);
     window.dispatchEvent(new CustomEvent("auth:changed"));
   }
 }
@@ -571,7 +574,7 @@ export default function Topbar({
   const campanha = getCampanhaSaudeVisual();
 
   const [token, setToken] = useState(() => getStoredToken());
-  const [perfil, setPerfil] = useState(() => getStoredPerfil());
+  const [usuario, setUsuario] = useState(() => getStoredUsuario());
   const [logoFalhou, setLogoFalhou] = useState(false);
 
   const [totalNaoLida, setTotalNaoLida] = useState(0);
@@ -584,8 +587,8 @@ export default function Topbar({
   const abortContadorRef = useRef(null);
   const abortDrawerRef = useRef(null);
 
-  const nomeUsuario = perfil?.nome || "Usuário";
-  const emailUsuario = perfil?.email || "";
+  const nomeUsuario = usuario?.nome || "Usuário";
+  const emailUsuario = usuario?.email || "";
 
   const iniciais = useMemo(
     () => getIniciais(nomeUsuario, emailUsuario),
@@ -602,7 +605,7 @@ export default function Topbar({
 
   const atualizarSessaoLocal = useCallback(() => {
     setToken(getStoredToken());
-    setPerfil(getStoredPerfil());
+    setUsuario(getStoredUsuario());
   }, []);
 
   const atualizarContadorNotificacao = useCallback(async () => {
@@ -795,7 +798,11 @@ export default function Topbar({
 
   useEffect(() => {
     function handleStorage(event) {
-      if (event.key === STORAGE_TOKEN_KEY || event.key === STORAGE_PERFIL_KEY) {
+      if (
+        event.key === STORAGE_TOKEN_KEY ||
+        event.key === STORAGE_USUARIO_KEY ||
+        event.key === STORAGE_PERFIL_KEY
+      ) {
         atualizarSessaoLocal();
       }
     }

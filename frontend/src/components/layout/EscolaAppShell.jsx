@@ -18,6 +18,7 @@
 // - sem compatibilidade legada;
 // - localStorage oficial:
 //   - token
+//   - usuario
 //   - perfil
 //   - escola_sidebar_recolhida
 // - integração com resumo oficial de menu quando houver dado acionável;
@@ -30,11 +31,16 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LogOut, ShieldCheck, UserRound, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { apiNotificacaoResumo, clearAuthSession } from "../../services/api";
+import {
+  apiNotificacaoResumo,
+  clearAuthSession,
+  getUsuarioLocal,
+} from "../../services/api";
 import SidebarNav from "./SidebarNav";
 import Topbar from "./Topbar";
 
 const STORAGE_PERFIL_KEY = "perfil";
+const STORAGE_USUARIO_KEY = "usuario";
 const STORAGE_SIDEBAR_RECOLHIDA_KEY = "escola_sidebar_recolhida";
 
 const DRAWER_ID = "menu-lateral-mobile";
@@ -89,14 +95,13 @@ function setStoredBoolean(key, value) {
   }
 }
 
-function getStoredPerfil() {
+function getStoredUsuario() {
   if (!hasDOM()) {
     return null;
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_PERFIL_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return getUsuarioLocal();
   } catch {
     return null;
   }
@@ -230,7 +235,7 @@ export default function EscolaAppShell({
   const reducedMotion = useReducedMotion();
 
   const [menuAberto, setMenuAberto] = useState(false);
-  const [perfil, setPerfil] = useState(() => getStoredPerfil());
+  const [usuario, setUsuario] = useState(() => getStoredUsuario());
   const [sidebarRecolhida, setSidebarRecolhida] = useState(() =>
     getStoredBoolean(STORAGE_SIDEBAR_RECOLHIDA_KEY, false),
   );
@@ -244,8 +249,8 @@ export default function EscolaAppShell({
   const conteudoRef = useRef(null);
   const abortResumoMenuRef = useRef(null);
 
-  const nomeUsuario = perfil?.nome || "Usuário";
-  const emailUsuario = perfil?.email || "E-mail não informado";
+  const nomeUsuario = usuario?.nome || "Usuário";
+  const emailUsuario = usuario?.email || "E-mail não informado";
 
   const layoutClasses = useMemo(() => {
     if (sidebarRecolhida) {
@@ -361,7 +366,7 @@ export default function EscolaAppShell({
       // O fallback fica centralizado no próprio api.js; aqui não bloqueia a saída.
     }
 
-    setPerfil(null);
+    setUsuario(null);
     setResumoMenu({
       notificacao_nao_lida: 0,
     });
@@ -386,7 +391,7 @@ export default function EscolaAppShell({
   }, [location.pathname]);
 
   useEffect(() => {
-    setPerfil(getStoredPerfil());
+    setUsuario(getStoredUsuario());
   }, [location.pathname]);
 
   useEffect(() => {
@@ -403,14 +408,17 @@ export default function EscolaAppShell({
         setSidebarRecolhida(event.newValue === "1");
       }
 
-      if (event.key === STORAGE_PERFIL_KEY) {
-        setPerfil(getStoredPerfil());
+      if (
+        event.key === STORAGE_PERFIL_KEY ||
+        event.key === STORAGE_USUARIO_KEY
+      ) {
+        setUsuario(getStoredUsuario());
         carregarResumoMenu();
       }
     }
 
     function handleAuthChanged() {
-      setPerfil(getStoredPerfil());
+      setUsuario(getStoredUsuario());
       carregarResumoMenu();
     }
 

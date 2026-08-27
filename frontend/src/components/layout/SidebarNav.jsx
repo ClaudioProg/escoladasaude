@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 
 import api from "../../services/api";
+import { getPerfilLocal } from "../../services/api";
 import { getCampanhaSaudeVisual } from "../../utils/campanhaSaudeVisual";
 
 const STORAGE_PERFIL_KEY = "perfil";
@@ -128,27 +129,13 @@ function getStoredPerfil() {
     return null;
   }
 
-  try {
-    const raw = localStorage.getItem(STORAGE_PERFIL_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return getPerfilLocal();
 }
 
 function getPerfilAtual() {
   const perfil = getStoredPerfil();
 
-  if (
-    perfil &&
-    typeof perfil === "object" &&
-    typeof perfil.perfil === "string" &&
-    perfil.perfil.trim().length > 0
-  ) {
-    return perfil.perfil.trim();
-  }
-
-  return "";
+  return Object.values(PERFIL).includes(perfil) ? perfil : "";
 }
 
 function getStoredBoolean(key, fallback = false) {

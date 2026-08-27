@@ -24,7 +24,10 @@
  * - Respostas diagnosticáveis.
  */
 
-import { persistAuthStorage } from "../auth/authSessionStorage";
+import {
+  perfilSessaoOficial,
+  persistAuthStorage,
+} from "../auth/authSessionStorage";
 
 const IS_DEV = Boolean(import.meta.env.DEV);
 
@@ -255,9 +258,7 @@ export function getUsuarioLocal() {
 
 export function getPerfilLocal() {
   try {
-    return (
-      String(localStorage.getItem(STORAGE_PERFIL_KEY) || "").trim() || null
-    );
+    return perfilSessaoOficial(localStorage.getItem(STORAGE_PERFIL_KEY));
   } catch {
     return null;
   }

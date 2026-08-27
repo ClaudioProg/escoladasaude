@@ -38,9 +38,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Navigate, useLocation } from "react-router-dom";
 
-import { apiPerfilMe, clearAuthSession } from "../../services/api";
+import {
+  apiPerfilMe,
+  clearAuthSession,
+  getToken,
+  persistAuthSession,
+} from "../../services/api";
+import {
+  erroIndicaSessaoInvalida,
+  tokenMudouDuranteValidacao,
+  usuarioSessaoValido,
+} from "../../auth/authSessionStorage";
 
 const STORAGE_TOKEN_KEY = "token";
+const STORAGE_USUARIO_KEY = "usuario";
 const STORAGE_PERFIL_KEY = "perfil";
 
 const PERFIL = {
@@ -53,6 +64,7 @@ const STATUS = {
   verificando: "verificando",
   autenticado: "autenticado",
   nao_autenticado: "nao_autenticado",
+  indisponivel: "indisponivel",
 };
 
 function isBrowser() {
@@ -65,7 +77,7 @@ function getStoredToken() {
   }
 
   try {
-    return localStorage.getItem(STORAGE_TOKEN_KEY) || null;
+    return getToken();
   } catch {
     return null;
   }
@@ -81,31 +93,12 @@ function limparSessaoLocal() {
   } catch {
     try {
       localStorage.removeItem(STORAGE_TOKEN_KEY);
+      localStorage.removeItem(STORAGE_USUARIO_KEY);
       localStorage.removeItem(STORAGE_PERFIL_KEY);
       window.dispatchEvent(new CustomEvent("auth:changed"));
     } catch {
       // Não bloquear redirecionamento por falha de storage.
     }
-  }
-}
-
-function salvarPerfilLocal(perfil) {
-  if (!isBrowser()) {
-    return false;
-  }
-
-  try {
-    const novoValor = JSON.stringify(perfil);
-    const valorAtual = localStorage.getItem(STORAGE_PERFIL_KEY);
-
-    if (valorAtual === novoValor) {
-      return false;
-    }
-
-    localStorage.setItem(STORAGE_PERFIL_KEY, novoValor);
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -119,17 +112,6 @@ function getPerfilData(response) {
   }
 
   return null;
-}
-
-function perfilValido(perfil) {
-  return Boolean(
-    perfil &&
-    typeof perfil === "object" &&
-    Number.isFinite(Number(perfil.id)) &&
-    typeof perfil.perfil === "string" &&
-    perfil.perfil.trim() === perfil.perfil &&
-    Object.values(PERFIL).includes(perfil.perfil),
-  );
 }
 
 function permitidoValido(permitido) {
@@ -185,6 +167,32 @@ function errorDev(...args) {
   }
 }
 
+function SessaoTemporariamenteIndisponivel({ onRetry }) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-slate-50 p-6 dark:bg-zinc-950">
+      <section className="w-full max-w-md rounded-3xl border border-amber-200 bg-white p-6 text-center shadow-xl dark:border-amber-900/50 dark:bg-zinc-900">
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+          Não foi possível confirmar sua sessão agora
+        </h1>
+        <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
+          Sua sessão foi mantida. Verifique a conexão e tente novamente.
+        </p>
+        <button
+          type="button"
+          className="mt-5 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          onClick={onRetry}
+        >
+          Tentar novamente
+        </button>
+      </section>
+    </main>
+  );
+}
+
+SessaoTemporariamenteIndisponivel.propTypes = {
+  onRetry: PropTypes.func.isRequired,
+};
+
 export default function PrivateRoute({
   children,
   permitido = null,
@@ -233,7 +241,7 @@ export default function PrivateRoute({
         return;
       }
 
-      salvarPerfilLocal(perfilRecebido);
+      persistAuthSession(_extra.token, perfilRecebido);
 
       setPerfil((perfilAtual) => {
         if (
@@ -256,6 +264,17 @@ export default function PrivateRoute({
     },
     [],
   );
+
+  const aplicarSessaoIndisponivel = useCallback(() => {
+    if (!mountedRef.current) {
+      return;
+    }
+
+    tokenVerificadoRef.current = null;
+    setStatus((statusAtual) =>
+      statusAtual === STATUS.autenticado ? statusAtual : STATUS.indisponivel,
+    );
+  }, []);
 
   const verificarSessao = useCallback(
     async (origem = "manual", options = {}) => {
@@ -281,6 +300,10 @@ export default function PrivateRoute({
         return;
       }
 
+      setStatus((statusAtual) =>
+        statusAtual === STATUS.autenticado ? statusAtual : STATUS.verificando,
+      );
+
       const requestId = requestIdRef.current + 1;
 
       requestIdRef.current = requestId;
@@ -300,13 +323,17 @@ export default function PrivateRoute({
           return;
         }
 
+        if (tokenMudouDuranteValidacao(token, getStoredToken())) {
+          window.setTimeout(() => {
+            verificarSessao("token_atualizado", { forcar: true });
+          }, 0);
+          return;
+        }
+
         const perfilRecebido = getPerfilData(response);
 
-        if (!perfilValido(perfilRecebido)) {
-          aplicarSessaoInvalida(origem, {
-            request_id: requestId,
-            motivo: "payload_perfil_invalido",
-          });
+        if (!usuarioSessaoValido(perfilRecebido)) {
+          aplicarSessaoIndisponivel();
           return;
         }
 
@@ -314,6 +341,7 @@ export default function PrivateRoute({
 
         aplicarSessaoValida(perfilRecebido, origem, {
           request_id: requestId,
+          token,
         });
       } catch (error) {
         if (!mountedRef.current) {
@@ -331,17 +359,25 @@ export default function PrivateRoute({
           status: error?.status || error?.response?.status || null,
         });
 
-        aplicarSessaoInvalida(origem, {
-          request_id: requestId,
-          motivo: "perfil_me_error",
-        });
+        if (erroIndicaSessaoInvalida(error)) {
+          aplicarSessaoInvalida(origem, {
+            request_id: requestId,
+            motivo: "perfil_me_401",
+          });
+        } else {
+          aplicarSessaoIndisponivel();
+        }
       } finally {
         if (requestId === requestIdRef.current) {
           requestEmAndamentoRef.current = false;
         }
       }
     },
-    [aplicarSessaoInvalida, aplicarSessaoValida],
+    [
+      aplicarSessaoIndisponivel,
+      aplicarSessaoInvalida,
+      aplicarSessaoValida,
+    ],
   );
 
   useEffect(() => {
@@ -407,6 +443,14 @@ export default function PrivateRoute({
         to={`${rotaLogin}?next=${next}`}
         replace
         state={{ from: location }}
+      />
+    );
+  }
+
+  if (status === STATUS.indisponivel) {
+    return (
+      <SessaoTemporariamenteIndisponivel
+        onRetry={() => verificarSessao("retry", { forcar: true })}
       />
     );
   }
