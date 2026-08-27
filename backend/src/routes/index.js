@@ -170,6 +170,7 @@ const interacaoRoute = require("./interacaoRoute");
 
 // Dashboard / certificado / informações
 const dashboardRoute = require("./dashboardRoute");
+const dashboardLegacyCompatRoute = require("./dashboardLegacyCompatRoute");
 const certificadoRoute = require("./certificadoRoute");
 const informacoesRoute = require("./informacoesRoute");
 
@@ -290,6 +291,11 @@ mount("/interacao", interacaoRoute, "interacaoRoute");
 ────────────────────────────────────────────────────────────── */
 
 mount("/dashboard", dashboardRoute, "dashboardRoute");
+mount(
+  "/dashboard-usuario",
+  dashboardLegacyCompatRoute,
+  "dashboardLegacyCompatRoute",
+);
 
 /* ─────────────────────────────────────────────────────────────
    Certificado

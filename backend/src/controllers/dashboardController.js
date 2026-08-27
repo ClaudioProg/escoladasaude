@@ -405,14 +405,9 @@ async function getEventoAvaliacaoPororganizador(req, res) {
    GET /api/dashboard
 ────────────────────────────────────────────────────────────── */
 
-async function getResumoDashboard(req, res) {
-  const usuarioId = exigirUsuarioId(req, res);
-
-  if (!usuarioId) return null;
-
+async function obterResumoDashboardUsuario(usuarioId) {
   const agoraSp = sqlAgoraSp();
 
-  try {
     const cursosResult = await db.query(
       `
       SELECT COUNT(DISTINCT e.id)::int AS total
@@ -603,27 +598,33 @@ async function getResumoDashboard(req, res) {
         ? Number(mediaOrganizadorResult.rows[0].media_10)
         : null;
 
-    return respostaOk(
-      res,
-      200,
-      {
-        inscricao_futura: num(inscricaoFuturaResult.rows?.[0]?.total, 0),
-        inscricao_atual: num(inscricaoAtualResult.rows?.[0]?.total, 0),
-        avaliacao_pendente: num(avaliacaoPendenteResult.rows?.[0]?.total, 0),
-        certificado_emitido: num(certificadoEmitidoResult.rows?.[0]?.total, 0),
-        certificado_total: num(certificadoTotalResult.rows?.[0]?.total, 0),
-        presenca_total: presencaTotal,
-        falta_total: faltaTotal,
-        nota_usuario: notaUsuario,
-        curso_realizado: num(cursosResult.rows?.[0]?.total, 0),
-        evento_organizador: num(eventoOrganizadorResult.rows?.[0]?.total, 0),
-        proximo_evento: num(inscricaoFuturaResult.rows?.[0]?.total, 0),
-        media_avaliacao: mediaAvaliacao10,
-      },
-      {
-        message: "Resumo do dashboard carregado com sucesso.",
-      },
-    );
+  return {
+    inscricao_futura: num(inscricaoFuturaResult.rows?.[0]?.total, 0),
+    inscricao_atual: num(inscricaoAtualResult.rows?.[0]?.total, 0),
+    avaliacao_pendente: num(avaliacaoPendenteResult.rows?.[0]?.total, 0),
+    certificado_emitido: num(certificadoEmitidoResult.rows?.[0]?.total, 0),
+    certificado_total: num(certificadoTotalResult.rows?.[0]?.total, 0),
+    presenca_total: presencaTotal,
+    falta_total: faltaTotal,
+    nota_usuario: notaUsuario,
+    curso_realizado: num(cursosResult.rows?.[0]?.total, 0),
+    evento_organizador: num(eventoOrganizadorResult.rows?.[0]?.total, 0),
+    proximo_evento: num(inscricaoFuturaResult.rows?.[0]?.total, 0),
+    media_avaliacao: mediaAvaliacao10,
+  };
+}
+
+async function getResumoDashboard(req, res) {
+  const usuarioId = exigirUsuarioId(req, res);
+
+  if (!usuarioId) return null;
+
+  try {
+    const data = await obterResumoDashboardUsuario(usuarioId);
+
+    return respostaOk(res, 200, data, {
+      message: "Resumo do dashboard carregado com sucesso.",
+    });
   } catch (err) {
     logErro("getResumoDashboard", err, { usuarioId });
 
@@ -938,6 +939,7 @@ async function obterDashboard(req, res) {
 }
 
 module.exports = {
+  obterResumoDashboardUsuario,
   getResumoDashboard,
   getAvaliacaoRecenteorganizador,
   getEventoAvaliacaoPororganizador,
