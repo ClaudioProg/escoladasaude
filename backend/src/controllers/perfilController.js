@@ -522,55 +522,76 @@ async function listarOpcaoPerfil(req, res) {
    GET /api/perfil/me
 ──────────────────────────────────────────────────────────────── */
 
+async function obterMeuPerfilAutenticado(req) {
+  const userId = getUserId(req);
+
+  if (!userId) {
+    return {
+      ok: false,
+      status: 401,
+      code: "PERFIL-401-NAO-AUTENTICADO",
+      message: "Não autenticado.",
+    };
+  }
+
+  const result = await queryDb(
+    req,
+    `
+    SELECT
+      id,
+      nome,
+      email,
+      cpf,
+      celular,
+      registro,
+      perfil,
+      cargo_id,
+      unidade_id,
+      to_char(data_nascimento::date, 'YYYY-MM-DD') AS data_nascimento,
+      genero_id,
+      orientacao_sexual_id,
+      cor_raca_id,
+      escolaridade_id,
+      deficiencia_id
+    FROM usuarios
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [userId],
+  );
+
+  const usuario = result.rows?.[0] || null;
+
+  if (!usuario) {
+    return {
+      ok: false,
+      status: 404,
+      code: "PERFIL-404-USUARIO",
+      message: "Usuário não encontrado.",
+    };
+  }
+
+  return {
+    ok: true,
+    userId,
+    data: montarPerfilPayload(usuario),
+  };
+}
+
 async function meuPerfil(req, res) {
   const rid = mkRid();
 
   try {
-    const userId = getUserId(req);
+    const resultado = await obterMeuPerfilAutenticado(req);
 
-    if (!userId) {
-      return sendError(res, 401, {
-        code: "PERFIL-401-NAO-AUTENTICADO",
-        message: "Não autenticado.",
+    if (!resultado.ok) {
+      return sendError(res, resultado.status, {
+        code: resultado.code,
+        message: resultado.message,
       });
     }
 
-    const result = await queryDb(
-      req,
-      `
-      SELECT
-        id,
-        nome,
-        email,
-        cpf,
-        celular,
-        registro,
-        perfil,
-        cargo_id,
-        unidade_id,
-        to_char(data_nascimento::date, 'YYYY-MM-DD') AS data_nascimento,
-        genero_id,
-        orientacao_sexual_id,
-        cor_raca_id,
-        escolaridade_id,
-        deficiencia_id
-      FROM usuarios
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [userId],
-    );
-
-    const usuario = result.rows?.[0] || null;
-
-    if (!usuario) {
-      return sendError(res, 404, {
-        code: "PERFIL-404-USUARIO",
-        message: "Usuário não encontrado.",
-      });
-    }
-
-    const data = montarPerfilPayload(usuario);
+    const { userId, data } = resultado;
 
     setPerfilHeader(res, data.perfil_incompleto);
 
@@ -779,6 +800,7 @@ async function atualizarMeuPerfil(req, res) {
 
 module.exports = {
   listarOpcaoPerfil,
+  obterMeuPerfilAutenticado,
   meuPerfil,
   atualizarMeuPerfil,
 };

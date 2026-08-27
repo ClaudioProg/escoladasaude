@@ -55,11 +55,18 @@ if (!db || typeof db.query !== "function") {
    Helpers
 ────────────────────────────────────────────────────────────── */
 
+function requestUrlForLog(req) {
+  const url = String(req?.originalUrl || req?.url || "");
+  const queryStart = url.indexOf("?");
+
+  return queryStart >= 0 ? url.slice(0, queryStart) : url;
+}
+
 function buildAuthLog(req, extra = {}) {
   return {
     requestId: req.requestId || null,
     method: req.method,
-    url: req.originalUrl,
+    url: requestUrlForLog(req),
     ip: req.ip,
     userAgent: req.headers?.["user-agent"] || null,
     ...extra,

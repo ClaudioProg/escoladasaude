@@ -133,6 +133,7 @@ const loginRoute = require("./loginRoute");
 const perfilRoute = require("./perfilRoute");
 const authPublicRoute = require("./authPublicRoute");
 const authGoogleRoute = require("../auth/authGoogle");
+const authLegacyCompatRoute = require("./authLegacyCompatRoute");
 const contaExclusaoRoute = require("./contaExclusaoRoute");
 
 // Upload
@@ -228,6 +229,7 @@ mount("/login", loginRoute, "loginRoute");
 mount("/perfil", perfilRoute, "perfilRoute");
 mount("/auth", authPublicRoute, "authPublicRoute");
 mount("/auth", authGoogleRoute, "authGoogleRoute");
+mount("/auth", authLegacyCompatRoute, "authLegacyCompatRoute");
 mount("/conta/exclusao", contaExclusaoRoute, "contaExclusaoRoute");
 
 /* ─────────────────────────────────────────────────────────────
