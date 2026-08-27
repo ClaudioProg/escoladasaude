@@ -7,6 +7,11 @@
  * GET /api/dashboard-usuario não é contrato oficial novo. O contrato oficial
  * permanece GET /api/dashboard; esta rota existe somente para permitir a
  * transição segura de bundles antigos que esperam o resumo sem envelope.
+ *
+ * LEGACY COMPAT / DEPRECATED. Suporte previsto atÃ© 31/12/2027; revisar
+ * retirada em 2028. NÃ£o hÃ¡ remoÃ§Ã£o automÃ¡tica por data: qualquer retirada
+ * exige anÃ¡lise de telemetria e uma mudanÃ§a explÃ­cita. O frontend atual nÃ£o
+ * pode depender deste adaptador.
  */
 
 const express = require("express");
