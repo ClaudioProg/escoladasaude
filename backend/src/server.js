@@ -78,6 +78,9 @@ const {
 ────────────────────────────────────────────────────────────── */
 
 const apiRoutes = require("./routes");
+const {
+  createClientBuildCompatibilityMiddleware,
+} = require("./middlewares/clientBuildCompatibility");
 
 /* ─────────────────────────────────────────────────────────────
    Jobs
@@ -348,6 +351,8 @@ const corsOptions = {
     "ETag",
     "X-Perfil-Incompleto",
     "X-Request-Id",
+    "X-Client-Build-Minimum",
+    "X-Client-Build-Current",
   ],
   maxAge: 86400,
 };
@@ -614,6 +619,7 @@ app.head("/__ping", (_req, res) => res.sendStatus(204));
    API
 ────────────────────────────────────────────────────────────── */
 
+app.use("/api", createClientBuildCompatibilityMiddleware());
 app.use("/api", apiRoutes);
 
 /* ─────────────────────────────────────────────────────────────

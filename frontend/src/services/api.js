@@ -30,6 +30,13 @@ import {
 } from "../auth/authSessionStorage";
 
 const IS_DEV = Boolean(import.meta.env.DEV);
+const CLIENT_BUILD_HEADER = "X-Client-Build";
+const APP_UPDATE_REQUIRED_EVENT = "escola:app-update-required";
+const LOADED_BUILD_SIGNATURE = String(
+  import.meta.env.VITE_BUILD_SIGNATURE || "",
+).trim();
+
+let appUpdateRequiredDispatched = false;
 
 /* ─────────────────────────────────────────────────────────────
    Logs
@@ -467,7 +474,29 @@ function buildClientContextHeaders() {
     "X-Client-Now-UTC": new Date().toISOString(),
     "X-Date-Only-Semantics": "YMD_LOCAL",
     "X-Request-Id": newRequestId(),
+    ...(LOADED_BUILD_SIGNATURE
+      ? { [CLIENT_BUILD_HEADER]: LOADED_BUILD_SIGNATURE }
+      : {}),
   };
+}
+
+function notifyAppUpdateRequired({ status, url, data, response }) {
+  if (appUpdateRequiredDispatched || typeof window === "undefined") {
+    return;
+  }
+
+  appUpdateRequiredDispatched = true;
+  window.dispatchEvent(
+    new CustomEvent(APP_UPDATE_REQUIRED_EVENT, {
+      detail: {
+        status,
+        url,
+        minimumBuild: response?.headers?.get?.("X-Client-Build-Minimum") || null,
+        currentBuild: response?.headers?.get?.("X-Client-Build-Current") || null,
+        code: data?.code || "APP_UPDATE_REQUIRED",
+      },
+    }),
+  );
 }
 
 const DEBUG_CONF_KEY = "debug_conflitos";
@@ -771,6 +800,18 @@ async function handle(
 
     error.code = data?.code || "AUTH-403";
 
+    throw error;
+  }
+
+  if (status === 426 && data?.code === "APP_UPDATE_REQUIRED") {
+    notifyAppUpdateRequired({ status, url, data, response });
+
+    const error = new ApiError(
+      data?.message || "Esta versão da plataforma precisa ser atualizada.",
+      { status, url, data: data ?? text },
+    );
+    error.code = "APP_UPDATE_REQUIRED";
+    error.appUpdateRequired = true;
     throw error;
   }
 

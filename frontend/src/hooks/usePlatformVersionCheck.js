@@ -7,6 +7,7 @@ import {
   getSafeReturnPath,
   getUrlWithoutUpdateMarker,
   shouldAttemptAutomaticUpdate,
+  shouldAttemptRequiredUpdate,
 } from "../utils/platformVersion";
 
 const STORAGE_KEY = "escola_build_version";
@@ -54,10 +55,14 @@ function registrarTentativa(assinatura) {
   );
 }
 
-function redirecionarParaAtualizacao(assinatura) {
+function redirecionarParaAtualizacao(assinatura, origin = "versao") {
   const retorno = getSafeReturnPath(window.location);
   window.location.replace(
-    buildUpdateUrl({ returnPath: retorno, publishedSignature: assinatura }),
+    buildUpdateUrl({
+      returnPath: retorno,
+      publishedSignature: assinatura,
+      origin,
+    }),
   );
 }
 
@@ -72,18 +77,22 @@ export function usePlatformVersionCheck() {
   const verificandoRef = useRef(false);
 
   const iniciarAtualizacao = useCallback(
-    (assinatura, { forcar = false } = {}) => {
+    (assinatura, { forcar = false, origem = "versao", minimoObrigatorio = false } = {}) => {
       if (!assinatura) {
         return false;
       }
 
-      const deveAtualizar =
-        forcar ||
-        shouldAttemptAutomaticUpdate({
-          loadedSignature: LOADED_BUILD_SIGNATURE,
-          publishedSignature: assinatura,
-          lastAttempt: sessionStorage.getItem(ATTEMPT_KEY),
-        });
+      const deveAtualizar = minimoObrigatorio
+        ? shouldAttemptRequiredUpdate({
+            minimumBuild: assinatura,
+            lastAttempt: sessionStorage.getItem(ATTEMPT_KEY),
+          })
+        : forcar ||
+          shouldAttemptAutomaticUpdate({
+            loadedSignature: LOADED_BUILD_SIGNATURE,
+            publishedSignature: assinatura,
+            lastAttempt: sessionStorage.getItem(ATTEMPT_KEY),
+          });
 
       if (!deveAtualizar) {
         return false;
@@ -91,7 +100,10 @@ export function usePlatformVersionCheck() {
 
       registrarTentativa(assinatura);
       setAtualizandoAutomaticamente(true);
-      window.setTimeout(() => redirecionarParaAtualizacao(assinatura), 250);
+      window.setTimeout(
+        () => redirecionarParaAtualizacao(assinatura, origem),
+        250,
+      );
       return true;
     },
     [],
@@ -166,9 +178,23 @@ export function usePlatformVersionCheck() {
       }
     };
     const onApiRouteNotFound = () => verificarVersao();
+    const onAppUpdateRequired = (event) => {
+      const minimumBuild = String(event?.detail?.minimumBuild || "").trim();
+      const iniciou = iniciarAtualizacao(minimumBuild, {
+        origem: "api-minima",
+        minimoObrigatorio: true,
+      });
+
+      if (!iniciou) {
+        setNovaVersaoDisponivel(true);
+        setAtualizandoAutomaticamente(false);
+        setVersaoNova({ signature: minimumBuild || null });
+      }
+    };
 
     window.addEventListener("focus", onFocus);
     window.addEventListener("escola:api-route-not-found", onApiRouteNotFound);
+    window.addEventListener("escola:app-update-required", onAppUpdateRequired);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
@@ -178,9 +204,13 @@ export function usePlatformVersionCheck() {
         "escola:api-route-not-found",
         onApiRouteNotFound,
       );
+      window.removeEventListener(
+        "escola:app-update-required",
+        onAppUpdateRequired,
+      );
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [verificarVersao]);
+  }, [iniciarAtualizacao, verificarVersao]);
 
   return {
     novaVersaoDisponivel,

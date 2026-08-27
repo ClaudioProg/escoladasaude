@@ -71,6 +71,26 @@ export function shouldAttemptAutomaticUpdate({
   return now - attempt.attemptedAt >= cooldownMs;
 }
 
+export function shouldAttemptRequiredUpdate({
+  minimumBuild,
+  lastAttempt,
+  now = Date.now(),
+  cooldownMs = VERSION_UPDATE_COOLDOWN_MS,
+}) {
+  const minimum = normalizarTexto(minimumBuild);
+
+  if (!minimum) {
+    return false;
+  }
+
+  const attempt = parseVersionUpdateAttempt(lastAttempt);
+  if (!attempt || attempt.signature !== minimum) {
+    return true;
+  }
+
+  return now - attempt.attemptedAt >= cooldownMs;
+}
+
 export function getSafeReturnPath(locationLike) {
   const pathname = String(locationLike?.pathname || "/");
   const search = String(locationLike?.search || "");
@@ -96,8 +116,12 @@ export function getUrlWithoutUpdateMarker(locationLike) {
   return `${pathname}${search ? `?${search}` : ""}${hash}`;
 }
 
-export function buildUpdateUrl({ returnPath, publishedSignature } = {}) {
-  const params = new URLSearchParams({ origem: "versao" });
+export function buildUpdateUrl({
+  returnPath,
+  publishedSignature,
+  origin = "versao",
+} = {}) {
+  const params = new URLSearchParams({ origem: normalizarTexto(origin) || "versao" });
   const safeReturnPath = getSafeReturnPath({ pathname: returnPath || "/" });
 
   params.set("retorno", safeReturnPath);

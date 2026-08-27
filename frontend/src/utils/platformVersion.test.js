@@ -7,6 +7,7 @@ import {
   getSafeReturnPath,
   getUrlWithoutUpdateMarker,
   shouldAttemptAutomaticUpdate,
+  shouldAttemptRequiredUpdate,
 } from "./platformVersion.js";
 
 const loaded = "escoladasaude::2.0.4::build-a";
@@ -118,6 +119,21 @@ test("ciclo A para B termina quando o reload carrega o bundle B", () => {
   );
 });
 
+test("versão mínima imposta pela API evita loop para o mesmo mínimo", () => {
+  assert.equal(
+    shouldAttemptRequiredUpdate({ minimumBuild: published, lastAttempt: null, now: 1_000 }),
+    true,
+  );
+  assert.equal(
+    shouldAttemptRequiredUpdate({
+      minimumBuild: published,
+      lastAttempt: JSON.stringify({ signature: published, attemptedAt: 1_000 }),
+      now: 1_001,
+    }),
+    false,
+  );
+});
+
 test("retorno preserva rota local e rejeita destino externo", () => {
   assert.equal(
     getSafeReturnPath({ pathname: "/painel", search: "?aba=1", hash: "#x" }),
@@ -132,6 +148,16 @@ test("retorno preserva rota local e rejeita destino externo", () => {
   const params = new URL(url, "https://escola.test").searchParams;
   assert.equal(params.get("retorno"), "/painel?aba=1#x");
   assert.equal(params.get("versao"), published);
+
+  const apiUrl = buildUpdateUrl({
+    returnPath: "/painel",
+    publishedSignature: published,
+    origin: "api-minima",
+  });
+  assert.equal(
+    new URL(apiUrl, "https://escola.test").searchParams.get("origem"),
+    "api-minima",
+  );
 });
 
 test("remove somente o marcador transitório após atualização confirmada", () => {
