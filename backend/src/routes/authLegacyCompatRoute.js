@@ -18,8 +18,12 @@ const express = require("express");
 
 const requireAuth = require("../auth/authMiddleware");
 const perfilController = require("../controllers/perfilController");
+const {
+  createLegacyAuthLoopBreakerMiddleware,
+} = require("../services/legacyAuthLoopBreaker");
 
 const router = express.Router();
+const legacyAuthLoopBreaker = createLegacyAuthLoopBreakerMiddleware();
 
 if (typeof requireAuth !== "function") {
   throw new Error(
@@ -82,8 +86,9 @@ router.get(
   "/me",
   requireAuth,
   noStore,
-  legacyUsageTelemetry,
   routeTag("authLegacyCompat:v1:GET /auth/me"),
+  legacyAuthLoopBreaker,
+  legacyUsageTelemetry,
   asyncHandler(async (req, res) => {
     const resultado = await perfilController.obterMeuPerfilAutenticado(req);
 
