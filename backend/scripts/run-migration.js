@@ -94,7 +94,10 @@ const MIGRATION_TABLE = "sistema_migracao";
     const client = await pool.connect();
 
     try {
-      await client.query(`SET statement_timeout = $1;`, [timeout]);
+      await client.query(
+        `SELECT set_config('statement_timeout', $1, false);`,
+        [String(timeout)],
+      );
 
       await printDatabaseDiagnostic(client, args.verbose);
 
