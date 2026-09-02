@@ -1,7 +1,11 @@
 "use strict";
 
 const db = require("../db");
-const { PreTesteError, TIPOS_PERGUNTA } = require("./preTesteService");
+const {
+  MODOS_RESPOSTA,
+  PreTesteError,
+  TIPOS_PERGUNTA,
+} = require("./preTesteService");
 
 const RESPOSTAS_INICIAIS_POR_PERGUNTA = 10;
 const PARTICIPANTES_POR_PAGINA = 20;
@@ -178,6 +182,11 @@ function montarPerguntas(rows, respostasDissertativas = []) {
       pergunta = {
         id: perguntaId,
         tipo: row.tipo,
+        modo_resposta:
+          row.modo_resposta ||
+          (row.tipo === TIPOS_PERGUNTA.MULTIPLA_ESCOLHA
+            ? MODOS_RESPOSTA.UNICA
+            : null),
         enunciado: row.enunciado,
         ordem: Number(row.pergunta_ordem),
         total_respostas: 0,
@@ -195,7 +204,11 @@ function montarPerguntas(rows, respostasDissertativas = []) {
         ordem: Number(row.alternativa_ordem),
         quantidade,
       });
-      pergunta.total_respostas += quantidade;
+      if (row.total_respostas != null) {
+        pergunta.total_respostas = toCount(row.total_respostas);
+      } else {
+        pergunta.total_respostas += quantidade;
+      }
     } else if (row.tipo === TIPOS_PERGUNTA.DISSERTATIVA) {
       pergunta.total_respostas = quantidade;
     }
@@ -226,6 +239,7 @@ function montarPerguntas(rows, respostasDissertativas = []) {
 
     return {
       ...pergunta,
+      total_respostas: total,
       alternativas,
       respostas: respostasPorPergunta.get(pergunta.id) || [],
     };
@@ -259,33 +273,51 @@ async function obterResultados(
   const perguntasResult = await query(
     `
     /* pre_teste_resultados:perguntas_agregadas */
+    WITH respostas_validas AS (
+      SELECT r.*
+      FROM pre_teste_respostas r
+      JOIN pre_teste_submissoes s
+        ON s.id = r.submissao_id
+       AND s.evento_id = $1
+       AND s.versao_id = $2
+    ),
+    totais AS (
+      SELECT pergunta_id, COUNT(id)::integer AS total_respostas
+      FROM respostas_validas
+      GROUP BY pergunta_id
+    )
     SELECT
       p.id AS pergunta_id,
       p.tipo,
+      p.modo_resposta,
       p.enunciado,
       p.ordem AS pergunta_ordem,
       a.id AS alternativa_id,
       a.texto AS alternativa_texto,
       a.ordem AS alternativa_ordem,
-      COUNT(r.id) FILTER (WHERE s.id IS NOT NULL)::integer AS quantidade
+      COUNT(r.id)::integer AS quantidade,
+      COALESCE(t.total_respostas, 0)::integer AS total_respostas
     FROM pre_teste_perguntas p
     LEFT JOIN pre_teste_alternativas a ON a.pergunta_id = p.id
-    LEFT JOIN pre_teste_respostas r
+    LEFT JOIN respostas_validas r
       ON r.pergunta_id = p.id
-     AND (a.id IS NULL OR r.alternativa_id = a.id)
-    LEFT JOIN pre_teste_submissoes s
-      ON s.id = r.submissao_id
-     AND s.evento_id = $1
-     AND s.versao_id = $2
+     AND (
+       a.id IS NULL
+       OR r.alternativa_id = a.id
+       OR a.id = ANY(COALESCE(r.alternativas_ids, '{}'::integer[]))
+     )
+    LEFT JOIN totais t ON t.pergunta_id = p.id
     WHERE p.versao_id = $2
     GROUP BY
       p.id,
       p.tipo,
+      p.modo_resposta,
       p.enunciado,
       p.ordem,
       a.id,
       a.texto,
-      a.ordem
+      a.ordem,
+      t.total_respostas
     ORDER BY p.ordem, p.id, a.ordem NULLS LAST, a.id NULLS LAST
     `,
     [contexto.evento.id, versao.id],
@@ -502,6 +534,7 @@ function montarParticipanteDetalhado(rows) {
       pergunta_id: Number(row.pergunta_id),
       ordem: Number(row.pergunta_ordem),
       tipo: row.tipo,
+      modo_resposta: row.modo_resposta || null,
       enunciado: row.enunciado,
       resposta:
         row.tipo === TIPOS_PERGUNTA.MULTIPLA_ESCOLHA
@@ -535,18 +568,25 @@ async function obterParticipante(eventoId, versaoId, submissaoId, conn = db) {
       p.id AS pergunta_id,
       p.ordem AS pergunta_ordem,
       p.tipo,
+      p.modo_resposta,
       p.enunciado,
       r.resposta_texto,
-      a.texto AS alternativa_texto
+      selecionadas.texto AS alternativa_texto
     FROM pre_teste_submissoes s
     JOIN usuarios u ON u.id = s.usuario_id
     JOIN pre_teste_perguntas p ON p.versao_id = s.versao_id
     LEFT JOIN pre_teste_respostas r
       ON r.submissao_id = s.id
      AND r.pergunta_id = p.id
-    LEFT JOIN pre_teste_alternativas a
-      ON a.id = r.alternativa_id
-     AND a.pergunta_id = p.id
+    LEFT JOIN LATERAL (
+      SELECT string_agg(a.texto, ', ' ORDER BY a.ordem, a.id) AS texto
+      FROM pre_teste_alternativas a
+      WHERE a.pergunta_id = p.id
+        AND (
+          a.id = r.alternativa_id
+          OR a.id = ANY(COALESCE(r.alternativas_ids, '{}'::integer[]))
+        )
+    ) selecionadas ON TRUE
     WHERE s.id = $1
       AND s.evento_id = $2
       AND s.versao_id = $3
@@ -583,6 +623,7 @@ function agruparParticipantesRelatorio(rows) {
       pergunta_id: Number(row.pergunta_id),
       ordem: Number(row.pergunta_ordem),
       tipo: row.tipo,
+      modo_resposta: row.modo_resposta || null,
       enunciado: row.enunciado,
       resposta:
         row.tipo === TIPOS_PERGUNTA.MULTIPLA_ESCOLHA
@@ -634,12 +675,14 @@ async function obterDadosRelatorio(eventoId, versaoId, tipo, conn = db) {
           ? pergunta.alternativas.map((alternativa) => ({
               pergunta_id: pergunta.id,
               tipo: pergunta.tipo,
+              modo_resposta: pergunta.modo_resposta,
               enunciado: pergunta.enunciado,
               pergunta_ordem: pergunta.ordem,
               alternativa_id: alternativa.id,
               alternativa_texto: alternativa.texto,
               alternativa_ordem: alternativa.ordem,
               quantidade: alternativa.quantidade,
+              total_respostas: pergunta.total_respostas,
             }))
           : [
               {
@@ -674,18 +717,25 @@ async function obterDadosRelatorio(eventoId, versaoId, tipo, conn = db) {
       p.id AS pergunta_id,
       p.ordem AS pergunta_ordem,
       p.tipo,
+      p.modo_resposta,
       p.enunciado,
       r.resposta_texto,
-      a.texto AS alternativa_texto
+      selecionadas.texto AS alternativa_texto
     FROM pre_teste_submissoes s
     JOIN usuarios u ON u.id = s.usuario_id
     JOIN pre_teste_perguntas p ON p.versao_id = s.versao_id
     LEFT JOIN pre_teste_respostas r
       ON r.submissao_id = s.id
      AND r.pergunta_id = p.id
-    LEFT JOIN pre_teste_alternativas a
-      ON a.id = r.alternativa_id
-     AND a.pergunta_id = p.id
+    LEFT JOIN LATERAL (
+      SELECT string_agg(a.texto, ', ' ORDER BY a.ordem, a.id) AS texto
+      FROM pre_teste_alternativas a
+      WHERE a.pergunta_id = p.id
+        AND (
+          a.id = r.alternativa_id
+          OR a.id = ANY(COALESCE(r.alternativas_ids, '{}'::integer[]))
+        )
+    ) selecionadas ON TRUE
     WHERE s.evento_id = $1
       AND s.versao_id = $2
     ORDER BY u.nome, s.enviado_em, s.id, p.ordem, p.id

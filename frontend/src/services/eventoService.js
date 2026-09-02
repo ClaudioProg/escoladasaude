@@ -655,12 +655,11 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
         )
       : [];
 
-  const turmasFonte =
-    Array.isArray(source?.turmas)
-      ? source.turmas
-      : Array.isArray(base?.turmas) && base.turmas.length
-        ? base.turmas
-        : [];
+  const turmasFonte = Array.isArray(source?.turmas)
+    ? source.turmas
+    : Array.isArray(base?.turmas) && base.turmas.length
+      ? base.turmas
+      : [];
 
   const turmas = normalizeTurmas(turmasFonte);
 
@@ -682,7 +681,9 @@ export function buildEventoPayload(dados = {}, baseServidor = null) {
     tipo,
     unidade_id: unidadeId,
     publico_alvo: publicoAlvo,
-    salvar_como_rascunho: source?.salvar_como_rascunho === true,
+    ...(source?.salvar_como_rascunho === true
+      ? { salvar_como_rascunho: true }
+      : {}),
 
     restrito,
     restrito_modo: restrito ? restritoModo : null,
@@ -1130,11 +1131,7 @@ export async function excluirEvento(eventoId, opts = {}) {
   });
 }
 
-export async function publicarEvento(
-  eventoId,
-  dadosOuOpts = {},
-  opts = {},
-) {
+export async function publicarEvento(eventoId, dadosOuOpts = {}, opts = {}) {
   const id = toPositiveIntOrNull(eventoId);
 
   if (!id) {
@@ -1377,9 +1374,9 @@ export async function inscreverNaTurma(
 
   const segundoArgumentoEhPreTeste = Boolean(
     preTesteOuOpts &&
-      typeof preTesteOuOpts === "object" &&
-      (Object.prototype.hasOwnProperty.call(preTesteOuOpts, "versao_id") ||
-        Object.prototype.hasOwnProperty.call(preTesteOuOpts, "respostas")),
+    typeof preTesteOuOpts === "object" &&
+    (Object.prototype.hasOwnProperty.call(preTesteOuOpts, "versao_id") ||
+      Object.prototype.hasOwnProperty.call(preTesteOuOpts, "respostas")),
   );
   const preTeste = segundoArgumentoEhPreTeste ? preTesteOuOpts : null;
   const opcoes = segundoArgumentoEhPreTeste
@@ -1466,20 +1463,18 @@ export async function atualizarPerguntaPreTeste(
   return unwrapDataObject(response);
 }
 
-export async function excluirPerguntaPreTeste(
-  versaoId,
-  perguntaId,
-  opts = {},
-) {
+export async function excluirPerguntaPreTeste(versaoId, perguntaId, opts = {}) {
   const vid = toPositiveIntOrNull(versaoId);
   const pid = toPositiveIntOrNull(perguntaId);
   if (!vid || !pid) {
     throw new Error("Pergunta do pré-teste inválida.");
   }
-  return apiDelete(
-    `${PRE_TESTE_BASE}/versao/${vid}/pergunta/${pid}`,
-    { auth: true, on401: "redirect", on403: "silent", ...opts },
-  );
+  return apiDelete(`${PRE_TESTE_BASE}/versao/${vid}/pergunta/${pid}`, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
 }
 
 export async function reordenarPerguntasPreTeste(versaoId, ids, opts = {}) {
@@ -1521,11 +1516,12 @@ export async function atualizarAlternativaPreTeste(
   if (!id) {
     throw new Error("alternativa_id é obrigatório.");
   }
-  const response = await apiPut(
-    `${PRE_TESTE_BASE}/alternativa/${id}`,
-    dados,
-    { auth: true, on401: "redirect", on403: "silent", ...opts },
-  );
+  const response = await apiPut(`${PRE_TESTE_BASE}/alternativa/${id}`, dados, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
   return unwrapDataObject(response);
 }
 
@@ -1582,8 +1578,7 @@ export async function definirPreTesteAtivo(
   if (!id || typeof ativo !== "boolean") {
     throw new Error("Evento e estado do pré-teste são obrigatórios.");
   }
-  const descartarRascunho =
-    configuracaoOuOpts?.descartarRascunho === true;
+  const descartarRascunho = configuracaoOuOpts?.descartarRascunho === true;
   const possuiConfiguracao = Object.prototype.hasOwnProperty.call(
     configuracaoOuOpts || {},
     "descartarRascunho",
@@ -1606,10 +1601,12 @@ export async function carregarPreTesteParticipante(eventoId, opts = {}) {
   if (!id) {
     throw new Error("evento_id é obrigatório.");
   }
-  const response = await apiGet(
-    `${PRE_TESTE_BASE}/evento/${id}/responder`,
-    { auth: true, on401: "redirect", on403: "silent", ...opts },
-  );
+  const response = await apiGet(`${PRE_TESTE_BASE}/evento/${id}/responder`, {
+    auth: true,
+    on401: "redirect",
+    on403: "silent",
+    ...opts,
+  });
   return unwrapDataObject(response);
 }
 

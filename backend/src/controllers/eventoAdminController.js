@@ -1923,7 +1923,6 @@ async function atualizarEvento(req, res) {
     cargos_permitidos,
     unidades_permitidas,
     registros_permitidos,
-    salvar_como_rascunho = false,
   } = body;
 
   logStart(rid, "atualizarEvento", {
@@ -1968,10 +1967,6 @@ async function atualizarEvento(req, res) {
     function pushSet(sql, value) {
       params.push(value);
       setCols.push(`${sql} = $${params.length}`);
-    }
-
-    if (salvar_como_rascunho === true) {
-      pushSet("publicado", false);
     }
 
     if (typeof titulo !== "undefined") {
@@ -2501,6 +2496,22 @@ async function publicarEvento(req, res) {
         );
       }
       await prepararParaPublicacaoDoEvento(client, id, habilitado);
+    } else {
+      const rascunhoPreTeste = await client.query(
+        `
+        SELECT 1
+        FROM pre_testes_evento pt
+        JOIN pre_teste_versoes v
+          ON v.pre_teste_id = pt.id
+         AND v.status = 'rascunho'
+        WHERE pt.evento_id = $1
+        LIMIT 1
+        `,
+        [id],
+      );
+      if (rascunhoPreTeste.rowCount) {
+        await prepararParaPublicacaoDoEvento(client, id, true);
+      }
     }
 
     const result = await client.query(
@@ -2578,7 +2589,7 @@ async function despublicarEvento(req, res) {
     }
 
     return sendOk(res, {
-      message: "Evento despublicado.",
+      message: "Evento despublicado com sucesso.",
       data: result.rows[0],
     });
   } catch (err) {

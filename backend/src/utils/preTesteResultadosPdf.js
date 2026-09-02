@@ -295,7 +295,8 @@ function desenharTabelaObjetiva(doc, pergunta, tituloDocumento) {
 
   pergunta.alternativas.forEach((alternativa, index) => {
     doc.font("Helvetica").fontSize(8);
-    const linhas = quebrarLinhas(doc, alternativa.texto, answerWidth - 14);
+    const textoAlternativa = alternativa.texto;
+    const linhas = quebrarLinhas(doc, textoAlternativa, answerWidth - 14);
     const rowHeight = Math.max(24, linhas.length * 11 + 10);
     garantirEspaco(doc, rowHeight + 2, tituloDocumento);
 
@@ -307,7 +308,7 @@ function desenharTabelaObjetiva(doc, pergunta, tituloDocumento) {
       .fillColor(COR_TEXTO)
       .font("Helvetica")
       .fontSize(8)
-      .text(alternativa.texto, MARGEM + 7, y + 6, {
+      .text(textoAlternativa, MARGEM + 7, y + 6, {
         width: answerWidth - 14,
       })
       .font("Helvetica-Bold")
@@ -333,6 +334,19 @@ function desenharTabelaObjetiva(doc, pergunta, tituloDocumento) {
     color: COR_MUTED,
     after: 10,
   });
+  if (pergunta.modo_resposta === "respostas_multiplas") {
+    escreverTexto(
+      doc,
+      "Frequência de seleção por alternativa; os percentuais podem somar mais de 100%.",
+      {
+        tituloDocumento,
+        font: "Helvetica",
+        size: 8,
+        color: COR_MUTED,
+        after: 10,
+      },
+    );
+  }
 }
 
 function desenharPerguntasConsolidadas(doc, dados, tituloDocumento) {

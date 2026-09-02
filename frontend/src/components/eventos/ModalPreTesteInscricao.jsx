@@ -1,22 +1,12 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { ClipboardCheck, Loader2, Send } from "lucide-react";
 
 import Modal from "../ui/Modal";
-
-function mensagemAmigavel(error) {
-  const message = error?.data?.message || error?.message;
-  return typeof message === "string" && message.trim()
-    ? message.trim()
-    : "Não foi possível concluir sua inscrição. Revise as respostas e tente novamente.";
-}
+import {
+  isPreTesteQuestionAnswered,
+  usePreTesteEnrollmentSubmission,
+} from "./preTesteFlowState";
 
 export default function ModalPreTesteInscricao({
   open,
@@ -30,82 +20,37 @@ export default function ModalPreTesteInscricao({
   const titleId = `pre-teste-inscricao-title-${uid}`;
   const descriptionId = `pre-teste-inscricao-description-${uid}`;
   const [respostas, setRespostas] = useState({});
-  const [erro, setErro] = useState("");
-  const [tentouEnviar, setTentouEnviar] = useState(false);
-  const [submetendoInterno, setSubmetendoInterno] = useState(false);
-  const submissaoEmCursoRef = useRef(false);
-  const processando = enviando || submetendoInterno;
 
   const perguntas = useMemo(
     () => (Array.isArray(preTeste?.perguntas) ? preTeste.perguntas : []),
     [preTeste?.perguntas],
   );
+  const {
+    attempted: tentouEnviar,
+    error: erro,
+    resetSubmission,
+    submit: handleSubmit,
+    submitting: submetendoInterno,
+  } = usePreTesteEnrollmentSubmission({
+    preTeste,
+    answers: respostas,
+    onSubmit,
+  });
+  const processando = enviando || submetendoInterno;
 
   useEffect(() => {
     if (open) {
       setRespostas({});
-      setErro("");
-      setTentouEnviar(false);
-      setSubmetendoInterno(false);
-      submissaoEmCursoRef.current = false;
+      resetSubmission();
     }
-  }, [open, preTeste?.versao_id]);
+  }, [open, preTeste?.versao_id, resetSubmission]);
 
   const respondida = useCallback(
     (pergunta) => {
-      const resposta = respostas[pergunta.id];
-      if (pergunta.tipo === "multipla_escolha") {
-        return Number.isInteger(Number(resposta?.alternativa_id));
-      }
-      return Boolean(String(resposta?.resposta_texto || "").trim());
+      return isPreTesteQuestionAnswered(pergunta, respostas);
     },
     [respostas],
   );
-
-  const todasRespondidas = perguntas.length > 0 && perguntas.every(respondida);
-
-  const handleSubmit = useCallback(async () => {
-    if (submissaoEmCursoRef.current) {
-      return;
-    }
-
-    setTentouEnviar(true);
-    setErro("");
-
-    if (!todasRespondidas) {
-      setErro("Responda todas as perguntas antes de continuar.");
-      return;
-    }
-
-    const payload = {
-      versao_id: Number(preTeste.versao_id),
-      respostas: perguntas.map((pergunta) => ({
-        pergunta_id: Number(pergunta.id),
-        ...(pergunta.tipo === "multipla_escolha"
-          ? {
-              alternativa_id: Number(
-                respostas[pergunta.id]?.alternativa_id,
-              ),
-            }
-          : {
-              resposta_texto: String(
-                respostas[pergunta.id]?.resposta_texto || "",
-              ).trim(),
-            }),
-      })),
-    };
-
-    submissaoEmCursoRef.current = true;
-    setSubmetendoInterno(true);
-    try {
-      await onSubmit?.(payload);
-    } catch (error) {
-      setErro(mensagemAmigavel(error));
-    } finally {
-      submissaoEmCursoRef.current = false;
-      setSubmetendoInterno(false);
-    }
-  }, [onSubmit, perguntas, preTeste?.versao_id, respostas, todasRespondidas]);
 
   return (
     <Modal
@@ -170,35 +115,78 @@ export default function ModalPreTesteInscricao({
 
                 {pergunta.tipo === "multipla_escolha" ? (
                   <div className="mt-3 space-y-2">
-                    {(pergunta.alternativas || []).map((alternativa, altIndex) => (
-                      <label
-                        key={alternativa.id}
-                        className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm transition hover:border-fuchsia-400 hover:bg-fuchsia-50 dark:border-slate-800 dark:hover:border-fuchsia-700 dark:hover:bg-fuchsia-950/20"
-                      >
-                        <input
-                          type="radio"
-                          name={`pre-teste-${preTeste?.versao_id}-${pergunta.id}`}
-                          value={alternativa.id}
-                          checked={
-                            Number(respostas[pergunta.id]?.alternativa_id) ===
-                            Number(alternativa.id)
-                          }
-                          onChange={() =>
-                            setRespostas((atual) => ({
-                              ...atual,
-                              [pergunta.id]: {
-                                alternativa_id: Number(alternativa.id),
-                              },
-                            }))
-                          }
-                          data-pre-teste-primeiro-campo={
-                            index === 0 && altIndex === 0 ? "true" : undefined
-                          }
-                          className="mt-0.5 h-4 w-4 accent-fuchsia-700"
-                        />
-                        <span>{alternativa.texto}</span>
-                      </label>
-                    ))}
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {pergunta.modo_resposta === "respostas_multiplas"
+                        ? "Selecione uma ou mais alternativas."
+                        : "Selecione apenas uma alternativa."}
+                    </p>
+                    {(pergunta.alternativas || []).map(
+                      (alternativa, altIndex) => (
+                        <label
+                          key={alternativa.id}
+                          className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm transition hover:border-fuchsia-400 hover:bg-fuchsia-50 dark:border-slate-800 dark:hover:border-fuchsia-700 dark:hover:bg-fuchsia-950/20"
+                        >
+                          <input
+                            type={
+                              pergunta.modo_resposta === "respostas_multiplas"
+                                ? "checkbox"
+                                : "radio"
+                            }
+                            name={`pre-teste-${preTeste?.versao_id}-${pergunta.id}`}
+                            value={alternativa.id}
+                            checked={
+                              pergunta.modo_resposta === "respostas_multiplas"
+                                ? (
+                                    respostas[pergunta.id]?.alternativas_ids ||
+                                    []
+                                  ).some(
+                                    (id) =>
+                                      Number(id) === Number(alternativa.id),
+                                  )
+                                : Number(
+                                    respostas[pergunta.id]?.alternativa_id,
+                                  ) === Number(alternativa.id)
+                            }
+                            onChange={(event) =>
+                              setRespostas((atual) => {
+                                if (
+                                  pergunta.modo_resposta !==
+                                  "respostas_multiplas"
+                                ) {
+                                  return {
+                                    ...atual,
+                                    [pergunta.id]: {
+                                      alternativa_id: Number(alternativa.id),
+                                    },
+                                  };
+                                }
+
+                                const atuais =
+                                  atual[pergunta.id]?.alternativas_ids || [];
+                                const id = Number(alternativa.id);
+                                const proximas = event.target.checked
+                                  ? [...new Set([...atuais.map(Number), id])]
+                                  : atuais.filter(
+                                      (item) => Number(item) !== id,
+                                    );
+
+                                return {
+                                  ...atual,
+                                  [pergunta.id]: {
+                                    alternativas_ids: proximas,
+                                  },
+                                };
+                              })
+                            }
+                            data-pre-teste-primeiro-campo={
+                              index === 0 && altIndex === 0 ? "true" : undefined
+                            }
+                            className="mt-0.5 h-4 w-4 accent-fuchsia-700"
+                          />
+                          <span>{alternativa.texto}</span>
+                        </label>
+                      ),
+                    )}
                   </div>
                 ) : (
                   <textarea
@@ -281,6 +269,10 @@ ModalPreTesteInscricao.propTypes = {
       PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
         tipo: PropTypes.oneOf(["multipla_escolha", "dissertativa"]),
+        modo_resposta: PropTypes.oneOf([
+          "resposta_unica",
+          "respostas_multiplas",
+        ]),
         enunciado: PropTypes.string,
         alternativas: PropTypes.arrayOf(
           PropTypes.shape({

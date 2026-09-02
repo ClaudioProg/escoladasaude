@@ -12,6 +12,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint .",
     "test:version": "node --test src/utils/platformVersion.test.js scripts/build-version.test.mjs scripts/legacy-pwa-migration.test.mjs",
+    "test:event-editor": "node --test src/pages/gestaoEventosState.test.js src/pages/gestaoEventosPostSave.test.js src/pages/gestaoEventosRouter.test.js src/pages/eventoPublicationState.test.js",
+    "test:pretest-flow": "node --test src/components/eventos/preTesteFlowState.test.js",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

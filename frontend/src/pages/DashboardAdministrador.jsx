@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
+import { toast } from "react-toastify";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { motion, useReducedMotion } from "framer-motion";
@@ -15,6 +16,7 @@ import {
   ChevronRight,
   ClipboardList,
   GraduationCap,
+  EyeOff,
   LayoutDashboard,
   RefreshCw,
   Search,
@@ -26,14 +28,24 @@ import {
 
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
+import ModalConfirmacao from "../components/ui/ModalConfirmacao";
 import useEscolaTheme from "../hooks/useEscolaTheme";
 import {
   apiEventoExcluir,
   apiEventoListarAdministrador,
-  apiEventoPublicar,
   apiTurmaListarPorEvento,
 } from "../services/api";
-import { getEventoFolderUrl } from "../services/eventoService";
+import {
+  despublicarEvento as apiEventoDespublicar,
+  getEventoFolderUrl,
+  publicarEvento as apiEventoPublicar,
+} from "../services/eventoService";
+import {
+  cancelDespublicationConfirmation,
+  confirmDespublication,
+  openDespublicationConfirmation,
+  publicationControlAriaLabel,
+} from "./eventoPublicationState";
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -493,6 +505,7 @@ function QuickAction({
   tone = "evento",
   disabled = false,
   loading = false,
+  ariaLabel,
 }) {
   const tones = {
     evento:
@@ -511,6 +524,8 @@ function QuickAction({
       "border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100 dark:border-teal-900/40 dark:bg-teal-950/25 dark:text-teal-200",
     publicar:
       "border-lime-200 bg-lime-50 text-lime-800 hover:bg-lime-100 dark:border-lime-900/40 dark:bg-lime-950/25 dark:text-lime-200",
+    despublicar:
+      "border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-100",
     excluir:
       "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-200",
   };
@@ -518,6 +533,7 @@ function QuickAction({
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled || loading}
       className={cx(
@@ -650,6 +666,30 @@ function ConfirmExcluirEventoModal({
   );
 }
 
+function ConfirmDespublicarEventoModal({
+  open,
+  loading = false,
+  onClose,
+  onConfirm,
+}) {
+  return (
+    <ModalConfirmacao
+      open={open}
+      onClose={onClose}
+      onConfirm={onConfirm}
+      titulo="Despublicar evento?"
+      mensagem="Tem certeza de que deseja despublicar este evento? O evento deixará de estar visível aos usuários da plataforma."
+      textoConfirmar="Despublicar evento"
+      textoCancelar="Cancelar"
+      variant="danger"
+      loading={loading}
+      closeOnBackdrop={!loading}
+      confirmOnEnter={false}
+      zIndex={2147483647}
+    />
+  );
+}
+
 function EventMetaCard({ label, value, compact = false }) {
   return (
     <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-zinc-950">
@@ -674,6 +714,7 @@ function EventCard({
   turmas,
   onAcao,
   onPublicar,
+  onDespublicar,
   onExcluir,
   acaoEventoId,
 }) {
@@ -684,6 +725,7 @@ function EventCard({
   const folderUrl = getEventoFolderUrl(evento);
   const publicado = isEventoPublicado(evento);
   const publicando = acaoEventoId === `${evento.id}:publicar`;
+  const despublicando = acaoEventoId === `${evento.id}:despublicar`;
   const excluindo = acaoEventoId === `${evento.id}:excluir`;
 
   const totalTurmas = Array.isArray(turmas) ? turmas.length : 0;
@@ -742,8 +784,8 @@ function EventCard({
                 Publicado
               </span>
             ) : (
-              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-black text-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
-                Rascunho
+              <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-black text-orange-900 dark:bg-orange-950/40 dark:text-orange-100">
+                Despublicado
               </span>
             )}
           </div>
@@ -773,9 +815,9 @@ function EventCard({
               tone="evento"
               onClick={() => onAcao(evento.id, "evento")}
               icon={LayoutDashboard}
-              disabled={publicando || excluindo}
+              disabled={publicando || despublicando || excluindo}
             >
-              Evento
+              Editar evento
             </QuickAction>
 
             <QuickAction
@@ -835,13 +877,16 @@ function EventCard({
             ) : null}
 
             <QuickAction
-              tone="publicar"
-              onClick={() => onPublicar(evento.id)}
-              icon={CheckCircle2}
-              disabled={publicado || publicando || excluindo}
-              loading={publicando}
+              tone={publicado ? "publicar" : "despublicar"}
+              onClick={() =>
+                publicado ? onDespublicar(evento) : onPublicar(evento.id)
+              }
+              icon={publicado ? CheckCircle2 : EyeOff}
+              disabled={publicando || despublicando || excluindo}
+              loading={publicando || despublicando}
+              ariaLabel={publicationControlAriaLabel(evento)}
             >
-              {publicado ? "Publicado" : "Publicar"}
+              {publicado ? "Publicado" : "Despublicado"}
             </QuickAction>
 
             <QuickAction
@@ -880,6 +925,7 @@ export default function DashboardAdministrador() {
   const [erro, setErro] = useState("");
   const [acaoEventoId, setAcaoEventoId] = useState(null);
   const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
+  const [eventoParaDespublicar, setEventoParaDespublicar] = useState(null);
 
   const liveRef = useRef(null);
   const erroRef = useRef(null);
@@ -1142,6 +1188,7 @@ export default function DashboardAdministrador() {
         );
 
         setLive("Evento publicado com sucesso.");
+        toast.success("Evento publicado com sucesso.");
       } catch (error) {
         console.error("[PainelGestor] erro ao publicar evento", {
           eventoId: id,
@@ -1161,6 +1208,49 @@ export default function DashboardAdministrador() {
     },
     [setLive],
   );
+
+  const solicitarDespublicarEvento = useCallback((evento) => {
+    const id = Number(evento?.id);
+    if (!Number.isInteger(id) || id <= 0 || !isEventoPublicado(evento)) {
+      return;
+    }
+    setEventoParaDespublicar(openDespublicationConfirmation(evento));
+  }, []);
+
+  const confirmarDespublicarEvento = useCallback(async () => {
+    const id = Number(eventoParaDespublicar?.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      setEventoParaDespublicar(null);
+      return;
+    }
+
+    try {
+      setAcaoEventoId(`${id}:despublicar`);
+      setLive("Despublicando evento...");
+      await confirmDespublication(eventoParaDespublicar, apiEventoDespublicar);
+
+      if (!mountedRef.current) {
+        return;
+      }
+      setEventos((listaAtual) =>
+        listaAtual.map((evento) =>
+          Number(evento.id) === id ? { ...evento, publicado: false } : evento,
+        ),
+      );
+      setEventoParaDespublicar(cancelDespublicationConfirmation());
+      setLive("Evento despublicado com sucesso.");
+      toast.success("Evento despublicado com sucesso.");
+    } catch (error) {
+      const message = getErrorMessage(error, "Erro ao despublicar evento.");
+      setErro(message);
+      setLive(message);
+      window.setTimeout(() => erroRef.current?.focus?.(), 0);
+    } finally {
+      if (mountedRef.current) {
+        setAcaoEventoId(null);
+      }
+    }
+  }, [eventoParaDespublicar, setLive]);
 
   const solicitarExcluirEvento = useCallback((evento) => {
     const id = Number(evento?.id);
@@ -1385,6 +1475,7 @@ export default function DashboardAdministrador() {
                   turmas={turmasPorEvento?.[evento.id] || []}
                   onAcao={irParaAcaoEvento}
                   onPublicar={publicarEvento}
+                  onDespublicar={solicitarDespublicarEvento}
                   onExcluir={solicitarExcluirEvento}
                   acaoEventoId={acaoEventoId}
                 />
@@ -1407,6 +1498,17 @@ export default function DashboardAdministrador() {
           }
         }}
         onConfirm={confirmarExcluirEvento}
+      />
+
+      <ConfirmDespublicarEventoModal
+        open={Boolean(eventoParaDespublicar)}
+        loading={acaoEventoId === `${eventoParaDespublicar?.id}:despublicar`}
+        onClose={() => {
+          if (!acaoEventoId) {
+            setEventoParaDespublicar(cancelDespublicationConfirmation());
+          }
+        }}
+        onConfirm={confirmarDespublicarEvento}
       />
 
       <Footer />

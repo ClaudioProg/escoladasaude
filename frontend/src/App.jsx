@@ -52,7 +52,8 @@
 //   no novo contrato de Interações.
 
 import {
-  BrowserRouter,
+  createBrowserRouter,
+  RouterProvider,
   Routes,
   Route,
   useLocation,
@@ -1039,43 +1040,45 @@ function AdministradorRoutes() {
    App
 ────────────────────────────────────────────────────────────── */
 
+function ApplicationContent() {
+  return (
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
+      <RouteChangeAnnouncer />
+      <PublicRouteDiagnostics />
+      <CriticalRouteDiagnostics />
+      <ScrollUnlockOnRouteChange />
+      <ScrollToTop />
+
+      <Suspense fallback={<SuspenseFallback />}>
+        <Routes>
+          {PublicRoutes()}
+
+          <Route element={<PrivateShell />}>
+            {UsuarioRoutes()}
+            {OrganizadorRoutes()}
+            {AdministradorRoutes()}
+          </Route>
+
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
+
+      <AtualizacaoPlataformaBanner />
+    </div>
+  );
+}
+
 export default function App() {
-  const basename = useMemo(
-    () => normalizeBasename(import.meta.env.BASE_URL || "/"),
+  const router = useMemo(
+    () =>
+      createBrowserRouter([{ path: "*", element: <ApplicationContent /> }], {
+        basename: normalizeBasename(import.meta.env.BASE_URL || "/"),
+        future: { v7_relativeSplatPath: true },
+      }),
     [],
   );
 
   return (
-    <BrowserRouter
-      basename={basename}
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
-        <RouteChangeAnnouncer />
-        <PublicRouteDiagnostics />
-        <CriticalRouteDiagnostics />
-        <ScrollUnlockOnRouteChange />
-        <ScrollToTop />
-
-        <Suspense fallback={<SuspenseFallback />}>
-          <Routes>
-            {PublicRoutes()}
-
-            <Route element={<PrivateShell />}>
-              {UsuarioRoutes()}
-              {OrganizadorRoutes()}
-              {AdministradorRoutes()}
-            </Route>
-
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-
-        <AtualizacaoPlataformaBanner />
-      </div>
-    </BrowserRouter>
+    <RouterProvider router={router} future={{ v7_startTransition: true }} />
   );
 }

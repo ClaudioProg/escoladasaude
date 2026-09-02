@@ -7,6 +7,11 @@ const TIPOS_PERGUNTA = Object.freeze({
   DISSERTATIVA: "dissertativa",
 });
 
+const MODOS_RESPOSTA = Object.freeze({
+  UNICA: "resposta_unica",
+  MULTIPLAS: "respostas_multiplas",
+});
+
 class PreTesteError extends Error {
   constructor(message, { status = 400, code = "PRE_TESTE_INVALIDO" } = {}) {
     super(message);
@@ -22,12 +27,71 @@ function toPositiveInt(value) {
 }
 
 function normalizeText(value, maxLength = 10000) {
-  return String(value ?? "").trim().slice(0, maxLength);
+  return String(value ?? "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function normalizeTipo(value) {
   const tipo = normalizeText(value, 40).toLowerCase();
   return Object.values(TIPOS_PERGUNTA).includes(tipo) ? tipo : null;
+}
+
+function normalizeModoResposta(value, tipo) {
+  if (tipo === TIPOS_PERGUNTA.DISSERTATIVA) {
+    return null;
+  }
+
+  const modo = normalizeText(value, 40).toLowerCase();
+  return Object.values(MODOS_RESPOSTA).includes(modo)
+    ? modo
+    : MODOS_RESPOSTA.UNICA;
+}
+
+function normalizeModoRespostaPayload(payload, tipo) {
+  const informouModo = Object.prototype.hasOwnProperty.call(
+    payload,
+    "modo_resposta",
+  );
+
+  if (tipo === TIPOS_PERGUNTA.DISSERTATIVA) {
+    if (!informouModo || payload.modo_resposta === null) {
+      return null;
+    }
+
+    throw new PreTesteError("O modo de resposta informado é inválido.", {
+      status: 422,
+      code: "PRE_TESTE_MODO_RESPOSTA_INVALIDO",
+    });
+  }
+
+  if (!informouModo) {
+    return MODOS_RESPOSTA.UNICA;
+  }
+
+  if (
+    payload.modo_resposta === MODOS_RESPOSTA.UNICA ||
+    payload.modo_resposta === MODOS_RESPOSTA.MULTIPLAS
+  ) {
+    return payload.modo_resposta;
+  }
+
+  throw new PreTesteError("O modo de resposta informado é inválido.", {
+    status: 422,
+    code: "PRE_TESTE_MODO_RESPOSTA_INVALIDO",
+  });
+}
+
+function normalizarIdsSelecionados(value) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const ids = value.map(toPositiveInt);
+  if (ids.some((id) => !id) || new Set(ids).size !== ids.length) {
+    return null;
+  }
+  return ids.sort((a, b) => a - b);
 }
 
 function executor(conn = db) {
@@ -75,7 +139,7 @@ async function carregarVersaoCompleta(conn, versaoId) {
 
   const perguntasResult = await query(
     `
-    SELECT id, versao_id, tipo, enunciado, ordem, criado_em, atualizado_em
+    SELECT id, versao_id, tipo, modo_resposta, enunciado, ordem, criado_em, atualizado_em
     FROM pre_teste_perguntas
     WHERE versao_id = $1
     ORDER BY ordem, id
@@ -110,6 +174,10 @@ async function carregarVersaoCompleta(conn, versaoId) {
       id: Number(pergunta.id),
       versao_id: Number(pergunta.versao_id),
       ordem: Number(pergunta.ordem),
+      modo_resposta: normalizeModoResposta(
+        pergunta.modo_resposta,
+        pergunta.tipo,
+      ),
       alternativas: alternativas
         .filter(
           (alternativa) =>
@@ -275,11 +343,17 @@ async function criarOuObterRascunho(eventoId) {
           const perguntaResult = await tx.query(
             `
             INSERT INTO pre_teste_perguntas
-              (versao_id, tipo, enunciado, ordem)
-            VALUES ($1, $2, $3, $4)
+              (versao_id, tipo, modo_resposta, enunciado, ordem)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING id
             `,
-            [novaVersaoId, pergunta.tipo, pergunta.enunciado, pergunta.ordem],
+            [
+              novaVersaoId,
+              pergunta.tipo,
+              pergunta.modo_resposta,
+              pergunta.enunciado,
+              pergunta.ordem,
+            ],
           );
           const novaPerguntaId = Number(perguntaResult.rows[0].id);
 
@@ -324,18 +398,16 @@ async function obterRascunhoGerenciavel(conn, versaoId) {
   return result.rows[0];
 }
 
-async function reordenarRegistros(conn, {
-  tabela,
-  colunaPai,
-  paiId,
-  ids,
-}) {
+async function reordenarRegistros(conn, { tabela, colunaPai, paiId, ids }) {
   const query = executor(conn);
   const normalizados = Array.isArray(ids)
     ? ids.map(toPositiveInt).filter(Boolean)
     : [];
 
-  if (!normalizados.length || new Set(normalizados).size !== normalizados.length) {
+  if (
+    !normalizados.length ||
+    new Set(normalizados).size !== normalizados.length
+  ) {
     throw new PreTesteError("A ordem informada é inválida.", {
       code: "PRE_TESTE_ORDEM_INVALIDA",
     });
@@ -372,6 +444,7 @@ async function reordenarRegistros(conn, {
 
 async function adicionarPergunta(versaoId, payload = {}) {
   const tipo = normalizeTipo(payload.tipo);
+  const modoResposta = normalizeModoRespostaPayload(payload, tipo);
   const enunciado = normalizeText(payload.enunciado, 5000);
 
   if (!tipo || !enunciado) {
@@ -390,11 +463,18 @@ async function adicionarPergunta(versaoId, payload = {}) {
     );
     const result = await tx.query(
       `
-      INSERT INTO pre_teste_perguntas (versao_id, tipo, enunciado, ordem)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO pre_teste_perguntas
+        (versao_id, tipo, modo_resposta, enunciado, ordem)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id
       `,
-      [versaoId, tipo, enunciado, Number(ordemResult.rows[0].proxima)],
+      [
+        versaoId,
+        tipo,
+        modoResposta,
+        enunciado,
+        Number(ordemResult.rows[0].proxima),
+      ],
     );
     return carregarVersaoCompleta(tx, versaoId).then((versao) =>
       versao.perguntas.find(
@@ -406,6 +486,7 @@ async function adicionarPergunta(versaoId, payload = {}) {
 
 async function atualizarPergunta(versaoId, perguntaId, payload = {}) {
   const tipo = normalizeTipo(payload.tipo);
+  const modoResposta = normalizeModoRespostaPayload(payload, tipo);
   const enunciado = normalizeText(payload.enunciado, 5000);
   const id = toPositiveInt(perguntaId);
 
@@ -415,14 +496,28 @@ async function atualizarPergunta(versaoId, perguntaId, payload = {}) {
 
   return db.tx(async (tx) => {
     await obterRascunhoGerenciavel(tx, versaoId);
+    const atual = await tx.query(
+      `
+      SELECT tipo, modo_resposta
+      FROM pre_teste_perguntas
+      WHERE id = $1 AND versao_id = $2
+      FOR UPDATE
+      `,
+      [id, versaoId],
+    );
+
+    if (!atual.rowCount) {
+      throw new PreTesteError("Pergunta não encontrada.", { status: 404 });
+    }
+
     const result = await tx.query(
       `
       UPDATE pre_teste_perguntas
-      SET tipo = $1, enunciado = $2, atualizado_em = NOW()
-      WHERE id = $3 AND versao_id = $4
+      SET tipo = $1, modo_resposta = $2, enunciado = $3, atualizado_em = NOW()
+      WHERE id = $4 AND versao_id = $5
       RETURNING id
       `,
-      [tipo, enunciado, id, versaoId],
+      [tipo, modoResposta, enunciado, id, versaoId],
     );
 
     if (!result.rowCount) {
@@ -488,7 +583,7 @@ async function obterPerguntaDeRascunho(conn, perguntaId) {
   const query = executor(conn);
   const result = await query(
     `
-    SELECT p.id, p.versao_id, p.tipo
+    SELECT p.id, p.versao_id, p.tipo, p.modo_resposta
     FROM pre_teste_perguntas p
     JOIN pre_teste_versoes v ON v.id = p.versao_id
     WHERE p.id = $1 AND v.status = 'rascunho'
@@ -544,16 +639,17 @@ async function adicionarAlternativa(perguntaId, payload = {}) {
 
 async function atualizarAlternativa(alternativaId, payload = {}) {
   const id = toPositiveInt(alternativaId);
-  const texto = normalizeText(payload.texto, 2000);
+  const possuiTexto = Object.prototype.hasOwnProperty.call(payload, "texto");
+  const texto = possuiTexto ? normalizeText(payload.texto, 2000) : null;
 
-  if (!id || !texto) {
+  if (!id || !possuiTexto || !texto) {
     throw new PreTesteError("Alternativa inválida.");
   }
 
   return db.tx(async (tx) => {
     const atual = await tx.query(
       `
-      SELECT a.id
+      SELECT a.id, a.texto, a.pergunta_id
       FROM pre_teste_alternativas a
       JOIN pre_teste_perguntas p ON p.id = a.pergunta_id
       JOIN pre_teste_versoes v ON v.id = p.versao_id
@@ -705,10 +801,7 @@ async function publicarVersao(versaoId) {
       "SELECT evento_id FROM pre_testes_evento WHERE id = $1",
       [rascunho.pre_teste_id],
     );
-    return obterConfiguracaoAdministrativa(
-      configuracao.rows[0].evento_id,
-      tx,
-    );
+    return obterConfiguracaoAdministrativa(configuracao.rows[0].evento_id, tx);
   });
 }
 
@@ -909,6 +1002,7 @@ async function obterPreTesteParaResponder(eventoId, usuarioId, conn = db) {
     perguntas: versao.perguntas.map((pergunta) => ({
       id: pergunta.id,
       tipo: pergunta.tipo,
+      modo_resposta: pergunta.modo_resposta,
       enunciado: pergunta.enunciado,
       ordem: pergunta.ordem,
       alternativas: pergunta.alternativas.map((alternativa) => ({
@@ -922,7 +1016,9 @@ async function obterPreTesteParaResponder(eventoId, usuarioId, conn = db) {
 
 function validarRespostasPreTeste(perguntas, payload) {
   const versaoId = toPositiveInt(payload?.versao_id);
-  const respostas = Array.isArray(payload?.respostas) ? payload.respostas : null;
+  const respostas = Array.isArray(payload?.respostas)
+    ? payload.respostas
+    : null;
 
   if (!versaoId || !respostas) {
     throw new PreTesteError(
@@ -960,11 +1056,49 @@ function validarRespostasPreTeste(perguntas, payload) {
     }
 
     if (pergunta.tipo === TIPOS_PERGUNTA.MULTIPLA_ESCOLHA) {
+      const modoResposta = normalizeModoResposta(
+        pergunta.modo_resposta,
+        pergunta.tipo,
+      );
+      if (modoResposta === MODOS_RESPOSTA.MULTIPLAS) {
+        const alternativasIds = normalizarIdsSelecionados(
+          resposta.alternativas_ids,
+        );
+        const idsValidos = new Set(
+          (pergunta.alternativas || []).map((alternativa) =>
+            Number(alternativa.id),
+          ),
+        );
+        if (
+          !alternativasIds?.length ||
+          alternativasIds.some(
+            (alternativaId) => !idsValidos.has(alternativaId),
+          ) ||
+          toPositiveInt(resposta.alternativa_id) ||
+          normalizeText(resposta.resposta_texto)
+        ) {
+          throw new PreTesteError(
+            "Selecione uma ou mais alternativas válidas em cada pergunta de respostas múltiplas.",
+            { status: 422, code: "PRE_TESTE_ALTERNATIVAS_INVALIDAS" },
+          );
+        }
+        return {
+          pergunta_id: Number(pergunta.id),
+          alternativa_id: null,
+          alternativas_ids: alternativasIds,
+          resposta_texto: null,
+        };
+      }
+
       const alternativaId = toPositiveInt(resposta.alternativa_id);
       const alternativaValida = (pergunta.alternativas || []).some(
         (alternativa) => Number(alternativa.id) === alternativaId,
       );
-      if (!alternativaValida || normalizeText(resposta.resposta_texto)) {
+      if (
+        !alternativaValida ||
+        Array.isArray(resposta.alternativas_ids) ||
+        normalizeText(resposta.resposta_texto)
+      ) {
         throw new PreTesteError(
           "Selecione uma alternativa válida em cada pergunta objetiva.",
           { status: 422, code: "PRE_TESTE_ALTERNATIVA_INVALIDA" },
@@ -973,12 +1107,17 @@ function validarRespostasPreTeste(perguntas, payload) {
       return {
         pergunta_id: Number(pergunta.id),
         alternativa_id: alternativaId,
+        alternativas_ids: null,
         resposta_texto: null,
       };
     }
 
     const texto = normalizeText(resposta.resposta_texto, 10000);
-    if (!texto || toPositiveInt(resposta.alternativa_id)) {
+    if (
+      !texto ||
+      toPositiveInt(resposta.alternativa_id) ||
+      Array.isArray(resposta.alternativas_ids)
+    ) {
       throw new PreTesteError(
         "Preencha uma resposta válida em cada pergunta dissertativa.",
         { status: 422, code: "PRE_TESTE_RESPOSTA_TEXTO_INVALIDA" },
@@ -987,6 +1126,7 @@ function validarRespostasPreTeste(perguntas, payload) {
     return {
       pergunta_id: Number(pergunta.id),
       alternativa_id: null,
+      alternativas_ids: null,
       resposta_texto: texto,
     };
   });
@@ -1046,9 +1186,7 @@ async function processarPreTesteInscricao({
         : "Responda ao pré-teste antes de concluir a inscrição.",
       {
         status: 422,
-        code: preTeste
-          ? "PRE_TESTE_VERSAO_INCORRETA"
-          : "PRE_TESTE_OBRIGATORIO",
+        code: preTeste ? "PRE_TESTE_VERSAO_INCORRETA" : "PRE_TESTE_OBRIGATORIO",
       },
     );
   }
@@ -1087,13 +1225,14 @@ async function processarPreTesteInscricao({
     await query(
       `
       INSERT INTO pre_teste_respostas
-        (submissao_id, pergunta_id, alternativa_id, resposta_texto)
-      VALUES ($1, $2, $3, $4)
+        (submissao_id, pergunta_id, alternativa_id, alternativas_ids, resposta_texto)
+      VALUES ($1, $2, $3, $4, $5)
       `,
       [
         submissaoId,
         resposta.pergunta_id,
         resposta.alternativa_id,
+        resposta.alternativas_ids,
         resposta.resposta_texto,
       ],
     );
@@ -1108,7 +1247,9 @@ async function processarPreTesteInscricao({
 
 module.exports = {
   TIPOS_PERGUNTA,
+  MODOS_RESPOSTA,
   PreTesteError,
+  normalizeModoRespostaPayload,
   obterConfiguracaoAdministrativa,
   criarOuObterRascunho,
   adicionarPergunta,

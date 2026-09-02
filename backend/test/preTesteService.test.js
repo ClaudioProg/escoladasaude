@@ -36,16 +36,92 @@ function carregarService() {
 }
 
 const {
+  MODOS_RESPOSTA,
   PreTesteError,
+  normalizeModoRespostaPayload,
   processarPreTesteInscricao,
   validarVersaoParaPublicacao,
   validarRespostasPreTeste,
 } = carregarService();
 
+test("modo_resposta aceita somente literais exatos e preserva ausência histórica", () => {
+  assert.equal(
+    normalizeModoRespostaPayload({}, "multipla_escolha"),
+    MODOS_RESPOSTA.UNICA,
+  );
+  assert.equal(
+    normalizeModoRespostaPayload(
+      { modo_resposta: MODOS_RESPOSTA.UNICA },
+      "multipla_escolha",
+    ),
+    MODOS_RESPOSTA.UNICA,
+  );
+  assert.equal(
+    normalizeModoRespostaPayload(
+      { modo_resposta: MODOS_RESPOSTA.MULTIPLAS },
+      "multipla_escolha",
+    ),
+    MODOS_RESPOSTA.MULTIPLAS,
+  );
+  for (const invalido of [
+    null,
+    "",
+    " ",
+    " RESPOSTA_UNICA ",
+    "RESPOSTA_UNICA",
+    "Resposta_Unica",
+    [],
+    {},
+    1,
+    true,
+  ]) {
+    assert.throws(
+      () =>
+        normalizeModoRespostaPayload(
+          { modo_resposta: invalido },
+          "multipla_escolha",
+        ),
+      (error) =>
+        error instanceof PreTesteError &&
+        error.status === 422 &&
+        error.code === "PRE_TESTE_MODO_RESPOSTA_INVALIDO",
+      `valor deveria ser rejeitado: ${JSON.stringify(invalido)}`,
+    );
+  }
+});
+
+test("dissertativa aceita campo ausente ou null do frontend e rejeita modos objetivos", () => {
+  assert.equal(normalizeModoRespostaPayload({}, "dissertativa"), null);
+  assert.equal(
+    normalizeModoRespostaPayload({ modo_resposta: null }, "dissertativa"),
+    null,
+  );
+
+  for (const invalido of [
+    MODOS_RESPOSTA.UNICA,
+    MODOS_RESPOSTA.MULTIPLAS,
+    "",
+    false,
+  ]) {
+    assert.throws(
+      () =>
+        normalizeModoRespostaPayload(
+          { modo_resposta: invalido },
+          "dissertativa",
+        ),
+      (error) =>
+        error instanceof PreTesteError &&
+        error.status === 422 &&
+        error.code === "PRE_TESTE_MODO_RESPOSTA_INVALIDO",
+    );
+  }
+});
+
 const perguntas = [
   {
     id: 101,
     tipo: "multipla_escolha",
+    modo_resposta: "resposta_unica",
     enunciado: "Pergunta objetiva",
     ordem: 1,
     alternativas: [
@@ -79,7 +155,9 @@ function criarQuery({ ativo = true, jaConcluido = false } = {}) {
     chamadas.push({ sql, params });
     const normalizado = String(sql).replace(/\s+/g, " ").trim();
 
-    if (/FROM pre_testes_evento pt JOIN pre_teste_versoes v/i.test(normalizado)) {
+    if (
+      /FROM pre_testes_evento pt JOIN pre_teste_versoes v/i.test(normalizado)
+    ) {
       return ativo
         ? { rowCount: 1, rows: [{ versao_atual_id: 10 }] }
         : { rowCount: 0, rows: [] };
@@ -232,11 +310,15 @@ test("aceita respostas válidas e grava uma submissão com uma resposta por perg
 
   assert.equal(result.submissao_id, 500);
   assert.equal(
-    q.chamadas.filter((item) => /INSERT INTO pre_teste_submissoes/i.test(item.sql)).length,
+    q.chamadas.filter((item) =>
+      /INSERT INTO pre_teste_submissoes/i.test(item.sql),
+    ).length,
     1,
   );
   assert.equal(
-    q.chamadas.filter((item) => /INSERT INTO pre_teste_respostas/i.test(item.sql)).length,
+    q.chamadas.filter((item) =>
+      /INSERT INTO pre_teste_respostas/i.test(item.sql),
+    ).length,
     2,
   );
 });
@@ -292,7 +374,7 @@ test("publicação do evento prepara o pré-teste antes de expor o evento e conf
   assert.ok(commit > publicarEventoSql);
 });
 
-test("wizard não publica parcialmente e apresenta uma única ação final", () => {
+test("publicação da versão do pré-teste permanece separada da publicação do evento", () => {
   const editorPath = path.resolve(
     __dirname,
     "../../frontend/src/components/eventos/EditorPreTesteEvento.jsx",
@@ -301,13 +383,113 @@ test("wizard não publica parcialmente e apresenta uma única ação final", () 
     __dirname,
     "../../frontend/src/pages/GestaoEventos.jsx",
   );
+  const dashboardPath = path.resolve(
+    __dirname,
+    "../../frontend/src/pages/DashboardAdministrador.jsx",
+  );
   const editor = fs.readFileSync(editorPath, "utf8");
   const wizard = fs.readFileSync(wizardPath, "utf8");
+  const dashboard = fs.readFileSync(dashboardPath, "utf8");
 
-  assert.doesNotMatch(editor, /Publicar e ativar pré-teste/);
-  assert.match(editor, /A publicação e a\s+ativação ocorrerão junto com o evento na etapa 5/);
-  assert.match(wizard, /PUBLICAR EVENTO/);
-  assert.match(wizard, /salvar_como_rascunho: true/);
+  assert.match(
+    editor,
+    /EventoService\.preTeste\.admin\.publicar\(rascunho\.id\)/,
+  );
+  assert.doesNotMatch(wizard, /PUBLICAR EVENTO|salvar_como_rascunho/);
+  assert.match(editor, /não alteram o estado publicado ou despublicado/);
+  assert.match(
+    dashboard,
+    /publicado \? onDespublicar\(evento\) : onPublicar\(evento\.id\)/,
+  );
+});
+
+test("respostas múltiplas validam somente cardinalidade, unicidade e pertencimento", () => {
+  const pergunta = {
+    id: 201,
+    tipo: "multipla_escolha",
+    modo_resposta: MODOS_RESPOSTA.MULTIPLAS,
+    alternativas: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+  };
+
+  for (const ids of [[1], [1, 3], [3, 1], [1, 3, 4]]) {
+    const [validada] = validarRespostasPreTeste([pergunta], {
+      versao_id: 10,
+      respostas: [{ pergunta_id: 201, alternativas_ids: ids }],
+    });
+    assert.deepEqual(
+      validada.alternativas_ids,
+      [...ids].sort((a, b) => a - b),
+    );
+    assert.equal("correta" in validada, false);
+  }
+
+  assert.throws(
+    () =>
+      validarRespostasPreTeste([pergunta], {
+        versao_id: 10,
+        respostas: [{ pergunta_id: 201, alternativas_ids: [1, 1] }],
+      }),
+    (error) => error.code === "PRE_TESTE_ALTERNATIVAS_INVALIDAS",
+  );
+  assert.throws(
+    () =>
+      validarRespostasPreTeste([pergunta], {
+        versao_id: 10,
+        respostas: [{ pergunta_id: 201, alternativas_ids: [1, 99] }],
+      }),
+    (error) => error.code === "PRE_TESTE_ALTERNATIVAS_INVALIDAS",
+  );
+});
+
+test("resposta única e questão histórica sem modo preservam cardinalidade escalar", () => {
+  const historica = {
+    id: 301,
+    tipo: "multipla_escolha",
+    modo_resposta: null,
+    alternativas: [{ id: 11 }, { id: 12 }],
+  };
+
+  for (const alternativaId of [11, 12]) {
+    const [validada] = validarRespostasPreTeste([historica], {
+      versao_id: 10,
+      respostas: [{ pergunta_id: 301, alternativa_id: alternativaId }],
+    });
+    assert.equal(validada.alternativa_id, alternativaId);
+    assert.equal("correta" in validada, false);
+  }
+
+  assert.throws(
+    () =>
+      validarRespostasPreTeste([historica], {
+        versao_id: 10,
+        respostas: [{ pergunta_id: 301, alternativas_ids: [11, 12] }],
+      }),
+    (error) => error.code === "PRE_TESTE_ALTERNATIVA_INVALIDA",
+  );
+});
+
+test("publicação objetiva exige apenas estrutura válida nos dois modos", () => {
+  const base = {
+    enunciado: "Pergunta",
+    ordem: 1,
+    tipo: "multipla_escolha",
+    alternativas: [
+      { id: 1, texto: "A", ordem: 1 },
+      { id: 2, texto: "B", ordem: 2 },
+      { id: 3, texto: "C", ordem: 3 },
+    ],
+  };
+
+  assert.doesNotThrow(() =>
+    validarVersaoParaPublicacao({
+      perguntas: [{ ...base, modo_resposta: MODOS_RESPOSTA.UNICA }],
+    }),
+  );
+  assert.doesNotThrow(() =>
+    validarVersaoParaPublicacao({
+      perguntas: [{ ...base, modo_resposta: MODOS_RESPOSTA.MULTIPLAS }],
+    }),
+  );
 });
 
 test("falha posterior à gravação do pré-teste permite rollback do conjunto atômico", async () => {
@@ -361,13 +543,9 @@ test("middleware administrativo libera administrador e rejeita usuário comum", 
   let usuarioLiberado = false;
   let statusUsuario = null;
 
-  middleware(
-    { user: { id: 1, perfil: "administrador" } },
-    {},
-    () => {
-      adminLiberado = true;
-    },
-  );
+  middleware({ user: { id: 1, perfil: "administrador" } }, {}, () => {
+    adminLiberado = true;
+  });
   middleware(
     { user: { id: 2, perfil: "usuario" } },
     {

@@ -59,6 +59,7 @@ const perguntasRows = [
   {
     pergunta_id: 101,
     tipo: "multipla_escolha",
+    modo_resposta: "resposta_unica",
     enunciado: "Qual alternativa representa seu conhecimento atual?",
     pergunta_ordem: 1,
     alternativa_id: 1001,
@@ -69,6 +70,7 @@ const perguntasRows = [
   {
     pergunta_id: 101,
     tipo: "multipla_escolha",
+    modo_resposta: "resposta_unica",
     enunciado: "Qual alternativa representa seu conhecimento atual?",
     pergunta_ordem: 1,
     alternativa_id: 1002,
@@ -79,6 +81,7 @@ const perguntasRows = [
   {
     pergunta_id: 102,
     tipo: "dissertativa",
+    modo_resposta: null,
     enunciado: "O que você espera aprender?",
     pergunta_ordem: 2,
     alternativa_id: null,
@@ -296,6 +299,68 @@ test("agregação objetiva calcula quantidades e percentuais", () => {
     ],
   );
   assert.equal(pergunta.total_respostas, 4);
+});
+
+test("agregação de resposta única produz distribuição que soma 100%", () => {
+  const rows = [
+    { ...perguntasRows[0], quantidade: 5, total_respostas: 10 },
+    { ...perguntasRows[1], quantidade: 3, total_respostas: 10 },
+    {
+      ...perguntasRows[1],
+      alternativa_id: 1003,
+      alternativa_texto: "Conhecimento intermediário",
+      alternativa_ordem: 3,
+      quantidade: 2,
+      total_respostas: 10,
+    },
+  ];
+  const [pergunta] = montarPerguntas(rows);
+  assert.equal(pergunta.modo_resposta, "resposta_unica");
+  assert.deepEqual(
+    pergunta.alternativas.map((alternativa) => alternativa.percentual),
+    [50, 30, 20],
+  );
+  assert.equal(
+    pergunta.alternativas.reduce((total, item) => total + item.percentual, 0),
+    100,
+  );
+});
+
+test("agregação múltipla calcula frequência por participante e pode exceder 100%", () => {
+  const base = perguntasRows[0];
+  const rows = [
+    {
+      ...base,
+      modo_resposta: "respostas_multiplas",
+      quantidade: 7,
+      total_respostas: 10,
+    },
+    {
+      ...perguntasRows[1],
+      modo_resposta: "respostas_multiplas",
+      quantidade: 4,
+      total_respostas: 10,
+    },
+    {
+      ...perguntasRows[1],
+      modo_resposta: "respostas_multiplas",
+      alternativa_id: 1003,
+      alternativa_texto: "Conhecimento intermediário",
+      alternativa_ordem: 3,
+      quantidade: 8,
+      total_respostas: 10,
+    },
+  ];
+  const [pergunta] = montarPerguntas(rows);
+  assert.deepEqual(
+    pergunta.alternativas.map((alternativa) => alternativa.percentual),
+    [70, 40, 80],
+  );
+  assert.equal(
+    pergunta.alternativas.reduce((total, item) => total + item.percentual, 0),
+    190,
+  );
+  assert.equal("respostas_corretas" in pergunta, false);
 });
 
 test("percentuais objetivos permanecem zero quando não há resposta", () => {

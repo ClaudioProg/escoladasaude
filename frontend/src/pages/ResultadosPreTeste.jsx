@@ -124,7 +124,10 @@ function ObjectiveQuestion({ pergunta }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-            Pergunta {pergunta.ordem} · Múltipla escolha
+            Pergunta {pergunta.ordem} ·{" "}
+            {pergunta.modo_resposta === "respostas_multiplas"
+              ? "Respostas múltiplas"
+              : "Resposta única"}
           </p>
           <h3 className="mt-1 break-words text-base font-black text-slate-950 dark:text-white sm:text-lg">
             {pergunta.enunciado}
@@ -134,6 +137,13 @@ function ObjectiveQuestion({ pergunta }) {
           {pergunta.total_respostas} resposta(s)
         </span>
       </div>
+
+      {pergunta.modo_resposta === "respostas_multiplas" ? (
+        <p className="mt-3 text-xs font-semibold text-slate-500 dark:text-zinc-400">
+          Frequência por alternativa entre os participantes que responderam. A
+          soma dos percentuais pode ultrapassar 100%.
+        </p>
+      ) : null}
 
       <div className="mt-5 overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-y-2 text-left text-sm">
@@ -148,7 +158,7 @@ function ObjectiveQuestion({ pergunta }) {
             {pergunta.alternativas.map((alternativa) => (
               <tr key={alternativa.id} className="bg-slate-50 dark:bg-zinc-950">
                 <td className="rounded-l-2xl px-3 py-3 font-bold text-slate-800 dark:text-zinc-100">
-                  {alternativa.texto}
+                  <span>{alternativa.texto}</span>
                 </td>
                 <td className="px-3 py-3 text-right font-black text-slate-950 dark:text-white">
                   {alternativa.quantidade}

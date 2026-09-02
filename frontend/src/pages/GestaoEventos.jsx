@@ -15,7 +15,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useBlocker, useNavigate, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import {
@@ -49,9 +49,21 @@ import HeaderHero from "../components/layout/HeaderHero";
 import ModalTurma from "../components/eventos/ModalTurma";
 import ModalQuestionarioEvento from "../components/eventos/ModalQuestionarioEvento";
 import EditorPreTesteEvento from "../components/eventos/EditorPreTesteEvento";
+import ModalConfirmacao from "../components/ui/ModalConfirmacao";
+import {
+  attachBeforeUnloadGuard,
+  confirmBlockedNavigation,
+  createCanonicalEditorSnapshot,
+  createPersistedEditorSnapshot,
+  isEditorDirty,
+  settleBlockedNavigation,
+  shouldBlockEditorNavigation,
+  useEditorSavedSnapshot,
+} from "./gestaoEventosState";
 
 import EventoService, {
   EVENTO_RESTRITO_MODO,
+  buildEventoPayload,
   calcularCargaHorariaPorDatas,
   extractIds,
   getEventoFolderUrl,
@@ -68,8 +80,6 @@ import { apiGet, apiLookupCargo, apiLookupUnidade } from "../services/api";
    Config
 ────────────────────────────────────────────────────────────── */
 
-const IS_DEV = Boolean(import.meta?.env?.DEV);
-
 const TIPOS_EVENTO = [
   "Congresso",
   "Curso",
@@ -85,7 +95,7 @@ const ETAPAS_EVENTO = Object.freeze([
   "Inscrição e público",
   "Conteúdo e materiais",
   "Avaliações",
-  "Revisão e publicação",
+  "Revisão",
 ]);
 
 const MAX_FOLDER_MB = 2;
@@ -129,12 +139,6 @@ let cacheCargos = null;
 /* ─────────────────────────────────────────────────────────────
    Logger
 ────────────────────────────────────────────────────────────── */
-
-function warnDev(...args) {
-  if (IS_DEV) {
-    console.warn("[GestaoEventos]", ...args);
-  }
-}
 
 /* ─────────────────────────────────────────────────────────────
    Helpers gerais
@@ -534,7 +538,14 @@ function ActionButton({
 }
 
 // SectionCard agora usa paddings menores (p-3 sm:p-4) e arredondamentos menores
-function SectionCard({ id, icon: Icon, title, subtitle, children, show = true }) {
+function SectionCard({
+  id,
+  icon: Icon,
+  title,
+  subtitle,
+  children,
+  show = true,
+}) {
   if (!show) {
     return null;
   }
@@ -802,7 +813,7 @@ export default function GestaoEventos() {
   const [erroEvento, setErroEvento] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  const onClose = useCallback(() => {
+  const navegarParaPainel = useCallback(() => {
     navigate("/administrador");
   }, [navigate]);
 
@@ -822,7 +833,13 @@ export default function GestaoEventos() {
   const folderInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const prevEventoKeyRef = useRef(null);
-  const proximaEtapaAposSalvarRef = useRef(null);
+  const snapshotAtualRef = useRef(null);
+  const allowNavigationRef = useRef(false);
+  const {
+    markEditorHydrated,
+    savedSnapshot: snapshotSalvo,
+    setSavedSnapshot: setSnapshotSalvo,
+  } = useEditorSavedSnapshot(snapshotAtualRef);
 
   const etapaParam = Number(searchParams.get("etapa"));
   const [etapaAtual, setEtapaAtual] = useState(
@@ -858,9 +875,7 @@ export default function GestaoEventos() {
         if (ativo) {
           setPreTesteResumo({
             ...configuracao,
-            selecionado: Boolean(
-              configuracao?.ativo || configuracao?.rascunho,
-            ),
+            selecionado: Boolean(configuracao?.ativo || configuracao?.rascunho),
           });
         }
       })
@@ -883,50 +898,59 @@ export default function GestaoEventos() {
     };
   }, [eventoIdParam]);
 
-  const recarregarEvento = useCallback(async () => {
-    if (!eventoIdParam) {
-      setEvento(null);
-      setCarregandoEvento(false);
-      setErroEvento("");
-      return null;
-    }
-
-    try {
-      setCarregandoEvento(true);
-      setErroEvento("");
-
-      const completo = await EventoService.admin.buscarCompleto(eventoIdParam, {
-        on401: "redirect",
-        on403: "silent",
-      });
-
-      if (!completo?.id) {
-        throw new Error("Evento não encontrado.");
+  const recarregarEvento = useCallback(
+    async ({ reidratar = false } = {}) => {
+      if (!eventoIdParam) {
+        setEvento(null);
+        setCarregandoEvento(false);
+        setErroEvento("");
+        return null;
       }
 
-      setEvento(completo);
-      return completo;
-    } catch (error) {
-      const message =
-        error?.data?.message ||
-        error?.response?.data?.message ||
-        error?.message ||
-        "Não foi possível carregar o evento para edição.";
+      try {
+        setCarregandoEvento(true);
+        setErroEvento("");
 
-      setErroEvento(message);
-      toast.error(message);
-      return null;
-    } finally {
-      setCarregandoEvento(false);
-    }
-  }, [eventoIdParam]);
+        const completo = await EventoService.admin.buscarCompleto(
+          eventoIdParam,
+          {
+            on401: "redirect",
+            on403: "silent",
+          },
+        );
+
+        if (!completo?.id) {
+          throw new Error("Evento não encontrado.");
+        }
+
+        if (reidratar) {
+          prevEventoKeyRef.current = null;
+        }
+        setEvento(completo);
+        return completo;
+      } catch (error) {
+        const message =
+          error?.data?.message ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Não foi possível carregar o evento para edição.";
+
+        setErroEvento(message);
+        toast.error(message);
+        return null;
+      } finally {
+        setCarregandoEvento(false);
+      }
+    },
+    [eventoIdParam],
+  );
 
   useEffect(() => {
     recarregarEvento();
   }, [recarregarEvento]);
 
   const handleSalvarEvento = useCallback(
-    async (payload, { publicar = false } = {}) => {
+    async (payload) => {
       if (salvando) {
         return;
       }
@@ -934,7 +958,6 @@ export default function GestaoEventos() {
       try {
         setSalvando(true);
         const id = toPositiveIntOrNull(payload?.id || eventoIdParam);
-        const etapaAposSalvar = proximaEtapaAposSalvarRef.current;
         let response = null;
 
         let eventoIdSalvo = id;
@@ -962,33 +985,27 @@ export default function GestaoEventos() {
           throw new Error("Não foi possível identificar o evento salvo.");
         }
 
-        if (publicar) {
-          await EventoService.admin.publicar(
-            eventoIdSalvo,
-            {
-              pre_teste: {
-                habilitado: Boolean(preTesteResumo?.selecionado),
-              },
-            },
-            { on401: "redirect", on403: "silent" },
-          );
-          toast.success("Evento publicado com sucesso.");
-        } else {
-          toast.success("Rascunho salvo com sucesso.");
-        }
+        toast.success("Alterações salvas com sucesso.");
+        setFolderFile(null);
+        setFolderPreview("");
+        setProgramacaoFile(null);
+        setRemoverFolderExistente(false);
+        setRemoverProgramacaoExistente(false);
 
         if (id) {
-          await recarregarEvento();
-          if (etapaAposSalvar) {
-            setEtapaAtual(etapaAposSalvar);
-          }
+          await recarregarEvento({ reidratar: true });
         } else {
-          const etapaDestino = etapaAposSalvar || etapaAtual;
-          setEtapaAtual(etapaDestino);
+          setSnapshotSalvo(
+            createPersistedEditorSnapshot(buildEventoPayload(payload)),
+          );
+          allowNavigationRef.current = true;
           navigate(
-            `/gestao/evento?editar=${eventoIdSalvo}&etapa=${etapaDestino}`,
+            `/gestao/evento?editar=${eventoIdSalvo}&etapa=${etapaAtual}`,
             { replace: true },
           );
+          queueMicrotask(() => {
+            allowNavigationRef.current = false;
+          });
         }
         return response;
       } catch (error) {
@@ -1001,7 +1018,6 @@ export default function GestaoEventos() {
         toast.error(message);
         return null;
       } finally {
-        proximaEtapaAposSalvarRef.current = null;
         setSalvando(false);
       }
     },
@@ -1010,9 +1026,9 @@ export default function GestaoEventos() {
       evento,
       eventoIdParam,
       navigate,
-      preTesteResumo?.selecionado,
       recarregarEvento,
       salvando,
+      setSnapshotSalvo,
     ],
   );
 
@@ -1340,88 +1356,11 @@ export default function GestaoEventos() {
       setRegistroInput("");
       setCargoAddId("");
       setUnidadeAddId("");
+      markEditorHydrated();
     });
 
     prevEventoKeyRef.current = key;
-  }, [effectiveOpen, evento]);
-
-  useEffect(() => {
-    if (!effectiveOpen || !evento?.id) {
-      return;
-    }
-    let alive = true;
-
-    async function carregarDetalhe() {
-      try {
-        const completo = await EventoService.admin.buscarCompleto(evento.id);
-        if (!alive || !completo?.id) {
-          return;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            completo,
-            "conteudo_programatico",
-          )
-        ) {
-          setConteudoProgramatico(completo?.conteudo_programatico || "");
-        }
-
-        if (Object.prototype.hasOwnProperty.call(completo, "termo_ativo")) {
-          setTermoAtivo(completo?.termo_ativo === true);
-          setTermoTitulo(completo?.termo_titulo || "");
-          setTermoConteudoHtml(completo?.termo_conteudo_html || "");
-        }
-
-        setTurmas(
-          Array.isArray(completo.turmas)
-            ? completo.turmas.map(normalizarTurmaParaEstado)
-            : [],
-        );
-
-        setRegistrosPermitidos([
-          ...new Set(
-            (completo.registros_permitidos || [])
-              .map(onlyDigits)
-              .filter((r) => /^\d{6}$/.test(r)),
-          ),
-        ]);
-
-        setCargosPermitidos(normalizarCargosParaEstado(completo));
-        setUnidadesPermitidas(normalizarUnidadesParaEstado(completo));
-
-        const posCurso = completo?.pos_curso || null;
-
-        if (posCurso?.questionario_id) {
-          setTesteObrigatorio(true);
-          setTesteConfig((prev) => ({
-            ...prev,
-            titulo: posCurso?.titulo || prev.titulo,
-            nota_minima:
-              Number.isFinite(Number(posCurso?.min_nota)) &&
-              Number(posCurso.min_nota) > 10
-                ? Number(posCurso.min_nota) / 10
-                : Number(posCurso?.min_nota || prev.nota_minima),
-            tentativas: Number(posCurso?.tentativas_max || prev.tentativas),
-            tempo_minutos: Number(
-              posCurso?.tempo_minutos || prev.tempo_minutos,
-            ),
-            questionario_id: posCurso?.questionario_id || prev.questionario_id,
-            publicado:
-              String(posCurso?.status || "").toLowerCase() === "publicado" ||
-              prev.publicado,
-          }));
-        }
-      } catch (error) {
-        warnDev("Falha ao carregar detalhe do evento no modal", error);
-      }
-    }
-
-    carregarDetalhe();
-    return () => {
-      alive = false;
-    };
-  }, [effectiveOpen, evento?.id]);
+  }, [effectiveOpen, evento, markEditorHydrated]);
 
   useEffect(() => {
     if (!effectiveOpen || !evento?.id) {
@@ -1830,103 +1769,129 @@ export default function GestaoEventos() {
   ]);
 
   const montarPayloadEvento = useCallback(() => {
-      const turmasPayload = normalizarTurmasParaPayload(turmas);
-      const registros = [
-        ...new Set(registrosPermitidos.filter((r) => /^\d{6}$/.test(r))),
-      ];
+    const turmasPayload = normalizarTurmasParaPayload(turmas);
+    const registros = [
+      ...new Set(registrosPermitidos.filter((r) => /^\d{6}$/.test(r))),
+    ];
 
-      let restritoModo = null;
-      if (restrito) {
-        if (restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES) {
-          restritoModo = "todos_servidores";
-        } else if (restricaoUi === RESTRICAO_UI.LISTA_REGISTROS) {
-          restritoModo = "lista_registros";
-        } else if (restricaoUi === RESTRICAO_UI.CARGOS) {
-          restritoModo = "cargos";
-        } else if (restricaoUi === RESTRICAO_UI.UNIDADES) {
-          restritoModo = "unidades";
-        }
+    let restritoModo = null;
+    if (restrito) {
+      if (restricaoUi === RESTRICAO_UI.TODOS_SERVIDORES) {
+        restritoModo = "todos_servidores";
+      } else if (restricaoUi === RESTRICAO_UI.LISTA_REGISTROS) {
+        restritoModo = "lista_registros";
+      } else if (restricaoUi === RESTRICAO_UI.CARGOS) {
+        restritoModo = "cargos";
+      } else if (restricaoUi === RESTRICAO_UI.UNIDADES) {
+        restritoModo = "unidades";
       }
+    }
 
-      const payload = {
-        ...(evento?.id ? { id: Number(evento.id) } : {}),
+    const payload = {
+      ...(evento?.id ? { id: Number(evento.id) } : {}),
 
-        titulo: String(titulo).trim(),
-        descricao: String(descricao || "").trim(),
-        local: String(local).trim(),
-        tipo,
-        unidade_id: Number(unidadeId),
-        publico_alvo: String(publicoAlvo || "").trim(),
-        conteudo_programatico:
-          String(conteudoProgramatico || "").trim() || null,
-        salvar_como_rascunho: true,
-
-        ...(!termoBloqueado
-          ? {
-              termo_ativo: Boolean(termoAtivo),
-              termo_titulo: termoAtivo ? String(termoTitulo || "").trim() : "",
-              termo_conteudo_html: termoAtivo
-                ? String(termoConteudoHtml || "").trim()
-                : "",
-            }
-          : {}),
-
-        turmas: turmasPayload,
-
-        restrito: Boolean(restrito),
-        restrito_modo: restrito ? restritoModo : null,
-
-        ...(restrito &&
-        restricaoUi === RESTRICAO_UI.LISTA_REGISTROS &&
-        registros.length
-          ? { registros_permitidos: registros }
-          : {}),
-        ...(restrito && restricaoUi === RESTRICAO_UI.CARGOS
-          ? { cargos_permitidos: cargosPermitidos }
-          : {}),
-        ...(restrito && restricaoUi === RESTRICAO_UI.UNIDADES
-          ? { unidades_permitidas: unidadesPermitidas }
-          : {}),
-
-        ...(removerFolderExistente ? { remover_folder: true } : {}),
-        ...(removerProgramacaoExistente ? { remover_programacao: true } : {}),
-
-        ...(folderFile instanceof File ? { folderFile } : {}),
-        ...(programacaoFile instanceof File ? { programacaoFile } : {}),
-      };
-
-      return payload;
-    },
-    [
-      cargosPermitidos,
-      conteudoProgramatico,
-      descricao,
-      evento?.id,
-      folderFile,
-      local,
-      programacaoFile,
-      publicoAlvo,
-      registrosPermitidos,
-      removerFolderExistente,
-      removerProgramacaoExistente,
-      restricaoUi,
-      restrito,
+      titulo: String(titulo).trim(),
+      descricao: String(descricao || "").trim(),
+      local: String(local).trim(),
       tipo,
-      titulo,
-      termoAtivo,
-      termoBloqueado,
-      termoConteudoHtml,
-      termoTitulo,
-      turmas,
-      unidadeId,
-      unidadesPermitidas,
-    ],
+      unidade_id: Number(unidadeId),
+      publico_alvo: String(publicoAlvo || "").trim(),
+      conteudo_programatico: String(conteudoProgramatico || "").trim() || null,
+
+      ...(!termoBloqueado
+        ? {
+            termo_ativo: Boolean(termoAtivo),
+            termo_titulo: termoAtivo ? String(termoTitulo || "").trim() : "",
+            termo_conteudo_html: termoAtivo
+              ? String(termoConteudoHtml || "").trim()
+              : "",
+          }
+        : {}),
+
+      turmas: turmasPayload,
+
+      restrito: Boolean(restrito),
+      restrito_modo: restrito ? restritoModo : null,
+
+      ...(restrito &&
+      restricaoUi === RESTRICAO_UI.LISTA_REGISTROS &&
+      registros.length
+        ? { registros_permitidos: registros }
+        : {}),
+      ...(restrito && restricaoUi === RESTRICAO_UI.CARGOS
+        ? { cargos_permitidos: cargosPermitidos }
+        : {}),
+      ...(restrito && restricaoUi === RESTRICAO_UI.UNIDADES
+        ? { unidades_permitidas: unidadesPermitidas }
+        : {}),
+
+      ...(removerFolderExistente ? { remover_folder: true } : {}),
+      ...(removerProgramacaoExistente ? { remover_programacao: true } : {}),
+
+      ...(folderFile instanceof File ? { folderFile } : {}),
+      ...(programacaoFile instanceof File ? { programacaoFile } : {}),
+    };
+
+    return payload;
+  }, [
+    cargosPermitidos,
+    conteudoProgramatico,
+    descricao,
+    evento?.id,
+    folderFile,
+    local,
+    programacaoFile,
+    publicoAlvo,
+    registrosPermitidos,
+    removerFolderExistente,
+    removerProgramacaoExistente,
+    restricaoUi,
+    restrito,
+    tipo,
+    titulo,
+    termoAtivo,
+    termoBloqueado,
+    termoConteudoHtml,
+    termoTitulo,
+    turmas,
+    unidadeId,
+    unidadesPermitidas,
+  ]);
+
+  const snapshotAtual = useMemo(
+    () => createCanonicalEditorSnapshot(montarPayloadEvento()),
+    [montarPayloadEvento],
   );
+  snapshotAtualRef.current = snapshotAtual;
+
+  const dirty = isEditorDirty(snapshotAtual, snapshotSalvo);
+  const blocker = useBlocker(
+    useCallback(
+      () =>
+        shouldBlockEditorNavigation({
+          dirty,
+          allowNavigation: allowNavigationRef.current,
+        }),
+      [dirty],
+    ),
+  );
+
+  useEffect(() => {
+    if (!dirty) {
+      return undefined;
+    }
+
+    return attachBeforeUnloadGuard(window);
+  }, [dirty]);
+
+  const solicitarSaida = useCallback(() => {
+    navegarParaPainel();
+  }, [navegarParaPainel]);
 
   const handleSubmit = useCallback(
     (event) => {
       event.preventDefault();
-      if (salvando) {
+      if (salvando || !dirty) {
         return;
       }
 
@@ -1936,133 +1901,28 @@ export default function GestaoEventos() {
         return;
       }
 
-      handleSalvarEvento(montarPayloadEvento(), { publicar: true });
-    },
-    [handleSalvarEvento, montarPayloadEvento, salvando, validarFormulario],
-  );
-
-  const validarEtapa = useCallback(
-    (etapa) => {
-      if (etapa === 1) {
-        if (!String(titulo || "").trim()) {
-          return "Informe o título do evento.";
-        }
-        if (!String(tipo || "").trim()) {
-          return "Selecione o tipo do evento.";
-        }
-        if (!String(local || "").trim()) {
-          return "Informe o local do evento.";
-        }
-        if (!toPositiveIntOrNull(unidadeId)) {
-          return "Selecione a unidade.";
-        }
-        if (String(titulo).trim().length > EVENTO_LIMITES.titulo) {
-          return "O título do evento ultrapassou o limite permitido.";
-        }
-        if (String(descricao || "").trim().length > EVENTO_LIMITES.descricao) {
-          return "A descrição do evento ultrapassou o limite permitido.";
-        }
-      }
-
-      if (etapa === 2) {
-        if (String(publicoAlvo || "").trim().length > EVENTO_LIMITES.publico_alvo) {
-          return "O público-alvo ultrapassou o limite permitido.";
-        }
-        if (termoAtivo && !String(termoConteudoHtml || "").trim()) {
-          return "Informe o conteúdo do termo ou desative essa opção.";
-        }
-        if (!Array.isArray(turmas) || !turmas.length) {
-          return "Adicione ao menos uma turma.";
-        }
-        for (const turma of turmas) {
-          if (!String(turma?.nome || "").trim()) {
-            return "Todas as turmas precisam ter nome.";
-          }
-          if (!Array.isArray(turma?.datas) || !turma.datas.length) {
-            return `A turma "${turma?.nome || "Turma"}" precisa ter ao menos uma data.`;
-          }
-          if (!extractIds(turma?.organizadores).length) {
-            return `A turma "${turma?.nome || "Turma"}" precisa ter ao menos um organizador.`;
-          }
-        }
-        if (restrito && !restricaoUi) {
-          return "Defina o tipo de restrição do evento.";
-        }
-        if (
-          restrito &&
-          restricaoUi === RESTRICAO_UI.LISTA_REGISTROS &&
-          !registrosPermitidos.length
-        ) {
-          return "Inclua ao menos um registro autorizado.";
-        }
-        if (
-          restrito &&
-          restricaoUi === RESTRICAO_UI.CARGOS &&
-          !cargosPermitidos.length
-        ) {
-          return "Inclua ao menos um cargo permitido.";
-        }
-        if (
-          restrito &&
-          restricaoUi === RESTRICAO_UI.UNIDADES &&
-          !unidadesPermitidas.length
-        ) {
-          return "Inclua ao menos uma unidade permitida.";
-        }
-      }
-
-      if (
-        etapa === 3 &&
-        String(conteudoProgramatico || "").trim().length >
-          EVENTO_LIMITES.conteudo_programatico
-      ) {
-        return "O conteúdo programático ultrapassou o limite permitido.";
-      }
-
-      return "";
+      handleSalvarEvento(montarPayloadEvento());
     },
     [
-      cargosPermitidos.length,
-      conteudoProgramatico,
-      descricao,
-      local,
-      publicoAlvo,
-      registrosPermitidos.length,
-      restricaoUi,
-      restrito,
-      termoAtivo,
-      termoConteudoHtml,
-      tipo,
-      titulo,
-      turmas,
-      unidadeId,
-      unidadesPermitidas.length,
+      dirty,
+      handleSalvarEvento,
+      montarPayloadEvento,
+      salvando,
+      validarFormulario,
     ],
   );
 
   const avancarEtapa = useCallback(() => {
-    const erro = validarEtapa(etapaAtual);
-    if (erro) {
-      toast.error(erro);
-      return;
-    }
-
-    proximaEtapaAposSalvarRef.current = Math.min(5, etapaAtual + 1);
-    handleSalvarEvento(montarPayloadEvento());
-  }, [
-    etapaAtual,
-    handleSalvarEvento,
-    montarPayloadEvento,
-    validarEtapa,
-  ]);
+    setEtapaAtual((atual) => Math.min(5, atual + 1));
+  }, []);
 
   const voltarEtapa = useCallback(() => {
     if (etapaAtual === 1) {
-      onClose();
+      solicitarSaida();
       return;
     }
     setEtapaAtual((atual) => Math.max(1, atual - 1));
-  }, [etapaAtual, onClose]);
+  }, [etapaAtual, solicitarSaida]);
 
   const pendenciasRevisao = useMemo(() => {
     const pendencias = [];
@@ -2073,8 +1933,11 @@ export default function GestaoEventos() {
     if (preTesteResumoErro) {
       pendencias.push(preTesteResumoErro);
     }
+    if (carregandoPreTesteResumo) {
+      pendencias.push("Aguarde o carregamento da configuração do pré-teste.");
+    }
     return pendencias;
-  }, [preTesteResumoErro, validarFormulario]);
+  }, [carregandoPreTesteResumo, preTesteResumoErro, validarFormulario]);
 
   const turmasRender = useMemo(() => {
     return (turmas || []).map((turma, index) => {
@@ -2277,7 +2140,7 @@ export default function GestaoEventos() {
             </p>
             <button
               type="button"
-              onClick={onClose}
+              onClick={solicitarSaida}
               className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-emerald-700 px-3 py-1.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800"
             >
               Voltar ao painel
@@ -2372,7 +2235,9 @@ export default function GestaoEventos() {
 
                     <Chip tone={testeObrigatorio ? "violet" : "zinc"}>
                       <Sparkles className="h-3 w-3" aria-hidden="true" />
-                      {testeObrigatorio ? "Pós-teste configurado" : "Sem pós-teste"}
+                      {testeObrigatorio
+                        ? "Pós-teste configurado"
+                        : "Sem pós-teste"}
                     </Chip>
                   </div>
                 </div>
@@ -2392,12 +2257,8 @@ export default function GestaoEventos() {
                     <li key={etapa}>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (numero < etapaAtual) {
-                            setEtapaAtual(numero);
-                          }
-                        }}
-                        disabled={numero > etapaAtual}
+                        onClick={() => setEtapaAtual(numero)}
+                        disabled={salvando}
                         aria-current={ativa ? "step" : undefined}
                         className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-extrabold transition ${
                           ativa
@@ -2907,17 +2768,27 @@ export default function GestaoEventos() {
                     <SectionCard
                       id={`sec-revisao-${uid}`}
                       icon={CheckCircle2}
-                      title="Revisão e publicação"
-                      subtitle="Confira o conjunto completo. O evento só ficará disponível após a publicação explícita abaixo."
+                      title="Revisão"
+                      subtitle="Confira o conjunto completo antes de salvar. A publicação é controlada exclusivamente no Painel do Gestor."
                       show={etapaAtual === 5}
                     >
                       <dl className="grid gap-3 lg:grid-cols-2">
                         <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-                          <dt className="text-xs font-black uppercase text-zinc-500">Informações básicas</dt>
-                          <dd className="mt-1 text-sm font-bold">{titulo || "Título pendente"}</dd>
-                          <dd className="mt-1 text-xs text-zinc-500">{tipo || "Tipo pendente"} · {local || "Local pendente"}</dd>
+                          <dt className="text-xs font-black uppercase text-zinc-500">
+                            Informações básicas
+                          </dt>
+                          <dd className="mt-1 text-sm font-bold">
+                            {titulo || "Título pendente"}
+                          </dd>
                           <dd className="mt-1 text-xs text-zinc-500">
-                            Unidade: {unidades.find((item) => Number(item.id) === Number(unidadeId))?.nome || "Pendente"}
+                            {tipo || "Tipo pendente"} ·{" "}
+                            {local || "Local pendente"}
+                          </dd>
+                          <dd className="mt-1 text-xs text-zinc-500">
+                            Unidade:{" "}
+                            {unidades.find(
+                              (item) => Number(item.id) === Number(unidadeId),
+                            )?.nome || "Pendente"}
                           </dd>
                           {String(descricao || "").trim() && (
                             <dd className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
@@ -2926,43 +2797,81 @@ export default function GestaoEventos() {
                           )}
                         </div>
                         <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-                          <dt className="text-xs font-black uppercase text-zinc-500">Inscrição e público</dt>
+                          <dt className="text-xs font-black uppercase text-zinc-500">
+                            Inscrição e público
+                          </dt>
                           <dd className="mt-1 text-sm font-bold">
                             {publicoAlvo || "Público-alvo não informado"}
                           </dd>
                           <dd className="mt-1 text-xs text-zinc-500">
-                            {restrito ? "Evento restrito" : "Acesso padrão"} · Termo {termoAtivo ? "ativo" : "inativo"}
+                            {restrito ? "Evento restrito" : "Acesso padrão"} ·
+                            Termo {termoAtivo ? "ativo" : "inativo"}
                           </dd>
                         </div>
                         <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800 lg:col-span-2">
-                          <dt className="text-xs font-black uppercase text-zinc-500">Turmas, datas, horários e vagas</dt>
+                          <dt className="text-xs font-black uppercase text-zinc-500">
+                            Turmas, datas, horários e vagas
+                          </dt>
                           <dd className="mt-1 text-sm font-bold">
-                            {turmas.length} turma(s) · {turmas.reduce((total, turma) => total + (Number(turma?.vagas_total) || 0), 0)} vaga(s)
+                            {turmas.length} turma(s) ·{" "}
+                            {turmas.reduce(
+                              (total, turma) =>
+                                total + (Number(turma?.vagas_total) || 0),
+                              0,
+                            )}{" "}
+                            vaga(s)
                           </dd>
                           <div className="mt-3 grid gap-2 md:grid-cols-2">
                             {turmas.map((turma, turmaIndex) => (
-                              <div key={turma.id || `revisao-turma-${turmaIndex}`} className="rounded-lg bg-zinc-50 p-2.5 dark:bg-zinc-900/60">
+                              <div
+                                key={turma.id || `revisao-turma-${turmaIndex}`}
+                                className="rounded-lg bg-zinc-50 p-2.5 dark:bg-zinc-900/60"
+                              >
                                 <p className="text-xs font-black text-zinc-800 dark:text-zinc-100">
-                                  {turma.nome || `Turma ${turmaIndex + 1}`} · {Number(turma?.vagas_total) || 0} vagas
+                                  {turma.nome || `Turma ${turmaIndex + 1}`} ·{" "}
+                                  {Number(turma?.vagas_total) || 0} vagas
                                 </p>
                                 <ul className="mt-1 space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                  {(turma.datas || []).map((encontro, encontroIndex) => (
-                                    <li key={`${encontro.data}-${encontroIndex}`}>
-                                      {formatDateBr(encontro.data)} · {hhmm(encontro.horario_inicio)} às {hhmm(encontro.horario_fim)}
-                                    </li>
-                                  ))}
+                                  {(turma.datas || []).map(
+                                    (encontro, encontroIndex) => (
+                                      <li
+                                        key={`${encontro.data}-${encontroIndex}`}
+                                      >
+                                        {formatDateBr(encontro.data)} ·{" "}
+                                        {hhmm(encontro.horario_inicio)} às{" "}
+                                        {hhmm(encontro.horario_fim)}
+                                      </li>
+                                    ),
+                                  )}
                                 </ul>
                               </div>
                             ))}
                           </div>
                         </div>
                         <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-                          <dt className="text-xs font-black uppercase text-zinc-500">Conteúdo e materiais</dt>
-                          <dd className="mt-1 text-sm font-bold">{String(conteudoProgramatico || "").trim() ? "Conteúdo configurado" : "Conteúdo opcional"}</dd>
-                          <dd className="mt-1 text-xs text-zinc-500">Folder {folderFile || folderExistenteUrl ? "configurado" : "não informado"} · PDF {programacaoFile || programacaoExistenteUrl ? "configurado" : "não informado"}</dd>
+                          <dt className="text-xs font-black uppercase text-zinc-500">
+                            Conteúdo e materiais
+                          </dt>
+                          <dd className="mt-1 text-sm font-bold">
+                            {String(conteudoProgramatico || "").trim()
+                              ? "Conteúdo configurado"
+                              : "Conteúdo opcional"}
+                          </dd>
+                          <dd className="mt-1 text-xs text-zinc-500">
+                            Folder{" "}
+                            {folderFile || folderExistenteUrl
+                              ? "configurado"
+                              : "não informado"}{" "}
+                            · PDF{" "}
+                            {programacaoFile || programacaoExistenteUrl
+                              ? "configurado"
+                              : "não informado"}
+                          </dd>
                         </div>
                         <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-                          <dt className="text-xs font-black uppercase text-zinc-500">Avaliações</dt>
+                          <dt className="text-xs font-black uppercase text-zinc-500">
+                            Avaliações
+                          </dt>
                           <dd className="mt-1 text-sm font-bold">
                             {preTesteResumo?.selecionado
                               ? `${Number(preTesteResumo?.rascunho?.perguntas?.length ?? preTesteResumo?.versao_publicada?.perguntas?.length ?? 0)} pergunta(s) no pré-teste`
@@ -2978,7 +2887,9 @@ export default function GestaoEventos() {
 
                       {pendenciasRevisao.length ? (
                         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100">
-                          <p className="font-black">Pendências antes de publicar:</p>
+                          <p className="font-black">
+                            Pendências antes de salvar:
+                          </p>
                           <ul className="mt-2 list-disc space-y-1 pl-5">
                             {pendenciasRevisao.map((pendencia) => (
                               <li key={pendencia}>{pendencia}</li>
@@ -2987,8 +2898,8 @@ export default function GestaoEventos() {
                         </div>
                       ) : (
                         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-100">
-                          Dados do evento prontos para validação final. Ele
-                          permanece invisível até o clique em Publicar evento.
+                          Dados do evento prontos para salvamento. Esta tela não
+                          altera a publicação do evento.
                         </div>
                       )}
                     </SectionCard>
@@ -3490,8 +3401,9 @@ export default function GestaoEventos() {
             <footer className="border-t border-zinc-200 bg-white/95 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                  Campos obrigatórios: título, tipo, local, unidade e ao menos
-                  uma turma válida.
+                  {dirty
+                    ? "Existem alterações não salvas."
+                    : "Todas as alterações do evento estão salvas."}
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -3501,38 +3413,27 @@ export default function GestaoEventos() {
                     disabled={closeBlocked}
                     onClick={closeBlocked ? undefined : voltarEtapa}
                   >
-                    Voltar
+                    {etapaAtual === 1 ? "Sair do editor" : "Etapa anterior"}
                   </ActionButton>
-                  {etapaAtual < 5 ? (
+                  {etapaAtual < 5 && (
                     <ActionButton
                       type="button"
-                      tone="success"
+                      tone="neutral"
                       disabled={salvando}
                       onClick={avancarEtapa}
                     >
-                      {salvando
-                        ? "Salvando rascunho..."
-                        : "Salvar rascunho e continuar"}
-                    </ActionButton>
-                  ) : (
-                    <ActionButton
-                      type="submit"
-                      form={formId}
-                      tone="success"
-                      disabled={
-                        salvando ||
-                        carregandoPreTesteResumo ||
-                        pendenciasRevisao.length > 0
-                      }
-                    >
-                      <Save className="h-4 w-4" aria-hidden="true" />
-                      {salvando
-                        ? "Publicando..."
-                        : carregandoPreTesteResumo
-                          ? "Carregando avaliações..."
-                          : "PUBLICAR EVENTO"}
+                      Próxima etapa
                     </ActionButton>
                   )}
+                  <ActionButton
+                    type="submit"
+                    form={formId}
+                    tone="success"
+                    disabled={salvando || !dirty}
+                  >
+                    <Save className="h-4 w-4" aria-hidden="true" />
+                    {salvando ? "Salvando..." : "Salvar alterações"}
+                  </ActionButton>
                 </div>
               </div>
             </footer>
@@ -3587,6 +3488,18 @@ export default function GestaoEventos() {
           }}
         />
       )}
+
+      <ModalConfirmacao
+        open={blocker.state === "blocked"}
+        onClose={() => settleBlockedNavigation(blocker, "cancel")}
+        onConfirm={() => confirmBlockedNavigation(blocker)}
+        titulo="Sair sem salvar?"
+        mensagem="Existem alterações não salvas. Deseja sair mesmo assim?"
+        textoConfirmar="Sair sem salvar"
+        textoCancelar="Continuar editando"
+        variant="danger"
+        confirmOnEnter={false}
+      />
 
       <ConfirmacaoViewport
         open={!!confirmTurma.open}
