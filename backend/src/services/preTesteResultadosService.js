@@ -5,6 +5,7 @@ const {
   MODOS_RESPOSTA,
   PreTesteError,
   TIPOS_PERGUNTA,
+  normalizeModoResposta,
 } = require("./preTesteService");
 
 const RESPOSTAS_INICIAIS_POR_PERGUNTA = 10;
@@ -534,7 +535,7 @@ function montarParticipanteDetalhado(rows) {
       pergunta_id: Number(row.pergunta_id),
       ordem: Number(row.pergunta_ordem),
       tipo: row.tipo,
-      modo_resposta: row.modo_resposta || null,
+      modo_resposta: normalizeModoResposta(row.modo_resposta, row.tipo),
       enunciado: row.enunciado,
       resposta:
         row.tipo === TIPOS_PERGUNTA.MULTIPLA_ESCOLHA
@@ -623,7 +624,7 @@ function agruparParticipantesRelatorio(rows) {
       pergunta_id: Number(row.pergunta_id),
       ordem: Number(row.pergunta_ordem),
       tipo: row.tipo,
-      modo_resposta: row.modo_resposta || null,
+      modo_resposta: normalizeModoResposta(row.modo_resposta, row.tipo),
       enunciado: row.enunciado,
       resposta:
         row.tipo === TIPOS_PERGUNTA.MULTIPLA_ESCOLHA

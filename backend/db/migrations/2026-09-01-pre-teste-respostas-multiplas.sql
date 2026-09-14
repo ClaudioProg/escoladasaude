@@ -1,10 +1,18 @@
--- Modos de resposta por cardinalidade para o pré-teste diagnóstico.
+-- EXPAND: modos de resposta por cardinalidade para o pré-teste diagnóstico.
 --
 -- Migração aditiva e compatível:
 -- - questões objetivas históricas passam a resposta_unica;
+-- - questões objetivas criadas pelo backend anterior ainda podem ficar sem modo;
 -- - respostas históricas continuam em alternativa_id;
 -- - a distinção entre os modos representa somente a cardinalidade;
 -- - respostas múltiplas novas usam alternativas_ids para as seleções.
+--
+-- Ordem de rollout:
+-- A) aplicar esta EXPAND com o backend anterior ainda ativo;
+-- B) publicar o backend/frontend que grava modo_resposta explicitamente e trata
+--    NULL objetivo como resposta_unica;
+-- C) confirmar por smoke que somente o backend novo atende tráfego;
+-- D) somente então adicionar a CONTRACT em um novo commit e aplicá-la.
 --
 -- O runner oficial envolve este arquivo em uma transação.
 
@@ -66,8 +74,10 @@ ALTER TABLE public.pre_teste_perguntas
   CHECK (
     (
       tipo = 'multipla_escolha'
-      AND modo_resposta IS NOT NULL
-      AND modo_resposta IN ('resposta_unica', 'respostas_multiplas')
+      AND (
+        modo_resposta IS NULL
+        OR modo_resposta IN ('resposta_unica', 'respostas_multiplas')
+      )
     )
     OR (tipo = 'dissertativa' AND modo_resposta IS NULL)
   );
@@ -124,7 +134,7 @@ BEGIN
   END IF;
 
   IF v_tipo = 'multipla_escolha'
-     AND v_modo_resposta = 'resposta_unica' THEN
+     AND COALESCE(v_modo_resposta, 'resposta_unica') = 'resposta_unica' THEN
     IF NEW.alternativa_id IS NULL
        OR NEW.alternativas_ids IS NOT NULL
        OR NEW.resposta_texto IS NOT NULL THEN

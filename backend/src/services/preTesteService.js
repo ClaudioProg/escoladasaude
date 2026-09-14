@@ -1249,6 +1249,7 @@ module.exports = {
   TIPOS_PERGUNTA,
   MODOS_RESPOSTA,
   PreTesteError,
+  normalizeModoResposta,
   normalizeModoRespostaPayload,
   obterConfiguracaoAdministrativa,
   criarOuObterRascunho,

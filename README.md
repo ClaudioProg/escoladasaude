@@ -114,3 +114,35 @@ para a versão atual; não significa que todos os usuários serão desconectados
    schema.
 
 Nunca habilite o breaker antes de migration, backend e SW estarem prontos.
+
+---
+
+## Rollout do modo de resposta do pré-teste
+
+A introdução de `modo_resposta` segue uma transição EXPAND/CONTRACT para manter
+compatibilidade com o backend anterior. Neste primeiro rollout, somente a
+migration EXPAND faz parte do conjunto executável.
+
+1. **FASE A — EXPAND:** a partir de `backend/`, aplicar somente
+   `npm run migrate:file -- db/migrations/2026-09-01-pre-teste-respostas-multiplas.sql`.
+2. **FASE B — DEPLOY:** publicar o backend e o frontend novos. O backend novo
+   grava o modo explicitamente e interpreta `NULL` objetivo como
+   `resposta_unica`.
+3. **FASE C — SMOKE:** confirmar que somente o backend novo atende tráfego e
+   que o fluxo transitório está saudável.
+4. **FASE D — NOVO COMMIT:** somente depois dessas confirmações, criar e
+   adicionar a migration CONTRACT em um commit posterior. A CONTRACT não deve
+   existir no diretório ativo antes dessa fase. Essa migration futura deverá
+   validar previamente a presença da EXPAND, bloquear a tabela durante a
+   transição, preencher eventuais `NULL` objetivos como `resposta_unica` e
+   substituir a constraint permissiva pela regra final que exige um modo válido
+   nas perguntas objetivas e mantém `NULL` nas dissertativas.
+5. **FASE E — CONTRACT:** aplicar explicitamente a migration criada na fase D
+   e executar o smoke final.
+
+O script genérico `npm run migrate` percorre todos os arquivos `*.sql` de
+`backend/db/migrations`. A ausência estrutural da CONTRACT no primeiro rollout
+é a proteção contra sua aplicação antecipada; o procedimento não depende
+apenas de uma advertência operacional.
+
+Questões dissertativas mantêm `modo_resposta = NULL` em todas as fases.

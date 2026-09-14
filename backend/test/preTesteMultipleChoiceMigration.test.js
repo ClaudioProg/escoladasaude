@@ -15,6 +15,10 @@ const migrationOriginal = ler(
 const migrationMultipla = ler(
   "../db/migrations/2026-09-01-pre-teste-respostas-multiplas.sql",
 );
+const contractAtiva = path.resolve(
+  __dirname,
+  "../db/migrations/2026-09-02-pre-teste-modo-resposta-contract.sql",
+);
 
 test("alteração de schema é necessária e migration é aditiva e versionada", () => {
   assert.doesNotMatch(
@@ -31,6 +35,7 @@ test("alteração de schema é necessária e migration é aditiva e versionada",
     /ADD COLUMN IF NOT EXISTS alternativas_ids integer\[\]/,
   );
   assert.doesNotMatch(migrationMultipla, /DROP TABLE|TRUNCATE/);
+  assert.equal(fs.existsSync(contractAtiva), false);
 });
 
 test("questões históricas são promovidas para resposta única sem reescrever respostas", () => {
@@ -48,13 +53,16 @@ test("questões históricas são promovidas para resposta única sem reescrever 
   );
 });
 
-test("constraint e trigger distinguem resposta única, múltipla e dissertativa", () => {
+test("EXPAND tolera NULL objetivo transitório e mantém as demais validações", () => {
   assert.match(
     migrationMultipla,
-    /tipo = 'multipla_escolha'[\s\S]*?modo_resposta IS NOT NULL[\s\S]*?modo_resposta IN \('resposta_unica', 'respostas_multiplas'\)/,
+    /tipo = 'multipla_escolha'[\s\S]*?modo_resposta IS NULL[\s\S]*?OR modo_resposta IN \('resposta_unica', 'respostas_multiplas'\)/,
+  );
+  assert.match(
+    migrationMultipla,
+    /COALESCE\(v_modo_resposta, 'resposta_unica'\) = 'resposta_unica'/,
   );
   assert.match(migrationMultipla, /'resposta_unica', 'respostas_multiplas'/);
-  assert.match(migrationMultipla, /v_modo_resposta = 'resposta_unica'/);
   assert.match(migrationMultipla, /NEW\.alternativas_ids IS NOT NULL/);
   assert.match(migrationMultipla, /v_modo_resposta = 'respostas_multiplas'/);
   assert.match(migrationMultipla, /cardinality\(NEW\.alternativas_ids\) = 0/);

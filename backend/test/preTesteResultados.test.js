@@ -326,6 +326,14 @@ test("agregação de resposta única produz distribuição que soma 100%", () =>
   );
 });
 
+test("resultados agregados normalizam NULL objetivo transitório como resposta única", () => {
+  const rows = perguntasRows
+    .filter((row) => row.pergunta_id === 101)
+    .map((row) => ({ ...row, modo_resposta: null }));
+  const [pergunta] = montarPerguntas(rows);
+  assert.equal(pergunta.modo_resposta, "resposta_unica");
+});
+
 test("agregação múltipla calcula frequência por participante e pode exceder 100%", () => {
   const base = perguntasRows[0];
   const rows = [
@@ -448,6 +456,8 @@ test("detalhe do participante usa uma submissão compatível com evento e versã
   assert.equal(data.submissao_id, 500);
   assert.equal(data.respostas.length, 2);
   assert.equal(data.respostas[0].resposta, "Conhecimento inicial");
+  assert.equal(data.respostas[0].modo_resposta, "resposta_unica");
+  assert.equal(data.respostas[1].modo_resposta, null);
   const chamada = query.chamadas.find(
     (item) => item.tag === "participante_detalhe",
   );
@@ -515,6 +525,11 @@ test("relatório detalhado agrupa respostas por submissão", async () => {
   const data = await obterDadosRelatorio(7, 22, "detalhado", queryComDetalhes);
   assert.equal(data.participantes.length, 1);
   assert.equal(data.participantes[0].respostas.length, 2);
+  assert.equal(
+    data.participantes[0].respostas[0].modo_resposta,
+    "resposta_unica",
+  );
+  assert.equal(data.participantes[0].respostas[1].modo_resposta, null);
 });
 
 function dadosPdf({ detalhado = false, respostasLongas = 1 } = {}) {

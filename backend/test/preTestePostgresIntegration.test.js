@@ -1,15 +1,64 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const test = require("node:test");
 const { Client } = require("pg");
 
 const integrationUrl = process.env.PRE_TESTE_INTEGRATION_DATABASE_URL || "";
+const backendDir = path.resolve(__dirname, "..");
+const expandName = "2026-09-01-pre-teste-respostas-multiplas.sql";
+
+function migrationPath(name) {
+  return path.resolve(backendDir, "db/migrations", name);
+}
+
+function migrationSha(name) {
+  const sql = fs.readFileSync(migrationPath(name), "utf8");
+  return crypto.createHash("sha256").update(sql).digest("hex");
+}
+
+function executarRunner(name) {
+  const result = spawnSync(
+    process.execPath,
+    ["scripts/run-migration.js", "--file", `db/migrations/${name}`],
+    {
+      cwd: backendDir,
+      env: { ...process.env, DATABASE_URL: integrationUrl },
+      encoding: "utf8",
+    },
+  );
+
+  assert.equal(
+    result.status,
+    0,
+    [result.stdout, result.stderr].filter(Boolean).join("\n"),
+  );
+  return `${result.stdout || ""}\n${result.stderr || ""}`;
+}
+
+async function conferirLedger(client, name) {
+  const result = await client.query(
+    `
+    SELECT arquivo, sha256, COUNT(*)::integer AS total
+    FROM public.sistema_migracao
+    WHERE arquivo = $1
+    GROUP BY arquivo, sha256
+    `,
+    [name],
+  );
+
+  assert.equal(result.rowCount, 1);
+  assert.equal(result.rows[0].arquivo, name);
+  assert.equal(result.rows[0].sha256, migrationSha(name));
+  assert.equal(result.rows[0].total, 1);
+}
 
 test(
-  "PostgreSQL valida cardinalidade e agrega frequências de seleção",
+  "PostgreSQL valida EXPAND isolada e compatibilidade transitória",
   { skip: !integrationUrl },
   async () => {
     const parsed = new URL(integrationUrl);
@@ -41,23 +90,18 @@ test(
         );
       `);
 
-      for (const migrationName of [
-        "2026-08-20-pre-teste-evento.sql",
-        "2026-09-01-pre-teste-respostas-multiplas.sql",
-      ]) {
-        const sql = fs.readFileSync(
-          path.resolve(__dirname, `../db/migrations/${migrationName}`),
-          "utf8",
-        );
-        await client.query(`BEGIN;\n${sql}\nCOMMIT;`);
-      }
+      const migrationBase = fs.readFileSync(
+        migrationPath("2026-08-20-pre-teste-evento.sql"),
+        "utf8",
+      );
+      await client.query(`BEGIN;\n${migrationBase}\nCOMMIT;`);
 
       const evento = await client.query(
         "INSERT INTO eventos (titulo) VALUES ('Evento laboratório') RETURNING id",
       );
       const eventoId = evento.rows[0].id;
       const usuarios = await client.query(
-        "INSERT INTO usuarios (nome) SELECT 'Pessoa ' || n FROM generate_series(1, 9) n RETURNING id",
+        "INSERT INTO usuarios (nome) SELECT 'Pessoa ' || n FROM generate_series(1, 12) n RETURNING id",
       );
       const preTeste = await client.query(
         "INSERT INTO pre_testes_evento (evento_id, ativo) VALUES ($1, false) RETURNING id",
@@ -73,53 +117,144 @@ test(
         [versaoId, preTeste.rows[0].id],
       );
 
+      const historica = await client.query(
+        "INSERT INTO pre_teste_perguntas (versao_id, tipo, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'Objetiva histórica', 1) RETURNING id",
+        [versaoId],
+      );
+      await client.query(
+        "INSERT INTO pre_teste_alternativas (pergunta_id, texto, ordem) VALUES ($1, 'Histórica A', 1), ($1, 'Histórica B', 2)",
+        [historica.rows[0].id],
+      );
+
+      executarRunner(expandName);
+      await conferirLedger(client, expandName);
+      assert.match(executarRunner(expandName), /Ignorada/);
+      await conferirLedger(client, expandName);
+
+      const modoHistorico = await client.query(
+        "SELECT modo_resposta FROM pre_teste_perguntas WHERE id = $1",
+        [historica.rows[0].id],
+      );
+      assert.equal(modoHistorico.rows[0].modo_resposta, "resposta_unica");
+
+      const objetivaLegada = await client.query(
+        "INSERT INTO pre_teste_perguntas (versao_id, tipo, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'Objetiva criada pelo backend antigo', 2) RETURNING id, modo_resposta",
+        [versaoId],
+      );
+      assert.equal(objetivaLegada.rows[0].modo_resposta, null);
+
+      const dissertativaLegada = await client.query(
+        "INSERT INTO pre_teste_perguntas (versao_id, tipo, enunciado, ordem) VALUES ($1, 'dissertativa', 'Dissertativa criada pelo backend antigo', 3) RETURNING id, modo_resposta",
+        [versaoId],
+      );
+      assert.equal(dissertativaLegada.rows[0].modo_resposta, null);
+
       await assert.rejects(
         client.query(
-          "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'multipla_escolha', NULL, 'Objetiva sem modo', 90)",
+          "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'invalido', 'Objetiva inválida', 90)",
           [versaoId],
         ),
         /pre_teste_perguntas_modo_resposta_check/,
       );
       await assert.rejects(
         client.query(
-          "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'invalido', 'Objetiva inválida', 91)",
-          [versaoId],
-        ),
-        /pre_teste_perguntas_modo_resposta_check/,
-      );
-      await assert.rejects(
-        client.query(
-          "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'dissertativa', 'resposta_unica', 'Dissertativa inválida', 92)",
+          "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'dissertativa', 'resposta_unica', 'Dissertativa inválida', 91)",
           [versaoId],
         ),
         /pre_teste_perguntas_modo_resposta_check/,
       );
 
-      const perguntaUnica = await client.query(
-        "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'resposta_unica', 'Selecione uma', 2) RETURNING id",
+      const alternativasLegadas = await client.query(
+        "INSERT INTO pre_teste_alternativas (pergunta_id, texto, ordem) VALUES ($1, 'Legada A', 1), ($1, 'Legada B', 2) RETURNING id",
+        [objetivaLegada.rows[0].id],
+      );
+      const submissaoLegada = await client.query(
+        "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
+        [eventoId, versaoId, usuarios.rows[0].id],
+      );
+      await client.query(
+        "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativa_id) VALUES ($1, $2, $3)",
+        [
+          submissaoLegada.rows[0].id,
+          objetivaLegada.rows[0].id,
+          alternativasLegadas.rows[0].id,
+        ],
+      );
+
+      const submissaoLegadaInvalida = await client.query(
+        "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
+        [eventoId, versaoId, usuarios.rows[1].id],
+      );
+      await assert.rejects(
+        client.query(
+          "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativas_ids) VALUES ($1, $2, $3::integer[])",
+          [
+            submissaoLegadaInvalida.rows[0].id,
+            objetivaLegada.rows[0].id,
+            alternativasLegadas.rows.map((row) => row.id),
+          ],
+        ),
+        /resposta única exige somente alternativa_id/,
+      );
+
+      const previousDatabaseUrl = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = integrationUrl;
+      const {
+        carregarVersaoCompleta,
+        validarRespostasPreTeste,
+      } = require("../src/services/preTesteService");
+      if (previousDatabaseUrl === undefined) {
+        delete process.env.DATABASE_URL;
+      } else {
+        process.env.DATABASE_URL = previousDatabaseUrl;
+      }
+
+      const versaoCarregada = await carregarVersaoCompleta(client, versaoId);
+      const objetivaTransitoria = versaoCarregada.perguntas.find(
+        (pergunta) => pergunta.id === objetivaLegada.rows[0].id,
+      );
+      const dissertativaTransitoria = versaoCarregada.perguntas.find(
+        (pergunta) => pergunta.id === dissertativaLegada.rows[0].id,
+      );
+      assert.equal(objetivaTransitoria.modo_resposta, "resposta_unica");
+      assert.equal(dissertativaTransitoria.modo_resposta, null);
+
+      assert.doesNotThrow(() =>
+        validarRespostasPreTeste([objetivaTransitoria], {
+          versao_id: versaoId,
+          respostas: [
+            {
+              pergunta_id: objetivaTransitoria.id,
+              alternativa_id: alternativasLegadas.rows[0].id,
+            },
+          ],
+        }),
+      );
+      assert.throws(
+        () =>
+          validarRespostasPreTeste([objetivaTransitoria], {
+            versao_id: versaoId,
+            respostas: [
+              {
+                pergunta_id: objetivaTransitoria.id,
+                alternativas_ids: alternativasLegadas.rows.map((row) => row.id),
+              },
+            ],
+          }),
+        (error) => error.code === "PRE_TESTE_ALTERNATIVA_INVALIDA",
+      );
+
+      const perguntaMultipla = await client.query(
+        "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'respostas_multiplas', 'Selecione uma ou mais opções', 4) RETURNING id",
         [versaoId],
       );
-      const alternativasUnicas = await client.query(
-        "INSERT INTO pre_teste_alternativas (pergunta_id, texto, ordem) VALUES ($1, 'Opção U1', 1), ($1, 'Opção U2', 2) RETURNING id",
-        [perguntaUnica.rows[0].id],
-      );
-      const perguntaDissertativa = await client.query(
-        "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'dissertativa', NULL, 'Resposta livre', 3) RETURNING id",
-        [versaoId],
-      );
-      const pergunta = await client.query(
-        "INSERT INTO pre_teste_perguntas (versao_id, tipo, modo_resposta, enunciado, ordem) VALUES ($1, 'multipla_escolha', 'respostas_multiplas', 'Selecione uma ou mais opções', 1) RETURNING id",
-        [versaoId],
-      );
-      const perguntaId = pergunta.rows[0].id;
       const alternativas = await client.query(
         "INSERT INTO pre_teste_alternativas (pergunta_id, texto, ordem) VALUES ($1, 'A', 1), ($1, 'B', 2), ($1, 'C', 3), ($1, 'D', 4) RETURNING id, texto",
-        [perguntaId],
+        [perguntaMultipla.rows[0].id],
       );
       const idByText = Object.fromEntries(
         alternativas.rows.map((row) => [row.texto, row.id]),
       );
-
       const respostas = [
         [idByText.A, idByText.C],
         [idByText.C, idByText.A],
@@ -130,35 +265,13 @@ test(
       for (let index = 0; index < respostas.length; index += 1) {
         const submissao = await client.query(
           "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
-          [eventoId, versaoId, usuarios.rows[index].id],
+          [eventoId, versaoId, usuarios.rows[index + 2].id],
         );
         await client.query(
           "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativas_ids) VALUES ($1, $2, $3::integer[])",
-          [submissao.rows[0].id, perguntaId, respostas[index]],
+          [submissao.rows[0].id, perguntaMultipla.rows[0].id, respostas[index]],
         );
       }
-
-      const submissaoUnica = await client.query(
-        "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
-        [eventoId, versaoId, usuarios.rows[4].id],
-      );
-      await client.query(
-        "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativa_id) VALUES ($1, $2, $3)",
-        [
-          submissaoUnica.rows[0].id,
-          perguntaUnica.rows[0].id,
-          alternativasUnicas.rows[0].id,
-        ],
-      );
-
-      const submissaoDissertativa = await client.query(
-        "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
-        [eventoId, versaoId, usuarios.rows[5].id],
-      );
-      await client.query(
-        "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, resposta_texto) VALUES ($1, $2, 'Resposta válida')",
-        [submissaoDissertativa.rows[0].id, perguntaDissertativa.rows[0].id],
-      );
 
       const submissaoDuplicada = await client.query(
         "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
@@ -169,7 +282,7 @@ test(
           "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativas_ids) VALUES ($1, $2, $3::integer[])",
           [
             submissaoDuplicada.rows[0].id,
-            perguntaId,
+            perguntaMultipla.rows[0].id,
             [idByText.A, idByText.A, idByText.C],
           ],
         ),
@@ -181,40 +294,38 @@ test(
           "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativas_ids) VALUES ($1, $2, $3::integer[])",
           [
             submissaoDuplicada.rows[0].id,
-            perguntaId,
-            [idByText.A, alternativasUnicas.rows[0].id],
+            perguntaMultipla.rows[0].id,
+            [idByText.A, alternativasLegadas.rows[0].id],
           ],
         ),
         /não pertencem à pergunta/,
       );
 
-      const submissaoUnicaInvalida = await client.query(
-        "INSERT INTO pre_teste_submissoes (evento_id, versao_id, usuario_id) VALUES ($1, $2, $3) RETURNING id",
-        [eventoId, versaoId, usuarios.rows[7].id],
+      const objetivasSemModo = await client.query(
+        "SELECT COUNT(*)::integer AS total FROM pre_teste_perguntas WHERE tipo = 'multipla_escolha' AND modo_resposta IS NULL",
       );
-      await assert.rejects(
-        client.query(
-          "INSERT INTO pre_teste_respostas (submissao_id, pergunta_id, alternativas_ids) VALUES ($1, $2, $3::integer[])",
-          [
-            submissaoUnicaInvalida.rows[0].id,
-            perguntaUnica.rows[0].id,
-            alternativasUnicas.rows.map((row) => row.id),
-          ],
-        ),
-        /resposta única exige somente alternativa_id/,
+      assert.equal(objetivasSemModo.rows[0].total, 1);
+
+      const ledgerTotal = await client.query(
+        "SELECT COUNT(*)::integer AS total FROM public.sistema_migracao WHERE arquivo = $1",
+        [expandName],
       );
+      assert.equal(ledgerTotal.rows[0].total, 1);
 
       const {
         obterResultados,
       } = require("../src/services/preTesteResultadosService");
       const resultado = await obterResultados(eventoId, versaoId, client);
-      const agregada = resultado.perguntas[0];
-      const quantidade = Object.fromEntries(
-        agregada.alternativas.map((item) => [item.texto, item.quantidade]),
+      const agregada = resultado.perguntas.find(
+        (pergunta) => pergunta.id === perguntaMultipla.rows[0].id,
       );
-
       assert.equal(agregada.total_respostas, 4);
-      assert.deepEqual(quantidade, { A: 4, B: 0, C: 3, D: 1 });
+      assert.deepEqual(
+        Object.fromEntries(
+          agregada.alternativas.map((item) => [item.texto, item.quantidade]),
+        ),
+        { A: 4, B: 0, C: 3, D: 1 },
+      );
       assert.deepEqual(
         Object.fromEntries(
           agregada.alternativas.map((item) => [item.texto, item.percentual]),

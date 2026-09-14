@@ -36,13 +36,27 @@ function carregarService() {
 }
 
 const {
+  TIPOS_PERGUNTA,
   MODOS_RESPOSTA,
   PreTesteError,
+  normalizeModoResposta,
   normalizeModoRespostaPayload,
   processarPreTesteInscricao,
   validarVersaoParaPublicacao,
   validarRespostasPreTeste,
 } = carregarService();
+
+test("NULL transitório é lido como resposta única apenas em questão objetiva", () => {
+  assert.equal(
+    normalizeModoResposta(null, TIPOS_PERGUNTA.MULTIPLA_ESCOLHA),
+    MODOS_RESPOSTA.UNICA,
+  );
+  assert.equal(
+    normalizeModoResposta(undefined, TIPOS_PERGUNTA.MULTIPLA_ESCOLHA),
+    MODOS_RESPOSTA.UNICA,
+  );
+  assert.equal(normalizeModoResposta(null, TIPOS_PERGUNTA.DISSERTATIVA), null);
+});
 
 test("modo_resposta aceita somente literais exatos e preserva ausência histórica", () => {
   assert.equal(
