@@ -55,7 +55,22 @@ test("QR e compartilhamento usam a URL canônica sem credenciais", () => {
   assert.match(detalhe, /QRCodeSVG[\s\S]*?value=\{urlCanonica\}/);
   assert.match(detalhe, /navigator\.share/);
   assert.match(detalhe, /navigator\.clipboard\.writeText\(urlCanonica\)/);
+  assert.match(detalhe, /error\?\.name !== "AbortError"\)\s*\{\s*await copiarLink\(\);/);
   assert.doesNotMatch(detalhe, /getToken|localStorage|cpf|usuario_id/);
+});
+
+test("QR Code exporta PNG de alta resolução e compartilha ou baixa sem dados pessoais", () => {
+  assert.match(detalhe, /QRCode\.toDataURL\(url[\s\S]*?width: QR_CODE_PNG_SIZE/);
+  assert.match(detalhe, /const QR_CODE_PNG_SIZE = 512/);
+  assert.match(detalhe, /navigator\.canShare\(\{[\s\S]*?files:/);
+  assert.match(detalhe, /new File\(\[blob\], filename, \{ type: "image\/png" \}\)/);
+  assert.match(detalhe, /link\.download = filename/);
+  assert.match(detalhe, /qrcode-evento-\$\{String\(eventoId\)/);
+  assert.match(detalhe, /error\?\.name !== "AbortError"/);
+  assert.match(detalhe, /error\?\.name !== "AbortError"[\s\S]*?link\.download = filename/);
+  assert.match(detalhe, /navigator\.share\([\s\S]*?files: \[file\]/);
+  assert.match(detalhe, /text: urlCanonica/);
+  assert.doesNotMatch(detalhe, /File[\s\S]*token|File[\s\S]*cpf|File[\s\S]*usuario/);
 });
 
 test("rota do evento é privada e o layout protege larguras móveis", () => {
@@ -66,6 +81,16 @@ test("rota do evento é privada e o layout protege larguras móveis", () => {
   assert.match(listagem, /grid-cols-1/);
   assert.match(listagem, /md:grid-cols-2/);
   assert.match(listagem, /xl:grid-cols-3/);
+});
+
+test("hero permanece compacto e a descriÃ§Ã£o completa fica em Sobre o evento", () => {
+  const fonteSemComentarios = detalhe.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const hero = fonteSemComentarios.match(
+    /<section className="overflow-hidden rounded-\[2rem\][\s\S]*?<\/section>/,
+  )?.[0];
+  assert.doesNotMatch(hero || "", /evento\.descricao/);
+  assert.match(detalhe, /aspect-\[4\/3\]/);
+  assert.match(detalhe, /Sobre o evento[\s\S]*?evento\.descricao/);
 });
 
 test("rota privada preserva next e o login retorna ao destino sanitizado", () => {

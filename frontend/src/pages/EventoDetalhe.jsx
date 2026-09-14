@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
 import {
   ArrowLeft,
   CalendarDays,
@@ -43,6 +44,42 @@ import {
   mensagemElegibilidade,
   ocupacaoEvento,
 } from "./eventosVitrineState";
+
+const QR_CODE_PNG_SIZE = 512;
+
+const nomeArquivoQrCode = (eventoId) =>
+  `qrcode-evento-${String(eventoId).replace(/[^a-zA-Z0-9_-]/g, "-")}.png`;
+
+const gerarQrCodePng = async (url) => {
+  const dataUrl = await QRCode.toDataURL(url, {
+    errorCorrectionLevel: "M",
+    margin: 2,
+    width: QR_CODE_PNG_SIZE,
+  });
+  const resposta = await fetch(dataUrl);
+  if (!resposta.ok) {
+    throw new Error("Não foi possível gerar a imagem do QR Code.");
+  }
+  return resposta.blob();
+};
+
+const suportaCompartilhamentoQrCode = () => {
+  if (
+    typeof navigator === "undefined" ||
+    typeof navigator.share !== "function" ||
+    typeof navigator.canShare !== "function" ||
+    typeof File !== "function"
+  ) {
+    return false;
+  }
+  try {
+    return navigator.canShare({
+      files: [new File([""], "qrcode.png", { type: "image/png" })],
+    });
+  } catch {
+    return false;
+  }
+};
 
 function formatarData(value) {
   const data = ymd(value);
@@ -286,10 +323,57 @@ export default function EventoDetalhe() {
       });
     } catch (error) {
       if (error?.name !== "AbortError") {
-        notifyError("Não foi possível compartilhar.");
+        await copiarLink();
       }
     }
   }, [copiarLink, evento?.titulo, urlCanonica]);
+
+  const compartilharOuBaixarQrCode = useCallback(async () => {
+    try {
+      const blob = await gerarQrCodePng(urlCanonica);
+      const filename = nomeArquivoQrCode(eventoId);
+      const podeCompartilhar = suportaCompartilhamentoQrCode();
+
+      if (podeCompartilhar) {
+        const file = new File([blob], filename, { type: "image/png" });
+        try {
+          await navigator.share({
+            files: [file],
+            title: evento?.titulo || "QR Code do evento",
+            text: urlCanonica,
+          });
+          notifySuccess("QR Code compartilhado.");
+        } catch (error) {
+          if (error?.name !== "AbortError") {
+            const href = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = href;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(href);
+            notifySuccess("QR Code baixado.");
+          }
+        }
+        return;
+      }
+
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(href);
+      notifySuccess("QR Code baixado.");
+    } catch (error) {
+      notifyError(
+        normalizarErro(error, "Não foi possível gerar o QR Code."),
+      );
+    }
+  }, [evento?.titulo, eventoId, urlCanonica]);
+
+  const qrCodeAcaoLabel = suportaCompartilhamentoQrCode()
+    ? "Compartilhar QR Code"
+    : "Baixar QR Code";
 
   const baixarProgramacao = useCallback(async () => {
     setBaixandoPrograma(true);
@@ -360,7 +444,7 @@ export default function EventoDetalhe() {
         </Link>
 
         <section className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-emerald-950 to-teal-800 text-white shadow-2xl">
-          <div className="grid lg:grid-cols-[1.15fr_.85fr]">
+          <div className="grid items-start lg:grid-cols-[1.15fr_.85fr]">
             <div className="flex min-w-0 flex-col justify-center p-6 sm:p-9 lg:p-12">
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black">
@@ -375,13 +459,13 @@ export default function EventoDetalhe() {
                   </span>
                 )}
               </div>
-              <h1 className="mt-4 break-words text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
+              <h1 className="mt-4 min-w-0 max-w-full break-words text-[clamp(1.875rem,2.5vw_+_1.25rem,3rem)] font-black leading-[1.08]">
                 {evento.titulo}
               </h1>
-              <p className="mt-5 max-w-3xl text-base leading-relaxed text-white/80 sm:text-lg">
+              {/*
                 {evento.descricao ||
                   "Informações completas deste evento e de suas turmas."}
-              </p>
+              */}
               <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
                 <span className="flex items-start gap-2">
                   <CalendarDays className="mt-0.5 h-4 w-4 shrink-0" />
@@ -393,7 +477,7 @@ export default function EventoDetalhe() {
                 </span>
               </div>
             </div>
-            <div className="relative min-h-64 bg-emerald-900/50 lg:min-h-[430px]">
+            <div className="relative aspect-[4/3] min-h-64 bg-emerald-900/50 lg:min-h-0">
               {capa ? (
                 <img
                   src={capa}
@@ -454,6 +538,11 @@ export default function EventoDetalhe() {
               <h2 className="text-2xl font-black text-slate-950 dark:text-white">
                 Sobre o evento
               </h2>
+              {evento.descricao && (
+                <p className="mt-4 whitespace-pre-wrap break-words text-base leading-7 text-slate-600 dark:text-slate-300">
+                  {evento.descricao}
+                </p>
+              )}
               <dl className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Info
                   icon={Users}
@@ -590,6 +679,13 @@ export default function EventoDetalhe() {
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-300 px-4 font-black text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:text-white"
                 >
                   <Clipboard className="h-4 w-4" /> Copiar link
+                </button>
+                <button
+                  type="button"
+                  onClick={compartilharOuBaixarQrCode}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 px-4 font-black text-emerald-800 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-950/40"
+                >
+                  <Download className="h-4 w-4" /> {qrCodeAcaoLabel}
                 </button>
               </div>
               <a
