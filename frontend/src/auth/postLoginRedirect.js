@@ -65,6 +65,7 @@ const VALID_PRIVATE_PATHS = new Set([
 ]);
 
 const VALID_PRIVATE_PATTERNS = [
+  /^\/eventos\/\d+$/,
   /^\/pesquisa\/[^/]+\/responder$/,
   /^\/organizador\/presenca\/[^/]+$/,
   /^\/administrador\/interacao\/apresentacao\/[^/]+$/,

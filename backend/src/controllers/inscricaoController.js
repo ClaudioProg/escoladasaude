@@ -59,6 +59,9 @@ const {
   PreTesteError,
   processarPreTesteInscricao,
 } = require("../services/preTesteService");
+const {
+  avaliarPrazoInscricaoTurma,
+} = require("../services/eventoInscricaoDisponibilidadeService");
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -457,6 +460,58 @@ async function contarInscritosDaTurma(q, turmaId) {
   );
 
   return Number(result.rows?.[0]?.total || 0);
+}
+
+async function carregarPrazoInscricaoTurma(q, turma) {
+  const result = await q(
+    `
+    SELECT
+      CASE
+        WHEN COUNT(dt.turma_id) > 0 THEN COUNT(dt.turma_id)
+        WHEN $2::date IS NOT NULL THEN 1
+        ELSE 0
+      END::int AS total_encontros,
+      CASE
+        WHEN COUNT(dt.turma_id) > 0 THEN COUNT(dt.turma_id) FILTER (
+          WHERE (
+            dt.data::date
+            + COALESCE(dt.horario_inicio, $4::time, '00:00'::time)
+          ) <= timezone($6, NOW())
+        )
+        WHEN $2::date IS NOT NULL
+          AND (
+            $2::date + COALESCE($4::time, '00:00'::time)
+          ) <= timezone($6, NOW())
+          THEN 1
+        ELSE 0
+      END::int AS encontros_iniciados,
+      CASE
+        WHEN COUNT(dt.turma_id) > 0 THEN COUNT(dt.turma_id) FILTER (
+          WHERE (
+            dt.data::date
+            + COALESCE(dt.horario_fim, $5::time, '23:59'::time)
+          ) < timezone($6, NOW())
+        ) = COUNT(dt.turma_id)
+        WHEN $3::date IS NOT NULL
+          THEN (
+            $3::date + COALESCE($5::time, '23:59'::time)
+          ) < timezone($6, NOW())
+        ELSE FALSE
+      END AS encerrada
+    FROM datas_turma dt
+    WHERE dt.turma_id = $1
+    `,
+    [
+      turma.id,
+      turma.data_inicio,
+      turma.data_fim,
+      turma.horario_inicio,
+      turma.horario_fim,
+      TZ,
+    ],
+  );
+
+  return avaliarPrazoInscricaoTurma(result.rows?.[0]);
 }
 
 async function checarAcessoEvento(usuarioId, eventoId) {
@@ -865,6 +920,22 @@ async function inscreverEmTurma(req, res) {
           message: "Você não possui permissão para se inscrever neste evento.",
           details: {
             motivo: acesso.motivo || "SEM_PERMISSAO",
+          },
+        };
+      }
+
+      const prazoInscricao = await carregarPrazoInscricaoTurma(q, turma);
+
+      if (!prazoInscricao.inscricao_no_prazo) {
+        return {
+          status: 409,
+          error: true,
+          message: prazoInscricao.motivo_bloqueio_prazo,
+          details: {
+            motivo: "INSCRICAO_FORA_DO_PRAZO_25",
+            frequencia_minima_percentual: 75,
+            frequencia_maxima_possivel:
+              prazoInscricao.frequencia_maxima_possivel,
           },
         };
       }

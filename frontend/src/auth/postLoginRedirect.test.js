@@ -44,4 +44,20 @@ test("preserva somente destinos privados atuais e seus parâmetros", () => {
     sanitizePostLoginRedirect("/gestao/evento/7/pre-teste/resultados"),
     "/gestao/evento/7/pre-teste/resultados",
   );
+  assert.equal(
+    sanitizePostLoginRedirect("/eventos/123?origem=qrcode"),
+    "/eventos/123?origem=qrcode",
+  );
+});
+
+test("retorno ao evento rejeita identificador inválido e open redirect", () => {
+  assert.equal(sanitizePostLoginRedirect("/eventos/abc"), "/painel");
+  assert.equal(
+    sanitizePostLoginRedirect("https://externo.example/eventos/123"),
+    "/painel",
+  );
+  assert.equal(
+    sanitizePostLoginRedirect("//externo.example/eventos/123"),
+    "/painel",
+  );
 });

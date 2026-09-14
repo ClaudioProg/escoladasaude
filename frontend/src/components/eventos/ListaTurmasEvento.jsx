@@ -385,7 +385,7 @@ const MiniStat = memo(function MiniStat({ icon: Icon, label, value }) {
           <div className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
             {label}
           </div>
-          <div className="truncate text-sm font-extrabold text-zinc-900 dark:text-white">
+          <div className="whitespace-nowrap text-sm font-extrabold leading-snug text-zinc-900 dark:text-white">
             {value}
           </div>
         </div>
@@ -458,6 +458,7 @@ const TurmaCard = memo(function TurmaCard({
 
   const bloqueadoPororganizador = Boolean(jaorganizadorDoEvento);
   const bloqueadoPorElegibilidadeEvento = !podeSeInscreverNoEvento;
+  const foraDoPrazo = turma?.inscricao_no_prazo === false;
   const carregando = Number(inscrevendo) === turmaId;
 
   const disabled =
@@ -469,6 +470,7 @@ const TurmaCard = memo(function TurmaCard({
     bloquearOutrasTurmas ||
     emConflito ||
     bloqueadoPorElegibilidadeEvento ||
+    foraDoPrazo ||
     encerrada ||
     semDatas;
 
@@ -478,6 +480,8 @@ const TurmaCard = memo(function TurmaCard({
     (jaInscrito && "Você já está inscrito nesta turma") ||
     (bloqueadoPorElegibilidadeEvento &&
       (motivoBloqueioEvento || "Inscrição indisponível para o seu perfil")) ||
+    (foraDoPrazo &&
+      (turma?.motivo_bloqueio_prazo || "Período de inscrição encerrado")) ||
     (emConflito && "Conflito de horário com outra turma já inscrita") ||
     (bloquearOutrasTurmas &&
       "Você já está inscrito em uma turma deste evento") ||
@@ -508,17 +512,19 @@ const TurmaCard = memo(function TurmaCard({
         ? "Inscrito"
         : bloqueadoPorElegibilidadeEvento
           ? "Inscrição indisponível"
-          : emConflito
-            ? "Conflito de horário"
-            : bloquearOutrasTurmas
-              ? "Indisponível"
-              : lotada
-                ? "Sem vagas"
-                : encerrada
-                  ? "Turma encerrada"
-                  : semDatas
-                    ? "Sem datas"
-                    : "Inscrever-se";
+          : foraDoPrazo
+            ? "Prazo encerrado"
+            : emConflito
+              ? "Conflito de horário"
+              : bloquearOutrasTurmas
+                ? "Indisponível"
+                : lotada
+                  ? "Sem vagas"
+                  : encerrada
+                    ? "Turma encerrada"
+                    : semDatas
+                      ? "Sem datas"
+                      : "Inscrever-se";
 
   return (
     <article className="relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-[0_10px_30px_-20px_rgba(0,0,0,0.35)] transition-all hover:shadow-[0_18px_50px_-28px_rgba(0,0,0,0.55)] dark:border-zinc-800 dark:bg-neutral-900">
@@ -528,13 +534,13 @@ const TurmaCard = memo(function TurmaCard({
       <div className="pointer-events-none absolute -bottom-28 -left-28 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
 
       <div className="relative p-4 sm:p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <h4 className="break-words text-lg font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-xl">
               {turma?.nome || "Turma"}
             </h4>
 
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-2">
               <MiniStat
                 icon={CalendarDays}
                 label="Período"
@@ -609,6 +615,13 @@ const TurmaCard = memo(function TurmaCard({
               >
                 <Lock className="h-3.5 w-3.5" aria-hidden="true" />
                 Restrita ao público elegível
+              </span>
+            )}
+
+            {foraDoPrazo && !jaInscrito && (
+              <span className={`${chipBase} ${chipStyles.conflito}`}>
+                <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                Prazo encerrado
               </span>
             )}
           </div>
@@ -765,17 +778,19 @@ const TurmaCard = memo(function TurmaCard({
                   ? "Inscrito nesta turma"
                   : bloqueadoPorElegibilidadeEvento
                     ? "Inscrição indisponível para o seu perfil"
-                    : emConflito
-                      ? "Conflito de horário com outra turma já inscrita"
-                      : lotada
-                        ? "Turma sem vagas"
-                        : bloquearOutrasTurmas
-                          ? "Inscrição indisponível porque você já está inscrito em outra turma do evento"
-                          : encerrada
-                            ? "Turma encerrada"
-                            : semDatas
-                              ? "Turma sem datas definidas"
-                              : "Inscrever-se na turma"
+                    : foraDoPrazo
+                      ? "Período de inscrição encerrado"
+                      : emConflito
+                        ? "Conflito de horário com outra turma já inscrita"
+                        : lotada
+                          ? "Turma sem vagas"
+                          : bloquearOutrasTurmas
+                            ? "Inscrição indisponível porque você já está inscrito em outra turma do evento"
+                            : encerrada
+                              ? "Turma encerrada"
+                              : semDatas
+                                ? "Turma sem datas definidas"
+                                : "Inscrever-se na turma"
             }
           >
             <span className="inline-flex items-center gap-2">
@@ -935,6 +950,8 @@ const turmaShape = PropTypes.shape({
   horario_fim: PropTypes.string,
   vagas_total: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   vagas_preenchidas: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  inscricao_no_prazo: PropTypes.bool,
+  motivo_bloqueio_prazo: PropTypes.string,
   carga_horaria: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   datas: PropTypes.arrayOf(
     PropTypes.shape({

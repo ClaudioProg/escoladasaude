@@ -38,6 +38,10 @@
  */
 
 const { pool, query } = require("../db");
+const {
+  resumirDisponibilidadeEvento,
+} = require("../services/eventoInscricaoDisponibilidadeService");
+
 function normalizeRegistro(value) {
   return String(value || "")
     .normalize("NFD")
@@ -557,6 +561,89 @@ async function avaliarElegibilidadeInscricao({ client, usuarioId, evento }) {
   });
 }
 
+async function carregarDisponibilidadeTurmas(client, eventoIds) {
+  const ids = uniqueInts(eventoIds);
+
+  if (!ids.length) {
+    return new Map();
+  }
+
+  const { rows } = await client.query(
+    `
+    SELECT
+      t.id,
+      t.evento_id,
+      t.nome,
+      t.vagas_total,
+      COALESCE(i.inscritos, 0)::int AS vagas_preenchidas,
+      CASE
+        WHEN COALESCE(d.total_encontros, 0) > 0 THEN d.total_encontros
+        WHEN t.data_inicio IS NOT NULL THEN 1
+        ELSE 0
+      END::int AS total_encontros,
+      CASE
+        WHEN COALESCE(d.total_encontros, 0) > 0 THEN d.encontros_iniciados
+        WHEN t.data_inicio IS NOT NULL
+          AND (
+            t.data_inicio::date
+            + COALESCE(t.horario_inicio, '00:00'::time)
+          ) <= (NOW() AT TIME ZONE 'America/Sao_Paulo')
+          THEN 1
+        ELSE 0
+      END::int AS encontros_iniciados,
+      CASE
+        WHEN COALESCE(d.total_encontros, 0) > 0
+          THEN d.encontros_encerrados = d.total_encontros
+        WHEN t.data_fim IS NOT NULL
+          THEN (
+            t.data_fim::date
+            + COALESCE(t.horario_fim, '23:59'::time)
+          ) < (NOW() AT TIME ZONE 'America/Sao_Paulo')
+        ELSE FALSE
+      END AS encerrada
+    FROM turmas t
+    LEFT JOIN LATERAL (
+      SELECT
+        COUNT(*)::int AS total_encontros,
+        COUNT(*) FILTER (
+          WHERE (
+            dt.data::date
+            + COALESCE(dt.horario_inicio, t.horario_inicio, '00:00'::time)
+          ) <= (NOW() AT TIME ZONE 'America/Sao_Paulo')
+        )::int AS encontros_iniciados,
+        COUNT(*) FILTER (
+          WHERE (
+            dt.data::date
+            + COALESCE(dt.horario_fim, t.horario_fim, '23:59'::time)
+          ) < (NOW() AT TIME ZONE 'America/Sao_Paulo')
+        )::int AS encontros_encerrados
+      FROM datas_turma dt
+      WHERE dt.turma_id = t.id
+    ) d ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS inscritos
+      FROM inscricoes ins
+      WHERE ins.turma_id = t.id
+    ) i ON TRUE
+    WHERE t.evento_id = ANY($1::int[])
+    ORDER BY t.evento_id, t.data_inicio NULLS LAST, t.id
+    `,
+    [ids],
+  );
+
+  const porEvento = groupRows(rows || [], "evento_id");
+  const resumos = new Map();
+
+  for (const eventoId of ids) {
+    resumos.set(
+      eventoId,
+      resumirDisponibilidadeEvento(porEvento.get(eventoId) || []),
+    );
+  }
+
+  return resumos;
+}
+
 /* ───────────────────────────────────────────────────────────────
    Enriquecimento de eventos
 ─────────────────────────────────────────────────────────────── */
@@ -573,7 +660,13 @@ async function enriquecerEventosLista(client, usuarioId, eventosBase, rid) {
 
   const usuarioCtx = await getUsuarioContextoRestricao(client, usuarioId);
 
-  const [regsQ, organizadoresQ, cargosQ, unidadesQ] = await Promise.all([
+  const [
+    regsQ,
+    organizadoresQ,
+    cargosQ,
+    unidadesQ,
+    disponibilidadeMap,
+  ] = await Promise.all([
     client.query(
       `
       SELECT evento_id, registro_norm
@@ -632,6 +725,8 @@ ORDER BY e.id, u.nome
       `,
       [eventoIds],
     ),
+
+    carregarDisponibilidadeTurmas(client, eventoIds),
   ]);
 
   const registrosMap = new Map();
@@ -652,7 +747,6 @@ ORDER BY e.id, u.nome
     const organizadores = (organizadoresMap.get(evento.id) || []).map((i) => ({
       id: Number(i.id),
       nome: i.nome,
-      email: i.email || null,
       perfil: i.perfil || null,
     }));
 
@@ -668,6 +762,8 @@ ORDER BY e.id, u.nome
 
     const payload = {
       ...evento,
+      ...(disponibilidadeMap.get(evento.id) ||
+        resumirDisponibilidadeEvento([])),
       ...getArquivoEventoUrls(evento.id),
 
       registros_permitidos: registros,
@@ -690,10 +786,23 @@ ORDER BY e.id, u.nome
       evento: payload,
     });
 
+    const podeSeInscrever =
+      elegibilidade.pode_se_inscrever &&
+      payload.inscricao_no_prazo &&
+      !payload.vagas_esgotadas;
+    const motivoBloqueio = !elegibilidade.pode_se_inscrever
+      ? elegibilidade.motivo_bloqueio
+      : !payload.inscricao_no_prazo
+        ? "O período de inscrição deste evento terminou."
+        : payload.vagas_esgotadas
+          ? "Vagas esgotadas."
+          : "";
+
     return {
       ...payload,
-      pode_se_inscrever: elegibilidade.pode_se_inscrever,
-      motivo_bloqueio: elegibilidade.motivo_bloqueio,
+      elegivel_publico_alvo: elegibilidade.pode_se_inscrever,
+      pode_se_inscrever: podeSeInscrever,
+      motivo_bloqueio: motivoBloqueio,
       publico_alvo_label: elegibilidade.publico_alvo_label,
     };
   });
@@ -981,11 +1090,14 @@ async function listarEventosParaMim(req, res) {
 
     const { rows } = await client.query(sql, [usuarioId, usuarioId]);
 
-    const eventos = await enriquecerEventosLista(
+    const eventosEnriquecidos = await enriquecerEventosLista(
       client,
       usuarioId,
       rows || [],
       rid,
+    );
+    const eventos = eventosEnriquecidos.filter(
+      (evento) => evento.evento_visivel_vitrine,
     );
 
     memSnapshot(rid, "listarEventosParaMim:fim", {
@@ -1390,6 +1502,7 @@ async function buscarEventoPorId(req, res) {
         id,
         titulo,
         descricao,
+        conteudo_programatico,
         local,
         criado_em,
         tipo,
@@ -1542,7 +1655,19 @@ ORDER BY u.nome
       ),
     ]);
 
-    const turmas = await carregarTurmasComDetalhes(client, id);
+    const [turmasBase, disponibilidadeMap] = await Promise.all([
+      carregarTurmasComDetalhes(client, id),
+      carregarDisponibilidadeTurmas(client, [id]),
+    ]);
+    const disponibilidade =
+      disponibilidadeMap.get(id) || resumirDisponibilidadeEvento([]);
+    const disponibilidadePorTurma = new Map(
+      disponibilidade.turmas.map((turma) => [Number(turma.id), turma]),
+    );
+    const turmas = turmasBase.map((turma) => ({
+      ...turma,
+      ...(disponibilidadePorTurma.get(Number(turma.id)) || {}),
+    }));
 
     const [jaOrganizadorResult, jaInscritoResult] = await Promise.all([
       client.query(
@@ -1586,6 +1711,7 @@ ORDER BY u.nome
 
     const payloadBase = {
       ...evento,
+      ...disponibilidade,
       ...getArquivoEventoUrls(id),
 
       folder_kind: evento.tem_folder ? "blob" : "none",
@@ -1609,11 +1735,24 @@ ORDER BY u.nome
 
     const questionario = questionarioResult.rows?.[0] || null;
 
+    const podeSeInscrever =
+      elegibilidade.pode_se_inscrever &&
+      disponibilidade.inscricao_no_prazo &&
+      !disponibilidade.vagas_esgotadas;
+    const motivoBloqueio = !elegibilidade.pode_se_inscrever
+      ? elegibilidade.motivo_bloqueio
+      : !disponibilidade.inscricao_no_prazo
+        ? "O período de inscrição deste evento terminou."
+        : disponibilidade.vagas_esgotadas
+          ? "Vagas esgotadas."
+          : "";
+
     const payload = {
       ...payloadBase,
 
-      pode_se_inscrever: elegibilidade.pode_se_inscrever,
-      motivo_bloqueio: elegibilidade.motivo_bloqueio,
+      elegivel_publico_alvo: elegibilidade.pode_se_inscrever,
+      pode_se_inscrever: podeSeInscrever,
+      motivo_bloqueio: motivoBloqueio,
       publico_alvo_label: elegibilidade.publico_alvo_label,
 
       pos_curso: questionario
@@ -1630,7 +1769,6 @@ ORDER BY u.nome
       organizadores: organizadoresEventoQ.rows.map((row) => ({
         id: Number(row.id),
         nome: row.nome,
-        email: row.email || null,
         perfil: row.perfil || null,
       })),
 

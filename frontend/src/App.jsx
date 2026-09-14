@@ -101,6 +101,7 @@ const Privacidade = lazy(() => import("./pages/Privacidade"));
 
 const DashboardUsuario = lazy(() => import("./pages/DashboardUsuario"));
 const Eventos = lazy(() => import("./pages/Eventos"));
+const EventoDetalhe = lazy(() => import("./pages/EventoDetalhe"));
 const MinhasPresencas = lazy(() => import("./pages/MinhasPresencas"));
 const CertificadoUsuario = lazy(() => import("./pages/CertificadoUsuario"));
 const Perfil = lazy(() => import("./pages/Perfil"));
@@ -599,6 +600,7 @@ function UsuarioRoutes() {
       <Route path="painel" element={<DashboardUsuario />} />
       <Route path="notificacao" element={<Notificacao />} />
       <Route path="evento" element={<Eventos />} />
+      <Route path="eventos/:id" element={<EventoDetalhe />} />
       <Route path="minha-presenca" element={<MinhasPresencas />} />
       <Route path="certificado" element={<CertificadoUsuario />} />
       <Route path="reserva" element={<AgendaSalasUsuario />} />
