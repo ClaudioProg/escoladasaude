@@ -89,8 +89,19 @@ test("hero permanece compacto e a descriÃ§Ã£o completa fica em Sobre o event
     /<section className="overflow-hidden rounded-\[2rem\][\s\S]*?<\/section>/,
   )?.[0];
   assert.doesNotMatch(hero || "", /evento\.descricao/);
-  assert.match(detalhe, /aspect-\[4\/3\]/);
+  assert.match(detalhe, /h-auto max-h-\[520px\] w-full object-contain/);
   assert.match(detalhe, /Sobre o evento[\s\S]*?evento\.descricao/);
+});
+
+test("desktop usa ações determinísticas e touch preserva compartilhamento nativo", () => {
+  assert.match(detalhe, /detectarInteracaoTouch/);
+  assert.match(detalhe, /if \(!interacaoTouch \|\| typeof navigator\.share !== "function"\)/);
+  assert.match(detalhe, /interacaoTouch && suportaCompartilhamentoQrCode\(\)/);
+  assert.match(detalhe, /interacaoTouch && \([\s\S]*?Compartilhar/);
+  assert.match(detalhe, /Baixar QR Code/);
+  assert.match(detalhe, /text-\[clamp\(1\.875rem,2vw_\+_1\.25rem,2\.5rem\)\]/);
+  assert.match(detalhe, /object-contain/);
+  assert.doesNotMatch(detalhe, /object-cover/);
 });
 
 test("rota privada preserva next e o login retorna ao destino sanitizado", () => {

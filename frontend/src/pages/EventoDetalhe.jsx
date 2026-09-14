@@ -81,6 +81,19 @@ const suportaCompartilhamentoQrCode = () => {
   }
 };
 
+const detectarInteracaoTouch = () => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+  if (Number(navigator.maxTouchPoints) > 0) {
+    return true;
+  }
+  return Boolean(
+    window.matchMedia?.("(pointer: coarse)")?.matches ||
+      window.matchMedia?.("(hover: none)")?.matches,
+  );
+};
+
 function formatarData(value) {
   const data = ymd(value);
   if (!data) {
@@ -146,6 +159,7 @@ export default function EventoDetalhe() {
   const [cancelando, setCancelando] = useState(false);
   const [preTeste, setPreTeste] = useState(null);
   const [baixandoPrograma, setBaixandoPrograma] = useState(false);
+  const interacaoTouch = detectarInteracaoTouch();
 
   const carregar = useCallback(async () => {
     if (!Number.isInteger(eventoId) || eventoId <= 0) {
@@ -311,7 +325,7 @@ export default function EventoDetalhe() {
   }, [urlCanonica]);
 
   const compartilhar = useCallback(async () => {
-    if (typeof navigator.share !== "function") {
+    if (!interacaoTouch || typeof navigator.share !== "function") {
       await copiarLink();
       return;
     }
@@ -326,13 +340,14 @@ export default function EventoDetalhe() {
         await copiarLink();
       }
     }
-  }, [copiarLink, evento?.titulo, urlCanonica]);
+  }, [copiarLink, evento?.titulo, interacaoTouch, urlCanonica]);
 
   const compartilharOuBaixarQrCode = useCallback(async () => {
     try {
       const blob = await gerarQrCodePng(urlCanonica);
       const filename = nomeArquivoQrCode(eventoId);
-      const podeCompartilhar = suportaCompartilhamentoQrCode();
+      const podeCompartilhar =
+        interacaoTouch && suportaCompartilhamentoQrCode();
 
       if (podeCompartilhar) {
         const file = new File([blob], filename, { type: "image/png" });
@@ -369,9 +384,9 @@ export default function EventoDetalhe() {
         normalizarErro(error, "Não foi possível gerar o QR Code."),
       );
     }
-  }, [evento?.titulo, eventoId, urlCanonica]);
+  }, [evento?.titulo, eventoId, interacaoTouch, urlCanonica]);
 
-  const qrCodeAcaoLabel = suportaCompartilhamentoQrCode()
+  const qrCodeAcaoLabel = interacaoTouch && suportaCompartilhamentoQrCode()
     ? "Compartilhar QR Code"
     : "Baixar QR Code";
 
@@ -459,7 +474,7 @@ export default function EventoDetalhe() {
                   </span>
                 )}
               </div>
-              <h1 className="mt-4 min-w-0 max-w-full break-words text-[clamp(1.875rem,2.5vw_+_1.25rem,3rem)] font-black leading-[1.08]">
+              <h1 className="mt-4 min-w-0 max-w-full break-words text-[clamp(1.875rem,2vw_+_1.25rem,2.5rem)] font-black leading-[1.1]">
                 {evento.titulo}
               </h1>
               {/*
@@ -477,12 +492,12 @@ export default function EventoDetalhe() {
                 </span>
               </div>
             </div>
-            <div className="relative aspect-[4/3] min-h-64 bg-emerald-900/50 lg:min-h-0">
+            <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-emerald-900/50 lg:min-h-0">
               {capa ? (
                 <img
                   src={capa}
                   alt={`Capa do evento ${evento.titulo}`}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="relative block h-auto max-h-[520px] w-full object-contain"
                 />
               ) : (
                 <div className="grid h-full place-items-center">
@@ -666,13 +681,15 @@ export default function EventoDetalhe() {
                 {urlCanonica}
               </p>
               <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={compartilhar}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 font-black text-white hover:bg-emerald-800"
-                >
-                  <Share2 className="h-4 w-4" /> Compartilhar
-                </button>
+                {interacaoTouch && (
+                  <button
+                    type="button"
+                    onClick={compartilhar}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 font-black text-white hover:bg-emerald-800"
+                  >
+                    <Share2 className="h-4 w-4" /> Compartilhar
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={copiarLink}
