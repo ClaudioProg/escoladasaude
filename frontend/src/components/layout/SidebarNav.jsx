@@ -43,8 +43,7 @@ import {
   X,
 } from "lucide-react";
 
-import api from "../../services/api";
-import { getPerfilLocal } from "../../services/api";
+import api, { getPerfilLocal } from "../../services/api";
 import { getCampanhaSaudeVisual } from "../../utils/campanhaSaudeVisual";
 
 const STORAGE_PERFIL_KEY = "perfil";

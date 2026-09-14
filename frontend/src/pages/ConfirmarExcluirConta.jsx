@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import Footer from "../components/layout/Footer";
+import ModalConfirmacao from "../components/ui/ModalConfirmacao";
 import useEscolaTheme from "../hooks/useEscolaTheme";
 import {
   apiContaExclusaoConfirmar,
@@ -82,6 +83,7 @@ export default function ConfirmarExcluirConta() {
   const token = useMemo(() => String(params.token || "").trim(), [params.token]);
 
   const [confirmando, setConfirmando] = useState(false);
+  const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
   const [status, setStatus] = useState("idle");
   const [mensagem, setMensagem] = useState("");
 
@@ -89,19 +91,6 @@ export default function ConfirmarExcluirConta() {
     if (!token) {
       setStatus("error");
       setMensagem("Token de confirmação ausente.");
-      return;
-    }
-
-    const confirmado = window.confirm(
-      [
-        "Confirmar exclusão da conta?",
-        "",
-        "Esta ação removerá ou anonimizará seus dados pessoais de cadastro.",
-        "Alguns registros institucionais necessários poderão ser preservados.",
-      ].join("\n"),
-    );
-
-    if (!confirmado) {
       return;
     }
 
@@ -293,7 +282,7 @@ export default function ConfirmarExcluirConta() {
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
               {status !== "success" ? (
                 <BotaoLocal
-                  onClick={confirmarExclusao}
+                  onClick={() => setConfirmacaoAberta(true)}
                   loading={confirmando}
                   disabled={confirmando || !token}
                   className="w-full sm:w-auto"
@@ -324,6 +313,20 @@ export default function ConfirmarExcluirConta() {
           </section>
         </div>
       </section>
+
+      <ModalConfirmacao
+        open={confirmacaoAberta}
+        onClose={() => setConfirmacaoAberta(false)}
+        onConfirm={confirmarExclusao}
+        titulo="Confirmar exclusão da conta?"
+        mensagem={[
+          "Esta ação removerá ou anonimizará seus dados pessoais de cadastro.",
+          "Alguns registros institucionais necessários poderão ser preservados.",
+        ].join("\n")}
+        textoConfirmar="Excluir conta"
+        variant="danger"
+        loading={confirmando}
+      />
 
       <Footer />
     </main>

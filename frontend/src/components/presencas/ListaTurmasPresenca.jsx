@@ -43,7 +43,7 @@ import {
   Download,
   Ear,
   Eye,
-  Infinity,
+  Infinity as InfinityIcon,
   Sparkles,
   Trash2,
   Users,
@@ -441,7 +441,7 @@ function obterConfigDeficiencia(deficiencia) {
   ) {
     return {
       label: "Transtorno do Espectro Autista",
-      Icon: Infinity,
+      Icon: InfinityIcon,
       className:
         "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200",
     };

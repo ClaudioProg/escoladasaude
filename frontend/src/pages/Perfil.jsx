@@ -24,6 +24,7 @@ import {
 
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
+import ModalConfirmacao from "../components/ui/ModalConfirmacao";
 import ModalAssinatura from "../components/usuarios/ModalAssinatura";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
@@ -672,6 +673,8 @@ export default function Perfil() {
   const [temAssinatura, setTemAssinatura] = useState(null);
   const [baseline, setBaseline] = useState(null);
   const [solicitandoExclusao, setSolicitandoExclusao] = useState(false);
+  const [confirmacaoExclusaoAberta, setConfirmacaoExclusaoAberta] =
+    useState(false);
 
   const [erros, setErros] = useState({});
 
@@ -1215,19 +1218,6 @@ export default function Perfil() {
 
   const solicitarExclusaoConta = useCallback(async () => {
     if (solicitandoExclusao) {
-      return;
-    }
-
-    const confirmado = window.confirm(
-      [
-        "Deseja solicitar a exclusão da sua conta?",
-        "",
-        "A plataforma enviará um e-mail de confirmação para o endereço cadastrado.",
-        "A exclusão só será concluída após a confirmação pelo link enviado.",
-      ].join("\n"),
-    );
-
-    if (!confirmado) {
       return;
     }
 
@@ -1999,7 +1989,7 @@ export default function Perfil() {
 
                 <BotaoLocal
                   variant="secondary"
-                  onClick={solicitarExclusaoConta}
+                  onClick={() => setConfirmacaoExclusaoAberta(true)}
                   loading={solicitandoExclusao}
                   disabled={solicitandoExclusao}
                   className="w-full border-rose-200 bg-white text-rose-800 hover:bg-rose-50 focus-visible:ring-rose-500/40 md:w-auto dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-100 dark:hover:bg-rose-950/35"
@@ -2029,6 +2019,20 @@ export default function Perfil() {
                 carregarAssinatura();
               }
             }}
+          />
+
+          <ModalConfirmacao
+            open={confirmacaoExclusaoAberta}
+            onClose={() => setConfirmacaoExclusaoAberta(false)}
+            onConfirm={solicitarExclusaoConta}
+            titulo="Solicitar exclusão da conta?"
+            mensagem={[
+              "A plataforma enviará um e-mail de confirmação para o endereço cadastrado.",
+              "A exclusão só será concluída após a confirmação pelo link enviado.",
+            ].join("\n")}
+            textoConfirmar="Solicitar exclusão"
+            variant="danger"
+            loading={solicitandoExclusao}
           />
         </div>
       </section>
