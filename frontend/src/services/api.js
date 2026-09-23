@@ -3740,6 +3740,15 @@ export async function apiRelatorioSaudePlataforma(params = {}, opts = {}) {
 }
 
 export async function apiRelatorioInstitucional(params = {}, opts = {}) {
+  if (params.busca) {
+    return apiPost("/relatorio/institucional", params, {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+      query: undefined,
+    });
+  }
   return apiGet("/relatorio/institucional", {
     auth: true,
     query: params,
@@ -3756,6 +3765,16 @@ export async function apiRelatorioExportarXlsx(tipo, params = {}, opts = {}) {
     throw new Error("tipo de relatório é obrigatório.");
   }
 
+  if (safeTipo === "institucional" && params.busca) {
+    return apiPostFile(`/relatorio/exportar/${safeTipo}.xlsx`, params, {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+      query: undefined,
+    });
+  }
+
   return apiGetFile(`/relatorio/exportar/${safeTipo}.xlsx`, {
     auth: true,
     query: params,
@@ -3770,6 +3789,16 @@ export async function apiRelatorioExportarPdf(tipo, params = {}, opts = {}) {
 
   if (!safeTipo) {
     throw new Error("tipo de relatório é obrigatório.");
+  }
+
+  if (safeTipo === "institucional" && params.busca) {
+    return apiPostFile(`/relatorio/exportar/${safeTipo}.pdf`, params, {
+      auth: true,
+      on401: "redirect",
+      on403: "silent",
+      ...opts,
+      query: undefined,
+    });
   }
 
   return apiGetFile(`/relatorio/exportar/${safeTipo}.pdf`, {

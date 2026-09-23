@@ -49,6 +49,7 @@ const compression = require("compression");
 const helmet = require("helmet");
 const crypto = require("crypto");
 const morgan = require("morgan");
+const { safeRequestUrl } = require("./utils/safeRequestUrl");
 
 if (process.env.NODE_ENV !== "production") {
   // eslint-disable-next-line global-require
@@ -481,6 +482,7 @@ app.use((req, _res, next) => {
 
 morgan.token("rid", (req) => req.requestId || "-");
 morgan.token("ip", (req) => getClientIp(req));
+morgan.token("safe-url", safeRequestUrl);
 morgan.token("uid", (req) => {
   const id = req?.user?.id;
   return id != null ? String(id) : "-";
@@ -488,7 +490,7 @@ morgan.token("uid", (req) => {
 
 app.use(
   morgan(
-    ":date[iso] :ip :rid :uid :method :url :status :res[content-length] - :response-time ms",
+    ":date[iso] :ip :rid :uid :method :safe-url :status :res[content-length] - :response-time ms",
     {
       skip: () => process.env.LOG_HTTP === "false",
     },
@@ -500,7 +502,7 @@ if (IS_DEV && safeBooleanEnv("DEBUG_REQUESTS", true)) {
     console.log("[DEV-REQ]", {
       rid: req.requestId,
       method: req.method,
-      url: req.url,
+      url: safeRequestUrl(req),
       hasAuth: Boolean(req.headers.authorization),
       userId: req?.user?.id ?? null,
       perfil: req?.user?.perfil ?? null,
@@ -676,7 +678,7 @@ app.use((req, res) => {
       "Verifique se a rota foi montada em backend/src/routes/index.js e se o prefixo chamado no frontend corresponde ao contrato oficial.",
     details: {
       method: req.method,
-      url: req.originalUrl || req.url,
+      url: safeRequestUrl(req),
     },
   });
 });
@@ -725,7 +727,7 @@ app.use((err, req, res, _next) => {
     rid: req?.requestId,
     status,
     method: req?.method,
-    url: req?.originalUrl || req?.url,
+    url: safeRequestUrl(req),
     userId: req?.user?.id ?? null,
     perfil: req?.user?.perfil ?? null,
     message: err?.message,

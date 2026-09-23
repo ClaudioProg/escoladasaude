@@ -69,6 +69,9 @@ const {
   desenharVersoConteudoProgramatico,
   dataUrlToBuffer,
 } = require("../utils/certificadoLayoutPdf");
+const {
+  formatarIdentificadorCertificado,
+} = require("../utils/certificadoIdentificador");
 
 const dbFallback = require("../db");
 const { CERT_DIR, ensureDir } = require("../paths");
@@ -327,14 +330,6 @@ function dataExtensoBR(dateLike = new Date()) {
   const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
 
   return `${map.day} de ${map.month} de ${map.year}`;
-}
-
-function cpfMascarado(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-
-  if (digits.length !== 11) return null;
-
-  return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
 }
 
 function nomeArquivoSeguro(value) {
@@ -1025,17 +1020,19 @@ async function gerarPdfFisico({
   contextoTurma,
   nomeUsuario,
   cpfUsuario,
+  registroUsuario,
   horasTotal,
   minData,
   maxData,
   db,
+  outputDir = CERT_DIR,
 }) {
-  await ensureDir(CERT_DIR);
+  await ensureDir(outputDir);
 
   const nomeArquivo = nomeArquivoSeguro(
     `certificado_${tipo}_${codigo_validacao}.pdf`,
   );
-  const caminho = path.join(CERT_DIR, nomeArquivo);
+  const caminho = path.join(outputDir, nomeArquivo);
   const tmpPath = `${caminho}.tmp`;
 
   const diYmd = ymdFromAny(minData || contextoTurma.data_inicio);
@@ -1082,7 +1079,10 @@ async function gerarPdfFisico({
   doc.pipe(writeStream);
   registerFonts(doc);
 
-  const cpfMask = cpfMascarado(cpfUsuario);
+  const identificador = formatarIdentificadorCertificado({
+    cpf: cpfUsuario,
+    registro: registroUsuario,
+  });
 
   let textoPrincipal;
 
@@ -1108,7 +1108,7 @@ async function gerarPdfFisico({
   desenharCertificadoCompletoV2(doc, {
     modelo: tipo === TIPO_CERTIFICADO.ORGANIZADOR ? "organizador" : "padrao",
     nome: nomeUsuario,
-    identificadorTexto: cpfMask ? `Identificador: ${cpfMask}` : null,
+    identificadorTexto: identificador?.texto || null,
     textoPrincipal,
     dataTexto: `Santos, ${dataHojeExtenso}.`,
     assinaturas: montarAssinaturasLayout(assinantes),
@@ -1493,7 +1493,7 @@ async function gerarCertificado(req, res) {
 
     const pessoa = await db.query(
       `
-      SELECT id, nome, cpf, email
+      SELECT id, nome, cpf, registro, email
       FROM usuarios
       WHERE id = $1
       LIMIT 1
@@ -1688,6 +1688,7 @@ async function gerarCertificado(req, res) {
         contextoTurma,
         nomeUsuario: pessoa.rows[0].nome,
         cpfUsuario: pessoa.rows[0].cpf || "",
+        registroUsuario: pessoa.rows[0].registro || "",
         horasTotal: Number(resumo.horas_total || 0),
         minData: resumo.min_data || contextoTurma.data_inicio,
         maxData: resumo.max_data || contextoTurma.data_fim,
@@ -1875,6 +1876,7 @@ async function obterCertificadoPorId(db, certificadoId) {
       u.nome AS usuario_nome,
       u.email AS usuario_email,
       u.cpf AS usuario_cpf,
+      u.registro AS usuario_registro,
             e.titulo AS evento_titulo,
       e.conteudo_programatico,
       t.nome AS turma_nome,
@@ -2016,6 +2018,7 @@ async function downloadCertificado(req, res) {
         contextoTurma,
         nomeUsuario: certificado.usuario_nome,
         cpfUsuario: certificado.usuario_cpf || "",
+        registroUsuario: certificado.usuario_registro || "",
         horasTotal: Number(
           resumo.horas_total || certificado.carga_horaria || 0,
         ),
@@ -3211,4 +3214,5 @@ module.exports = {
   usuarioEstaInscrito,
   usuarioFezAvaliacao,
   organizadorVinculadoATurma,
+  gerarPdfFisico,
 };

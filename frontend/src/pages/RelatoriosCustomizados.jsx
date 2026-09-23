@@ -6,7 +6,7 @@
 //
 // Revisão v3.0:
 // - transforma a tela em painel institucional único;
-// - consome GET /api/relatorio/institucional;
+// - consome GET sem busca ou POST com busca em /api/relatorio/institucional;
 // - separa indicadores gerais da plataforma e indicadores filtrados;
 // - mantém HeaderHero limpo;
 // - filtros oficiais aplicados somente ao clicar em "Aplicar filtros";
@@ -67,9 +67,9 @@ import { api } from "../services/api";
  * api.relatorio.exportarPdf("institucional", params?)
  *
  * Rotas backend:
- * GET /api/relatorio/institucional
- * GET /api/relatorio/exportar/institucional.xlsx
- * GET /api/relatorio/exportar/institucional.pdf
+ * GET sem busca ou POST com busca /api/relatorio/institucional
+ * GET sem busca ou POST com busca /api/relatorio/exportar/institucional.xlsx
+ * GET sem busca ou POST com busca /api/relatorio/exportar/institucional.pdf
  */
 
 /* ─────────────────────────────────────────────
@@ -111,14 +111,6 @@ function toPositiveIntOrEmpty(value) {
   const number = Number(text);
 
   return Number.isInteger(number) && number > 0 ? String(number) : "";
-}
-
-function normalizarBusca(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
 
 function formatarNumero(value) {
@@ -240,6 +232,11 @@ function montarParamsOficiais(filtros) {
     params.status = filtros.status;
   }
 
+  const busca = String(filtros.busca || "").trim();
+  if (busca.length >= 3 || busca.replace(/\D/g, "").length === 11) {
+    params.busca = busca;
+  }
+
   return params;
 }
 
@@ -263,24 +260,6 @@ function downloadBlob(filename, blob) {
 
 function inferirNomeArquivo(result, fallback) {
   return result?.filename || result?.nome_arquivo || fallback;
-}
-
-function filtrarEventosPorBusca(eventos, busca) {
-  const q = normalizarBusca(busca);
-
-  if (!q) {
-    return eventos;
-  }
-
-  return eventos.filter((row) => {
-    return Object.values(row || {}).some((value) => {
-      if (value === null || value === undefined) {
-        return false;
-      }
-
-      return normalizarBusca(value).includes(q);
-    });
-  });
 }
 
 function limitarTexto(value, max = 72) {
@@ -642,7 +621,7 @@ function FiltrosInstitucionais({
 
         <div className="relative">
           <span className="mb-1 block text-xs font-black text-slate-700 dark:text-zinc-200">
-            Buscar na tabela carregada
+            Buscar eventos ou participação de pessoa
           </span>
 
           <Search
@@ -654,7 +633,7 @@ function FiltrosInstitucionais({
             type="search"
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
-            placeholder="Buscar por evento, ID, data ou qualquer campo da tabela..."
+            placeholder="Título, descrição, nome da pessoa ou CPF..."
             className="min-h-11 w-full rounded-2xl border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm font-semibold text-slate-950 outline-none transition focus:border-violet-700 focus:ring-4 focus:ring-violet-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:ring-violet-950"
           />
 
@@ -1076,11 +1055,8 @@ function TopEventos({ dados }) {
  * Tabelas
  * ───────────────────────────────────────────── */
 
-function TabelaEventosResumo({ eventos, busca }) {
-  const rows = useMemo(
-    () => filtrarEventosPorBusca(Array.isArray(eventos) ? eventos : [], busca),
-    [busca, eventos],
-  );
+function TabelaEventosResumo({ eventos }) {
+  const rows = Array.isArray(eventos) ? eventos : [];
 
   return (
     <SectionCard
@@ -1195,11 +1171,7 @@ function TabelaEventosResumo({ eventos, busca }) {
       ) : (
         <NadaEncontrado
           titulo="Nenhum evento encontrado"
-          subtitulo={
-            busca
-              ? "Nenhum registro carregado corresponde à busca informada."
-              : "Aplique outros filtros para visualizar eventos."
-          }
+          subtitulo="Aplique outros filtros para visualizar eventos."
         />
       )}
     </SectionCard>
@@ -1300,6 +1272,7 @@ export default function RelatoriosCustomizados() {
     usuario_id: "",
     unidade_id: "",
     status: "",
+    busca: "",
   }));
 
   const [filtrosAplicados, setFiltrosAplicados] = useState(() => ({
@@ -1311,9 +1284,8 @@ export default function RelatoriosCustomizados() {
     usuario_id: "",
     unidade_id: "",
     status: "",
+    busca: "",
   }));
-
-  const [busca, setBusca] = useState("");
 
   const mountedRef = useRef(true);
   const requestSeqRef = useRef(0);
@@ -1404,7 +1376,16 @@ export default function RelatoriosCustomizados() {
       return;
     }
 
-    setBusca("");
+    const termoBusca = String(filtros.busca || "").trim();
+    if (
+      termoBusca &&
+      termoBusca.length < 3 &&
+      termoBusca.replace(/\D/g, "").length !== 11
+    ) {
+      notifyWarning("Informe ao menos 3 caracteres ou um CPF completo.");
+      return;
+    }
+
     setFiltrosAplicados({ ...filtros });
     notifyInfo("Filtros aplicados ao relatório institucional.");
   }, [filtros]);
@@ -1419,9 +1400,9 @@ export default function RelatoriosCustomizados() {
       usuario_id: "",
       unidade_id: "",
       status: "",
+      busca: "",
     };
 
-    setBusca("");
     setFiltros(reset);
     setFiltrosAplicados(reset);
     notifyInfo("Filtros redefinidos.");
@@ -1595,11 +1576,17 @@ export default function RelatoriosCustomizados() {
             </div>
           </section>
 
+          {dashboard ? (
+            <CardsGerais geral={geral} carregando={carregando} />
+          ) : null}
+
           <FiltrosInstitucionais
             filtros={filtros}
             setFiltros={setFiltros}
-            busca={busca}
-            setBusca={setBusca}
+            busca={filtros.busca}
+            setBusca={(value) =>
+              setFiltros((prev) => ({ ...prev, busca: value }))
+            }
             carregando={carregando}
             exportando={exportando}
             onAplicar={aplicarFiltros}
@@ -1624,8 +1611,6 @@ export default function RelatoriosCustomizados() {
             </div>
           ) : dashboard ? (
             <>
-              <CardsGerais geral={geral} carregando={carregando} />
-
               <CardsFiltrados
                 filtrado={filtrado}
                 carregando={carregando}
@@ -1639,7 +1624,7 @@ export default function RelatoriosCustomizados() {
 
               <TopEventos dados={series.top_eventos} />
 
-              <TabelaEventosResumo eventos={tabelas.eventos} busca={busca} />
+              <TabelaEventosResumo eventos={tabelas.eventos} />
 
               <PainelSaude dados={tabelas.saude} />
             </>

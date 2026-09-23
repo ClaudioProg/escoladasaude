@@ -1,11 +1,19 @@
 import PropTypes from "prop-types";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import {
   ArrowRight,
   CalendarDays,
+  Clock3,
   MapPin,
   RefreshCw,
   Search,
@@ -22,9 +30,10 @@ import EventoService, {
   isAbortLike,
   normalizeTitleSort,
   sortEventosPublicos,
-  ymd,
 } from "../services/eventoService";
 import {
+  agendaEvento,
+  apresentacaoTituloEvento,
   eventoPath,
   filtrarEventosVitrine,
   ocupacaoEvento,
@@ -45,24 +54,6 @@ const STATUS = {
   },
 };
 
-function formatarData(value) {
-  const data = ymd(value);
-  if (!data) {
-    return "";
-  }
-  const [ano, mes, dia] = data.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
-function periodoEvento(evento) {
-  const inicio = formatarData(evento?.data_inicio_geral);
-  const fim = formatarData(evento?.data_fim_geral);
-  if (inicio && fim && inicio !== fim) {
-    return `${inicio} a ${fim}`;
-  }
-  return inicio || fim || "Datas a definir";
-}
-
 function correspondeBusca(evento, busca) {
   const termo = normalizeTitleSort(busca);
   if (!termo) {
@@ -79,12 +70,81 @@ function correspondeBusca(evento, busca) {
     .includes(termo);
 }
 
+function useTituloAjustado(texto) {
+  const ref = useRef(null);
+
+  useLayoutEffect(() => {
+    const elemento = ref.current;
+    if (!elemento) {
+      return undefined;
+    }
+    let ativo = true;
+
+    const ajustar = () => {
+      if (!ativo || !elemento.isConnected) {
+        return;
+      }
+      const largura = elemento.getBoundingClientRect().width;
+      if (!largura) {
+        return;
+      }
+
+      const medidor = elemento.cloneNode(true);
+      medidor.classList.remove("line-clamp-4", "h-28");
+      Object.assign(medidor.style, {
+        position: "absolute",
+        visibility: "hidden",
+        pointerEvents: "none",
+        display: "block",
+        height: "auto",
+        maxHeight: "none",
+        overflow: "visible",
+        webkitLineClamp: "unset",
+        width: `${largura}px`,
+      });
+      elemento.parentElement.appendChild(medidor);
+
+      let escolhido = { fonte: 16, linha: 20, truncado: true };
+      for (const [fonte, linha] of [
+        [20, 28],
+        [18, 24],
+        [16, 20],
+      ]) {
+        medidor.style.fontSize = `${fonte}px`;
+        medidor.style.lineHeight = `${linha}px`;
+        if (medidor.getBoundingClientRect().height <= 4 * linha + 1) {
+          escolhido = { fonte, linha, truncado: false };
+          break;
+        }
+      }
+      medidor.remove();
+      elemento.style.fontSize = `${escolhido.fonte}px`;
+      elemento.style.lineHeight = `${escolhido.linha}px`;
+      elemento.dataset.truncado = String(escolhido.truncado);
+    };
+
+    ajustar();
+    const observador = new ResizeObserver(ajustar);
+    observador.observe(elemento);
+    document.fonts?.ready.then(ajustar);
+    return () => {
+      ativo = false;
+      observador.disconnect();
+    };
+  }, [texto]);
+
+  return ref;
+}
+
 function EventoCard({ evento }) {
   const ocupacao = ocupacaoEvento(evento);
   const status = STATUS[deduzStatusEvento(evento)] || STATUS.programado;
   const publico =
     evento.publico_alvo_label || evento.publico_alvo || "Público geral";
   const capa = getEventoFolderUrl(evento);
+  const agenda = agendaEvento(evento);
+  const titulo = apresentacaoTituloEvento(evento.titulo);
+  const tituloRef = useTituloAjustado(titulo.titulo);
 
   return (
     <article className="group flex h-full min-h-[540px] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-[0_18px_50px_-36px_rgba(15,23,42,.55)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_60px_-34px_rgba(15,23,42,.65)] dark:border-slate-800 dark:bg-slate-950">
@@ -133,14 +193,22 @@ function EventoCard({ evento }) {
           )}
         </div>
 
-        <h2 className="mt-3 line-clamp-2 min-h-[3.5rem] break-words text-xl font-black leading-7 text-slate-950 dark:text-white">
-          {evento.titulo}
+        <h2
+          ref={tituloRef}
+          className={`mt-3 line-clamp-4 h-28 break-words [overflow-wrap:anywhere] font-black text-slate-950 dark:text-white ${titulo.classeFonte}`}
+          title={titulo.titulo}
+        >
+          {titulo.titulo}
         </h2>
 
-        <dl className="mt-4 space-y-2.5 text-sm text-slate-600 dark:text-slate-300">
+        <dl className="mt-4 min-h-[8.25rem] space-y-2.5 text-sm text-slate-600 dark:text-slate-300">
           <div className="flex min-w-0 items-start gap-2">
             <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-            <dd className="line-clamp-1">{periodoEvento(evento)}</dd>
+            <dd className="min-w-0 whitespace-normal">{agenda.periodo}</dd>
+          </div>
+          <div className="flex min-w-0 items-start gap-2">
+            <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
+            <dd className="min-w-0 whitespace-normal">{agenda.horario}</dd>
           </div>
           <div className="flex min-w-0 items-start gap-2">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
@@ -286,7 +354,7 @@ export default function Eventos() {
             {erro}
           </div>
         ) : filtrados.length ? (
-          <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid auto-rows-fr grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] items-stretch gap-6 xl:grid-cols-3">
             {filtrados.map((evento) => (
               <EventoCard key={evento.id} evento={evento} />
             ))}

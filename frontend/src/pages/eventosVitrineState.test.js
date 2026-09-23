@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  agendaEvento,
+  apresentacaoTituloEvento,
   eventoCanonicalUrl,
   eventoPath,
   estadoInscricaoEvento,
@@ -10,6 +12,35 @@ import {
   mensagemElegibilidade,
   ocupacaoEvento,
 } from "./eventosVitrineState.js";
+
+test("card público formata data e horário reais em áreas separadas", () => {
+  assert.deepEqual(
+    agendaEvento({
+      data_inicio_geral: "2026-09-22",
+      data_fim_geral: "2026-09-24",
+      horario_inicio_geral: "08:30:00",
+      horario_fim_geral: "17:15:00",
+    }),
+    { periodo: "22/09/2026 a 24/09/2026", horario: "08:30–17:15" },
+  );
+  assert.deepEqual(agendaEvento({}), {
+    periodo: "Datas a definir",
+    horario: "Horário a definir",
+  });
+});
+
+test("título curto, médio, longo e extremo reduzem fonte progressivamente", () => {
+  assert.match(apresentacaoTituloEvento("A".repeat(40)).classeFonte, /text-xl/);
+  assert.match(apresentacaoTituloEvento("A".repeat(90)).classeFonte, /text-lg/);
+  assert.match(
+    apresentacaoTituloEvento("A".repeat(140)).classeFonte,
+    /text-base/,
+  );
+  assert.equal(
+    apresentacaoTituloEvento("A".repeat(220)).truncarVisualmente,
+    true,
+  );
+});
 
 test("listagem mantém eventos válidos com vagas, lotados e restritos", () => {
   const eventos = [

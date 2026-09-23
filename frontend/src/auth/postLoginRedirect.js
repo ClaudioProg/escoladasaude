@@ -8,7 +8,7 @@ const LEGACY_POST_LOGIN_PATHS = new Set([
   "/usuario",
 ]);
 
-// Espelha somente as rotas privadas declaradas em App.jsx.
+// Espelha rotas internas seguras que podem ser retomadas após autenticação.
 const VALID_PRIVATE_PATHS = new Set([
   "/painel",
   "/notificacao",
@@ -62,9 +62,11 @@ const VALID_PRIVATE_PATHS = new Set([
   "/gestao/lista-presenca-turma",
   "/chamada/nova",
   "/gestao/submissao",
+  "/presenca",
 ]);
 
 const VALID_PRIVATE_PATTERNS = [
+  /^\/presenca\/\d+$/,
   /^\/eventos\/\d+$/,
   /^\/pesquisa\/[^/]+\/responder$/,
   /^\/organizador\/presenca\/[^/]+$/,

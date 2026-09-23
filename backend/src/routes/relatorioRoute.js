@@ -224,7 +224,6 @@ function ensureExtension(ext) {
         `A exportação oficial usa a rota /api/relatorio/exportar/:tipo.${ext}.`,
         {
           path_recebido: pathOnly,
-          originalUrl: req.originalUrl || null,
         },
         req,
       );
@@ -280,6 +279,33 @@ router.use(authMiddleware);
 router.use(ensureAuthenticatedContext);
 router.use(authorize("administrador"));
 
+function rejeitarBuscaGetInstitucional(req, res, next) {
+  if (req.query?.busca !== undefined) {
+    return responderErro(
+      res,
+      400,
+      "Envie a busca institucional por POST no corpo da requisição.",
+      "RELATORIO_BUSCA_REQUER_POST",
+      "Filtros de pesquisa não devem ser enviados na URL.",
+      null,
+      req,
+    );
+  }
+  return next();
+}
+
+function rejeitarBuscaGetExportacaoInstitucional(req, res, next) {
+  if (req.params?.tipo === "institucional") {
+    return rejeitarBuscaGetInstitucional(req, res, next);
+  }
+  return next();
+}
+
+function definirTipoInstitucional(req, _res, next) {
+  req.params.tipo = "institucional";
+  return next();
+}
+
 /* ─────────────────────────────────────────────
  * Dashboard institucional
  * ───────────────────────────────────────────── */
@@ -304,6 +330,12 @@ router.use(authorize("administrador"));
  * - tabelas: dados resumidos
  */
 router.get(
+  "/institucional",
+  relatorioLimiter,
+  rejeitarBuscaGetInstitucional,
+  asyncHandler(relatorioInstitucional),
+);
+router.post(
   "/institucional",
   relatorioLimiter,
   asyncHandler(relatorioInstitucional),
@@ -379,6 +411,13 @@ router.get(
   exportacaoLimiter,
   ensureExtension("xlsx"),
   ensureTipoExportacaoValido,
+  rejeitarBuscaGetExportacaoInstitucional,
+  asyncHandler(exportarRelatorioXlsx),
+);
+router.post(
+  "/exportar/institucional.xlsx",
+  exportacaoLimiter,
+  definirTipoInstitucional,
   asyncHandler(exportarRelatorioXlsx),
 );
 
@@ -396,6 +435,13 @@ router.get(
   exportacaoLimiter,
   ensureExtension("pdf"),
   ensureTipoExportacaoValido,
+  rejeitarBuscaGetExportacaoInstitucional,
+  asyncHandler(exportarRelatorioPdf),
+);
+router.post(
+  "/exportar/institucional.pdf",
+  exportacaoLimiter,
+  definirTipoInstitucional,
   asyncHandler(exportarRelatorioPdf),
 );
 

@@ -42,8 +42,8 @@
  */
 
 const db = require("../db");
-const PDFDocument = require("pdfkit");
 const jwt = require("jsonwebtoken");
+const { criarListaPresencaPdf } = require("../utils/listaPresencaPdf");
 const {
   classificarStatusEncontro,
 } = require("../services/presencaStatusService");
@@ -828,6 +828,11 @@ async function gravarPresenca(
   q,
   { usuarioId, turmaId, dataPresenca, presente, atualizarConfirmadoEm = true },
 ) {
+  await q(
+    "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
+    [`presenca:${usuarioId}:${turmaId}:${dataPresenca}`],
+  );
+
   const update = await q(
     `
     UPDATE presencas
@@ -840,6 +845,10 @@ async function gravarPresenca(
     WHERE usuario_id = $1
       AND turma_id = $2
       AND data_presenca = $3::date
+      AND (
+        presente IS DISTINCT FROM $4::boolean
+        OR ($5::boolean IS TRUE AND confirmado_em IS NULL)
+      )
     RETURNING
       id,
       usuario_id,
@@ -852,7 +861,29 @@ async function gravarPresenca(
   );
 
   if (update.rowCount > 0) {
-    return update.rows[0];
+    return { ...update.rows[0], ja_registrada: false };
+  }
+
+  const existing = await q(
+    `
+    SELECT
+      id,
+      usuario_id,
+      turma_id,
+      to_char(data_presenca::date, 'YYYY-MM-DD') AS data_presenca,
+      presente,
+      confirmado_em
+    FROM presencas
+    WHERE usuario_id = $1
+      AND turma_id = $2
+      AND data_presenca = $3::date
+    LIMIT 1
+    `,
+    [usuarioId, turmaId, dataPresenca],
+  );
+
+  if (existing.rowCount > 0) {
+    return { ...existing.rows[0], ja_registrada: true };
   }
 
   const insert = await q(
@@ -876,7 +907,22 @@ async function gravarPresenca(
     [usuarioId, turmaId, dataPresenca, presente],
   );
 
-  return insert.rows[0];
+  return { ...insert.rows[0], ja_registrada: false };
+}
+
+function respostaConfirmacaoQr(presenca, termoAceite, elegibilidade) {
+  return {
+    status: presenca.ja_registrada ? 200 : 201,
+    data: {
+      presenca,
+      termo_aceite: termoAceite?.aceite || null,
+      termo_exigido: termoAceite?.exigido === true,
+      elegibilidade_avaliacao: elegibilidade,
+    },
+    message: presenca.ja_registrada
+      ? "Presença já registrada."
+      : "Presença confirmada com sucesso.",
+  };
 }
 
 async function contarPresencasUsuarioTurma(q, usuarioId, turmaId) {
@@ -1310,16 +1356,7 @@ async function confirmarPresencaViaQR(req, res) {
         turmaId,
       );
 
-      return {
-        status: 201,
-        data: {
-          presenca,
-          termo_aceite: termoAceite?.aceite || null,
-          termo_exigido: termoAceite?.exigido === true,
-          elegibilidade_avaliacao: elegibilidade,
-        },
-        message: "Presença confirmada com sucesso.",
-      };
+      return respostaConfirmacaoQr(presenca, termoAceite, elegibilidade);
     });
 
     if (resultado.error) {
@@ -1360,15 +1397,23 @@ async function confirmarPresencaViaToken(req, res) {
       return fail(res, 400, "Token inválido ou expirado.");
     }
 
-    const usuarioId = toPositiveInt(
-      payload.usuario_id || payload.usuarioId || getUserId(req),
-    );
+    const usuarioIdAutenticado = getUserId(req);
+    const usuarioIdToken = toPositiveInt(payload.usuario_id || payload.usuarioId);
+    const usuarioId = usuarioIdAutenticado;
     const turmaId = toPositiveInt(payload.turma_id || payload.turmaId);
     const dataPresenca = normalizeDateOnly(
       payload.data_presenca || hojeSaoPaulo(),
     );
 
     if (!usuarioId) return fail(res, 401, "Não autenticado.");
+    if (usuarioIdToken && usuarioIdToken !== usuarioIdAutenticado) {
+      return fail(
+        res,
+        403,
+        "Este token de presença pertence a outro usuário.",
+        { motivo: "TOKEN_USUARIO_DIVERGENTE" },
+      );
+    }
     if (!turmaId) return fail(res, 400, "Token sem turma_id válido.");
     if (!dataPresenca) {
       return fail(res, 400, "Token sem data_presenca válida.");
@@ -2267,231 +2312,19 @@ async function exportarPresencasPdfPorTurma(req, res) {
       [turmaId],
     );
 
-    const presencaMap = new Map();
-
-    for (const item of presencas.rows || []) {
-      presencaMap.set(`${item.usuario_id}|${item.data_presenca}`, item);
-    }
-
-    const doc = new PDFDocument({
-      size: "A4",
-      layout: "landscape",
-      margin: 36,
-      info: {
-        Title: `Lista de Presença - Turma ${turmaId}`,
-        Author: "Plataforma Escola da Saúde",
-      },
-    });
-
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="lista_presenca_turma_${turmaId}.pdf"`,
     );
 
-    doc.pipe(res);
-
-    const pageWidth = doc.page.width;
-    const pageHeight = doc.page.height;
-    const margin = 36;
-    const contentWidth = pageWidth - margin * 2;
-
-    function drawHeader() {
-      doc
-        .fillColor("#0f172a")
-        .font("Helvetica-Bold")
-        .fontSize(18)
-        .text("LISTA DE PRESENÇA", margin, 24, {
-          width: contentWidth,
-          align: "center",
-        });
-
-      doc
-        .moveTo(margin, 52)
-        .lineTo(pageWidth - margin, 52)
-        .lineWidth(1.5)
-        .strokeColor("#0f766e")
-        .stroke();
-
-      doc
-        .fillColor("#0f172a")
-        .font("Helvetica-Bold")
-        .fontSize(11)
-        .text(`Evento: ${turma.evento_titulo || "—"}`, margin, 64, {
-          width: contentWidth,
-        });
-
-      doc
-        .font("Helvetica")
-        .fontSize(10)
-        .fillColor("#334155")
-        .text(`Turma: ${turma.nome || "—"}`, margin, 82, { width: 360 })
-        .text(
-          `Período: ${formatarDataBR(turma.data_inicio)} a ${formatarDataBR(
-            turma.data_fim,
-          )}`,
-          margin + 365,
-          82,
-          { width: 210 },
-        )
-        .text(
-          `Horário: ${turma.horario_inicio || "—"} às ${turma.horario_fim || "—"}`,
-          margin + 580,
-          82,
-          { width: 160 },
-        );
-
-      if (turma.evento_local) {
-        doc.text(`Local: ${turma.evento_local}`, margin, 98, {
-          width: contentWidth,
-        });
-      }
-
-      doc
-        .fillColor("#64748b")
-        .fontSize(9)
-        .text(`Gerado em: ${formatarDataHoraBR(new Date())}`, margin, 112, {
-          width: contentWidth,
-          align: "right",
-        });
-    }
-
-    function ensureSpace(y, needed = 40) {
-      if (y + needed <= pageHeight - margin) return y;
-
-      doc.addPage({
-        size: "A4",
-        layout: "landscape",
-        margin,
-      });
-
-      drawHeader();
-      return 132;
-    }
-
-    function drawTableHeader(y) {
-      doc
-        .save()
-        .roundedRect(margin, y, contentWidth, 24, 8)
-        .fill("#0f766e")
-        .restore();
-
-      doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(9);
-
-      const cols = [230, 110, 100, 170, contentWidth - 610];
-      let x = margin + 8;
-
-      ["Nome", "CPF", "Situação", "Confirmação", "Assinatura"].forEach(
-        (label, index) => {
-          doc.text(label, x, y + 7, {
-            width: cols[index] - 12,
-            ellipsis: true,
-          });
-
-          x += cols[index];
-        },
-      );
-
-      return y + 30;
-    }
-
-    drawHeader();
-
-    let y = 132;
-
-    for (const dataTurma of datas) {
-      y = ensureSpace(y, 48);
-
-      doc
-        .fillColor("#0f172a")
-        .font("Helvetica-Bold")
-        .fontSize(12)
-        .text(
-          `Data da aula: ${formatarDataBR(
-            dataTurma.data,
-          )} • Horário previsto: ${dataTurma.horario_inicio} às ${
-            dataTurma.horario_fim
-          }`,
-          margin,
-          y,
-          { width: contentWidth },
-        );
-
-      y += 22;
-      y = drawTableHeader(y);
-
-      for (const inscrito of inscritos.rows || []) {
-        y = ensureSpace(y, 28);
-
-        const key = `${inscrito.usuario_id}|${dataTurma.data}`;
-        const presenca = presencaMap.get(key);
-        const presente = presenca?.presente === true;
-
-        const status = presente ? "Presente" : "Ausente";
-        const confirmacao = presente
-          ? formatarDataHoraBR(presenca?.confirmado_em)
-          : "—";
-        const assinatura = presente
-          ? "—"
-          : "__________________________________";
-
-        doc
-          .save()
-          .roundedRect(margin, y - 3, contentWidth, 24, 6)
-          .fill(y % 2 === 0 ? "#f8fafc" : "#ffffff")
-          .restore();
-
-        doc.font("Helvetica").fontSize(9).fillColor("#0f172a");
-
-        const cols = [230, 110, 100, 170, contentWidth - 610];
-        let x = margin + 8;
-
-        doc.text(inscrito.nome || "—", x, y + 5, {
-          width: cols[0] - 12,
-          ellipsis: true,
-        });
-
-        x += cols[0];
-
-        doc.text(cpfProtegido(inscrito.cpf) || "—", x, y + 5, {
-          width: cols[1] - 12,
-          ellipsis: true,
-        });
-
-        x += cols[1];
-
-        doc
-          .fillColor(presente ? "#166534" : "#991b1b")
-          .font("Helvetica-Bold")
-          .text(status, x, y + 5, {
-            width: cols[2] - 12,
-            ellipsis: true,
-          });
-
-        x += cols[2];
-
-        doc
-          .fillColor("#0f172a")
-          .font("Helvetica")
-          .text(confirmacao, x, y + 5, {
-            width: cols[3] - 12,
-            ellipsis: true,
-          });
-
-        x += cols[3];
-
-        doc.text(assinatura, x, y + 5, {
-          width: cols[4] - 12,
-          ellipsis: true,
-        });
-
-        y += 28;
-      }
-
-      y += 10;
-    }
-
-    doc.end();
+    criarListaPresencaPdf({
+      turma: { ...turma, id: turmaId },
+      datas,
+      inscritos: inscritos.rows || [],
+      presencas: presencas.rows || [],
+      output: res,
+    });
 
     logDev(rid, "exportarPresencasPdfPorTurma OK", {
       turma_id: turmaId,
@@ -2922,6 +2755,8 @@ async function listarMinhasPresencas(req, res) {
  * ───────────────────────────────────────────────────────────── */
 
 module.exports = {
+  gravarPresenca,
+  respostaConfirmacaoQr,
   validarPresencaPublica,
 
   listarMinhasPresencas,

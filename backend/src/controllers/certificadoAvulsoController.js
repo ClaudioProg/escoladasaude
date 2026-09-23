@@ -64,6 +64,9 @@ const {
   desenharCertificadoCompletoV2,
   dataUrlToBuffer,
 } = require("../utils/certificadoLayoutPdf");
+const {
+  formatarIdentificadorCertificado,
+} = require("../utils/certificadoIdentificador");
 
 const dbFallback = require("../db");
 const { CERT_DIR, ensureDir } = require("../paths");
@@ -392,25 +395,23 @@ function getIdentificadorInfo(identificadorOriginal) {
   const digits = onlyDigits(raw);
 
   if (digits.length === 11) {
+    const formatado = formatarIdentificadorCertificado({ cpf: digits });
+
     return {
       identificador_tipo: "cpf",
       identificador_hash: sha256(`cpf:${digits}`),
-      identificador_mascarado: `***.${digits.slice(3, 6)}.${digits.slice(
-        6,
-        9,
-      )}-**`,
-      identificador_pdf: `Identificador: ***.${digits.slice(3, 6)}.${digits.slice(
-        6,
-        9,
-      )}-**`,
+      identificador_mascarado: formatado.valor,
+      identificador_pdf: formatado.texto,
     };
   }
+
+  const formatado = formatarIdentificadorCertificado({ registro: raw });
 
   return {
     identificador_tipo: "registro_funcional",
     identificador_hash: sha256(`registro_funcional:${raw.toUpperCase()}`),
-    identificador_mascarado: "Registro funcional informado",
-    identificador_pdf: "Identificador: registro funcional informado",
+    identificador_mascarado: formatado.valor,
+    identificador_pdf: formatado.texto,
   };
 }
 
@@ -1002,7 +1003,9 @@ function desenharCertificado(doc, certificado, opts = {}) {
     modelo: "avulso",
     nome: certificado.nome,
     identificadorTexto: certificado.identificador_mascarado
-      ? `Identificador: ${certificado.identificador_mascarado}`
+      ? certificado.identificador_tipo === "registro_funcional"
+        ? `Registro funcional: ${certificado.identificador_mascarado}`
+        : `CPF: ${certificado.identificador_mascarado}`
       : null,
     textoPrincipal,
     dataTexto: `Santos, ${dataExtensoBR(new Date())}.`,
@@ -2519,4 +2522,6 @@ module.exports = {
   normalizarAssinantesAvulso,
   carregarAssinaturasAvulsas,
   serializarDadosAssinatura,
+  getIdentificadorInfo,
+  desenharCertificado,
 };

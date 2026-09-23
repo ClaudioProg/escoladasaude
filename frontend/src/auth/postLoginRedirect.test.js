@@ -19,7 +19,6 @@ test("normaliza next ausente, legado, público, externo e inexistente para /pain
     "/excluir-conta",
     "/privacidade",
     "/validar-certificado",
-    "/presenca",
     "/historico",
     "https://externo.example/painel",
     "//externo.example/painel",
@@ -48,6 +47,14 @@ test("preserva somente destinos privados atuais e seus parâmetros", () => {
     sanitizePostLoginRedirect("/eventos/123?origem=qrcode"),
     "/eventos/123?origem=qrcode",
   );
+  assert.equal(
+    sanitizePostLoginRedirect("/presenca?token=abc123#confirmacao"),
+    "/presenca?token=abc123#confirmacao",
+  );
+  assert.equal(
+    sanitizePostLoginRedirect("/presenca/42?token=abc123"),
+    "/presenca/42?token=abc123",
+  );
 });
 
 test("retorno ao evento rejeita identificador inválido e open redirect", () => {
@@ -58,6 +65,21 @@ test("retorno ao evento rejeita identificador inválido e open redirect", () => 
   );
   assert.equal(
     sanitizePostLoginRedirect("//externo.example/eventos/123"),
+    "/painel",
+  );
+});
+
+test("retorno de presença rejeita variantes externas e caminhos parecidos", () => {
+  assert.equal(
+    sanitizePostLoginRedirect("/presenca-maliciosa?token=x"),
+    "/painel",
+  );
+  assert.equal(
+    sanitizePostLoginRedirect("https://externo.example/presenca?token=x"),
+    "/painel",
+  );
+  assert.equal(
+    sanitizePostLoginRedirect("//externo.example/presenca?token=x"),
     "/painel",
   );
 });

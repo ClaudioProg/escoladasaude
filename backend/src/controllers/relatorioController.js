@@ -23,6 +23,7 @@
 
 const ExcelJS = require("exceljs");
 const dbFallback = require("../db");
+const { mascararCpfCertificado } = require("../utils/certificadoIdentificador");
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 const TZ = "America/Sao_Paulo";
@@ -107,16 +108,33 @@ function validarYMD(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
+function normalizarBuscaRelatorio(value) {
+  const raw = String(value || "").trim().replace(/\s+/g, " ");
+  const cpf = raw.replace(/\D/g, "");
+
+  if (cpf.length === 11) {
+    return { termo: raw, tipo: "cpf", cpf };
+  }
+
+  if (raw.length >= 3) {
+    return { termo: raw.slice(0, 120), tipo: "texto", cpf: null };
+  }
+
+  return { termo: null, tipo: null, cpf: null };
+}
+
 function normalizarFiltros(req) {
-  const data_inicio = validarYMD(req.query?.data_inicio);
-  const data_fim = validarYMD(req.query?.data_fim);
-  const evento_id = toPositiveInt(req.query?.evento_id);
-  const turma_id = toPositiveInt(req.query?.turma_id);
-  const organizador_id = toPositiveInt(req.query?.organizador_id);
-  const usuario_id = toPositiveInt(req.query?.usuario_id);
-  const unidade_id = toPositiveInt(req.query?.unidade_id);
+  const entrada = req.method === "POST" ? req.body : req.query;
+  const data_inicio = validarYMD(entrada?.data_inicio);
+  const data_fim = validarYMD(entrada?.data_fim);
+  const evento_id = toPositiveInt(entrada?.evento_id);
+  const turma_id = toPositiveInt(entrada?.turma_id);
+  const organizador_id = toPositiveInt(entrada?.organizador_id);
+  const usuario_id = toPositiveInt(entrada?.usuario_id);
+  const unidade_id = toPositiveInt(entrada?.unidade_id);
+  const busca = normalizarBuscaRelatorio(entrada?.busca);
   const status =
-    String(req.query?.status || "")
+    String(entrada?.status || "")
       .trim()
       .toLowerCase() || null;
 
@@ -135,6 +153,9 @@ function normalizarFiltros(req) {
     organizador_id,
     usuario_id,
     unidade_id,
+    busca: busca.termo,
+    busca_tipo: busca.tipo,
+    busca_cpf: busca.cpf,
     status:
       ["programado", "andamento", "encerrado"].includes(status) ||
       [
@@ -148,6 +169,14 @@ function normalizarFiltros(req) {
         ? status
         : null,
   };
+}
+
+function filtrosPublicos(filtros) {
+  const { busca_cpf: _buscaCpf, ...publicos } = filtros || {};
+  if (publicos.busca_tipo === "cpf") {
+    publicos.busca = mascararCpfCertificado(_buscaCpf);
+  }
+  return publicos;
 }
 
 function addFiltroPeriodo(params, where, coluna, filtros) {
@@ -480,6 +509,74 @@ function buildTurmasFiltradasWhere(filtros) {
   addFiltroPeriodo(params, where, "t.data_inicio", filtros);
   addFiltroId(params, where, "e.id", filtros.evento_id);
   addFiltroId(params, where, "t.id", filtros.turma_id);
+
+  if (filtros.busca) {
+    if (filtros.busca_tipo === "cpf") {
+      params.push(filtros.busca_cpf);
+      const cpfIndex = params.length;
+      where.push(`
+        EXISTS (
+          SELECT 1
+          FROM usuarios ub
+          WHERE regexp_replace(COALESCE(ub.cpf, ''), '\\D', '', 'g') = $${cpfIndex}
+            AND (
+              EXISTS (
+                SELECT 1 FROM inscricoes ib
+                JOIN turmas tib ON tib.id = ib.turma_id
+                WHERE ib.usuario_id = ub.id AND tib.evento_id = e.id
+              )
+              OR EXISTS (
+                SELECT 1 FROM presencas pb
+                JOIN turmas tpb ON tpb.id = pb.turma_id
+                WHERE pb.usuario_id = ub.id
+                  AND pb.presente IS TRUE
+                  AND tpb.evento_id = e.id
+              )
+              OR EXISTS (
+                SELECT 1 FROM certificados cb
+                WHERE cb.usuario_id = ub.id
+                  AND cb.evento_id = e.id
+                  AND cb.status IN ('emitido', 'enviado')
+              )
+            )
+        )
+      `);
+    } else {
+      params.push(`%${filtros.busca}%`);
+      const buscaIndex = params.length;
+      where.push(`
+        (
+          unaccent(lower(COALESCE(e.titulo, ''))) LIKE unaccent(lower($${buscaIndex}))
+          OR unaccent(lower(COALESCE(e.descricao, ''))) LIKE unaccent(lower($${buscaIndex}))
+          OR EXISTS (
+            SELECT 1
+            FROM usuarios ub
+            WHERE unaccent(lower(COALESCE(ub.nome, ''))) LIKE unaccent(lower($${buscaIndex}))
+              AND (
+                EXISTS (
+                  SELECT 1 FROM inscricoes ib
+                  JOIN turmas tib ON tib.id = ib.turma_id
+                  WHERE ib.usuario_id = ub.id AND tib.evento_id = e.id
+                )
+                OR EXISTS (
+                  SELECT 1 FROM presencas pb
+                  JOIN turmas tpb ON tpb.id = pb.turma_id
+                  WHERE pb.usuario_id = ub.id
+                    AND pb.presente IS TRUE
+                    AND tpb.evento_id = e.id
+                )
+                OR EXISTS (
+                  SELECT 1 FROM certificados cb
+                  WHERE cb.usuario_id = ub.id
+                    AND cb.evento_id = e.id
+                    AND cb.status IN ('emitido', 'enviado')
+                )
+              )
+          )
+        )
+      `);
+    }
+  }
 
   if (filtros.status) {
     params.push(filtros.status);
@@ -891,7 +988,7 @@ COUNT(DISTINCT p.id) FILTER (WHERE p.presente IS TRUE)::int AS registros_presenc
   const saude = await consultarSaudePlataforma(req);
 
   return {
-    filtros,
+    filtros: filtrosPublicos(filtros),
     periodo: periodoTexto(filtros),
     gerado_em: new Date().toISOString(),
     geral: {
@@ -950,7 +1047,7 @@ async function relatorioInstitucional(req, res) {
       "Relatório institucional carregado com sucesso.",
       "RELATORIO_INSTITUCIONAL",
       {
-        filtros,
+        filtros: filtrosPublicos(filtros),
         gerado_em: dashboard.gerado_em,
       },
     );
@@ -2970,6 +3067,8 @@ async function exportarRelatorioPdf(req, res) {
  * ───────────────────────────────────────────── */
 
 module.exports = {
+  normalizarBuscaRelatorio,
+  buildTurmasFiltradasWhere,
   relatorioInstitucional,
   resumoGeral,
   relatorioEventos,

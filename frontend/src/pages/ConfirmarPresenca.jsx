@@ -490,13 +490,18 @@ export default function ConfirmarPresenca() {
   const [wrongAccount, setWrongAccount] = useState(false);
   const [subtitle, setSubtitle] = useState("");
   const [contextoQr, setContextoQr] = useState(null);
+  const contextoQrRef = useRef(null);
   const [termoLido, setTermoLido] = useState(false);
+  const [modalSucessoAberto, setModalSucessoAberto] = useState(false);
 
   const liveRef = useRef(null);
   const titleRef = useRef(null);
   const abortRef = useRef(null);
   const mountedRef = useRef(true);
   const inFlightRef = useRef(0);
+  const activeIntentRef = useRef(null);
+  const completedIntentRef = useRef(null);
+  const modalOkRef = useRef(null);
 
   const [nowStr] = useState(() =>
     new Intl.DateTimeFormat("pt-BR", {
@@ -518,6 +523,21 @@ export default function ConfirmarPresenca() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!modalSucessoAberto) {
+      return undefined;
+    }
+
+    modalOkRef.current?.focus?.();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setModalSucessoAberto(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [modalSucessoAberto]);
 
   const setLive = useCallback((text) => {
     if (liveRef.current) {
@@ -600,6 +620,18 @@ export default function ConfirmarPresenca() {
         return;
       }
 
+      const contextKey = `${turmaIdSeguro}|${data_presenca}`;
+      const intentKey = `${contextKey}|${tokenOk}|${termoAceite}`;
+      if (completedIntentRef.current === intentKey) {
+        return;
+      }
+      if (
+        activeIntentRef.current?.key === intentKey &&
+        !activeIntentRef.current.controller.signal.aborted
+      ) {
+        return;
+      }
+
       try {
         abortRef.current?.abort?.("new-attempt");
       } catch {
@@ -607,6 +639,8 @@ export default function ConfirmarPresenca() {
       }
 
       const controller = new AbortController();
+      const intent = { key: intentKey, controller };
+      activeIntentRef.current = intent;
 
       abortRef.current = controller;
       inFlightRef.current += 1;
@@ -623,9 +657,13 @@ export default function ConfirmarPresenca() {
       }
 
       try {
-        let contexto = contextoQr;
+        let contexto =
+          contextoQrRef.current?.key === contextKey
+            ? contextoQrRef.current.value
+            : null;
 
         if (!contexto) {
+          setContextoQr(null);
           contexto = await apiPresencaQrContexto(
             {
               turma_id: turmaIdSeguro,
@@ -641,6 +679,7 @@ export default function ConfirmarPresenca() {
             return;
           }
 
+          contextoQrRef.current = { key: contextKey, value: contexto };
           setContextoQr(contexto);
         }
 
@@ -685,7 +724,8 @@ export default function ConfirmarPresenca() {
         setRequiresLogin(false);
         setSubtitle("Registro concluído.");
         setLive("Presença confirmada.");
-        focusTitleSoon();
+        completedIntentRef.current = intentKey;
+        setModalSucessoAberto(true);
       } catch (error) {
         if (isAbortLike(error)) {
           return;
@@ -709,9 +749,13 @@ export default function ConfirmarPresenca() {
         setSubtitle(info.subtitulo);
         setLive("Falha na confirmação de presença.");
         focusTitleSoon();
+      } finally {
+        if (activeIntentRef.current === intent) {
+          activeIntentRef.current = null;
+        }
       }
     },
-    [contextoQr, data_presenca, focusTitleSoon, goToLogin, setLive, turma_id],
+    [data_presenca, focusTitleSoon, goToLogin, setLive, turma_id],
   );
 
   useEffect(() => {
@@ -727,6 +771,7 @@ export default function ConfirmarPresenca() {
   }, [confirmar]);
 
   const onRetry = useCallback(() => {
+    setModalSucessoAberto(false);
     setAttempts((value) => value + 1);
     confirmar({ silent: false });
   }, [confirmar]);
@@ -773,6 +818,44 @@ export default function ConfirmarPresenca() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-slate-950 dark:bg-zinc-950 dark:text-white">
+      {modalSucessoAberto ? (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/65 p-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setModalSucessoAberto(false);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="presenca-sucesso-titulo"
+            className="w-full max-w-md rounded-[2rem] bg-white p-6 text-center shadow-2xl ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-700"
+          >
+            <CheckCircle2
+              className="mx-auto h-14 w-14 text-emerald-600"
+              aria-hidden="true"
+            />
+            <h2
+              id="presenca-sucesso-titulo"
+              className="mt-4 text-xl font-black text-slate-950 dark:text-white"
+            >
+              Presença registrada com sucesso.
+            </h2>
+            <button
+              ref={modalOkRef}
+              type="button"
+              onClick={() => setModalSucessoAberto(false)}
+              className="mt-6 min-h-11 rounded-2xl bg-emerald-700 px-8 py-2 font-black text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            >
+              OK
+            </button>
+          </section>
+        </div>
+      ) : null}
+
       <HeaderHero status={status} subtitle={subtitle} />
 
       {status === "loading" && (

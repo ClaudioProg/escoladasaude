@@ -37,6 +37,8 @@
  * - authorize
  */
 
+const { safeRequestUrl } = require("../utils/safeRequestUrl");
+
 const PERFIS_OFICIAIS = new Set(["usuario", "organizador", "administrador"]);
 
 function uniq(values) {
@@ -91,7 +93,7 @@ function getUserPerfis(req) {
 function buildAuthzLog(req, extra = {}) {
   return {
     method: req?.method,
-    url: req?.originalUrl,
+    url: safeRequestUrl(req),
     ip: req?.ip,
     userId: getUserId(req),
     perfil: getUserPerfis(req),

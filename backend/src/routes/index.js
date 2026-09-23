@@ -68,6 +68,7 @@
  */
 
 const express = require("express");
+const { safeRequestUrl } = require("../utils/safeRequestUrl");
 
 const router = express.Router();
 
@@ -115,7 +116,7 @@ function apiNotFound(req, res) {
       "Verifique backend/src/routes/index.js, o mount oficial da rota e o prefixo usado no frontend.",
     details: {
       method: req.method,
-      path: req.originalUrl || req.url,
+      path: safeRequestUrl(req),
     },
     requestId: getRequestId(req),
   });
