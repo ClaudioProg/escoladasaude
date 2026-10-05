@@ -2,6 +2,8 @@
 
 const argon2 = require("argon2");
 const bcrypt = require("bcrypt");
+const { PasswordServiceError, isWellFormedUnicode, normalizeNewPassword } = require("./passwordStructure");
+const { rejectionCode } = require("./passwordPolicy");
 
 const ARGON2_OPTIONS = Object.freeze({
   type: argon2.argon2id,
@@ -10,62 +12,56 @@ const ARGON2_OPTIONS = Object.freeze({
   parallelism: 1,
 });
 
-const MIN_CODE_POINTS = 15;
-const MAX_CODE_POINTS = 128;
-const MAX_UTF8_BYTES = 512;
 const BCRYPT_MAX_UTF8_BYTES = 72;
+const CONTEXT_FIELD_LIMITS = Object.freeze({
+  nome: 200,
+  cpf: 32,
+  email: 320,
+  celular: 32,
+  dataNascimento: 32,
+});
 
 // node.bcrypt.js supports the $2a$ and $2b$ variants.
 const BCRYPT_HASH_RE = /^\$2[ab]\$(?:0[4-9]|[12]\d|3[01])\$[./A-Za-z0-9]{53}$/;
 const ARGON2ID_HASH_RE = /^\$argon2id\$v=19\$([mtp]=[1-9]\d*,){2}[mtp]=[1-9]\d*\$[A-Za-z0-9+/]+\$[A-Za-z0-9+/]+$/;
 
-class PasswordServiceError extends Error {
-  constructor(code, message) {
-    super(message);
-    this.name = "PasswordServiceError";
-    this.code = code;
-  }
-}
-
-function isWellFormedUnicode(value) {
-  for (let index = 0; index < value.length; index += 1) {
-    const codeUnit = value.charCodeAt(index);
-    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
-      const next = value.charCodeAt(index + 1);
-      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
-      index += 1;
-    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
-      return false;
-    }
+function hasValidContextFields(context) {
+  for (const [field, maxCodePoints] of Object.entries(CONTEXT_FIELD_LIMITS)) {
+    const value = context[field];
+    if (value !== null && value !== undefined &&
+      (typeof value !== "string" || [...value].length > maxCodePoints)) return false;
   }
   return true;
 }
 
-function normalizeNewPassword(password) {
-  if (typeof password !== "string") {
-    throw new PasswordServiceError("PASSWORD_INVALID_TYPE", "Senha deve ser texto.");
-  }
-  if (!isWellFormedUnicode(password)) {
-    throw new PasswordServiceError("PASSWORD_INVALID_UNICODE", "Senha contém Unicode inválido.");
-  }
-
-  const normalized = password.normalize("NFKC");
-  const codePoints = [...normalized].length;
-  if (codePoints < MIN_CODE_POINTS) {
-    throw new PasswordServiceError("PASSWORD_TOO_SHORT", "Senha deve ter ao menos 15 caracteres.");
-  }
-  if (codePoints > MAX_CODE_POINTS) {
-    throw new PasswordServiceError("PASSWORD_TOO_LONG", "Senha deve ter no máximo 128 caracteres.");
-  }
-  if (Buffer.byteLength(normalized, "utf8") > MAX_UTF8_BYTES) {
-    throw new PasswordServiceError("PASSWORD_TOO_MANY_BYTES", "Senha excede o limite de 512 bytes UTF-8.");
-  }
-
-  return normalized;
-}
-
-async function hashNewPassword(password) {
+async function createNewPasswordHash(password, context) {
   const normalized = normalizeNewPassword(password);
+  if (context === null || typeof context !== "object" || Array.isArray(context)) {
+    throw new PasswordServiceError("PASSWORD_INVALID_CONTEXT", "Contexto de senha inválido.");
+  }
+  let validContext;
+  try {
+    validContext = hasValidContextFields(context);
+  } catch {
+    throw new PasswordServiceError("PASSWORD_POLICY_OPERATION_FAILED", "Falha na validação da senha.");
+  }
+  if (!validContext) {
+    throw new PasswordServiceError("PASSWORD_INVALID_CONTEXT", "Contexto de senha inválido.");
+  }
+  let rejection;
+  try {
+    rejection = rejectionCode(normalized, context);
+  } catch {
+    throw new PasswordServiceError("PASSWORD_POLICY_OPERATION_FAILED", "Falha na validação da senha.");
+  }
+  if (rejection) {
+    const messages = {
+      PASSWORD_TOO_COMMON: "Escolha uma senha menos comum.",
+      PASSWORD_PREDICTABLE: "Escolha uma senha menos previsível.",
+      PASSWORD_PERSONAL_DATA: "Escolha uma senha que não utilize informações pessoais.",
+    };
+    throw new PasswordServiceError(rejection, messages[rejection]);
+  }
   return hashArgon2id(normalized);
 }
 
@@ -167,8 +163,7 @@ async function upgradeLegacyPasswordHash(password, legacyHash) {
 
 module.exports = {
   PasswordServiceError,
-  normalizeNewPassword,
-  hashNewPassword,
+  createNewPasswordHash,
   verifyPassword,
   upgradeLegacyPasswordHash,
 };

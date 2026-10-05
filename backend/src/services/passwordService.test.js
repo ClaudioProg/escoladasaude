@@ -4,9 +4,9 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const argon2 = require("argon2");
 const bcrypt = require("bcrypt");
+const { normalizeNewPassword } = require("./passwordStructure");
 const {
-  normalizeNewPassword,
-  hashNewPassword,
+  createNewPasswordHash,
   verifyPassword,
   upgradeLegacyPasswordHash,
 } = require("./passwordService");
@@ -44,8 +44,8 @@ test("espaços, acentos e emoji são preservados; somente NFKC transforma", () =
 
 test("novo hash usa Argon2id aprovado, sal aleatório e verificação NFKC", async () => {
   const presented = "Ｆrase segura com emoji 😀";
-  const first = await hashNewPassword(presented);
-  const second = await hashNewPassword(presented);
+  const first = await createNewPasswordHash(presented, {});
+  const second = await createNewPasswordHash(presented, {});
   assert.ok(/^\$argon2id\$v=19\$m=19456,p=1,t=2\$/.test(first));
   assert.notEqual(first, second);
   assert.deepEqual(await verifyPassword("Frase segura com emoji 😀", first), {
@@ -154,7 +154,7 @@ test("hash desconhecido, malformado ou de outra variante Argon2 lança erro tipa
 
 test("senha incorreta retorna authenticated=false sem exception", async () => {
   const bcryptHash = await bcrypt.hash("senha correta", 4);
-  const argon2Hash = await hashNewPassword("frase senha correta");
+  const argon2Hash = await createNewPasswordHash("frase senha correta", {});
   for (const hash of [bcryptHash, argon2Hash]) {
     assert.deepEqual(await verifyPassword("senha incorreta", hash), {
       authenticated: false,
@@ -167,7 +167,7 @@ test("senha incorreta retorna authenticated=false sem exception", async () => {
 });
 
 test("falha da biblioteca vira erro operacional sem expor entrada ou hash", async () => {
-  const hash = await hashNewPassword("frase senha de teste");
+  const hash = await createNewPasswordHash("frase senha de teste", {});
   const originalVerify = argon2.verify;
   argon2.verify = async () => { throw new Error("sentinela interna"); };
   try {
