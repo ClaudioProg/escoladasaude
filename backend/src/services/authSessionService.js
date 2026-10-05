@@ -192,9 +192,13 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
     return { revoked: rows(result).length === 1 };
   }
 
-  async function revokeUserSessions(usuarioId, reason, exceptSessionId = null) {
+  async function revokeUserSessions(usuarioId, reason, exceptSessionId = null, executor) {
     assertReason(reason);
-    const result = await db.query(
+    const queryExecutor = arguments.length > 3 ? executor : db;
+    if (!queryExecutor || typeof queryExecutor.query !== "function") {
+      throw new AuthSessionError("AUTH_SESSION_EXECUTOR_INVALID");
+    }
+    const result = await queryExecutor.query(
       `UPDATE public.auth_sessao SET revogada_em = $2, motivo_revogacao = $3
         WHERE usuario_id = $1 AND revogada_em IS NULL AND ($4::uuid IS NULL OR id <> $4)`,
       [usuarioId, now(), reason, exceptSessionId],

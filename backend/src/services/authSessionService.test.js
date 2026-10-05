@@ -117,6 +117,99 @@ test("validacao, touch, revogacao e area mantem contratos", async (t) => {
   });
 });
 
+test("revokeUserSessions preserva API antiga e usa somente o executor explicito", async (t) => {
+  const expectedSql = `UPDATE public.auth_sessao SET revogada_em = $2, motivo_revogacao = $3
+        WHERE usuario_id = $1 AND revogada_em IS NULL AND ($4::uuid IS NULL OR id <> $4)`;
+  const exceptId = "6b9d2f14-4925-4d35-92a4-8c8b5b4e2f91";
+
+  function setup(t, rowCount = 0) {
+    const db = fakeDb();
+    t.mock.method(db, "query", async () => ({ rows: [], rowCount }));
+    t.mock.method(db, "tx", () => { throw new Error("transacao interna proibida"); });
+    const now = t.mock.fn(() => NOW);
+    return { db, now, service: createAuthSessionService({ db, now }) };
+  }
+
+  await t.test("dois argumentos usam db.query, null e rowCount", async (t) => {
+    const { db, now, service } = setup(t, 3);
+    assert.deepEqual(await service.revokeUserSessions(7, "password_changed"), { revoked: 3 });
+    assert.equal(db.query.mock.callCount(), 1);
+    assert.deepEqual(db.query.mock.calls[0].arguments, [expectedSql, [7, NOW, "password_changed", null]]);
+    assert.equal(now.mock.callCount(), 1);
+    assert.equal(db.tx.mock.callCount(), 0);
+  });
+
+  await t.test("tres argumentos preservam UUID e retorno zero", async (t) => {
+    const { db, service } = setup(t);
+    assert.deepEqual(await service.revokeUserSessions(7, "password_changed", exceptId), { revoked: 0 });
+    assert.equal(db.query.mock.callCount(), 1);
+    assert.deepEqual(db.query.mock.calls[0].arguments, [expectedSql, [7, NOW, "password_changed", exceptId]]);
+    assert.equal(db.tx.mock.callCount(), 0);
+  });
+
+  await t.test("executor com apenas query preserva null e UUID sem usar db", async (t) => {
+    for (const exceptSessionId of [null, exceptId]) {
+      const { db, now, service } = setup(t);
+      const executor = { query: t.mock.fn(async function () {
+        assert.equal(this, executor);
+        return { rows: [], rowCount: 4 };
+      }) };
+      assert.deepEqual(Object.keys(executor), ["query"]);
+      assert.deepEqual(await service.revokeUserSessions(7, "password_changed", exceptSessionId, executor), { revoked: 4 });
+      assert.equal(executor.query.mock.callCount(), 1);
+      assert.deepEqual(executor.query.mock.calls[0].arguments, [expectedSql, [7, NOW, "password_changed", exceptSessionId]]);
+      assert.equal(db.query.mock.callCount(), 0);
+      assert.equal(db.tx.mock.callCount(), 0);
+      assert.equal(now.mock.callCount(), 1);
+    }
+  });
+
+  await t.test("motivo invalido falha antes de query com e sem executor", async (t) => {
+    const { db, now, service } = setup(t);
+    const executor = { query: t.mock.fn() };
+    const invalidReason = (error) => error instanceof AuthSessionError && error.code === "AUTH_SESSION_REASON_INVALID";
+    await assert.rejects(service.revokeUserSessions(7, "texto livre"), invalidReason);
+    await assert.rejects(service.revokeUserSessions(7, "texto livre", null, executor), invalidReason);
+    assert.equal(db.query.mock.callCount(), 0);
+    assert.equal(executor.query.mock.callCount(), 0);
+    assert.equal(db.tx.mock.callCount(), 0);
+    assert.equal(now.mock.callCount(), 0);
+  });
+
+  await t.test("executor explicito invalido rejeita sem fallback", async (t) => {
+    for (const [label, executor] of [
+      ["undefined", undefined],
+      ["null", null],
+      ["objeto vazio", {}],
+      ["string", "executor"],
+      ["funcao sem query", t.mock.fn()],
+      ["query nao-function", { query: "invalida" }],
+    ]) {
+      await t.test(label, async (t) => {
+        const { db, now, service } = setup(t);
+        await assert.rejects(
+          service.revokeUserSessions(7, "password_changed", null, executor),
+          (error) => error instanceof AuthSessionError && error.code === "AUTH_SESSION_EXECUTOR_INVALID",
+        );
+        assert.equal(db.query.mock.callCount(), 0);
+        assert.equal(db.tx.mock.callCount(), 0);
+        assert.equal(now.mock.callCount(), 0);
+        if (typeof executor === "function") assert.equal(executor.mock.callCount(), 0);
+      });
+    }
+  });
+
+  await t.test("erro de query chega intacto ao chamador sem fallback", async (t) => {
+    const { db, service } = setup(t);
+    const original = new Error("executor indisponivel");
+    const executor = { query: t.mock.fn(async () => { throw original; }) };
+    await assert.rejects(service.revokeUserSessions(7, "password_changed", null, executor), (error) => error === original);
+    assert.equal(executor.query.mock.callCount(), 1);
+    assert.equal(db.query.mock.callCount(), 0);
+    assert.equal(db.tx.mock.callCount(), 0);
+  });
+});
+
 test("hardening prova predicates de limite, touch e revogacao", async (t) => {
   await t.test("limite absoluto vencido nao entra no limite e ordenacao e deterministica", async () => {
     const db = fakeDb({ active: Array.from({ length: 6 }, (_, index) => ({ id: `old-${index}` })) });
