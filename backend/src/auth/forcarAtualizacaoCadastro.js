@@ -122,7 +122,7 @@ function setExposeHeader(res, headerName) {
     res.setHeader("Access-Control-Expose-Headers", list.join(", "));
   } catch (error) {
     console.warn("[forcarAtualizacaoCadastro] falha ao expor header", {
-      message: error?.message,
+      code: "PROFILE_EXPOSE_HEADER_FAILED",
     });
   }
 }
@@ -137,7 +137,7 @@ function applyPerfilHeader(req, res, incompleto) {
   } catch (error) {
     console.warn("[forcarAtualizacaoCadastro] falha ao setar header", {
       header: PERFIL_INCOMPLETO_HEADER,
-      message: error?.message,
+      code: "PROFILE_SET_HEADER_FAILED",
     });
   }
 
@@ -226,12 +226,7 @@ async function forcarAtualizacaoCadastro(req, res, next) {
     return next();
   } catch (error) {
     console.error("[forcarAtualizacaoCadastro] erro", {
-      requestId: req?.requestId || null,
-      userId: req?.userId ?? req?.user?.id ?? null,
-      method: req?.method,
-      url: req?.originalUrl || req?.url,
-      message: error?.message,
-      stack: process.env.NODE_ENV !== "production" ? error?.stack : undefined,
+      code: "PROFILE_DIAGNOSTIC_FAILED",
     });
 
     // Não derruba a requisição por falha diagnóstica.

@@ -62,20 +62,21 @@ function mkRid() {
 
 function log(rid, level, message, extra) {
   const prefix = `[authGoogle][RID=${rid}]`;
+  const safeExtra = {
+    usuarioId: Number.isInteger(extra?.usuarioId) && extra.usuarioId > 0 && extra.usuarioId <= 2147483647 ? extra.usuarioId : null,
+    perfil: PERFIS_OFICIAIS.has(extra?.perfil) ? extra.perfil : null,
+  };
 
   if (level === "error") {
-    return console.error(
-      `${prefix} ✖ ${message}`,
-      extra?.stack || extra?.message || extra,
-    );
+    return console.error(`${prefix} ✖ ${message}`, { code: "AUTH_GOOGLE_FAILURE" });
   }
 
   if (!IS_PROD) {
     if (level === "warn") {
-      return console.warn(`${prefix} ⚠ ${message}`, extra || "");
+      return console.warn(`${prefix} ⚠ ${message}`, safeExtra);
     }
 
-    return console.log(`${prefix} • ${message}`, extra || "");
+    return console.log(`${prefix} • ${message}`, safeExtra);
   }
 
   return undefined;
@@ -197,7 +198,7 @@ router.post("/google", async (req, res) => {
     }
 
     if (!emailVerified) {
-      log(rid, "warn", "E-mail Google não verificado", { email });
+      log(rid, "warn", "E-mail Google não verificado");
 
       return res.status(401).json({
         ok: false,
@@ -209,7 +210,7 @@ router.post("/google", async (req, res) => {
     const usuario = await findUsuarioByEmail(email);
 
     if (!usuario) {
-      log(rid, "warn", "Usuário Google não encontrado no cadastro", { email });
+      log(rid, "warn", "Usuário Google não encontrado no cadastro");
 
       return res.status(403).json({
         ok: false,
@@ -222,7 +223,6 @@ router.post("/google", async (req, res) => {
     if (usuario.deleted_at) {
       log(rid, "warn", "Tentativa de login Google em conta excluída", {
         usuarioId: usuario.id,
-        email,
       });
 
       return res.status(403).json({
@@ -261,7 +261,6 @@ router.post("/google", async (req, res) => {
 
     log(rid, "info", "Login Google concluído", {
       usuarioId: usuario.id,
-      email: usuario.email,
       perfil: usuarioResponse.perfil,
     });
 

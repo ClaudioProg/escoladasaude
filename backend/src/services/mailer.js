@@ -117,14 +117,33 @@ function createEmailError(message, code, extra = {}) {
 
 function redactEmailConfig(config) {
   return {
-    host: config.host,
-    port: config.port,
+    smtpHostConfigured: Boolean(config.host),
+    port: Number.isInteger(config.port) && config.port > 0 && config.port <= 65535 ? config.port : null,
     secure: config.secure,
-    user: config.smtpUser || "MISSING",
-    pass: config.smtpPass ? `OK (${config.smtpPass.length} chars)` : "MISSING",
-    fromName: config.fromName,
-    fromAddr: config.fromAddr || "MISSING",
-    replyTo: config.replyTo || "OFF",
+    smtpUserConfigured: Boolean(config.smtpUser),
+    smtpPassConfigured: Boolean(config.smtpPass),
+    fromAddrConfigured: Boolean(config.fromAddr),
+    replyToConfigured: Boolean(config.replyTo),
+  };
+}
+
+function mailSummary(normalized) {
+  return {
+    hasTo: Boolean(normalized.to),
+    hasCc: Boolean(normalized.cc),
+    hasBcc: Boolean(normalized.bcc),
+    attachmentCount: normalized.attachments.length,
+  };
+}
+
+function smtpErrorForLog(error) {
+  const codes = ["EAUTH", "ECONNECTION", "ETIMEDOUT", "ESOCKET", "EDNS", "EENVELOPE", "EMESSAGE", "ESTREAM", "EPROTOCOL", "EMAIL_VERIFY_FAILED"];
+  const commands = ["CONN", "EHLO", "HELO", "STARTTLS", "AUTH", "AUTH PLAIN", "AUTH LOGIN", "AUTH XOAUTH2", "MAIL FROM", "RCPT TO", "DATA", "QUIT"];
+  return {
+    code: codes.includes(error?.code) ? error.code : "SMTP_FAILURE",
+    command: commands.includes(error?.command) ? error.command : null,
+    responseCode: Number.isInteger(error?.responseCode) && error.responseCode >= 100 && error.responseCode <= 599
+      ? error.responseCode : null,
   };
 }
 
@@ -229,13 +248,7 @@ function getTransporter() {
   const config = getEmailConfig();
 
   if (!isConfigured()) {
-    console.warn("[email] SMTP não configurado completamente.", {
-      host: config.host || "MISSING",
-      port: config.port || "MISSING",
-      user: config.smtpUser ? "OK" : "MISSING",
-      pass: config.smtpPass ? "OK" : "MISSING",
-      fromAddr: config.fromAddr || "MISSING",
-    });
+    console.warn("[email] SMTP não configurado completamente.", redactEmailConfig(config));
   } else if (process.env.LOG_EMAIL === "true") {
     logConfigPreview();
   }
@@ -291,11 +304,7 @@ async function verifyTransporter(force = false) {
 
     return true;
   } catch (error) {
-    console.warn("[email] verify falhou:", {
-      message: error?.message,
-      code: error?.code,
-      command: error?.command,
-    });
+    console.warn("[email] verify falhou:", smtpErrorForLog(error));
 
     return false;
   }
@@ -405,14 +414,10 @@ async function sendEmail(payload = {}) {
 
     if (process.env.LOG_EMAIL === "true") {
       console.info("📧 [email] DRY-RUN: e-mail não enviado.", {
-        nodeEnv: process.env.NODE_ENV || null,
+        dryRun: true,
         emailEnabled,
         emailDryRun,
-        to: normalized.to,
-        cc: normalized.cc || null,
-        bcc: normalized.bcc ? "[HIDDEN]" : null,
-        subject: normalized.subject,
-        messageId: dryRunInfo.messageId,
+        ...mailSummary(normalized),
       });
     }
 
@@ -428,9 +433,10 @@ async function sendEmail(payload = {}) {
 
   if (!isProduction) {
     console.warn("⚠️ [email] Envio real habilitado fora de produção.", {
-      nodeEnv: process.env.NODE_ENV || null,
-      to: normalized.to,
-      subject: normalized.subject,
+      dryRun: false,
+      emailEnabled,
+      emailDryRun,
+      ...mailSummary(normalized),
     });
   }
 
@@ -468,27 +474,16 @@ async function sendEmail(payload = {}) {
 
     if (process.env.LOG_EMAIL === "true") {
       console.log("📧 [email] E-mail enviado.", {
-        to: normalized.to,
-        cc: normalized.cc || null,
-        bcc: normalized.bcc ? "[HIDDEN]" : null,
-        subject: normalized.subject,
-        messageId: info?.messageId || null,
-        accepted: info?.accepted || [],
-        rejected: info?.rejected || [],
+        dryRun: false,
+        emailEnabled,
+        emailDryRun,
+        ...mailSummary(normalized),
       });
     }
 
     return info;
   } catch (error) {
-    console.error("✉️ [email] Falha ao enviar.", {
-      message: error?.message,
-      code: error?.code,
-      command: error?.command,
-      responseCode: error?.responseCode,
-      response: error?.response,
-      to: normalized.to,
-      subject: normalized.subject,
-    });
+    console.error("✉️ [email] Falha ao enviar.", smtpErrorForLog(error));
 
     throw error;
   }

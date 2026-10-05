@@ -94,11 +94,11 @@ function normEmail(v) {
     .toLowerCase();
 }
 
-function safePreview(value, start = 6, end = 4) {
-  const s = String(value || "");
-  if (!s) return "";
-  if (s.length <= start + end) return "***";
-  return `${s.slice(0, start)}...${s.slice(-end)}`;
+function authErrorForLog(error) {
+  return {
+    code: typeof error?.code === "string" && /^[0-9A-Z]{5}$/.test(error.code)
+      ? error.code : "AUTH_OPERATION_FAILURE",
+  };
 }
 
 function removeTrailingSlash(v) {
@@ -698,15 +698,7 @@ async function cadastrar(req, res) {
       },
     });
   } catch (err) {
-    console.error("[authUsuarioController.cadastrar] ERRO", {
-      message: err?.message,
-      code: err?.code,
-      detail: err?.detail,
-      constraint: err?.constraint,
-      email: payload.email,
-      cpfPreview: safePreview(payload.cpf),
-      celularPreview: safePreview(payload.celular?.value),
-    });
+    console.error("[authUsuarioController.cadastrar] ERRO", authErrorForLog(err));
 
     const payloadErro = traduzPgError(err);
     const status = err?.code === "23505" ? 409 : 500;
@@ -847,9 +839,6 @@ async function recuperarSenha(req, res) {
     if (result.rows.length === 0) {
       console.log(
         "[authUsuarioController.recuperarSenha] e-mail não encontrado; resposta idempotente",
-        {
-          emailPreview: safePreview(email),
-        },
       );
 
       return res.status(200).json(respostaIdempotente);
@@ -896,30 +885,17 @@ async function recuperarSenha(req, res) {
 
       console.log("[authUsuarioController.recuperarSenha] e-mail enviado", {
         usuarioId,
-        emailPreview: safePreview(email),
-        frontendBase: getFrontendBaseFromRequest(req),
       });
     } catch (mailErr) {
       console.error(
         "[authUsuarioController.recuperarSenha] erro ao enviar e-mail",
-        {
-          message: mailErr?.message,
-          emailPreview: safePreview(email),
-          usuarioId,
-          frontendBase: getFrontendBaseFromRequest(req),
-        },
+        authErrorForLog(mailErr),
       );
     }
 
     return res.status(200).json(respostaIdempotente);
   } catch (err) {
-    console.error("[authUsuarioController.recuperarSenha] ERRO", {
-      message: err?.message,
-      code: err?.code,
-      detail: err?.detail,
-      constraint: err?.constraint,
-      emailPreview: safePreview(email),
-    });
+    console.error("[authUsuarioController.recuperarSenha] ERRO", authErrorForLog(err));
 
     return res.status(200).json(respostaIdempotente);
   }
@@ -986,8 +962,7 @@ async function redefinirSenha(req, res) {
 
     if (typ !== "pwd-reset" || !usuarioId) {
       console.warn("[authUsuarioController.redefinirSenha] token inválido", {
-        usuarioId: usuarioId || null,
-        typ: typ || null,
+        code: "AUTH-400-TOKEN-INVALIDO",
       });
 
       return res.status(400).json({
@@ -1013,7 +988,7 @@ async function redefinirSenha(req, res) {
       console.warn(
         "[authUsuarioController.redefinirSenha] usuário do token não encontrado",
         {
-          usuarioId,
+          code: "AUTH-400-TOKEN-INVALIDO",
         },
       );
 
@@ -1025,7 +1000,7 @@ async function redefinirSenha(req, res) {
     }
 
     console.log("[authUsuarioController.redefinirSenha] senha redefinida", {
-      usuarioId,
+      usuarioId: Number.isInteger(Number(usuarioId)) && Number(usuarioId) > 0 && Number(usuarioId) <= 2147483647 ? Number(usuarioId) : null,
     });
 
     return res.status(200).json({
@@ -1034,10 +1009,7 @@ async function redefinirSenha(req, res) {
       message: "Senha atualizada com sucesso.",
     });
   } catch (err) {
-    console.error("[authUsuarioController.redefinirSenha] ERRO", {
-      message: err?.message,
-      name: err?.name,
-    });
+    console.error("[authUsuarioController.redefinirSenha] ERRO", authErrorForLog(err));
 
     return res.status(400).json({
       ok: false,

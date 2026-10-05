@@ -71,20 +71,21 @@ function mkRid(prefix = "AUTH") {
 
 function log(rid, level, message, extra) {
   const prefix = `[AUTH][RID=${rid}]`;
+  const safeExtra = {
+    usuarioId: Number.isInteger(extra?.usuarioId) && extra.usuarioId > 0 && extra.usuarioId <= 2147483647 ? extra.usuarioId : null,
+    perfil: PERFIS_OFICIAIS.has(extra?.perfil) ? extra.perfil : null,
+  };
 
   if (level === "error") {
-    return console.error(
-      `${prefix} ✖ ${message}`,
-      extra?.stack || extra?.message || extra,
-    );
+    return console.error(`${prefix} ✖ ${message}`, { code: "AUTH_LOGIN_FAILURE" });
   }
 
   if (!IS_PROD) {
     if (level === "warn") {
-      return console.warn(`${prefix} ⚠ ${message}`, extra || "");
+      return console.warn(`${prefix} ⚠ ${message}`, safeExtra);
     }
 
-    return console.log(`${prefix} • ${message}`, extra || "");
+    return console.log(`${prefix} • ${message}`, safeExtra);
   }
 
   return undefined;

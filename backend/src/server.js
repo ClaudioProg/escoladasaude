@@ -474,16 +474,52 @@ app.use((req, _res, next) => {
    Logger
 ────────────────────────────────────────────────────────────── */
 
-morgan.token("rid", (req) => req.requestId || "-");
-morgan.token("ip", (req) => getClientIp(req));
+function isAuthLogRequest(req) {
+  let path;
+  try { path = req?.path; } catch { /* Fallback para requisições sem path interpretável. */ }
+  if (typeof path !== "string" || !path.startsWith("/")) {
+    const raw = req?.originalUrl || req?.url || "";
+    path = typeof raw === "string" ? raw.split(/[?#]/, 1)[0]
+      .replace(/^(?:[a-z][a-z0-9+.-]*:)?\/\/[^/]+/i, "") : "";
+  }
+  return /^\/api\/(?:auth|login|perfil|conta\/exclusao)(?:\/|$)/i.test(path.split(/[?#]/, 1)[0]);
+}
+
+function safeErrorMetadata(error, requestId) {
+  const names = ["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError", "URIError", "EvalError", "AggregateError", "AuthSessionError", "UnauthorizedError"];
+  const code = error?.code;
+  const technicalCode = typeof code === "string" && /^[A-Z0-9_:-]{1,64}$/.test(code)
+    && !/(?<!\d)\d{10,13}(?!\d)|[A-Z0-9]{32,}/.test(code);
+  let location = null;
+  if (typeof error?.stack === "string") {
+    // A primeira linha contém a mensagem. Nunca emitir um frame ou caminho completo.
+    const frame = error.stack.split(/\r?\n/).slice(1).find((line) => /^\s*at\s/.test(line));
+    const match = frame?.match(/(?:^|[\\/\s(])([A-Za-z0-9_-]{1,64}\.(?:[cm]?js|[jt]sx?)):(\d{1,7}):(\d{1,7})\)?$/);
+    if (match && !/\d{10,13}|[A-Za-z0-9_-]{32,}/.test(match[1])) location = `${match[1]}:${match[2]}:${match[3]}`;
+  }
+  return {
+    name: names.includes(error?.name) ? error.name : null,
+    code: technicalCode ? code : null,
+    location,
+    requestId: typeof requestId === "string" && /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(requestId) ? requestId : null,
+  };
+}
+
+morgan.token("rid", (req) => isAuthLogRequest(req) ? "-" : req.requestId || "-");
+morgan.token("ip", (req) => isAuthLogRequest(req) ? "-" : getClientIp(req));
 morgan.token("uid", (req) => {
   const id = req?.user?.id;
+  if (isAuthLogRequest(req)) return Number.isInteger(id) && id > 0 && id <= 2147483647 ? String(id) : "-";
   return id != null ? String(id) : "-";
 });
+morgan.token("safe-url", (req) => isAuthLogRequest(req) ? "[AUTH_ROUTE]" : req.originalUrl || req.url);
+morgan.token("safe-method", (req) => isAuthLogRequest(req)
+  ? (["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].includes(req.method) ? req.method : "-")
+  : req.method);
 
 app.use(
   morgan(
-    ":date[iso] :ip :rid :uid :method :url :status :res[content-length] - :response-time ms",
+    ":date[iso] :ip :rid :uid :safe-method :safe-url :status :res[content-length] - :response-time ms",
     {
       skip: () => process.env.LOG_HTTP === "false",
     },
@@ -492,7 +528,10 @@ app.use(
 
 if (IS_DEV && safeBooleanEnv("DEBUG_REQUESTS", true)) {
   app.use((req, _res, next) => {
-    console.log("[DEV-REQ]", {
+    console.log("[DEV-REQ]", isAuthLogRequest(req) ? {
+      scope: "auth",
+      hasAuth: Boolean(req.headers.authorization),
+    } : {
       rid: req.requestId,
       method: req.method,
       url: req.url,
@@ -716,15 +755,10 @@ app.use((err, req, res, _next) => {
   const status = err?.status || err?.statusCode || 500;
 
   console.error("[ERROR]", {
-    rid: req?.requestId,
-    status,
-    method: req?.method,
-    url: req?.originalUrl || req?.url,
-    userId: req?.user?.id ?? null,
-    perfil: req?.user?.perfil ?? null,
-    message: err?.message,
-    code: err?.code,
-    stack: IS_DEV ? err?.stack : undefined,
+    event: "ERROR",
+    scope: isAuthLogRequest(req) || (typeof err?.code === "string" && err.code.startsWith("AUTH_SESSION_")) ? "auth" : "request",
+    status: Number.isInteger(status) && status >= 100 && status <= 599 ? status : 500,
+    ...safeErrorMetadata(err, req?.requestId),
   });
 
   const message = IS_DEV
@@ -789,9 +823,9 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 process.on("unhandledRejection", (reason) => {
-  console.error("[UNHANDLED_REJECTION]", reason);
+  console.error("[UNHANDLED_REJECTION]", { event: "UNHANDLED_REJECTION", ...safeErrorMetadata(reason) });
 });
 
 process.on("uncaughtException", (error) => {
-  console.error("[UNCAUGHT_EXCEPTION]", error);
+  console.error("[UNCAUGHT_EXCEPTION]", { event: "UNCAUGHT_EXCEPTION", ...safeErrorMetadata(error) });
 });

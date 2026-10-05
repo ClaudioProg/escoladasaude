@@ -135,6 +135,26 @@ function shrinkWhitespace(sql) {
     .trim();
 }
 
+function sensitiveSql(sql) {
+  // Conservador: consultas de identidade/auth nunca expõem parâmetros.
+  return /\b(?:auth_[a-z0-9_]+|usuarios|auditoria_eventos|senha|password|cpf|email|email_version|celular|data_nascimento|token|token_hash|authorization|cookie|csrf|mfa|outbox)\b/i.test(sql);
+}
+
+function sqlForLog(sql) {
+  // Não imprimir literais, comentários ou SQL dollar-quoted que possam conter input.
+  if (/["']|--|\/\*|\$(?:[a-z_][a-z0-9_]*)?\$|(?<!\d)\d{10,13}(?!\d)/i.test(sql)) return "[REDACTED_SQL_TEXT]";
+  return shrinkWhitespace(sql);
+}
+
+function postgresCodeForLog(code) {
+  return typeof code === "string" && /^[0-9A-Z]{5}$/.test(code) ? code : null;
+}
+
+function identifierForLog(value) {
+  return typeof value === "string" && /^[a-z_][a-z0-9_]{0,62}$/.test(value)
+    ? redactValue(value) : null;
+}
+
 function redactValue(value, depth = 0) {
   if (value === null || value === undefined) {
     return value;
@@ -163,7 +183,16 @@ function redactValue(value, depth = 0) {
       return "[REDACTED_DATA_URL]";
     }
 
-    if (/^eyJ[A-Za-z0-9_\-]+=*\./.test(text)) {
+    if (text.length > 120) return "[REDACTED_LONG_STRING]";
+    if (/\$2[aby]\$|\$argon2(?:id|i|d)\$/i.test(text)) return "[REDACTED_HASH]";
+    if (/[^\s@]+@[^\s@]+/.test(text)) return "[REDACTED_EMAIL]";
+    // Underscore/letras não delimitam PII; apenas dígitos adjacentes limitam o padrão.
+    if (/(?<!\d)(?:\d{3}\.\d{3}\.\d{3}-\d{2}|\d{10,13})(?!\d)/.test(text)
+      || /(?<!\d)(?:\+?55[ .-]?)?\(?\d{2}\)?[ .-]?\d{4,5}[ .-]\d{4}(?!\d)/.test(text)) return "[REDACTED_PERSONAL_NUMBER]";
+    // Datas com underscore exigem dia/mês plausíveis, sem validar o calendário completo.
+    if (/(?<!\d)(?:\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4}|(?:0[1-9]|[12]\d|3[01])_(?:0[1-9]|1[0-2])_\d{4})(?!\d)/.test(text)) return "[REDACTED_DATE]";
+
+    if (/eyJ[A-Za-z0-9_\-]+=*\.[A-Za-z0-9_-]+=*\.[A-Za-z0-9_-]+/.test(text)) {
       return "[REDACTED_TOKEN]";
     }
 
@@ -171,9 +200,7 @@ function redactValue(value, depth = 0) {
       return "[REDACTED_BEARER_TOKEN]";
     }
 
-    if (text.length > 120) {
-      return "[REDACTED_LONG_STRING]";
-    }
+    if (/[A-Za-z0-9_-]{32,}/.test(text)) return "[REDACTED_OPAQUE_TOKEN]";
 
     return text;
   }
@@ -187,28 +214,45 @@ function redactValue(value, depth = 0) {
 
     for (const [key, item] of Object.entries(value)) {
       const normalizedKey = String(key).toLowerCase();
+      const safeKey = redactValue(key, depth + 1);
 
       if (
         normalizedKey.includes("senha") ||
         normalizedKey.includes("password") ||
         normalizedKey.includes("token") ||
         normalizedKey.includes("authorization") ||
+        normalizedKey.includes("cookie") ||
+        normalizedKey.includes("secret") ||
+        normalizedKey.includes("segredo") ||
+        normalizedKey.includes("csrf") ||
+        normalizedKey.includes("mfa") ||
+        normalizedKey.includes("outbox") ||
+        normalizedKey.includes("cpf") ||
+        normalizedKey.includes("email") ||
+        normalizedKey.includes("celular") ||
+        normalizedKey.includes("phone") ||
+        normalizedKey.includes("nascimento") ||
+        normalizedKey.includes("birth") ||
         normalizedKey.includes("assinatura") ||
         normalizedKey.includes("base64")
       ) {
-        safe[key] = "[REDACTED]";
+        safe[safeKey] = "[REDACTED]";
       } else {
-        safe[key] = redactValue(item, depth + 1);
+        safe[safeKey] = redactValue(item, depth + 1);
       }
     }
 
     return safe;
   }
 
+  if (typeof value === "number" && Number.isInteger(value) && /^\d{10,13}$/.test(String(value))) {
+    return "[REDACTED_PERSONAL_NUMBER]";
+  }
   return value;
 }
 
-function redactParams(params) {
+function redactParams(params, sql) {
+  if (sensitiveSql(sql)) return "[REDACTED_SENSITIVE_PARAMS]";
   if (!Array.isArray(params)) {
     return params;
   }
@@ -241,8 +285,7 @@ const pool = new Pool({
 
 pool.on("error", (err) => {
   console.error("🔴 [db] Erro inesperado no pool:", {
-    message: err?.message,
-    code: err?.code,
+    code: postgresCodeForLog(err?.code),
   });
 });
 
@@ -289,8 +332,8 @@ async function executeQuery(clientOrPool, text, params = []) {
   try {
     if (shouldLogSql()) {
       console.log("🔎 [db][sql]", {
-        text: shrinkWhitespace(sql),
-        params: redactParams(normalizedParams),
+        text: sqlForLog(sql),
+        params: redactParams(normalizedParams, sql),
       });
     }
 
@@ -299,8 +342,8 @@ async function executeQuery(clientOrPool, text, params = []) {
 
     if (shouldLogSlowSql() && elapsed >= getSlowSqlThresholdMs()) {
       console.warn(`🐢 [db][slow ${elapsed}ms]`, {
-        text: shrinkWhitespace(sql),
-        params: redactParams(normalizedParams),
+        text: sqlForLog(sql),
+        params: redactParams(normalizedParams, sql),
         rowCount: result?.rowCount ?? null,
       });
     }
@@ -311,15 +354,12 @@ async function executeQuery(clientOrPool, text, params = []) {
 
     console.error("🔴 [db][query-error]", {
       ms: elapsed,
-      code: err?.code,
-      message: err?.message,
-      detail: err?.detail,
-      hint: err?.hint,
-      constraint: err?.constraint,
-      table: err?.table,
-      column: err?.column,
-      text: shrinkWhitespace(sql),
-      params: redactParams(normalizedParams),
+      code: postgresCodeForLog(err?.code),
+      constraint: identifierForLog(err?.constraint),
+      table: identifierForLog(err?.table),
+      column: identifierForLog(err?.column),
+      text: sqlForLog(sql),
+      params: redactParams(normalizedParams, sql),
     });
 
     throw err;
@@ -425,8 +465,7 @@ async function tx(callback) {
       await client.query("ROLLBACK");
     } catch (rollbackErr) {
       console.error("🔴 [db] Falha no ROLLBACK:", {
-        message: rollbackErr?.message,
-        code: rollbackErr?.code,
+        code: postgresCodeForLog(rollbackErr?.code),
       });
     }
 

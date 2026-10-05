@@ -277,8 +277,6 @@ async function registrarAuditoria(params = {}, executor) {
       {
         code: validacao.code,
         message: validacao.message,
-        acao,
-        modulo,
       },
     );
 
@@ -394,13 +392,8 @@ async function registrarAuditoria(params = {}, executor) {
     };
   } catch (error) {
     console.error("[auditoriaService] Falha ao registrar auditoria:", {
-      message: error.message,
-      code: error.code,
-      acao: auditoria.acao,
-      modulo: auditoria.modulo,
-      entidade: auditoria.entidade,
-      entidade_id: auditoria.entidade_id,
-      request_id: auditoria.request_id,
+      code: "AUDITORIA_FALHA_REGISTRO",
+      dbCode: typeof error?.code === "string" && /^[0-9A-Z]{5}$/.test(error.code) ? error.code : null,
     });
 
     if (critica) {

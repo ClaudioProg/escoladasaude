@@ -47,7 +47,7 @@ const JWT_AUD = process.env.JWT_AUDIENCE || undefined;
 ────────────────────────────────────────────────────────────── */
 
 if (!db || typeof db.query !== "function") {
-  console.error("[authMiddleware] db.query inválido:", db);
+  console.error("[authMiddleware] db.query inválido.");
   throw new Error("Contrato inválido: backend/src/db deve exportar query.");
 }
 
@@ -57,12 +57,10 @@ if (!db || typeof db.query !== "function") {
 
 function buildAuthLog(req, extra = {}) {
   return {
-    requestId: req.requestId || null,
-    method: req.method,
-    url: req.originalUrl,
-    ip: req.ip,
-    userAgent: req.headers?.["user-agent"] || null,
-    ...extra,
+    userId: Number.isInteger(extra.userId) && extra.userId > 0 && extra.userId <= 2147483647 ? extra.userId : null,
+    reason: ["invalid_id", "not_found", "deleted", "invalid_profile"].includes(extra.reason) ? extra.reason : null,
+    perfil: PERFIS_OFICIAIS.has(extra.perfil) ? extra.perfil : null,
+    code: typeof extra.code === "string" && /^[0-9A-Z]{5}$/.test(extra.code) ? extra.code : null,
   };
 }
 
@@ -259,7 +257,7 @@ async function authenticateRequest(req, res) {
       console.warn(
         "[authMiddleware] payload JWT fora do contrato oficial",
         buildAuthLog(req, {
-          decodedKeys: decoded ? Object.keys(decoded) : [],
+          invalidPayload: true,
         }),
       );
 
@@ -358,10 +356,7 @@ async function authenticateRequest(req, res) {
     console.error(
       "[authMiddleware] falha inesperada na autenticação",
       buildAuthLog(req, {
-        errorName: error?.name,
-        errorMessage: error?.message,
-        errorCode: error?.code,
-        errorConstraint: error?.constraint,
+        code: error?.code,
       }),
     );
 
