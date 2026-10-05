@@ -242,8 +242,9 @@ function validarCamposObrigatorios({ acao, modulo }) {
  * @param {string} [params.mensagem] - Mensagem compreensível.
  * @param {string} [params.admin_hint] - Diagnóstico técnico controlado.
  * @param {boolean} [params.critica=false] - Se true, relança erro em falha de auditoria.
+ * @param {Object} [executor] - Executor com query(sql, params); omitido usa o pool global.
  */
-async function registrarAuditoria(params = {}) {
+async function registrarAuditoria(params = {}, executor) {
   const {
     req = null,
     usuario_id = null,
@@ -316,7 +317,14 @@ async function registrarAuditoria(params = {}) {
   };
 
   try {
-    const { rows } = await pool.query(
+    const executorConsulta = arguments.length > 1 ? executor : pool;
+    if (!executorConsulta || typeof executorConsulta.query !== "function") {
+      const erro = new Error("Executor de auditoria inválido.");
+      erro.code = "AUDITORIA_EXECUTOR_INVALIDO";
+      throw erro;
+    }
+
+    const { rows } = await executorConsulta.query(
       `
         INSERT INTO auditoria_eventos (
           usuario_id,
