@@ -1,13 +1,13 @@
 # Testes e evidências de fechamento
 
 Atualização documental: 2026-10-08. Último commit funcional de referência:
-`1cbff88b5582308f68183fd96774f50256b17987`, anterior a esta atualização documental.
+`665b3de7002748412d0942d124c6e501f1c2ac3d`, anterior a esta atualização documental.
 
 ## Origem e limites
 
 Os resultados abaixo registram fechamentos informados e aprovados pelo responsável
 nas etapas anteriores, incluindo a consolidação explícita da Etapa 04 e as
-validações locais da Etapa 05. Arquivos e
+validações locais das Etapas 05 e 06. Arquivos e
 commits foram conferidos no repositório. Resultados de banco são **históricos do
 clone**, não nova consulta nem prova de produção. Testes não foram reexecutados
 na etapa exclusivamente documental. Não há logs brutos ou dados pessoais aqui.
@@ -131,6 +131,62 @@ São evidências locais; **não provam produção**. Upgrade bcrypt → Argon2id
 persistido; Argon2id com `needsRehash` também não persistiu rehash. Nenhum desses
 resultados fecha a concorrência login/reset ou o futuro fluxo seguro de troca.
 Os testes não foram reexecutados nesta sincronização exclusivamente documental.
+
+## ETAPA 06 — PONTE DE auth_version
+
+Commit funcional: `665b3de7002748412d0942d124c6e501f1c2ac3d`.
+
+Validação final de fechamento, incluindo os dois mismatches strict na matriz
+versionada do middleware:
+
+| Grupo | Resultado |
+| --- | --- |
+| [authVersion](../../backend/src/auth/authVersion.test.js) | 18/18 |
+| [generateToken](../../backend/src/auth/generateToken.test.js) | 26/26 |
+| [authMiddleware](../../backend/src/auth/authMiddleware.test.js) | 71/71 |
+| [loginController](../../backend/src/controllers/loginController.test.js) | 48/48 |
+| [authGoogle](../../backend/src/auth/authGoogle.test.js) | 26/26 |
+| [safeAuthLogging](../../backend/test/safeAuthLogging.test.js) | 27/27 |
+| [passwordService](../../backend/src/services/passwordService.test.js) | 13/13 |
+| [authSessionService](../../backend/src/services/authSessionService.test.js) | 35/35 |
+| [authSessionMiddleware](../../backend/src/auth/authSessionMiddleware.test.js) | 5/5 |
+| Total focado | **269/269** |
+| Suíte backend completa | **565/565** |
+
+`node --check`: **11/11**; `git diff --check`: aprovado no fechamento funcional.
+Os testes não foram reexecutados nesta sincronização exclusivamente documental.
+
+### Evidências comprovadas
+
+- `bridge`: sem claim/DB1 aceita; sem claim/DB>1 rejeita.
+- `strict`: ausência de claim rejeita; mismatches claim1/DB2 e claim2/DB1
+  rejeitam com 401, `AUTH-401-SESSAO-INVALIDA`, erro "Sessão inválida.",
+  `autenticado: false` e `sessionExpired: true`, sem publicar identidade.
+- Claims presentes inválidas e configuração ausente/inválida: fail-closed.
+- `auth_version` inválido no banco: falha operacional 500; Google também
+  distingue esse caso como erro interno.
+- Login local e Google leem a versão na query já existente e a encaminham ao
+  issuer; zero round trips adicionais.
+- Rollback de **FORMATO** comprovado: middleware antigo ignora claim adicional;
+  novo middleware em `bridge` aceita token antigo sem claim somente sob DB=1.
+  Voltar ao middleware antigo perde a proteção por `auth_version`.
+- Concorrência: token emitido com versão antiga é rejeitado quando o middleware
+  observa nova versão. Essa prova não fecha a interação concorrente login/reset.
+- Logs: nenhuma versão/token/PII expostos nos caminhos testados; motivo seguro
+  `version_mismatch` nos mismatches.
+- Writers: nenhum writer de `auth_version` introduzido.
+
+### Limites da evidência
+
+- Nenhum PostgreSQL real foi acessado na Etapa 06; a presença da coluna no
+  ambiente de produção **não foi comprovada**.
+- Nenhuma migration foi criada/modificada; nenhum writer incrementa
+  `auth_version`.
+- Reset legado continua sem invalidar access JWT por versão; sessão opaca não
+  é invalidada apenas por `auth_version`.
+- D8 continua aberta para o cutover `bridge → strict`.
+- Não houve deploy. Evidência local não equivale a produção e não comprova
+  que `AUTH_VERSION_MODE` esteja configurado nesse ambiente.
 
 ## PENDÊNCIA — evidência de produção
 

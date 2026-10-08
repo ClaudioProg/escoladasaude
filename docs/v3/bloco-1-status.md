@@ -2,7 +2,7 @@
 
 Atualização documental: 2026-10-08. Branch: `revisao-premium-bloco-1-auth`.
 Último commit funcional de referência:
-`1cbff88b5582308f68183fd96774f50256b17987`, base funcional anterior a esta
+`665b3de7002748412d0942d124c6e501f1c2ac3d`, base funcional anterior a esta
 atualização documental; não é o SHA do futuro commit documental.
 
 ## FECHADO / versionado na branch
@@ -26,18 +26,44 @@ Fechamento de uma fundação não significa integração completa do contrato V3
 | Etapa 04 — baseline documental | `3247b3d305234414a493e60097d1bae8e0b238d1` | Registro do estado, decisões, legado, migrations e evidências do Bloco 1. |
 | MANUTENÇÃO MIGRATIONS | `dd0722b54a3837994eda44ae7434179db1ccbca1` | Teste de inventário oficial atualizado para incluir a migration de 2026-10-02; runner e migrations inalterados; suíte backend 402/402 após correção. Não é etapa funcional da V3. |
 | ETAPA 05 — LOGIN COM VERIFICADOR MISTO | `1cbff88b5582308f68183fd96774f50256b17987` | Login usa `passwordService/verifyPassword`, aceita bcrypt legado e Argon2id e remove bcrypt direto do controller. Credenciais inválidas usam texto canônico e piso total mínimo de 250 ms; `requiresPasswordChange` bloqueia acesso normal com 403. Sem writer de upgrade bcrypt ou rehash Argon2id; JWT/perfil/sessão/cookie de transição preservados. |
+| ETAPA 06 — PONTE DE auth_version NO ACCESS JWT | `665b3de7002748412d0942d124c6e501f1c2ac3d` | Novos access JWTs locais e Google levam auth_version; middleware Bearer compara token × banco em bridge/strict, com configuração obrigatória e fail-closed. Sem writer de versão; sessão/cookie e JWTs especializados preservados; D8 pendente. |
+
+### Alcance comprovado da Etapa 06
+
+- Novos access JWTs emitidos pelo login local e Google carregam a claim
+  `auth_version` como número JSON inteiro estrito entre 1 e 2147483647.
+- `generateToken` exige `auth_version` válido; `authMiddleware` compara a
+  versão efetiva do token com `usuarios.auth_version`.
+- `AUTH_VERSION_MODE` aceita somente `bridge` ou `strict`; configuração
+  ausente/inválida falha fechado.
+- `bridge` aceita token realmente sem claim como versão 1 somente quando
+  o banco também está em 1; `strict` rejeita token sem claim.
+- Claim presente inválida nunca é tratada como legado. Mismatch retorna
+  sessão inválida 401; versão inválida no banco é falha operacional 500.
+- Google diferencia versão inválida no banco como erro interno 500.
+- Logs usam apenas motivos seguros, sem valores de versão nos caminhos testados.
+- JWTs especializados permaneceram fora da ponte; sessão/cookie ficaram intactos.
+- Nenhum writer de `auth_version` foi ativado. D8 continua pendente para o
+  momento de `bridge → strict`.
 
 ## PARCIAL
 
-- Login local já usa o verificador misto e cria sessão/cookie de transição;
-  continua emitindo JWT legado e preservando o perfil único legado.
+- Login local já usa o verificador misto e cria sessão/cookie de transição.
+  `auth_version` já governa os access JWTs emitidos pelos fluxos local e Google
+  e validados pelo middleware Bearer; access JWT/Bearer segue transitório,
+  com perfil único legado ativo.
+- Tokens antigos realmente sem claim são compatíveis somente em `bridge`,
+  sob a regra de versão inicial 1 no token e no banco. D8 determina o cutover
+  `bridge → strict`; isso não comprova configuração nem uso em produção.
 - Writer automático bcrypt → Argon2id e rehash Argon2id ainda não estão ativos.
   O fluxo seguro de troca obrigatória precisa ser implementado antes do cutover;
   concorrência login/reset permanece para etapa posterior.
 - Middleware de sessão publica `{ id, perfis, areaAtiva, sessionId }`; isso não
   prova uso desse contrato em todas as rotas/clientes.
 - Campos `auth_version`/`email_version` e desafios existem no SQL expand;
-  `auth_version` ainda não governa JWT no emissor/middleware legado inspecionados.
+  nenhum writer operacional incrementa `auth_version`. Reset legado, writers
+  de senha/e-mail e demais operações críticas ainda precisam ser conectados
+  à invalidação; sessão opaca continua mecanismo independente.
 - Revogação e auditoria aceitam o mesmo executor; fluxos críticos futuros ainda
   precisam compor sua transação e consumir desafios/histórico/outbox.
 - Confirmação institucional, recuperação V3 e histórico de senhas têm estrutura;
@@ -56,15 +82,18 @@ deduzida da presença desses arquivos na branch.
 
 ## A FAZER
 
-- **Próxima etapa: 06 — ponte de auth_version.** Integrar versionamento de
-  autenticação à ponte JWT de forma compatível com o legado, sem cutover prematuro.
-  A implementação e a necessidade de banco serão determinadas em preflight próprio.
-- Integrar writers de senha à política/histórico/auditoria/revogação.
+- **Próxima etapa funcional: 07 — concorrência login/reset.** Endurecer a
+  interação entre autenticação e alteração/reset de credenciais para impedir
+  emissão/uso inconsistente de credenciais durante concorrência.
+  A solução e a necessidade de banco serão determinadas em preflight próprio.
+- Integrar writers que incrementam `auth_version`, inclusive senha/e-mail,
+  à política/histórico/auditoria/revogação.
+- Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
 - Outbox dedicada, rate limit PostgreSQL, retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
-- Preparar a ponte/cutover com evidência de compatibilidade e preflight de produção.
+- Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–05 estão fechadas/versionadas na branch; isso não comprova produção.
+Etapas 01–06 estão fechadas/versionadas na branch; isso não comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).
