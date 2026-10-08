@@ -31,6 +31,8 @@ const CANONICAL_2026 =
   "db/migrations/2026-08-07-auth-perfis-independentes-expand.sql";
 const CANONICAL_PRE_TESTE =
   "db/migrations/2026-08-20-pre-teste-evento.sql";
+const CANONICAL_AUTH_EMAIL_RECUPERACAO =
+  "db/migrations/2026-10-02-auth-email-recuperacao-senha-expand.sql";
 const SHA_2026 =
   "0086dae4d66ba9f80663f31eb06d7517f78d5e72c6c8415ebf8e4e6f33ebd1d9";
 const ROOT_GIT_ATTRIBUTES = path.resolve(BACKEND_ROOT, "..", ".gitattributes");
@@ -406,6 +408,7 @@ test("--dir aceita somente a arvore oficial", async () => {
       CANONICAL_2026,
       CANONICAL_PRE_TESTE,
       "db/migrations/2026-08-25-auth-sessoes-contexto-expand.sql",
+      CANONICAL_AUTH_EMAIL_RECUPERACAO,
     ],
   );
 
