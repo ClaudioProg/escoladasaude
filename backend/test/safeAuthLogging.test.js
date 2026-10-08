@@ -21,7 +21,7 @@ const SENTINELS = [PASSWORD, BCRYPT, ARGON2, EMAIL, CPF, JWT, TOKEN, "a@b.co", "
   "11999998888", "22/11/2025", "22-11-2025", "2025-11-22", "Bearer abcdefghijklmnopqrstuvwxyz0123456789",
   "cpf_12345678909", "celular_11999998888", "nascimento_22/11/2025", "(11) 99999-8888",
   "cpf_12345678909_unique", "usuario-secreto", "C:\\Users\\", "/home/usuario-secreto/",
-  "22_11_2025", "nascimento_22_11_2025", "nascimento_22_11_2025_check", "data_05_10_2026_idx"];
+  "22_11_2025", "nascimento_22_11_2025", "nascimento_22_11_2025_check", "data_05_10_2026_idx", "2000000001", "2000000002"];
 const captured = [];
 
 function load(t, relativePath, dependencies, env = {}, extras = {}) {
@@ -36,6 +36,9 @@ function load(t, relativePath, dependencies, env = {}, extras = {}) {
     process: { env: { NODE_ENV: "production", ...env } },
     require(request) {
       if (Object.hasOwn(dependencies, request)) return dependencies[request];
+      if (["./authVersion", "../auth/authVersion"].includes(request)) {
+        return load(t, "src/auth/authVersion.js", {}, env).api;
+      }
       throw new Error(`Dependência externa proibida no teste: ${request}`);
     },
     ...extras,
@@ -379,7 +382,7 @@ function sensitiveRequest() {
 
 test("AUTH LOGIN: erro externo e notificação não vazam; resposta/token e next preservados", async (t) => {
   const original = Object.assign(new Error(SENTINELS.join(" ")), { code: TOKEN });
-  const user = { id: 7, email: EMAIL, cpf: "12345678909", senha: BCRYPT, perfil: "usuario" };
+  const user = { id: 7, email: EMAIL, cpf: "12345678909", senha: BCRYPT, perfil: "usuario", auth_version: 1 };
   const dependencies = {
     "node:perf_hooks": { performance }, "../services/passwordStructure": passwordStructure,
     "../services/passwordService": { PasswordServiceError: passwordStructure.PasswordServiceError,
@@ -441,7 +444,7 @@ test("AUTH GOOGLE: e-mail em sucesso/rejeições e erro de provedor ficam fora d
     const router = { post(route, callback) { assert.equal(route, "/google"); handler = callback; } };
     const original = new Error(SENTINELS.join(" "));
     const user = { id: 7, email: EMAIL, cpf: CPF, perfil: scenario === "invalid_profile" ? TOKEN : "usuario",
-      deleted_at: scenario === "deleted" ? new Date() : null };
+      deleted_at: scenario === "deleted" ? new Date() : null, auth_version: 1 };
     const { logs } = load(t, "src/auth/authGoogle.js", {
       express: { Router: () => router }, "../db": { query: async () => ({ rows: scenario === "missing" ? [] : [user] }) },
       "./generateToken": () => JWT, "google-auth-library": { OAuth2Client: class {
@@ -457,14 +460,73 @@ test("AUTH GOOGLE: e-mail em sucesso/rejeições e erro de provedor ficam fora d
   }
 });
 
+
+test("AUTH VERSION: reasons seguros sem token/payload/PII/config ou numeros de versao", async (t) => {
+  for (const scenario of ["claim", "db", "mismatch", "config"]) {
+    const expectedReason = { claim: "invalid_version_claim", db: "invalid_db_auth_version",
+      mismatch: "version_mismatch", config: "invalid_auth_version_mode" }[scenario];
+    const decoded = { sub: "7", perfil: "usuario", email: EMAIL, senha: PASSWORD,
+      auth_version: scenario === "claim" ? EMAIL : 2000000001 };
+    const user = { id: 7, perfil: "usuario", auth_version: scenario === "db" ? EMAIL : 2000000002 };
+    let queries = 0;
+    const { api, logs } = load(t, "src/auth/authMiddleware.js", {
+      jsonwebtoken: { verify: () => decoded },
+      "../db": { query: async () => { queries += 1; return { rows: [user] }; } },
+    }, { NODE_ENV: "development", JWT_SECRET: "synthetic-secret",
+      AUTH_VERSION_MODE: scenario === "config" ? EMAIL : "bridge" });
+    const res = response();
+    const req = sensitiveRequest();
+    await api.authenticateRequest(req, res);
+    assert.equal(res.statusCode, ["db", "config"].includes(scenario) ? 500 : 401);
+    assert.equal(queries, ["claim", "config"].includes(scenario) ? 0 : 1);
+    assert.ok(logs.some(log => log.args[1]?.reason === expectedReason));
+    assert.equal(Object.hasOwn(req, "user"), false);
+    cleanLogs(logs);
+  }
+});
+
+test("AUTH VERSION: DB invalido nos emissores nao expoe valor ou cria acesso", async (t) => {
+  const user = { id: 7, email: EMAIL, cpf: "12345678909", senha: BCRYPT, perfil: "usuario", auth_version: EMAIL };
+  const local = load(t, "src/controllers/loginController.js", {
+    "node:perf_hooks": { performance }, "../services/passwordStructure": passwordStructure,
+    "../services/passwordService": { PasswordServiceError: passwordStructure.PasswordServiceError,
+      verifyPassword: async () => ({ authenticated: true, requiresPasswordChange: false }) },
+    "../db": { query: async () => ({ rows: [user] }) },
+    "../auth/generateToken": assert.fail, "./notificacaoController": { gerarNotificacaoDeAvaliacao: assert.fail },
+    "../services/authSessionService": { createAuthSessionService: assert.fail },
+    "../auth/authSessionMiddleware": { sessionCookieName: assert.fail, sessionCookieOptions: assert.fail },
+  }, { NODE_ENV: "development", AUTH_VERSION_MODE: "bridge" });
+  const localRes = response();
+  await local.api.loginUsuario(sensitiveRequest(), localRes, assert.fail);
+  assert.equal(localRes.statusCode, 500);
+  assert.equal(localRes.body.code, "AUTH-500-LOGIN");
+  assert.equal(local.logs[0].args[1].diagnostic, "invalid_db_auth_version");
+  cleanLogs(local.logs);
+
+  let handler;
+  const google = load(t, "src/auth/authGoogle.js", {
+    express: { Router: () => ({ post(route, callback) { handler = callback; } }) },
+    "../db": { query: async () => ({ rows: [user] }) }, "./generateToken": assert.fail,
+    "google-auth-library": { OAuth2Client: class {
+      async verifyIdToken() { return { getPayload: () => ({ email: EMAIL, email_verified: true }) }; }
+    } },
+  }, { NODE_ENV: "development", GOOGLE_CLIENT_ID: "synthetic-client", AUTH_VERSION_MODE: "bridge" });
+  const googleRes = response();
+  await handler(sensitiveRequest(), googleRes);
+  assert.equal(googleRes.statusCode, 500);
+  assert.equal(googleRes.body.code, "AUTH-GOOGLE-500-FALHA-INTERNA");
+  assert.ok(google.logs.some(log => log.args[1]?.reason === "invalid_db_auth_version"));
+  cleanLogs(google.logs);
+});
+
 test("AUTH MIDDLEWARE: URL/headers/claims/erro externo não aparecem nos logs", async (t) => {
   for (const scenario of ["missing", "invalid_payload", "blocked", "error", "admin_denied"]) {
     const original = Object.assign(new Error(SENTINELS.join(" ")), { code: TOKEN, constraint: EMAIL });
     const { api, logs } = load(t, "src/auth/authMiddleware.js", {
       jsonwebtoken: { verify: () => scenario === "invalid_payload" ? { [EMAIL]: TOKEN } : { sub: "7", perfil: "usuario" } },
       "../db": { query: async () => { if (scenario === "error") throw original;
-        return { rows: scenario === "blocked" ? [] : [{ id: 7, perfil: "usuario" }] }; } },
-    }, { NODE_ENV: "development", JWT_SECRET: "synthetic-secret" });
+        return { rows: scenario === "blocked" ? [] : [{ id: 7, perfil: "usuario", auth_version: 1 }] }; } },
+    }, { NODE_ENV: "development", JWT_SECRET: "synthetic-secret", AUTH_VERSION_MODE: "bridge" });
     const req = sensitiveRequest();
     if (scenario === "missing") delete req.headers.authorization;
     const res = response();

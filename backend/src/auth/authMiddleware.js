@@ -11,7 +11,8 @@
  * - JWT oficial:
  *   {
  *     sub: string,
- *     perfil: "usuario" | "organizador" | "administrador"
+ *     perfil: "usuario" | "organizador" | "administrador",
+ *     auth_version: number // obrigatório nos JWTs novos
  *   }
  *
  * Request oficial após autenticação:
@@ -24,9 +25,11 @@
  * - Bloqueia usuários inexistentes.
  * - Bloqueia usuários com deleted_at IS NOT NULL.
  * - Usa sempre o perfil atual do banco, não apenas o perfil gravado no token.
+ * - Compara auth_version; ausência equivale a um somente no modo bridge.
  */
 
 const jwt = require("jsonwebtoken");
+const { isValidAuthVersion, getAuthVersionMode, resolveTokenAuthVersion } = require("./authVersion");
 
 const dbModule = require("../db");
 const db = dbModule?.db ?? dbModule;
@@ -58,7 +61,8 @@ if (!db || typeof db.query !== "function") {
 function buildAuthLog(req, extra = {}) {
   return {
     userId: Number.isInteger(extra.userId) && extra.userId > 0 && extra.userId <= 2147483647 ? extra.userId : null,
-    reason: ["invalid_id", "not_found", "deleted", "invalid_profile"].includes(extra.reason) ? extra.reason : null,
+    reason: ["invalid_id", "not_found", "deleted", "invalid_profile", "version_mismatch",
+      "invalid_version_claim", "invalid_db_auth_version", "invalid_auth_version_mode"].includes(extra.reason) ? extra.reason : null,
     perfil: PERFIS_OFICIAIS.has(extra.perfil) ? extra.perfil : null,
     code: typeof extra.code === "string" && /^[0-9A-Z]{5}$/.test(extra.code) ? extra.code : null,
   };
@@ -169,7 +173,8 @@ async function carregarUsuarioAtivoDoBanco(usuarioJwt) {
     SELECT
       id,
       perfil,
-      deleted_at
+      deleted_at,
+      auth_version
     FROM usuarios
     WHERE id = $1
     LIMIT 1
@@ -208,6 +213,7 @@ async function carregarUsuarioAtivoDoBanco(usuarioJwt) {
   return {
     ok: true,
     reason: null,
+    authVersion: row.auth_version,
     user: {
       id: Number(row.id),
       perfil,
@@ -251,6 +257,18 @@ async function authenticateRequest(req, res) {
 
   try {
     const decoded = verifyJwtToken(token);
+    const tokenVersion = resolveTokenAuthVersion(decoded, getAuthVersionMode());
+    if (tokenVersion === null) {
+      console.warn("[authMiddleware] versão do token inválida",
+        buildAuthLog(req, { reason: "invalid_version_claim" }));
+      return {
+        ok: false,
+        response: buildAuthErrorResponse(res, 401, "Sessão inválida.", {
+          code: "AUTH-401-SESSAO-INVALIDA",
+          sessionExpired: true,
+        }),
+      };
+    }
     const userFromJwt = normalizeUserFromJwt(decoded);
 
     if (!userFromJwt) {
@@ -299,6 +317,29 @@ async function authenticateRequest(req, res) {
             contaExcluida: isDeleted,
           },
         ),
+      };
+    }
+
+    if (!isValidAuthVersion(banco.authVersion)) {
+      console.error("[authMiddleware] falha operacional na autenticação",
+        buildAuthLog(req, { reason: "invalid_db_auth_version" }));
+      return {
+        ok: false,
+        response: buildAuthErrorResponse(res, 500, "Falha ao validar sessão.", {
+          code: "AUTH-500-FALHA-VALIDACAO-SESSAO",
+        }),
+      };
+    }
+
+    if (tokenVersion !== banco.authVersion) {
+      console.warn("[authMiddleware] sessão inválida",
+        buildAuthLog(req, { reason: "version_mismatch" }));
+      return {
+        ok: false,
+        response: buildAuthErrorResponse(res, 401, "Sessão inválida.", {
+          code: "AUTH-401-SESSAO-INVALIDA",
+          sessionExpired: true,
+        }),
       };
     }
 
@@ -357,6 +398,7 @@ async function authenticateRequest(req, res) {
       "[authMiddleware] falha inesperada na autenticação",
       buildAuthLog(req, {
         code: error?.code,
+        reason: error?.code === "AUTH_VERSION_MODE_INVALID" ? "invalid_auth_version_mode" : null,
       }),
     );
 

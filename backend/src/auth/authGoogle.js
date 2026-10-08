@@ -16,7 +16,8 @@
  * JWT oficial:
  * {
  *   sub: string,
- *   perfil: "usuario" | "organizador" | "administrador"
+ *   perfil: "usuario" | "organizador" | "administrador",
+ *   auth_version: number
  * }
  */
 
@@ -25,6 +26,7 @@ const { OAuth2Client } = require("google-auth-library");
 
 const dbModule = require("../db");
 const generateToken = require("./generateToken");
+const { isValidAuthVersion } = require("./authVersion");
 
 const router = express.Router();
 
@@ -68,7 +70,9 @@ function log(rid, level, message, extra) {
   };
 
   if (level === "error") {
-    return console.error(`${prefix} ✖ ${message}`, { code: "AUTH_GOOGLE_FAILURE" });
+    const metadata = { code: "AUTH_GOOGLE_FAILURE" };
+    if (extra?.reason === "invalid_db_auth_version") metadata.reason = extra.reason;
+    return console.error(`${prefix} ✖ ${message}`, metadata);
   }
 
   if (!IS_PROD) {
@@ -132,7 +136,8 @@ async function findUsuarioByEmail(email) {
       email,
       cpf,
       perfil,
-      deleted_at
+      deleted_at,
+      auth_version
     FROM usuarios
     WHERE LOWER(email::text) = LOWER($1)
     LIMIT 1
@@ -249,10 +254,20 @@ router.post("/google", async (req, res) => {
       });
     }
 
+    if (!isValidAuthVersion(usuario.auth_version)) {
+      log(rid, "error", "Falha operacional na autenticação", { reason: "invalid_db_auth_version" });
+      return res.status(500).json({
+        ok: false,
+        code: "AUTH-GOOGLE-500-FALHA-INTERNA",
+        message: "Falha interna na autenticação com Google.",
+      });
+    }
+
     const token = generateToken(
       {
         id: usuario.id,
         perfil: usuarioResponse.perfil,
+        auth_version: usuario.auth_version,
       },
       "1d",
     );

@@ -15,12 +15,25 @@ const UNAUTHENTICATED_PASSWORD_RESULT = Object.freeze({
   canUpgrade: false,
   requiresPasswordChange: false,
 });
+test.beforeEach((t) => {
+  const previous = { NODE_ENV: process.env.NODE_ENV, AUTH_VERSION_MODE: process.env.AUTH_VERSION_MODE };
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  process.env.NODE_ENV = "test";
+  process.env.AUTH_VERSION_MODE = "bridge";
+});
+
 const USER = {
   id: 7,
   nome: "Usuária de teste",
   email: "teste@example.test",
   cpf: "12345678901",
   perfil: "usuario",
+  auth_version: 1,
   senha: "hash",
   deleted_at: null,
   imagem_base64: null,
@@ -297,11 +310,12 @@ for (const [label, result] of [
       usuario: { id: 7, nome: USER.nome, email: USER.email, cpf: USER.cpf, perfil: "usuario", imagem_base64: null },
     });
     assert.deepEqual(calls.verify.mock.calls[0].arguments, [req.body.senha, USER.senha]);
-    assert.deepEqual(calls.generateJwt.mock.calls[0].arguments, [{ id: 7, perfil: "usuario" }, "1d"]);
+    assert.deepEqual(calls.generateJwt.mock.calls[0].arguments, [{ id: 7, perfil: "usuario", auth_version: 1 }, "1d"]);
     assert.deepEqual(calls.createSession.mock.calls[0].arguments, [{ usuarioId: 7, manterConectado: false, userAgent: "browser raw/1.0", ip: "203.0.113.7" }]);
     assert.deepEqual(calls.notify.mock.calls[0].arguments, [7]);
     assert.deepEqual(res.cookies, [{ name: "escola_saude_session", value: "opaque-session-token", options: sessionCookieOptions(false, false) }]);
     assert.match(res.headers["Cache-Control"], /no-store/);
+    assert.match(calls.query.mock.calls[0].arguments[0], /\bu\.auth_version\b/);
     assertNoPasswordWriter(calls);
   });
 }
@@ -471,3 +485,52 @@ test("piso desconta processamento e não aguarda quando custo já supera 250 ms"
     assert.deepEqual(waits, elapsed < 250 ? [250 - elapsed] : []);
   }
 });
+
+for (const version of [1, 2, 2147483647]) {
+  test(`login le e encaminha auth_version=${version} sem query adicional`, async (t) => {
+    const { loginUsuario, req, res, calls } = loginFixture(t, { user: { ...USER, auth_version: version } });
+    await loginUsuario(req, res, assert.fail);
+    assert.equal(res.statusCode, 200);
+    assert.match(calls.query.mock.calls[0].arguments[0], /\bu\.auth_version\b/);
+    assert.deepEqual(calls.generateJwt.mock.calls[0].arguments,
+      [{ id: 7, perfil: "usuario", auth_version: version }, "1d"]);
+    assert.equal(res.body.token, "legacy.jwt");
+    assert.equal(Object.hasOwn(res.body.usuario, "auth_version"), false);
+    assertNoPasswordWriter(calls);
+  });
+}
+
+for (const [label, version] of [
+  ["ausente", undefined], ["null", null], ["string", "1"], ["zero", 0], ["negativo", -1],
+  ["decimal", 1.5], ["array", []], ["objeto", {}], ["boolean", true], ["NaN", NaN],
+  ["Infinity", Infinity], ["acima INT4", 2147483648], ["nao safe", Number.MAX_SAFE_INTEGER + 1],
+]) {
+  test(`login DB ${label}: 500 generico sem JWT/sessao/cookie/notificacao`, async (t) => {
+    const logs = [];
+    t.mock.method(console, "error", (...args) => logs.push(args));
+    const { loginUsuario, req, res, calls } = loginFixture(t, { user: { ...USER, auth_version: version } });
+    await loginUsuario(req, res, assert.fail);
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(res.body, INTERNAL_ERROR);
+    assertNoAccess(calls, res);
+    assert.equal(calls.verify.mock.callCount(), 1);
+    assert.deepEqual(logs[0][1], { code: "AUTH_LOGIN_FAILURE", diagnostic: "invalid_db_auth_version" });
+    assert.equal(logs.length, 1);
+  });
+}
+
+for (const [label, options, expectedCode] of [
+  ["senha incorreta", { result: UNAUTHENTICATED_PASSWORD_RESULT }, "AUTH-401-CREDENCIAIS-INVALIDAS"],
+  ["conta excluida", { user: { ...USER, deleted_at: "2026-10-08" } }, "AUTH-403-CONTA-EXCLUIDA"],
+  ["perfil invalido", { user: { ...USER, perfil: "gestor" } }, "AUTH-403-PERFIL-INVALIDO"],
+  ["troca obrigatoria", { result: { requiresPasswordChange: true } }, "AUTH-403-TROCA-SENHA-OBRIGATORIA"],
+]) {
+  test(`${label} precede DB auth_version invalida e preserva gate Etapa 05`, async (t) => {
+    const { loginUsuario, req, res, calls } = loginFixture(t, {
+      ...options, user: { ...(options.user || USER), auth_version: null },
+    });
+    await loginUsuario(req, res, assert.fail);
+    assert.equal(res.body.code, expectedCode);
+    assertNoAccess(calls, res);
+  });
+}

@@ -9,13 +9,15 @@
  * - Entrada obrigatória:
  *   {
  *     id: number,
- *     perfil: "usuario" | "organizador" | "administrador"
+ *     perfil: "usuario" | "organizador" | "administrador",
+ *     auth_version: number
  *   }
  *
  * - Payload assinado:
  *   {
  *     sub: string,
- *     perfil: string
+ *     perfil: string,
+ *     auth_version: number
  *   }
  *
  * Premissa:
@@ -30,6 +32,7 @@
  */
 
 const jwt = require("jsonwebtoken");
+const { isValidAuthVersion } = require("./authVersion");
 
 /* ──────────────────────────────────────────────────────────────
    Constantes oficiais
@@ -72,10 +75,15 @@ function sanitizePayload(payload) {
 
   const id = normalizarId(payload.id);
   const perfil = normalizarPerfil(payload.perfil);
+  if (!Object.prototype.hasOwnProperty.call(payload, "auth_version") ||
+      !isValidAuthVersion(payload.auth_version)) {
+    throw new Error("Payload JWT inválido: versão de autenticação inválida.");
+  }
 
   return {
     sub: String(id),
     perfil,
+    auth_version: payload.auth_version,
   };
 }
 
@@ -117,7 +125,7 @@ function buildSignOptions(expiresIn, options = {}) {
 /**
  * Gera token JWT oficial da plataforma.
  *
- * @param {{ id: number, perfil: "usuario" | "organizador" | "administrador" }} payload
+ * @param {{ id: number, perfil: "usuario" | "organizador" | "administrador", auth_version: number }} payload
  * @param {string} [expiresIn="1d"]
  * @param {object} [options={}]
  * @returns {string}

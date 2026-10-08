@@ -31,6 +31,7 @@ const { isWellFormedUnicode } = require("../services/passwordStructure");
 
 const dbModule = require("../db");
 const generateToken = require("../auth/generateToken");
+const { isValidAuthVersion } = require("../auth/authVersion");
 const { gerarNotificacaoDeAvaliacao } = require("./notificacaoController");
 const { createAuthSessionService } = require("../services/authSessionService");
 const { sessionCookieName, sessionCookieOptions } = require("../auth/authSessionMiddleware");
@@ -80,7 +81,7 @@ function log(rid, level, message, extra) {
 
   if (level === "error") {
     const metadata = { code: "AUTH_LOGIN_FAILURE" };
-    if (["stored_hash_invalid", "crypto_operation_failed"].includes(extra?.diagnostic)) {
+    if (["stored_hash_invalid", "crypto_operation_failed", "invalid_db_auth_version"].includes(extra?.diagnostic)) {
       metadata.diagnostic = extra.diagnostic;
     }
     return console.error(`${prefix} ✖ ${message}`, metadata);
@@ -187,6 +188,7 @@ async function buscarUsuarioPorCpf(req, cpf) {
       u.email,
       u.cpf,
       u.perfil,
+      u.auth_version,
       u.senha,
       u.deleted_at,
       a.imagem_base64
@@ -330,12 +332,23 @@ async function loginUsuario(req, res, next) {
       });
     }
 
+    if (!isValidAuthVersion(usuario.auth_version)) {
+      log(rid, "error", "Falha operacional na autenticação", { diagnostic: "invalid_db_auth_version" });
+      return res.status(500).json({
+        ok: false,
+        code: "AUTH-500-LOGIN",
+        message: "Erro interno no servidor.",
+        erro: "Erro interno no servidor.",
+      });
+    }
+
     // canUpgrade/needsRehash não persistem hashes nesta etapa; writer seguro é posterior.
     // JWT legado permanece apenas durante a transição até o cutover de login/cookie.
     const token = generateToken(
       {
         id: usuario.id,
         perfil,
+        auth_version: usuario.auth_version,
       },
       "1d",
     );

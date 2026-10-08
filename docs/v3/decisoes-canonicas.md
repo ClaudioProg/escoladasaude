@@ -94,11 +94,41 @@ manter somente em memória e remover imediatamente da barra com
 
 ## DECISÃO CANÔNICA — ponte JWT
 
-A aprovação anterior define `auth_version` por usuário, versão inicial um,
-claim da versão em JWT novo e equivalência à versão inicial para JWT legado sem
-claim somente durante a ponte. Incrementar a versão deve invalidar JWT antigo;
-Bearer permanece apenas no cutover controlado. Esses controles ainda não estão
-implementados no emissor/middleware legado. Coortes, prazo e janela permanecem em D8.
+**DECISÃO CANÔNICA:** access JWT novo de login local/Google carrega o claim exato
+`auth_version`, número JSON inteiro de 1 a 2147483647, sem coerção. O emissor exige
+a versão atual lida de `usuarios.auth_version`; não infere a versão inicial um.
+Incrementar a versão do usuário invalida os access JWTs de versões anteriores.
+
+`AUTH_VERSION_MODE` é obrigatório no verificador Bearer, com valores exatos
+`bridge` ou `strict`. Ausência ou valor inválido falha fechado em todos os
+ambientes, sem fallback por `NODE_ENV`. Em `bridge`, propriedade realmente
+ausente equivale à versão inicial um; em `strict`, ausência é rejeitada.
+Propriedade presente inválida nunca é interpretada como JWT legado.
+
+Claim inválido, ausência em strict e divergência token/banco retornam 401:
+`AUTH-401-SESSAO-INVALIDA`, `erro: "Sessão inválida."`,
+`autenticado: false`, `sessionExpired: true`, com `requestId` preservado.
+Não se adiciona `message` ou informação de versão. Versão inválida no banco é
+falha operacional 500; no middleware, assim como configuração de modo inválida,
+usa `AUTH-500-FALHA-VALIDACAO-SESSAO` e `erro: "Falha ao validar sessão."`.
+Login local usa `AUTH-500-LOGIN` e o texto genérico existente; Google usa
+`AUTH-GOOGLE-500-FALHA-INTERNA` e
+`message: "Falha interna na autenticação com Google."`.
+Logs registram somente motivos fixos seguros, sem números de versão ou segredos.
+
+**IMPLEMENTAÇÃO DA ETAPA 06:** emissão e comparação de versão na família de
+access JWT, usando as consultas existentes, com identidade/perfil legado
+preservados. Esta etapa somente lê, emite claim e compara; não incrementa versões
+nem integra writers críticos. Reset JWT legado continua sem invalidar access JWT
+por versão. JWT de reset/presença, ID token Google e sessão/cookie ficam fora da
+ponte. A migration expand precisa estar comprovada no alvo antes do código que
+seleciona a coluna; esta implementação local não comprova rollout em produção.
+Rollback para middleware antigo ignora o claim extra e perde a invalidação por
+versão.
+
+**PENDÊNCIA D8:** coortes, prazo e janela operacional para passar de `bridge` a
+`strict` permanecem pendentes. Bearer permanece no cutover controlado; nenhuma
+data ou retirada de compatibilidade foi decidida nesta etapa.
 
 ## DECISÃO CANÔNICA — senhas
 
