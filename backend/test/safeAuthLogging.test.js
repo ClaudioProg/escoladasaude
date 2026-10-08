@@ -6,6 +6,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { inspect } = require("node:util");
+const { performance } = require("node:perf_hooks");
+const passwordStructure = require("../src/services/passwordStructure");
 
 // Somente dados sintéticos; módulos externos não são carregados pelo sandbox.
 const PASSWORD = "SenhaSuperSecreta123!";
@@ -379,7 +381,10 @@ test("AUTH LOGIN: erro externo e notificação não vazam; resposta/token e next
   const original = Object.assign(new Error(SENTINELS.join(" ")), { code: TOKEN });
   const user = { id: 7, email: EMAIL, cpf: "12345678909", senha: BCRYPT, perfil: "usuario" };
   const dependencies = {
-    bcrypt: { compare: async () => true }, "../db": { query: async () => ({ rows: [user] }) },
+    "node:perf_hooks": { performance }, "../services/passwordStructure": passwordStructure,
+    "../services/passwordService": { PasswordServiceError: passwordStructure.PasswordServiceError,
+      verifyPassword: async () => ({ authenticated: true, algorithm: "bcrypt", canUpgrade: true, requiresPasswordChange: false }) },
+    "../db": { query: async () => ({ rows: [user] }) },
     "../auth/generateToken": () => JWT, "./notificacaoController": { gerarNotificacaoDeAvaliacao: async () => { throw original; } },
     "../services/authSessionService": { createAuthSessionService: () => ({ createSession: async () => ({ token: TOKEN, session: { id: "s1" } }) }) },
     "../auth/authSessionMiddleware": { sessionCookieName: () => "session", sessionCookieOptions: () => ({ httpOnly: true }) },
@@ -398,6 +403,36 @@ test("AUTH LOGIN: erro externo e notificação não vazam; resposta/token e next
   await failure.api.loginUsuario(sensitiveRequest(), response(), (error) => { forwarded = error; });
   assert.equal(forwarded, original);
   cleanLogs(failure.logs);
+});
+
+test("AUTH LOGIN: erros criptográficos ficam locais com diagnóstico sanitizado e sem segredo/stack", async (t) => {
+  for (const [code, diagnostic] of [
+    ["PASSWORD_INVALID_STORED_HASH", "stored_hash_invalid"],
+    ["PASSWORD_CRYPTO_OPERATION_FAILED", "crypto_operation_failed"],
+  ]) {
+    const original = new passwordStructure.PasswordServiceError(code, SENTINELS.join(" "));
+    original.stack = `PasswordServiceError: ${PASSWORD}\n    at C:\\Users\\usuario-secreto\\crypto.js:7:1`;
+    const { api, logs } = load(t, "src/controllers/loginController.js", {
+      "node:perf_hooks": { performance }, "../services/passwordStructure": passwordStructure,
+      "../services/passwordService": { PasswordServiceError: passwordStructure.PasswordServiceError,
+        verifyPassword: async () => { throw original; } },
+      "../db": { query: async () => ({ rows: [{ id: 7, email: EMAIL, cpf: CPF, senha: ARGON2, perfil: "usuario" }] }) },
+      "../auth/generateToken": assert.fail,
+      "./notificacaoController": { gerarNotificacaoDeAvaliacao: assert.fail },
+      "../services/authSessionService": { createAuthSessionService: assert.fail },
+      "../auth/authSessionMiddleware": { sessionCookieName: assert.fail, sessionCookieOptions: assert.fail },
+    });
+    const res = response();
+    await api.loginUsuario(sensitiveRequest(), res, assert.fail);
+    assert.equal(res.statusCode, 500);
+    assert.equal(JSON.stringify(res.body), JSON.stringify({ ok: false, code: "AUTH-500-LOGIN", message: "Erro interno no servidor.", erro: "Erro interno no servidor." }));
+    assert.equal(res.cookies.length, 0);
+    assert.equal(logs.length, 1);
+    assert.equal(logs[0].args[1].diagnostic, diagnostic);
+    assert.equal(Object.hasOwn(logs[0].args[1], "stack"), false);
+    assert.equal(inspect(logs).includes(code), false);
+    cleanLogs(logs);
+  }
 });
 
 test("AUTH GOOGLE: e-mail em sucesso/rejeições e erro de provedor ficam fora dos logs", async (t) => {

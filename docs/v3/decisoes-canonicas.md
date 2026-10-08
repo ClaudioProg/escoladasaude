@@ -2,7 +2,7 @@
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
-da Etapa 04 e decisões anteriores fornecidas pelo responsável. As seções de
+das Etapas 04/05 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
 
@@ -135,7 +135,42 @@ aceitam ausência/null; quando presentes devem ser strings com limites de
 200/32/320/32/32 code points, respectivamente. Unicode inválido não é migrado
 automaticamente. A comparação bcrypt preserva a apresentação legada; Argon2id
 usa NFKC. A política normaliza cópias de dados para comparação, sem lowercase da
-senha armazenada. O serviço já existe; o login operacional ainda usa bcrypt direto.
+senha armazenada.
+
+**CONTRATO APROVADO — login local (Etapa 05):**
+
+- `POST /api/login` usa o verificador misto Argon2id + bcrypt pelo
+  `verifyPassword(password, hash)` oficial de `passwordService`.
+- Credenciais inválidas retornam `401`, `AUTH-401-CREDENCIAIS-INVALIDAS` e o
+  texto exato em `message` e `erro`: “CPF ou senha inválidos. Verifique os dados
+  informados e tente novamente.”
+- bcrypt elegível mantém upgrade automático/transparente planejado, com writer
+  concorrente seguro em etapa posterior para login/reset.
+- Autenticação válida com `requiresPasswordChange=true`, após validação do perfil
+  legado, bloqueia o acesso normal: `403`, `AUTH-403-TROCA-SENHA-OBRIGATORIA`,
+  `trocaSenhaObrigatoria=true` e, em `message` e `erro`, “Por segurança, é necessário
+  atualizar sua senha antes de continuar.” Sem JWT, sessão, cookie, notificação,
+  dados adicionais do usuário ou acesso ao dashboard; sem revelar a causa.
+- Argon2id válido com `needsRehash=true` autentica normalmente.
+- Unicode malformado apresentado é credencial inválida, incluindo o erro defensivo
+  `PASSWORD_INVALID_UNICODE`; conta excluída mantém a precedência e resposta legadas.
+- Hash armazenado inválido e falha criptográfica são erros operacionais:
+  `500`, `AUTH-500-LOGIN`, `message` e `erro` iguais a “Erro interno no servidor.”
+  O erro bruto não chega ao cliente/log. Diagnósticos internos fixos:
+  `stored_hash_invalid` e `crypto_operation_failed`.
+- Respostas `401` de credenciais inválidas têm piso total de 250 ms desde o início
+  da tentativa, com relógio monotônico, descontando o processamento e sem jitter.
+
+**IMPLEMENTAÇÃO DESTA ETAPA — Etapa 05:**
+
+O login integra somente a verificação mista e os contratos acima. bcrypt com
+`canUpgrade=true` autentica sem persistir upgrade; Argon2id com `needsRehash=true`
+autentica sem rehash/persistência. Não chama writers de hash, não escreve senha,
+histórico ou `auth_version`, nem audita rehash técnico. O bloqueio de troca
+obrigatória é temporário na branch V3; o fluxo restrito de troca será implementado
+antes do cutover. JWT/perfil legado, sessão, cookie, `manter_conectado`, notificação
+e compensação permanecem no contrato de transição atual. Validação `422`, conta
+excluída e perfil inválido preservam seus contratos legados.
 
 ## DECISÃO CANÔNICA — outbox e rate limit
 

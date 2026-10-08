@@ -25,7 +25,9 @@
  * - generateToken.js também deve trabalhar com perfil como string única.
  */
 
-const bcrypt = require("bcrypt");
+const { performance } = require("node:perf_hooks");
+const { verifyPassword, PasswordServiceError } = require("../services/passwordService");
+const { isWellFormedUnicode } = require("../services/passwordStructure");
 
 const dbModule = require("../db");
 const generateToken = require("../auth/generateToken");
@@ -77,7 +79,11 @@ function log(rid, level, message, extra) {
   };
 
   if (level === "error") {
-    return console.error(`${prefix} ✖ ${message}`, { code: "AUTH_LOGIN_FAILURE" });
+    const metadata = { code: "AUTH_LOGIN_FAILURE" };
+    if (["stored_hash_invalid", "crypto_operation_failed"].includes(extra?.diagnostic)) {
+      metadata.diagnostic = extra.diagnostic;
+    }
+    return console.error(`${prefix} ✖ ${message}`, metadata);
   }
 
   if (!IS_PROD) {
@@ -134,12 +140,17 @@ function sanitizeUserForResponse(usuario, perfil) {
   };
 }
 
-function sendInvalidCredentials(res) {
+async function sendInvalidCredentials(res, startedAt) {
+  let remaining = 250 - (performance.now() - startedAt);
+  while (remaining > 0) {
+    await sleep(remaining);
+    remaining = 250 - (performance.now() - startedAt);
+  }
   return res.status(401).json({
     ok: false,
     code: "AUTH-401-CREDENCIAIS-INVALIDAS",
-    message: "Usuário ou senha inválidos.",
-    erro: "Usuário ou senha inválidos.",
+    message: "CPF ou senha inválidos. Verifique os dados informados e tente novamente.",
+    erro: "CPF ou senha inválidos. Verifique os dados informados e tente novamente.",
   });
 }
 
@@ -155,7 +166,7 @@ function sendValidationError(res, fieldErrors) {
 
 async function compareDummyPassword(senha) {
   try {
-    await bcrypt.compare(senha || "senha-invalida", DUMMY_BCRYPT_HASH);
+    await verifyPassword(senha || "senha-invalida", DUMMY_BCRYPT_HASH);
   } catch {
     // noop
   }
@@ -195,6 +206,7 @@ async function buscarUsuarioPorCpf(req, cpf) {
 ──────────────────────────────────────────────────────────────── */
 
 async function loginUsuario(req, res, next) {
+  const startedAt = performance.now();
   const rid = mkRid();
   let sessionService = null;
   let createdSession = null;
@@ -231,8 +243,7 @@ async function loginUsuario(req, res, next) {
 
     if (!usuario) {
       await compareDummyPassword(senha);
-      await sleep(120);
-      return sendInvalidCredentials(res);
+      return await sendInvalidCredentials(res, startedAt);
     }
 
     if (usuario.deleted_at) {
@@ -254,20 +265,43 @@ async function loginUsuario(req, res, next) {
 
     if (!usuario.senha) {
       await compareDummyPassword(senha);
-      await sleep(120);
 
       log(rid, "warn", "Usuário sem hash de senha válido", {
         usuarioId: usuario.id,
       });
 
-      return sendInvalidCredentials(res);
+      return await sendInvalidCredentials(res, startedAt);
     }
 
-    const senhaValida = await bcrypt.compare(senha, usuario.senha);
+    if (!isWellFormedUnicode(senha)) {
+      return await sendInvalidCredentials(res, startedAt);
+    }
 
-    if (!senhaValida) {
-      await sleep(120);
-      return sendInvalidCredentials(res);
+    let verification;
+    try {
+      verification = await verifyPassword(senha, usuario.senha);
+    } catch (error) {
+      if (!(error instanceof PasswordServiceError)) throw error;
+      if (error.code === "PASSWORD_INVALID_UNICODE") {
+        return await sendInvalidCredentials(res, startedAt);
+      }
+      const diagnostics = {
+        PASSWORD_INVALID_STORED_HASH: "stored_hash_invalid",
+        PASSWORD_CRYPTO_OPERATION_FAILED: "crypto_operation_failed",
+      };
+      if (!Object.hasOwn(diagnostics, error.code)) throw error;
+      const diagnostic = diagnostics[error.code];
+      log(rid, "error", "Falha na verificação de senha", { diagnostic });
+      return res.status(500).json({
+        ok: false,
+        code: "AUTH-500-LOGIN",
+        message: "Erro interno no servidor.",
+        erro: "Erro interno no servidor.",
+      });
+    }
+
+    if (!verification.authenticated) {
+      return await sendInvalidCredentials(res, startedAt);
     }
 
     const perfil = normalizarPerfilOficial(usuario.perfil);
@@ -286,6 +320,17 @@ async function loginUsuario(req, res, next) {
       });
     }
 
+    if (verification.requiresPasswordChange) {
+      return res.status(403).json({
+        ok: false,
+        code: "AUTH-403-TROCA-SENHA-OBRIGATORIA",
+        message: "Por segurança, é necessário atualizar sua senha antes de continuar.",
+        erro: "Por segurança, é necessário atualizar sua senha antes de continuar.",
+        trocaSenhaObrigatoria: true,
+      });
+    }
+
+    // canUpgrade/needsRehash não persistem hashes nesta etapa; writer seguro é posterior.
     // JWT legado permanece apenas durante a transição até o cutover de login/cookie.
     const token = generateToken(
       {
