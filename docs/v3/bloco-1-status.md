@@ -1,10 +1,10 @@
 # Bloco 1 — estado real
 
 Atualização documental: 2026-10-09. Branch: `revisao-premium-bloco-1-auth`.
-Base Git anterior ao fechamento da Etapa 07:
-`b84fafdec24dd527a78739e27bf1456b126d3bea`. O commit que incorpora este registro
-reúne código, testes e quatro documentos; consultar seu SHA no histórico da branch.
-O SHA base não é o commit de fechamento.
+Base Git do fechamento da Etapa 08, correspondente ao fechamento da Etapa 07:
+`3210ad6c6a6b82c1ed65819f1b37e94839357ee5`.
+O fechamento da Etapa 08 integra um único commit de migration, testes e cinco
+documentos; consultar seu SHA no histórico da branch.
 
 ## FECHADO / versionado na branch
 
@@ -79,6 +79,34 @@ integra o commit único de código, testes e quatro documentos na branch V3.
   sem teste de UI/browser, SMTP real ou implantação em produção. O fechamento
   documental não executa testes, PostgreSQL, migrations ou deploy.
 
+## ETAPA 08 — EXPAND CONCLUÍDO / REHEARSAL E REVISÃO APROVADOS
+
+Implementação e rehearsal isolado concluídos em 09/10/2026. Revisão independente
+aprovada pelo responsável em **09/10/2026**, após o relatório do rehearsal.
+A [migration](../../backend/db/migrations/2026-10-09-auth-quotas-expand.sql)
+define `public.auth_quota_evento`: uma linha por emissão, PK `emissao_id` UUID,
+finalidade, conta opcional e par HMAC/key_id opcional, permitindo conta e IP juntos.
+Oito constraints e três B-trees adicionais; FK imediata RESTRICT para `usuarios(id)`.
+Sem backfill, alteração de objetos legados, writer, serviço de quotas ou limpeza.
+
+- **149/149 testes locais aprovados**, sintaxe JS 2/2 e dry-run oficial aprovados.
+  **57/57 provas PostgreSQL aprovadas**, sem erros PostgreSQL inesperados.
+  Nenhum teste reexecutado neste fechamento documental/Git.
+- Migration aplicada **somente** na branch Neon descartável
+  `br-super-wave-adut7rdn` (`rehearsal-etapa-08-descartavel`), filha do clone
+  auth-recuperação. Ledger **id 7**, SHA-256
+  `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
+  Tabela final **vazia (0 linhas)**; segunda execução oficial fez skip.
+- Conforme o relatório aprovado, dados das **89 tabelas herdadas / 54.394 linhas**
+  e os seis registros anteriores do ledger preservados; catálogo legado também
+  preservado. Limites e método em [evidências](testes-e-evidencias.md#etapa-08--expand-concluído--rehearsal-e-revisão-aprovados).
+- Quotas, HMAC operacional, limpeza de 48 horas, integração e **Etapa 09 pendentes**.
+  Primeira emissão e janelas canônicas mantidas como contrato futuro; rate limit
+  legado intacto. Composição de finalidades, falhas de emissão, origem do IP,
+  rotação HMAC e operação da limpeza continuam abertas; D1–D8 preservadas.
+- Aprovação do rehearsal isolado não comprova implantação/funcionamento em produção.
+  Este fechamento não executa SQL, migration, operações Neon, SMTP ou deploy.
+
 ## PARCIAL
 
 - Login local já usa o verificador misto e cria sessão/cookie de transição.
@@ -127,7 +155,7 @@ deduzida da presença desses arquivos na branch.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–06 estão versionadas; a Etapa 07 tem fechamento local aprovado e é
-incorporada pelo commit deste registro. Nenhum desses estados comprova produção.
+Etapas 01–07 estão versionadas; a Etapa 08 expand tem rehearsal e revisão
+aprovados e integra o commit deste fechamento. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).

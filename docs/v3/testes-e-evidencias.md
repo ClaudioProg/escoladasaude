@@ -1,9 +1,9 @@
 # Testes e evidências de fechamento
 
-Atualização documental: 2026-10-09. Base Git anterior ao fechamento da Etapa 07:
-`b84fafdec24dd527a78739e27bf1456b126d3bea`. O commit que incorpora este registro
-reúne código, testes e quatro documentos; seu SHA é consultável no histórico da
-branch `revisao-premium-bloco-1-auth`.
+Atualização documental: 2026-10-09. Base Git do fechamento da Etapa 08:
+`3210ad6c6a6b82c1ed65819f1b37e94839357ee5`, fechamento da Etapa 07, na branch
+`revisao-premium-bloco-1-auth`. O fechamento da Etapa 08 integra um único commit
+de migration, testes e cinco documentos; consultar seu SHA no histórico.
 
 ## Origem e limites
 
@@ -15,6 +15,9 @@ com revisão independente aprovada pelo responsável em **09/10/2026**. Arquivos
 commits, logs de testes e artefatos de banco existentes foram conferidos.
 Resultados de banco são **históricos do rehearsal isolado**, sem nova consulta
 ou prova de produção. O fechamento documental não reexecutou testes nem banco.
+A Etapa 08 acrescenta resultados locais e o relatório do rehearsal PostgreSQL
+isolado, com revisão independente aprovada em 09/10/2026, descritos abaixo.
+Nenhum teste ou SQL foi reexecutado neste fechamento documental/Git.
 Não há logs brutos, credenciais, tokens reais ou dados pessoais aqui.
 
 ## TOUCH — fechado
@@ -351,6 +354,101 @@ Bcrypt/política legada permanecem; histórico não integrado e reutilização p
 `atualizarBasico` continua sem incremento de versão/revogação; outros writers
 pendentes. Requests já autenticados antes do commit podem terminar. **D1–D8 e
 demais pendências futuras já aprovadas permanecem abertas**.
+
+## ETAPA 08 — EXPAND CONCLUÍDO / REHEARSAL E REVISÃO APROVADOS
+
+Data: 09/10/2026. Base `3210ad6c6a6b82c1ed65819f1b37e94839357ee5`.
+Arquivo novo `backend/db/migrations/2026-10-09-auth-quotas-expand.sql`;
+SHA-256 `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
+
+| Verificação local | Resultado |
+| --- | --- |
+| Contratos de quotas + identidade/inventário + contrato lexical do runner | **149/149 aprovados**; zero falhas/cancelados/skips/todo na execução final |
+| `node --check` nos dois JS alterados/criados | **2/2 aprovados** |
+| CLI do runner oficial, `--file db/migrations/2026-10-09-auth-quotas-expand.sql --dry-run` | Aprovado; **um único arquivo**, identidade canônica e SHA acima; sem conexão/SQL |
+
+Arquivos de testes executados: `auth-quotas-migration.test.js`,
+`run-migration.identity.test.js` e `run-migration.sql-contract.test.js`, em
+`backend/scripts`. A suíte completa do backend não foi executada.
+
+Contratos cobertos: seis colunas, PK simples da emissão, finalidades factuais,
+conta/IP conjuntos ou isolados, sujeito obrigatório, par HMAC/key_id, digest de
+32 bytes, formato controlado do key_id, timestamp finito/default do banco, FK
+imediata RESTRICT, três B-trees, preflight e ausência de alterações/backfill/
+limpeza automática em objetos legados. Identidade/LF/SHA e seleção pelo CWD
+também conferidos pelo runner real.
+
+Testes do protocolo `applyFile` usam arquivo SQL real e executor inteiramente
+simulado: ordem DDL/ledger/commit, skip por mesmo SHA, rejeição de SHA divergente,
+rollback diante de falha de DDL ou ledger. **Isso não executa nem valida o DDL
+em PostgreSQL**. O scanner do runner é lexical, não parser semântico PostgreSQL.
+
+Execução com URL dummy somente no processo e guardas de Pool/Client PostgreSQL
+e TCP/TLS; nenhum PostgreSQL externo, .env ou SMTP utilizado. Nenhum serviço de
+quota, cálculo HMAC, configuração de segredo ou writer foi implementado.
+
+### Rehearsal PostgreSQL aprovado
+
+Relatório externo `C:/tmp/escola-etapa08-20261009/relatorio.md`, consultado sem
+executar harness ou SQL. Artefatos brutos permanecem externos ao repositório.
+O relatório técnico registrava revisão pendente; a instrução do responsável
+aprova a **revisão independente em 09/10/2026**, fechando agora a Etapa 08 expand.
+
+Aplicação **somente** na branch Neon descartável `br-super-wave-adut7rdn`
+(`rehearsal-etapa-08-descartavel`), filha de `br-small-union-ad2nicvt`
+(`revisao-premium-ensaio-auth-recuperacao`). PostgreSQL 16.15; identidade e TLS
+confirmados no rehearsal. Único arquivo aplicado pelo runner oficial:
+`db/migrations/2026-10-09-auth-quotas-expand.sql`, SHA acima, ledger **id 7**.
+DDL/ledger criados na mesma transação; segunda execução fez skip por mesmo SHA.
+
+| Grupo PostgreSQL | Provas aprovadas |
+| --- | ---: |
+| Runner, aplicação atômica, ledger e estrutura | 13/13 |
+| Eventos válidos, visibilidade e rollback | 10/10 |
+| Rejeições reais com savepoints | 22/22 |
+| Segunda execução com skip | 1/1 |
+| Preservação e estado final | 11/11 |
+| Total | **57/57** |
+
+Zero erros PostgreSQL inesperados. Estrutura real: seis colunas, PK, FK imediata
+RESTRICT, seis CHECKs e três B-trees adicionais, além do índice da PK. Eventos
+válidos cobriram conta, IP e ambos; uma emissão conjunta apareceu nos recortes
+de conta e IP sem duplicar linhas. Segunda conexão não viu eventos sem commit.
+Entradas inválidas foram rejeitadas com savepoints; a transação de fixtures
+válidas terminou em rollback. Estado final: **tabela vazia (0 linhas)**.
+
+Preservação conforme relatório: comparação integral dos dados de **89 tabelas
+herdadas / 54.394 linhas**, por contagens e fingerprints antes/depois. Excluiu-se
+somente a nova linha autorizada do ledger da comparação final. Os seis registros
+anteriores foram preservados; ledger final com sete linhas. Catálogos herdados
+comparados: relações, colunas, constraints, índices, triggers, funções, views,
+políticas e definições de sequências. Não se comparou `last_value` mutável das
+sequências; o INSERT autorizado do ledger usa a sequência existente.
+
+A nova FK criou quatro triggers internos próprios: dois na tabela nova e dois
+em `usuarios`. Os 663 triggers herdados mantiveram definição/estado; nenhuma
+trigger ou constraint legada foi alterada. Nenhum usuário herdado foi modificado.
+
+### Limites preservados
+
+Falhas de preflight/colisão/DDL/INSERT do ledger ou checksum divergente não foram
+injetadas no banco. O rehearsal comprova atomicidade da aplicação bem-sucedida e
+rollback das fixtures; não comprova rollback de migration que falhou. Os testes
+locais de falha do runner continuam evidência simulada.
+
+A prova com duas conexões demonstra isolamento de eventos sem commit; não
+comprova enforcement concorrente de quotas. **Quotas, HMAC operacional, limpeza
+de 48 horas, integração e Etapa 09 permanecem pendentes**. Janelas móveis de
+60 s/15 min/1 h/24 h, primeira emissão contabilizada e retenção permanecem como
+contratos futuros. Rate limit legado intacto. Composição de finalidades, falhas
+de emissão, origem do IP, rotação HMAC e operação da limpeza continuam abertas.
+D1–D8 e demais pendências aprovadas preservadas.
+
+**Rehearsal e revisão aprovados não significam implantação em produção.**
+Não houve UI/browser, SMTP ou deploy. Neste fechamento documental/Git não foram
+reexecutados testes, SQL, migration ou operações Neon; não houve merge na main
+nem exclusão da branch descartável. Logs brutos, credenciais e PII não são
+incluídos no commit.
 
 ## PENDÊNCIA — evidência de produção
 

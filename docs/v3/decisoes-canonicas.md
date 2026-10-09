@@ -2,7 +2,7 @@
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
-das Etapas 04/05/06/07 e decisões anteriores fornecidas pelo responsável. As seções de
+das Etapas 04/05/06/07/08 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
 
@@ -333,10 +333,50 @@ e recuperação, com a emissão inicial também contabilizada nas quotas.
 - IP bruto não deve ser persistido.
 - Retenção dos registros de rate limit: 48 horas.
 
-**IMPLEMENTAÇÃO ATUAL:** o worker da outbox dedicada à autenticação e o rate limit
-PostgreSQL continuam a fazer no HEAD desta baseline. O rate limit legado em
-memória permanece ativo; não foi substituído/removido. Esses valores são decisões
-aprovadas, sem constituir prova de implementação ou funcionamento em produção.
+**IMPLEMENTAÇÃO ATUAL:** o worker da outbox dedicada à autenticação e o serviço de
+quotas PostgreSQL continuam pendentes. O expand da Etapa 08 foi aplicado somente
+na branch Neon descartável `br-super-wave-adut7rdn`, com rehearsal e revisão
+independente aprovados em 09/10/2026. Rate limit legado em memória preservado.
+Aprovação da estrutura não constitui ativação de quotas ou implantação em produção.
+
+### Etapa 08 — estrutura de quotas aprovada em rehearsal, sem ativação
+
+Contrato autorizado: `public.auth_quota_evento` com uma linha por emissão e
+`emissao_id UUID` como PK simples. `finalidade` factual admite `confirmacao`,
+`alteracao` e `recuperacao`; armazenar esses códigos não define sua composição
+para quotas. `usuario_id INTEGER NULL` referencia `usuarios(id)` por FK imediata,
+`ON UPDATE RESTRICT ON DELETE RESTRICT`. Conta e IP podem coexistir na mesma linha.
+
+`ip_hmac BYTEA NULL` e `ip_hmac_key_id TEXT NULL` devem estar ambos ausentes ou
+ambos presentes. Digest presente exige 32 bytes; key_id é código ASCII de 1–64
+bytes, iniciado por letra minúscula/dígito e composto por `a-z`, `0-9`, `_` e `-`.
+O código identifica a chave; nunca contém o segredo. Ao menos um sujeito deve
+existir. `registrada_em TIMESTAMPTZ NOT NULL` exige timestamp finito e tem default
+`clock_timestamp()`; o protocolo futuro deve capturar o instante após seus locks.
+
+Índices B-tree por conta/instante/finalidade, key_id+HMAC/instante/finalidade e
+instante+emissão. Índices de sujeitos têm somente predicados de nulidade; nenhum
+predicado temporal. Retenção continua 48 horas desde o registro, sem coluna de
+expiração redundante ou mecanismo automático de limpeza. O schema não persiste
+IP bruto, CPF, e-mail, tokens ou segredos e não calcula HMAC; cálculo com segredo
+dedicado e validação da origem criptográfica pertencem à integração futura.
+
+Implementação sobre `3210ad6c6a6b82c1ed65819f1b37e94839357ee5`:
+**149/149 testes locais** e **57/57 provas PostgreSQL** aprovados; sintaxe 2/2 e
+dry-run aprovados. Revisão independente aprovada em **09/10/2026**.
+Aplicação somente na branch Neon descartável `br-super-wave-adut7rdn`, ledger
+**id 7**, SHA-256
+`a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
+Tabela final vazia; dados herdados preservados conforme relatório aprovado.
+Sem backfill ou alteração de objetos legados. Quotas, HMAC operacional, limpeza,
+integração e Etapa 09 permanecem pendentes; rehearsal não comprova produção.
+Os testes e SQL não foram reexecutados neste fechamento documental/Git.
+
+**QUESTÕES ABERTAS, SEM DECISÃO NESTA ETAPA:** composição por finalidade/sujeito/
+janela; contabilização diante de falhas de emissão; origem confiável e normalização
+do IP; rotação HMAC; execução/frequência/monitoramento da limpeza. Não inferir
+quotas independentes nem combinadas, nem contar retries SMTP automaticamente.
+D1–D8 e demais pendências aprovadas permanecem abertas.
 
 ## DECISÃO CANÔNICA — auditoria
 

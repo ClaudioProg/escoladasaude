@@ -5,19 +5,44 @@ Projeto: **Plataforma Escola da Saúde — V3**.
 Branch: `revisao-premium-bloco-1-auth`.
 
 Atualização documental: 2026-10-09.
-Base Git anterior ao fechamento: `b84fafdec24dd527a78739e27bf1456b126d3bea`.
-O commit que incorpora este registro reúne código, testes e quatro documentos;
-confirmar seu SHA no histórico e o HEAD real ao retomar.
+Base Git do fechamento da Etapa 08:
+`3210ad6c6a6b82c1ed65819f1b37e94839357ee5`, fechamento da Etapa 07.
+Confirmar o HEAD real no histórico da branch ao retomar.
 
 Última etapa funcional concluída: **07 — proteção de login/reset concorrentes**.
 Etapas **01–06 versionadas na branch**; Etapa 07 com **fechamento local aprovado**.
 Etapa 04 documental incorporada em `3247b3d305234414a493e60097d1bae8e0b238d1`;
 manutenção do inventário de migrations em `dd0722b54a3837994eda44ae7434179db1ccbca1`.
 
-Revisão independente aprovada pelo responsável em **09/10/2026**, após conferência
-do código e das evidências PostgreSQL originais e complementares. O fechamento
+Revisão independente da Etapa 07 aprovada pelo responsável em **09/10/2026**,
+após conferência do código e das evidências PostgreSQL originais e complementares. O fechamento
 integra o commit único de implementação, testes e documentos na branch V3.
 Pendências futuras permanecem abertas; nenhuma produção foi validada.
+
+Etapa atual: **08 — EXPAND CONCLUÍDO / REHEARSAL E REVISÃO APROVADOS**.
+Revisão independente aprovada pelo responsável em **09/10/2026**. Migration
+`2026-10-09-auth-quotas-expand.sql`, testes e inventário oficial concluídos:
+`auth_quota_evento`, uma linha por emissão, conta e/ou IP HMAC, oito constraints,
+três B-trees adicionais e FK imediata RESTRICT.
+
+Validação prévia: **149/149 testes locais**, sintaxe JS 2/2, dry-run oficial e
+**57/57 provas PostgreSQL aprovados**. Migration aplicada somente na branch Neon
+descartável `br-super-wave-adut7rdn` (`rehearsal-etapa-08-descartavel`), filha do
+clone auth-recuperação. Ledger **id 7**, SHA-256
+`a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
+Tabela final vazia; dados herdados preservados conforme relatório aprovado.
+Ver [rehearsal](migrations.md#etapa-08--expand-concluído-rehearsal-aprovado) e
+[evidências](testes-e-evidencias.md#etapa-08--expand-concluído--rehearsal-e-revisão-aprovados).
+
+O fechamento documental/Git não repete testes nem executa SQL, migration ou
+operações Neon. Branch de rehearsal preservada. Aprovação isolada não significa
+implantação em produção; não houve deploy ou merge na main.
+
+Próximo passo funcional, sob autorização própria: Etapa 09. **Quotas, HMAC
+operacional, limpeza de 48 horas e integração permanecem pendentes**; rate limit
+legado preservado. Composição das finalidades, falhas de emissão, origem do IP,
+rotação HMAC e operação da limpeza continuam abertas. D1–D8 e demais pendências
+aprovadas não foram alteradas.
 
 Estado funcional relevante:
 
