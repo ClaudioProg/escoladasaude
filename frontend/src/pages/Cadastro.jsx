@@ -3,7 +3,7 @@
 // Cadastro completo, premium, mobile-first, acessível, diagnosticável e alinhado ao backend /auth/cadastro.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -24,6 +24,7 @@ import { toast } from "react-toastify";
 import Footer from "../components/layout/Footer";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
+import { sanitizePostLoginRedirect } from "../auth/postLoginRedirect";
 import { apiCadastrarUsuario, apiPerfilOpcao } from "../services/api";
 
 /* ─────────────────────────────────────────────────────────────
@@ -557,7 +558,15 @@ function PainelProgresso({
 
 export default function Cadastro() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark } = useEscolaTheme();
+
+  const retornoLogin = useMemo(() => {
+    const next = new URLSearchParams(location.search).get("next");
+    return next === null
+      ? "/login"
+      : `/login?next=${encodeURIComponent(sanitizePostLoginRedirect(next))}`;
+  }, [location.search]);
 
   const refNome = useRef(null);
   const refCpf = useRef(null);
@@ -1023,7 +1032,7 @@ export default function Cadastro() {
       toast.success(
         "Cadastro realizado com sucesso. Você já pode fazer login.",
       );
-      setTimeout(() => navigate("/login"), 800);
+      setTimeout(() => navigate(retornoLogin), 800);
     } catch (error) {
       const fields = normalizarFieldErrors(error);
       const message = normalizarErroMensagem(error);
@@ -1858,7 +1867,7 @@ export default function Cadastro() {
                     <BotaoLocal
                       type="button"
                       variant="secondary"
-                      onClick={() => navigate("/login")}
+                      onClick={() => navigate(retornoLogin)}
                       className="w-full"
                       disabled={loading}
                     >
