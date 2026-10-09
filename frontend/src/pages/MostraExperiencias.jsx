@@ -2164,6 +2164,39 @@ function ChamadaModal({ open, onClose, chamadaId, onSaved }) {
               </div>
             </GlassCard>
 
+            {isEdit ? (
+              <GlassCard className="p-5">
+                <h3 className="flex items-center gap-2 font-black text-slate-900 dark:text-white">
+                  <QrCode className="h-5 w-5 text-emerald-500" />
+                  Divulgação da chamada
+                </h3>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  Link e QR Code permanentes. Novas submissões só serão aceitas
+                  quando a chamada estiver publicada e dentro do prazo.
+                </p>
+                <div className="mx-auto mt-4 w-fit rounded-3xl border border-slate-200 bg-white p-4">
+                  <QRCodeSVG
+                    value={urlSubmissaoChamada(PUBLIC_SITE_URL, chamadaId)}
+                    size={176}
+                    level="M"
+                    title="QR Code de acesso à submissão desta chamada"
+                  />
+                </div>
+                <a
+                  href={urlSubmissaoChamada(PUBLIC_SITE_URL, chamadaId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 block break-all text-center text-xs font-semibold text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300"
+                >
+                  {urlSubmissaoChamada(PUBLIC_SITE_URL, chamadaId)}
+                </a>
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  Para copiar o link ou baixar o QR Code em PNG, use a opção
+                  Link e QR Code no cartão desta chamada.
+                </p>
+              </GlassCard>
+            ) : null}
+
             <ModeloBox
               title="Modelo de banner"
               description="Arquivo oficial usado como base para pôster da chamada."
