@@ -74,7 +74,8 @@ test("16 horas em dois dias permite 12h do primeiro dia e não 12h00min01s", () 
 
 test("entrada não é encerrada no início da primeira aula", () => {
   const turma = montarTurma({
-    horasProgramadas: 4, horasOficiais: 4,
+    horasProgramadas: 4,
+    horasOficiais: 4,
     segundosDecorridos: 1,
   });
   turma.encontros_iniciados = turma.total_encontros;
@@ -83,7 +84,8 @@ test("entrada não é encerrada no início da primeira aula", () => {
 
 test("usa o menor valor entre a carga oficial e a programação para garantir 75%", () => {
   const turma = montarTurma({
-    horasProgramadas: 9, horasOficiais: 8,
+    horasProgramadas: 9,
+    horasOficiais: 8,
     segundosDecorridos: 2 * 3600,
   });
   assert.equal(avaliarPrazoInscricaoTurma(turma).inscricao_no_prazo, true);
@@ -94,7 +96,8 @@ test("usa o menor valor entre a carga oficial e a programação para garantir 75
 test("bloqueia turma sem cronograma, sem carga horária ou com horário inválido", () => {
   assert.equal(avaliarPrazoInscricaoTurma({}).inscricao_no_prazo, false);
   assert.equal(
-    avaliarPrazoInscricaoTurma(montarTurma({ horasOficiais: 0 })).inscricao_no_prazo,
+    avaliarPrazoInscricaoTurma(montarTurma({ horasOficiais: 0 }))
+      .inscricao_no_prazo,
     false,
   );
   assert.equal(
@@ -159,15 +162,18 @@ test("agrega vagas exclusivamente das turmas cujo ingresso continua possível", 
     {
       id: 13,
       ...montarTurma({
-        horasProgramadas: 16, horasOficiais: 16,
-        segundosDecorridos: 4 * 3600, inscritos: 32,
+        horasProgramadas: 16,
+        horasOficiais: 16,
+        segundosDecorridos: 4 * 3600,
+        inscritos: 32,
       }),
     },
     {
       id: 14,
       ...montarTurma({
         segundosDecorridos: 2 * 3600,
-        vagas: 100, inscritos: 100,
+        vagas: 100,
+        inscritos: 100,
       }),
     },
   ]);
@@ -183,9 +189,13 @@ test("consulta usa parâmetros e uma única regra de progresso para turma e even
     return { rows: [] };
   };
   assert.deepEqual(await consultarDisponibilidadeTurmas(q, [2, 2, 3]), []);
-  assert.deepEqual(await consultarDisponibilidadeTurmas(q, [5], {
-    porEvento: true, agoraBr: "2026-10-09 09:00:00",
-  }), []);
+  assert.deepEqual(
+    await consultarDisponibilidadeTurmas(q, [5], {
+      porEvento: true,
+      agoraBr: "2026-10-09 09:00:00",
+    }),
+    [],
+  );
   assert.equal(calls[0].params[0].length, 2);
   assert.match(calls[0].sql, /t\.id = ANY\(\$1::int\[\]\)/);
   assert.match(calls[1].sql, /t\.evento_id = ANY\(\$1::int\[\]\)/);
