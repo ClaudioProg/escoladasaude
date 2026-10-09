@@ -86,7 +86,10 @@ const apiGetFile = apiSvc.apiGetFile;
 const downloadBlob = apiSvc.downloadBlob;
 
 const PUBLIC_SITE_URL = String(
-  import.meta.env.VITE_PUBLIC_SITE_URL || "https://escoladasaude.vercel.app",
+  import.meta.env.VITE_PUBLIC_SITE_URL ||
+    (typeof window === "undefined"
+      ? "https://escoladasaude.vercel.app"
+      : window.location.origin),
 );
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").replace(
