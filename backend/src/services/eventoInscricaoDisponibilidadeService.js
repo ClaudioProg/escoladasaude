@@ -21,9 +21,13 @@ async function consultarDisponibilidadeTurmas(
   ids,
   { porEvento = false, agoraBr = null } = {},
 ) {
-  const validos = [...new Set((Array.isArray(ids) ? ids : [])
-    .map(Number)
-    .filter((id) => Number.isSafeInteger(id) && id > 0))];
+  const validos = [
+    ...new Set(
+      (Array.isArray(ids) ? ids : [])
+        .map(Number)
+        .filter((id) => Number.isSafeInteger(id) && id > 0),
+    ),
+  ];
   if (!validos.length) return [];
 
   const coluna = porEvento ? "evento_id" : "id";
@@ -167,9 +171,7 @@ function avaliarPrazoInscricaoTurma({
     segundos_decorridos: segundosDecorridos,
     segundos_referencia: segundosReferencia,
     percentual_decorrido: Number(percentualDecorrido.toFixed(2)),
-    frequencia_maxima_possivel: Number(
-      frequenciaMaximaPossivel.toFixed(2),
-    ),
+    frequencia_maxima_possivel: Number(frequenciaMaximaPossivel.toFixed(2)),
     inscricao_no_prazo: motivoBloqueio === "",
     motivo_bloqueio_prazo: motivoBloqueio,
     encerrada: Boolean(encerrada),
