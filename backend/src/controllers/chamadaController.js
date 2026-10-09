@@ -185,37 +185,12 @@ async function queryMany(req, sql, params = []) {
 
 async function transaction(req, callback) {
   const db = getDb(req);
-
-  await db.query("BEGIN");
-
-  try {
-    const tx = {
-      query: (sql, params = []) => db.query(sql, params),
-      one: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows?.[0] || null;
-      },
-      many: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows || [];
-      },
-      none: async (sql, params = []) => {
-        await db.query(sql, params);
-      },
-    };
-
-    const output = await callback(tx);
-    await db.query("COMMIT");
-    return output;
-  } catch (error) {
-    try {
-      await db.query("ROLLBACK");
-    } catch (rollbackError) {
-      logWarn(req, "Falha ao executar ROLLBACK.", rollbackError);
-    }
-
-    throw error;
+  if (typeof db.tx !== "function") {
+    throw criarErro("Transações indisponíveis no banco oficial.", 500, {
+      code: "DB_TRANSACAO_INDISPONIVEL",
+    });
   }
+  return db.tx(callback);
 }
 
 /* =========================================================================
@@ -628,7 +603,7 @@ function normalizarChamadaPayload(body, parcial = false) {
     !parcial ||
     Object.prototype.hasOwnProperty.call(body, "disposicao_finais_texto")
   ) {
-    payload.disposicao_finais_texto = textoOpcional(
+    payload.disposicoes_finais_texto = textoOpcional(
       body.disposicao_finais_texto,
       30000,
       "Disposições finais",
@@ -792,7 +767,7 @@ exports.obterChamada = async (req, res, next) => {
       criterios_outros: chamada.criterios_outros || null,
       oral_outros: chamada.oral_outros || null,
       premiacao_texto: chamada.premiacao_texto || null,
-      disposicao_finais_texto: chamada.disposicao_finais_texto || null,
+      disposicao_finais_texto: chamada.disposicoes_finais_texto || null,
       link_modelo_poster: chamada.link_modelo_poster || null,
       aceita_poster: Boolean(chamada.aceita_poster),
     };
@@ -817,128 +792,20 @@ exports.obterChamada = async (req, res, next) => {
 
 exports.listarAdmin = async (req, res, next) => {
   try {
-    requireAdmin(req);
-
-    const chamadaId = req.params.chamadaId
-      ? toId(req.params.chamadaId, "chamadaId")
-      : req.query.chamada_id
-        ? toId(req.query.chamada_id, "chamada_id")
-        : null;
-
-    const status = req.query.status
-      ? normalizarStatusSubmissao(req.query.status)
-      : null;
-
-    const params = [];
-    const where = [];
-
-    if (chamadaId) {
-      params.push(chamadaId);
-      where.push(`s.chamada_id = $${params.length}`);
-    }
-
-    if (status) {
-      params.push(status);
-      where.push(`s.status = $${params.length}`);
-    }
-
-    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
     const rows = await queryMany(
       req,
       `
-      SELECT
-        s.id,
-        s.titulo,
-        s.status,
-        s.status_escrita,
-        s.status_oral,
-        s.chamada_id,
-        s.usuario_id,
-        s.criado_em AS submetido_em,
-        s.atualizado_em,
-        s.nota_escrita,
-        s.nota_oral,
-        s.nota_final,
-        COALESCE(s.nota_visivel, false) AS nota_visivel,
-        c.titulo AS chamada_titulo,
-        tcl.nome AS linha_tematica_nome,
-        u.nome AS autor_nome,
-        u.email AS autor_email,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-        ) AS total_avaliadores,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-            AND tsa.tipo = 'escrita'
-        ) AS total_avaliadores_escrita,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-            AND tsa.tipo = 'oral'
-        ) AS total_avaliadores_oral,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-            AND (
-              (
-                tsa.tipo = 'escrita'
-                AND EXISTS (
-                  SELECT 1
-                  FROM trabalhos_avaliacoes_itens ai
-                  WHERE ai.submissao_id = tsa.submissao_id
-                    AND ai.avaliador_id = tsa.avaliador_id
-                )
-              )
-              OR
-              (
-                tsa.tipo = 'oral'
-                AND EXISTS (
-                  SELECT 1
-                  FROM trabalhos_apresentacoes_orais_itens aoi
-                  WHERE aoi.submissao_id = tsa.submissao_id
-                    AND aoi.avaliador_id = tsa.avaliador_id
-                )
-              )
-            )
-        ) AS total_avaliadores_com_nota
-
-      FROM trabalhos_submissoes s
-      LEFT JOIN trabalhos_chamadas c ON c.id = s.chamada_id
-      LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
-      LEFT JOIN usuarios u ON u.id = s.usuario_id
-      ${whereSql}
-      ORDER BY s.criado_em DESC NULLS LAST, s.id DESC
+      SELECT c.*,
+        (timezone('America/Sao_Paulo', now()) <= c.prazo_final_br) AS dentro_prazo,
+        (SELECT COUNT(*)::int FROM trabalhos_submissoes s
+         WHERE s.chamada_id = c.id) AS total_submissoes
+      FROM trabalhos_chamadas c
+      ORDER BY c.criado_em DESC, c.id DESC
       `,
-      params,
     );
-
-    const data = rows.map((row) => ({
-      ...row,
-      ...derivarFlagsAprovacao(row),
-    }));
-
-    return responder(res, data, {
-      total: data.length,
-      chamada_id: chamadaId,
-      status,
-    });
+    return responder(res, rows, { total: rows.length });
   } catch (error) {
-    logError(req, "Erro ao listar submissões administrativas.", error);
+    logError(req, "Erro ao listar chamadas administrativas.", error);
     return next(error);
   }
 };
@@ -981,7 +848,7 @@ exports.criar = async (req, res, next) => {
             criterios_outros,
             oral_outros,
             premiacao_texto,
-            disposicao_finais_texto
+            disposicoes_finais_texto
           )
         VALUES
           ($1,$2,$3,$4,$5::timestamp,$6,$7,$8,$9,$10,$11::jsonb,$12,$13,$14,$15)
@@ -1002,7 +869,7 @@ exports.criar = async (req, res, next) => {
           payload.criterios_outros,
           payload.oral_outros,
           payload.premiacao_texto,
-          payload.disposicao_finais_texto,
+          payload.disposicoes_finais_texto,
         ],
       );
 

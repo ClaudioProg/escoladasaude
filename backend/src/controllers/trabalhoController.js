@@ -216,37 +216,12 @@ async function queryMany(req, sql, params = []) {
 
 async function transaction(req, callback) {
   const db = getDb(req);
-
-  await db.query("BEGIN");
-
-  try {
-    const tx = {
-      query: (sql, params = []) => db.query(sql, params),
-      one: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows?.[0] || null;
-      },
-      many: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows || [];
-      },
-      none: async (sql, params = []) => {
-        await db.query(sql, params);
-      },
-    };
-
-    const output = await callback(tx);
-    await db.query("COMMIT");
-    return output;
-  } catch (error) {
-    try {
-      await db.query("ROLLBACK");
-    } catch (rollbackError) {
-      logWarn(req, "Falha ao executar ROLLBACK.", rollbackError);
-    }
-
-    throw error;
+  if (typeof db.tx !== "function") {
+    throw criarErro("Transações indisponíveis no banco oficial.", 500, {
+      code: "DB_TRANSACAO_INDISPONIVEL",
+    });
   }
+  return db.tx(callback);
 }
 
 /* =========================================================================
@@ -675,7 +650,7 @@ exports.criar = async (req, res, next) => {
             objetivos,
             metodo,
             resultados,
-            consideracao,
+            consideracoes,
             bibliografia,
             status,
             criado_em,
@@ -821,7 +796,7 @@ exports.atualizar = async (req, res, next) => {
                objetivos = $6,
                metodo = $7,
                resultados = $8,
-               consideracao = $9,
+               consideracoes = $9,
                bibliografia = $10,
                status = $11,
                atualizado_em = NOW()
@@ -951,6 +926,7 @@ exports.obter = async (req, res, next) => {
 
     return responder(res, {
       ...trabalho,
+      consideracao: trabalho.consideracoes || "",
       coautores,
       banner,
       banner_url: banner ? `/api/submissao/${trabalho.id}/poster` : null,
