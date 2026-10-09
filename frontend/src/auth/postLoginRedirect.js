@@ -109,4 +109,23 @@ export function sanitizePostLoginRedirect(raw) {
   return `${target.pathname}${target.search}${target.hash}`;
 }
 
+/**
+ * Mantém o retorno a eventos e submissões durante o cadastro de novos usuários.
+ * A sanitização evita redirecionamentos para sites externos ou rotas inexistentes.
+ */
+export function caminhoCadastroComRetorno(rawNext) {
+  return `/cadastro?next=${encodeURIComponent(
+    sanitizePostLoginRedirect(rawNext),
+  )}`;
+}
+
+export function caminhoLoginComRetorno(rawNext) {
+  if (rawNext === null || rawNext === undefined || rawNext === "") {
+    return "/login";
+  }
+  return `/login?next=${encodeURIComponent(
+    sanitizePostLoginRedirect(rawNext),
+  )}`;
+}
+
 export { DEFAULT_POST_LOGIN_PATH };
