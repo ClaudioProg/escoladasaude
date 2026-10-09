@@ -893,7 +893,11 @@ exports.obter = async (req, res, next) => {
       code: "TRABALHO_NAO_ENCONTRADO",
     });
 
-    validarPermissaoAutorOuAdmin(req, trabalho, "visualizar");
+    const { ehAdmin } = validarPermissaoAutorOuAdmin(
+      req,
+      trabalho,
+      "visualizar",
+    );
 
     const coautores = await queryMany(
       req,
@@ -930,6 +934,11 @@ exports.obter = async (req, res, next) => {
     return responder(res, {
       ...trabalho,
       consideracao: trabalho.consideracoes || "",
+      nota_escrita: ehAdmin || trabalho.nota_visivel ? trabalho.nota_escrita : null,
+      nota_oral: ehAdmin || trabalho.nota_visivel ? trabalho.nota_oral : null,
+      nota_final: ehAdmin || trabalho.nota_visivel ? trabalho.nota_final : null,
+      total_pontos: ehAdmin || trabalho.nota_visivel ? trabalho.total_pontos : null,
+      observacoes_admin: ehAdmin ? trabalho.observacoes_admin : null,
       coautores,
       banner,
       banner_url: banner ? `/api/submissao/${trabalho.id}/poster` : null,
@@ -950,6 +959,23 @@ exports.remover = async (req, res, next) => {
     });
 
     const { ehAdmin } = validarPermissaoAutorOuAdmin(req, trabalho, "remover");
+    const historico = await queryOne(
+      req,
+      `SELECT
+        (SELECT count(*) FROM trabalhos_avaliacoes_itens WHERE submissao_id=$1) AS escritas,
+        (SELECT count(*) FROM trabalhos_apresentacoes_orais_itens WHERE submissao_id=$1) AS orais,
+        (SELECT count(*) FROM trabalhos_submissoes_avaliadores WHERE submissao_id=$1) AS avaliadores`,
+      [trabalhoId],
+    );
+    assert(
+      !STATUS_BLOQUEADOS_EDICAO_AUTOR.includes(
+        String(trabalho.status || "").toLowerCase(),
+      ) && Number(historico.escritas) === 0 &&
+        Number(historico.orais) === 0 && Number(historico.avaliadores) === 0,
+      "Trabalho com histórico de avaliação não pode ser excluído definitivamente.",
+      409,
+      { code: "TRABALHO_COM_HISTORICO" },
+    );
 
     if (!ehAdmin) {
       validarEdicaoPermitida(trabalho, false);
