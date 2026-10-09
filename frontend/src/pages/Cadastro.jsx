@@ -24,7 +24,7 @@ import { toast } from "react-toastify";
 import Footer from "../components/layout/Footer";
 
 import useEscolaTheme from "../hooks/useEscolaTheme";
-import { sanitizePostLoginRedirect } from "../auth/postLoginRedirect";
+import { caminhoLoginComRetorno } from "../auth/postLoginRedirect";
 import { apiCadastrarUsuario, apiPerfilOpcao } from "../services/api";
 
 /* ─────────────────────────────────────────────────────────────
@@ -563,9 +563,7 @@ export default function Cadastro() {
 
   const retornoLogin = useMemo(() => {
     const next = new URLSearchParams(location.search).get("next");
-    return next === null
-      ? "/login"
-      : `/login?next=${encodeURIComponent(sanitizePostLoginRedirect(next))}`;
+    return caminhoLoginComRetorno(next);
   }, [location.search]);
 
   const refNome = useRef(null);
