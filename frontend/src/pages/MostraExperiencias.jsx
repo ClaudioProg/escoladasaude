@@ -36,12 +36,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
 import {
   AlertCircle,
   Archive,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -51,6 +54,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  QrCode,
   RefreshCw,
   Save,
   Search,
@@ -67,6 +71,7 @@ import {
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
 import * as apiSvc from "../services/api";
+import { urlSubmissaoChamada } from "../utils/submissaoDeepLink";
 
 /* =========================================================================
    API local — centraliza contrato da página
@@ -79,6 +84,10 @@ const apiDelete = apiSvc.apiDelete;
 const apiUpload = apiSvc.apiUpload;
 const apiGetFile = apiSvc.apiGetFile;
 const downloadBlob = apiSvc.downloadBlob;
+
+const PUBLIC_SITE_URL = String(
+  import.meta.env.VITE_PUBLIC_SITE_URL || "https://escoladasaude.vercel.app",
+);
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").replace(
   /\/+$/,
@@ -918,7 +927,7 @@ function statusChamada(chamada) {
   return { label: "Rascunho", tone: "slate", icon: XCircle };
 }
 
-function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
+function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, onCompartilhar, busy }) {
   const status = statusChamada(chamada);
 
   return (
@@ -981,6 +990,15 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
             <Button
               tone="slate"
               size="sm"
+              icon={QrCode}
+              onClick={() => onCompartilhar(chamada)}
+            >
+              Link e QR Code
+            </Button>
+
+            <Button
+              tone="slate"
+              size="sm"
               icon={Pencil}
               onClick={() => onEditar(chamada.id)}
             >
@@ -1010,6 +1028,125 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, busy }) {
         </div>
       </div>
     </motion.article>
+  );
+}
+
+
+function CompartilharChamadaModal({ chamada, onClose }) {
+  const [mensagem, setMensagem] = useState("");
+  const [baixando, setBaixando] = useState(false);
+
+  if (!chamada?.id) {
+    return null;
+  }
+
+  const url = urlSubmissaoChamada(PUBLIC_SITE_URL, chamada.id);
+
+  async function copiarLink() {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Área de transferência indisponível.");
+      }
+      await navigator.clipboard.writeText(url);
+      setMensagem("Link copiado para a área de transferência.");
+    } catch {
+      setMensagem("Não foi possível copiar automaticamente. Selecione o endereço acima para copiar.");
+    }
+  }
+
+  async function baixarQrCode() {
+    setBaixando(true);
+    setMensagem("");
+
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        errorCorrectionLevel: "M",
+        margin: 2,
+        width: 512,
+      });
+      const anchor = document.createElement("a");
+      anchor.href = dataUrl;
+      anchor.download = "qrcode-submissao-chamada-" + chamada.id + ".png";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setMensagem("Download do QR Code iniciado.");
+    } catch {
+      setMensagem("Não foi possível gerar o QR Code. Tente novamente.");
+    } finally {
+      setBaixando(false);
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Link e QR Code da chamada"
+      subtitle={chamada.titulo || "Compartilhe esta chamada de trabalhos."}
+      size="max-w-xl"
+      footer={
+        <Button tone="slate" onClick={onClose}>
+          Fechar
+        </Button>
+      }
+    >
+      <div className="space-y-5">
+        <div className="mx-auto flex w-fit max-w-full justify-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <QRCodeSVG
+            value={url}
+            size={220}
+            level="M"
+            title={"QR Code para submissão de trabalhos: " + (chamada.titulo || chamada.id)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="link-publico-chamada" className="text-sm font-bold text-slate-800 dark:text-slate-100">
+            Endereço permanente de submissão
+          </label>
+          <input
+            id="link-publico-chamada"
+            type="text"
+            value={url}
+            readOnly
+            onFocus={(event) => event.currentTarget.select()}
+            aria-label="Link da submissão de trabalhos desta chamada"
+            className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button tone="primary" icon={Copy} onClick={copiarLink}>
+              Copiar link
+            </Button>
+            <Button tone="slate" icon={Download} loading={baixando} onClick={baixarQrCode}>
+              Baixar QR Code (PNG)
+            </Button>
+          </div>
+        </div>
+
+        {!chamada.publicado ? (
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            A chamada ainda não está publicada. O link e o QR Code serão utilizáveis
+            para envio de trabalhos após a publicação.
+          </p>
+        ) : chamada.dentro_prazo === false ? (
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            O prazo de submissão está encerrado. O link permanece válido,
+            mas não permitirá novos envios.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            O participante será direcionado a esta chamada. Se precisar entrar
+            ou criar cadastro, voltará à submissão após o login.
+          </p>
+        )}
+        {mensagem ? (
+          <p role="status" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            {mensagem}
+          </p>
+        ) : null}
+      </div>
+    </Modal>
   );
 }
 
@@ -1064,6 +1201,7 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
   const [filtro, setFiltro] = useState("ativas");
   const [busyId, setBusyId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [chamadaCompartilhamento, setChamadaCompartilhamento] = useState(null);
 
   const carregar = useCallback(async () => {
     setErro("");
@@ -1328,6 +1466,7 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
                   onEditar={onEditar}
                   onPublicar={alterarPublicacao}
                   onExcluir={setConfirmId}
+                  onCompartilhar={setChamadaCompartilhamento}
                 />
               ))}
             </AnimatePresence>
@@ -1343,6 +1482,12 @@ function ChamadasPainel({ onNova, onEditar, refreshSignal, onCountsChange }) {
         onCancel={() => setConfirmId(null)}
         onConfirm={excluirConfirmado}
       />
+      {chamadaCompartilhamento ? (
+        <CompartilharChamadaModal
+          chamada={chamadaCompartilhamento}
+          onClose={() => setChamadaCompartilhamento(null)}
+        />
+      ) : null}
     </div>
   );
 }
