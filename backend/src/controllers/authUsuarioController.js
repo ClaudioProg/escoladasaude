@@ -34,6 +34,9 @@
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { isValidAuthVersion } = require("../auth/authVersion");
+const { createAuthSessionService } = require("../services/authSessionService");
+const { registrarAuditoria } = require("../services/auditoriaService");
 
 const dbModule = require("../db");
 const db = dbModule?.db ?? dbModule;
@@ -828,7 +831,7 @@ async function recuperarSenha(req, res) {
   try {
     const result = await db.query(
       `
-      SELECT id
+      SELECT id, auth_version
       FROM usuarios
       WHERE LOWER(email) = LOWER($1)
       LIMIT 1
@@ -845,6 +848,13 @@ async function recuperarSenha(req, res) {
     }
 
     const usuarioId = result.rows[0].id;
+    const authVersion = result.rows[0].auth_version;
+    if (!isValidAuthVersion(authVersion)) {
+      console.error("[authUsuarioController.recuperarSenha] falha operacional", {
+        code: "AUTH_RECOVERY_FAILURE", reason: "invalid_db_auth_version",
+      });
+      return res.status(200).json(respostaIdempotente);
+    }
     const jwtSecret = String(process.env.JWT_SECRET || "").trim();
 
     if (!jwtSecret) {
@@ -866,6 +876,7 @@ async function recuperarSenha(req, res) {
       {
         sub: String(usuarioId),
         typ: "pwd-reset",
+        auth_version: authVersion,
       },
       jwtSecret,
       signOpts,
@@ -905,6 +916,8 @@ async function recuperarSenha(req, res) {
    POST /api/auth/redefinir-senha
 ────────────────────────────────────────────────────────────── */
 
+class PasswordResetTokenError extends Error {}
+
 async function redefinirSenha(req, res) {
   const tokenRaw = req.body?.token || "";
   const novaSenha = String(req.body?.novaSenha || "");
@@ -939,83 +952,84 @@ async function redefinirSenha(req, res) {
     });
   }
 
+  const invalidToken = () => res.status(400).json({
+    ok: false, code: "AUTH-400-TOKEN-INVALIDO-EXPIRADO", message: "Token inválido ou expirado.",
+  });
+  const operationalFailure = () => res.status(500).json({
+    ok: false, code: "AUTH-500-REDEFINICAO-SENHA",
+    message: "Não foi possível atualizar a senha. Tente novamente mais tarde.",
+  });
   const jwtSecret = String(process.env.JWT_SECRET || "").trim();
-
   if (!jwtSecret) {
-    console.error("[authUsuarioController.redefinirSenha] JWT_SECRET ausente.");
-
-    return res.status(500).json({
-      ok: false,
-      code: "AUTH-500-JWT-SECRET-AUSENTE",
-      message: "Configuração do servidor ausente.",
-    });
+    console.error("[authUsuarioController.redefinirSenha] falha operacional", { code: "AUTH_RESET_FAILURE" });
+    return operationalFailure();
   }
 
   try {
     const verifyOpts = {};
     if (JWT_ISS) verifyOpts.issuer = JWT_ISS;
     if (JWT_AUD) verifyOpts.audience = JWT_AUD;
-
-    const decoded = jwt.verify(token, jwtSecret, verifyOpts);
-    const usuarioId = decoded?.sub;
-    const typ = decoded?.typ;
-
-    if (typ !== "pwd-reset" || !usuarioId) {
-      console.warn("[authUsuarioController.redefinirSenha] token inválido", {
-        code: "AUTH-400-TOKEN-INVALIDO",
-      });
-
-      return res.status(400).json({
-        ok: false,
-        code: "AUTH-400-TOKEN-INVALIDO",
-        message: "Token inválido.",
-      });
+    let decoded;
+    try {
+      decoded = jwt.verify(token, jwtSecret, verifyOpts);
+    } catch (error) {
+      if (["TokenExpiredError", "JsonWebTokenError", "NotBeforeError"].includes(error?.name)) {
+        throw new PasswordResetTokenError();
+      }
+      throw error;
     }
-
+    const subject = decoded?.sub;
+    if (decoded?.typ !== "pwd-reset" || typeof subject !== "string" ||
+        !/^[1-9]\d{0,9}$/.test(subject) || Number(subject) > 2147483647 ||
+        !isValidAuthVersion(decoded?.auth_version)) {
+      throw new PasswordResetTokenError();
+    }
+    const usuarioId = Number(subject);
+    const expectedAuthVersion = decoded.auth_version;
+    // Hash caro fora da transação; autorização revalidada sob o lock.
     const senhaCriptografada = await bcrypt.hash(novaSenha, 10);
 
-    const result = await db.query(
-      `
-      UPDATE usuarios
-         SET senha = $1
-       WHERE id = $2
-       RETURNING id
-      `,
-      [senhaCriptografada, usuarioId],
-    );
-
-    if (!result.rows?.length) {
-      console.warn(
-        "[authUsuarioController.redefinirSenha] usuário do token não encontrado",
-        {
-          code: "AUTH-400-TOKEN-INVALIDO",
-        },
+    await db.tx(async (tx) => {
+      const locked = await tx.query(
+        `SELECT id, auth_version, deleted_at FROM public.usuarios WHERE id = $1 FOR UPDATE`,
+        [usuarioId],
       );
+      if (!locked.rows?.length) throw new PasswordResetTokenError();
+      if (locked.rows.length !== 1) throw new Error("AUTH_RESET_USER_RESULT_INVALID");
+      const usuario = locked.rows[0];
+      if (usuario.deleted_at !== null) throw new PasswordResetTokenError();
+      if (!isValidAuthVersion(usuario.auth_version)) throw new Error("AUTH_RESET_DB_VERSION_INVALID");
+      if (usuario.auth_version !== expectedAuthVersion) throw new PasswordResetTokenError();
+      if (!isValidAuthVersion(usuario.auth_version + 1)) throw new Error("AUTH_RESET_VERSION_EXHAUSTED");
 
-      return res.status(400).json({
-        ok: false,
-        code: "AUTH-400-TOKEN-INVALIDO",
-        message: "Token inválido.",
-      });
-    }
-
-    console.log("[authUsuarioController.redefinirSenha] senha redefinida", {
-      usuarioId: Number.isInteger(Number(usuarioId)) && Number(usuarioId) > 0 && Number(usuarioId) <= 2147483647 ? Number(usuarioId) : null,
+      const updated = await tx.query(
+        `UPDATE public.usuarios SET senha = $1, auth_version = auth_version + 1
+          WHERE id = $2 AND auth_version = $3 AND deleted_at IS NULL AND auth_version < 2147483647
+          RETURNING id`,
+        [senhaCriptografada, usuarioId, expectedAuthVersion],
+      );
+      if (updated.rowCount !== 1 || updated.rows?.length !== 1) throw new Error("AUTH_RESET_UPDATE_FAILED");
+      await createAuthSessionService({ db }).revokeUserSessions(usuarioId, "password_changed", null, tx);
+      // Sem req/body: o helper não deve persistir query, token ou dados pessoais.
+      const audit = await registrarAuditoria({
+        usuario_id: usuarioId, acao: "alterar", modulo: "auth", entidade: "usuarios",
+        entidade_id: usuarioId, sucesso: true, severidade: "info", critica: true,
+        detalhes: { origem: "recuperacao_legada_protegida" },
+      }, tx);
+      if (audit?.ok !== true || !audit.data?.id) throw new Error("AUTH_RESET_AUDIT_FAILED");
     });
 
+    console.log("[authUsuarioController.redefinirSenha] senha redefinida", { usuarioId });
     return res.status(200).json({
-      ok: true,
-      code: "AUTH-200-SENHA-REDEFINIDA",
-      message: "Senha atualizada com sucesso.",
+      ok: true, code: "AUTH-200-SENHA-REDEFINIDA", message: "Senha atualizada com sucesso.",
     });
   } catch (err) {
-    console.error("[authUsuarioController.redefinirSenha] ERRO", authErrorForLog(err));
-
-    return res.status(400).json({
-      ok: false,
-      code: "AUTH-400-TOKEN-INVALIDO-EXPIRADO",
-      message: "Token inválido ou expirado.",
-    });
+    if (err instanceof PasswordResetTokenError) {
+      console.warn("[authUsuarioController.redefinirSenha] token inválido", { code: "AUTH_RESET_TOKEN_INVALID" });
+      return invalidToken();
+    }
+    console.error("[authUsuarioController.redefinirSenha] falha operacional", { code: "AUTH_RESET_FAILURE" });
+    return operationalFailure();
   }
 }
 

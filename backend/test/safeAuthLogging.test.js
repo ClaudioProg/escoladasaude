@@ -537,21 +537,38 @@ test("AUTH MIDDLEWARE: URL/headers/claims/erro externo não aparecem nos logs", 
   }
 });
 
-test("AUTH USUARIO: recuperação e redefinição mantêm respostas sem previews e erros brutos", async (t) => {
-  for (const scenario of ["missing", "sent", "mail_error", "db_error", "reset_error", "invalid_type", "reset_missing", "reset_ok"]) {
+test("AUTH USUARIO: recuperacao/reset versionados preservam contratos sem segredos nos logs", async (t) => {
+  for (const scenario of ["missing", "sent", "mail_error", "db_error", "reset_error", "invalid_type",
+    "reset_missing", "reset_ok", "reset_hash_error", "reset_revoke_error", "reset_audit_error",
+    "reset_version_missing", "reset_version_mismatch", "reset_db_invalid", "recovery_db_invalid"]) {
     const original = Object.assign(new Error(SENTINELS.join(" ")), { code: "23505", detail: EMAIL, constraint: CPF });
+    const query = async () => {
+      if (scenario === "db_error") throw original;
+      return { rowCount: 1, rows: ["missing", "reset_missing"].includes(scenario) ? [] :
+        [{ id: 7, auth_version: scenario.includes("db_invalid") ? "2000000001" :
+          scenario === "reset_version_mismatch" ? 2000000002 : 2000000001, deleted_at: null }] };
+    };
     const { api, logs } = load(t, "src/controllers/authUsuarioController.js", {
-      bcrypt: { hash: async () => BCRYPT },
+      bcrypt: { hash: async () => { if (scenario === "reset_hash_error") throw original; return BCRYPT; } },
       jsonwebtoken: { sign: () => JWT, verify: () => { if (scenario === "reset_error") throw original;
-        return { sub: "7", typ: scenario === "invalid_type" ? TOKEN : "pwd-reset" }; } },
-      "../db": { query: async () => { if (scenario === "db_error") throw original;
-        return { rows: ["missing", "reset_missing"].includes(scenario) ? [] : [{ id: 7 }] }; } },
+        return { sub: "7", typ: scenario === "invalid_type" ? TOKEN : "pwd-reset",
+          auth_version: scenario === "reset_version_missing" ? undefined : 2000000001 }; } },
+      "../db": { query, tx: async fn => fn({ query }) },
+      "../services/authSessionService": { createAuthSessionService: () => ({
+        revokeUserSessions: async () => { if (scenario === "reset_revoke_error") throw original; },
+      }) },
+      "../services/auditoriaService": { registrarAuditoria: async () => {
+        if (scenario === "reset_audit_error") throw original;
+        return { ok: true, data: { id: 41 } };
+      } },
       "../services/mailer": { sendEmail: async () => { if (scenario === "mail_error") throw original; } },
     }, { NODE_ENV: "development", JWT_SECRET: "synthetic-secret", FRONTEND_URL: "https://example.invalid" });
     const res = response();
     const reset = scenario.startsWith("reset_") || scenario === "invalid_type";
     await api[reset ? "redefinirSenha" : "recuperarSenha"](sensitiveRequest(), res);
-    assert.equal(res.statusCode, reset && scenario !== "reset_ok" ? 400 : 200);
+    const operational = ["reset_error", "reset_hash_error", "reset_revoke_error", "reset_audit_error", "reset_db_invalid"].includes(scenario);
+    assert.equal(res.statusCode, !reset ? 200 : operational ? 500 : scenario === "reset_ok" ? 200 : 400);
+    if (operational) assert.equal(res.body.code, "AUTH-500-REDEFINICAO-SENHA");
     cleanLogs(logs);
   }
 });
@@ -565,6 +582,8 @@ test("AUTH CADASTRO: erro de INSERT mantém resposta sem PII/detail no log", asy
   });
   const { api, logs } = load(t, "src/controllers/authUsuarioController.js", {
     bcrypt: { hash: async () => BCRYPT }, jsonwebtoken: {}, "../db": { query }, "../services/mailer": {},
+    "../services/authSessionService": { createAuthSessionService: assert.fail },
+    "../services/auditoriaService": { registrarAuditoria: assert.fail },
   });
   const req = sensitiveRequest();
   req.body = { ...req.body, nome: "Teste sintético", celular: "11987654321", data_nascimento: "1990-01-01",

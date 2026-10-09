@@ -1,9 +1,10 @@
 # Bloco 1 — estado real
 
-Atualização documental: 2026-10-08. Branch: `revisao-premium-bloco-1-auth`.
-Último commit funcional de referência:
-`665b3de7002748412d0942d124c6e501f1c2ac3d`, base funcional anterior a esta
-atualização documental; não é o SHA do futuro commit documental.
+Atualização documental: 2026-10-09. Branch: `revisao-premium-bloco-1-auth`.
+Base Git anterior ao fechamento da Etapa 07:
+`b84fafdec24dd527a78739e27bf1456b126d3bea`. O commit que incorpora este registro
+reúne código, testes e quatro documentos; consultar seu SHA no histórico da branch.
+O SHA base não é o commit de fechamento.
 
 ## FECHADO / versionado na branch
 
@@ -46,6 +47,38 @@ Fechamento de uma fundação não significa integração completa do contrato V3
 - Nenhum writer de `auth_version` foi ativado. D8 continua pendente para o
   momento de `bridge → strict`.
 
+## ETAPA 07 — FECHAMENTO LOCAL APROVADO
+
+Implementação local concluída sobre `b84fafdec24dd527a78739e27bf1456b126d3bea`.
+Revisão independente aprovada pelo responsável em **09/10/2026**, após conferência
+do código e das evidências PostgreSQL originais e complementares. Este registro
+integra o commit único de código, testes e quatro documentos na branch V3.
+
+- Decisões 1A, 2A, 3A, 4A, 5B, 6A e 7A preservadas; detalhes nos
+  [contratos canônicos](decisoes-canonicas.md#decisão-canônica--etapa-07-loginreset).
+- `createSession` exige a versão do mesmo snapshot do hash verificado e a
+  compara sob `FOR UPDATE` antes de efeitos. Login perdedor retorna o 401 canônico
+  com piso de 250 ms, sem publicar credenciais/sessão.
+- Reset JWT de uma hora exige `auth_version` estrito, inclusive no consumo.
+  Reset bem-sucedido incrementa N → N+1, revoga todas as sessões e audita
+  criticamente no mesmo executor; sucesso somente após commit. Replay de tokens
+  N e tokens antigos sem claim são rejeitados.
+- Validação final prévia: **193/193 testes focados** e **670/670 testes completos
+  do backend** aprovados. Não foram reexecutados no fechamento documental.
+- Rehearsal original: **R1–R11 operacionais aprovados**; deadlock real `40P01`
+  reproduzido no R12 operacional. `changeActiveArea` corrigido para a ordem
+  **usuário → sessão → contexto**, alinhada ao reset.
+- **Sete provas PostgreSQL complementares aprovadas, sem deadlocks**.
+  O conjunto cobre **todos os 13 cenários canônicos**, com
+  [correspondência ao harness](testes-e-evidencias.md#numeração-canônica-e-correspondência-operacional).
+  R13 operacional permanece pré-checagem histórica, sem prova de fechamento
+  posterior ao deadlock; R13 canônico vem da prova complementar de senha nova.
+- Writer permanece bcrypt custo 10/política legada. Histórico não integrado;
+  reutilização possível. `atualizarBasico`, D1–D8 e demais pendências continuam abertos.
+- Limites: PostgreSQL em branch Neon descartável, com identidades sintéticas;
+  sem teste de UI/browser, SMTP real ou implantação em produção. O fechamento
+  documental não executa testes, PostgreSQL, migrations ou deploy.
+
 ## PARCIAL
 
 - Login local já usa o verificador misto e cria sessão/cookie de transição.
@@ -57,13 +90,14 @@ Fechamento de uma fundação não significa integração completa do contrato V3
   `bridge → strict`; isso não comprova configuração nem uso em produção.
 - Writer automático bcrypt → Argon2id e rehash Argon2id ainda não estão ativos.
   O fluxo seguro de troca obrigatória precisa ser implementado antes do cutover;
-  concorrência login/reset permanece para etapa posterior.
+  a proteção login/reset da Etapa 07 tem implementação e rehearsal aprovados localmente.
 - Middleware de sessão publica `{ id, perfis, areaAtiva, sessionId }`; isso não
   prova uso desse contrato em todas as rotas/clientes.
-- Campos `auth_version`/`email_version` e desafios existem no SQL expand;
-  nenhum writer operacional incrementa `auth_version`. Reset legado, writers
-  de senha/e-mail e demais operações críticas ainda precisam ser conectados
-  à invalidação; sessão opaca continua mecanismo independente.
+- Campos `auth_version`/`email_version` e desafios existem no SQL expand.
+  A implementação local da Etapa 07 conecta `redefinirSenha` ao incremento de
+  `auth_version` e à revogação transacional, com rehearsal e revisão aprovados.
+  `atualizarBasico` ainda altera senha sem incremento/revogação; outros writers
+  de senha/e-mail e operações críticas continuam pendentes.
 - Revogação e auditoria aceitam o mesmo executor; fluxos críticos futuros ainda
   precisam compor sua transação e consumir desafios/histórico/outbox.
 - Confirmação institucional, recuperação V3 e histórico de senhas têm estrutura;
@@ -82,10 +116,9 @@ deduzida da presença desses arquivos na branch.
 
 ## A FAZER
 
-- **Próxima etapa funcional: 07 — concorrência login/reset.** Endurecer a
-  interação entre autenticação e alteração/reset de credenciais para impedir
-  emissão/uso inconsistente de credenciais durante concorrência.
-  A solução e a necessidade de banco serão determinadas em preflight próprio.
+- **Etapa 07: fechamento local aprovado em 09/10/2026**, com publicação Git
+  restrita à branch V3. UI/browser e implantação em produção exigem etapa própria;
+  publicação da branch não comprova produção.
 - Integrar writers que incrementam `auth_version`, inclusive senha/e-mail,
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
@@ -94,6 +127,7 @@ deduzida da presença desses arquivos na branch.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–06 estão fechadas/versionadas na branch; isso não comprova produção.
+Etapas 01–06 estão versionadas; a Etapa 07 tem fechamento local aprovado e é
+incorporada pelo commit deste registro. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).

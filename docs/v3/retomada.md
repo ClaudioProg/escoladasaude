@@ -4,20 +4,20 @@ Projeto: **Plataforma Escola da Saúde — V3**.
 
 Branch: `revisao-premium-bloco-1-auth`.
 
-Atualização documental: 2026-10-08.
-Último commit funcional: `665b3de7002748412d0942d124c6e501f1c2ac3d`.
-Essa é a base funcional anterior a esta atualização, não o SHA do futuro commit
-documental. Confirmar o HEAD real ao retomar.
+Atualização documental: 2026-10-09.
+Base Git anterior ao fechamento: `b84fafdec24dd527a78739e27bf1456b126d3bea`.
+O commit que incorpora este registro reúne código, testes e quatro documentos;
+confirmar seu SHA no histórico e o HEAD real ao retomar.
 
-Última etapa funcional concluída: **06 — ponte de auth_version no access JWT**.
-Etapas **01–06 fechadas/versionadas na branch**. Etapa 04 documental incorporada em
-`3247b3d305234414a493e60097d1bae8e0b238d1`; manutenção do inventário de migrations
-incorporada em `dd0722b54a3837994eda44ae7434179db1ccbca1`, sem etapa funcional nova.
+Última etapa funcional concluída: **07 — proteção de login/reset concorrentes**.
+Etapas **01–06 versionadas na branch**; Etapa 07 com **fechamento local aprovado**.
+Etapa 04 documental incorporada em `3247b3d305234414a493e60097d1bae8e0b238d1`;
+manutenção do inventário de migrations em `dd0722b54a3837994eda44ae7434179db1ccbca1`.
 
-Próxima etapa: **07 — concorrência login/reset**.
-Objetivo geral: endurecer a interação entre autenticação e alteração/reset de
-credenciais para impedir emissão/uso inconsistente durante concorrência.
-Terá preflight próprio, que definirá a solução e a necessidade de acesso a banco.
+Revisão independente aprovada pelo responsável em **09/10/2026**, após conferência
+do código e das evidências PostgreSQL originais e complementares. O fechamento
+integra o commit único de implementação, testes e documentos na branch V3.
+Pendências futuras permanecem abertas; nenhuma produção foi validada.
 
 Estado funcional relevante:
 
@@ -27,26 +27,47 @@ Estado funcional relevante:
   também **não persiste** rehash.
 - `requiresPasswordChange` bloqueia acesso normal com 403, sem JWT, sessão,
   cookie ou notificação. Fluxo seguro de troca ainda precisa ser implementado
-  antes do cutover; concorrência login/reset permanece pendente.
+  antes do cutover; proteção login/reset e rehearsal da Etapa 07 aprovados localmente.
 - Novos access JWTs levam `auth_version`; login local e Google emitem a versão
   e o middleware Bearer compara token × banco.
 - `bridge`/`strict` existem; `AUTH_VERSION_MODE` é obrigatório e fail-closed.
   Em `bridge`, token antigo realmente sem claim só é aceito como versão 1
   quando DB=1; em `strict`, ausência de claim é rejeitada.
-- Nenhum writer incrementa `auth_version`; reset legado ainda não invalida
-  access JWT via versão.
+- `createSession` exige `expectedAuthVersion` do snapshot original do hash,
+  comparado sob lock antes de efeitos; login perdedor retorna 401 canônico,
+  piso de 250 ms e nenhuma publicação de credenciais/sessão.
+- Reset JWT agora exige `auth_version`; tokens antigos sem claim são inválidos.
+  `redefinirSenha` local incrementa versão, revoga todas as sessões e audita
+  criticamente no mesmo tx. Replay de tokens N bloqueado após commit N → N+1.
+- Reset mantém bcrypt custo 10/política legada. Histórico não integrado;
+  reutilização de senha possível. `atualizarBasico` ainda altera senha sem
+  incremento/revogação; cadastro, exclusão e outros writers continuam pendentes.
 - Perfil único legado continua; JWT/Bearer segue durante a transição.
-- Sessão/cookie permanece independente e intacto; JWTs especializados fora da ponte.
+- Sessão/cookie continua independente do verificador Bearer; reset revoga sessões
+  explicitamente. JWTs especializados não usam a ponte; reset tem validação própria.
 - D8 permanece pendente para o cutover `bridge → strict`. Evidência local não
   comprova presença da coluna nem configuração do modo em produção; não houve deploy.
 
-Worktree estava limpo antes desta sincronização; somente os três documentos
-autorizados ficam modificados. Esta tarefa não realiza stage/commit/push/deploy.
+A Etapa 07 versiona exatamente sete JS (incluindo novo teste dedicado) e quatro
+documentos autorizados. Validação final prévia: **193/193 testes focados** e
+**670/670 testes completos do backend**, aprovados após a correção.
+Os testes não são reexecutados no fechamento documental.
 
-Ambiente de rehearsal: clone auth-recuperação,
-`revisao-premium-ensaio-auth-recuperacao`. Nunca confundir com produção.
-Produção requer preflight próprio do ledger; adequação feita em clone não foi
-realizada em produção.
+Rehearsal original: **R1–R11 operacionais aprovados**, deadlock `40P01` reproduzido
+no R12. `changeActiveArea` corrigido para **usuário → sessão → contexto**.
+**Sete provas PostgreSQL complementares aprovadas, sem deadlocks**: três de
+troca de área/reset, duas de touch/reset, bridge legado e senha nova antes/depois
+do commit. O conjunto cobre **todos os 13 cenários canônicos**, conforme
+[numeração e correspondência ao harness](testes-e-evidencias.md#numeração-canônica-e-correspondência-operacional).
+R13 operacional continua somente pré-checagem histórica, sem prova de fechamento
+posterior ao deadlock; R13 canônico é a prova complementar de login com senha nova.
+
+Alvo das evidências da Etapa 07: branch Neon exclusiva
+`rehearsal-etapa-07-descartavel`, derivada do clone auth-recuperação
+`revisao-premium-ensaio-auth-recuperacao`. Identidades sintéticas e artefatos
+originais/complementares preservados. Sem UI/browser, SMTP real ou implantação
+em produção. Produção requer preflight próprio; o fechamento documental não
+executa PostgreSQL, migrations, deploy ou exclusão da branch.
 
 Aviso 5432: a rede municipal bloqueia PostgreSQL direto. Usar internet pessoal
 somente quando uma etapa realmente exigir conexão e houver autorização para o
@@ -58,8 +79,15 @@ alvo. A documentação não exige acesso a banco.
 2. Ler [status](bloco-1-status.md), [decisões/D1–D8](decisoes-canonicas.md) e
    [legado](legado.md); não fechar pendências por inferência.
 3. Consultar [evidências](testes-e-evidencias.md) e [migrations](migrations.md).
-4. Realizar o preflight da Etapa 07 antes de definir sua implementação; não ativar
-   writers Argon2id antes da proteção concorrente login/reset e compatibilidade.
+4. Planejar a próxima etapa autorizada preservando `atualizarBasico`, histórico
+   de senhas e demais pendências. Writers Argon2id ainda exigem aprovação e
+   compatibilidade; o fechamento da Etapa 07 não os ativa. Novas operações em
+   banco/produção exigem autorização e preflight próprios; preservar a branch
+   Neon descartável e as evidências existentes.
+5. Preservar decisões 1A/2A/3A/4A/5B/6A/7A e pendências D1–D8. Requisições já
+   autenticadas antes do commit podem terminar. Não reduzir versões/reativar sessões
+   em rollback. Revisão independente e rehearsal da Etapa 07 já aprovados;
+   UI/browser e implantação em produção continuam sem validação.
 
 Não inserir segredos, endereços de conexão, credenciais, tokens reais ou dados
 pessoais neste documento. Nenhuma implantação/ação em produção é presumida.

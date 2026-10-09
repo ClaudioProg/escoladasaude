@@ -357,6 +357,7 @@ async function loginUsuario(req, res, next) {
     usuarioIdDaSessao = usuario.id;
     createdSession = await sessionService.createSession({
       usuarioId: usuario.id,
+      expectedAuthVersion: usuario.auth_version,
       manterConectado,
       userAgent: typeof req.get === "function" ? req.get("user-agent") : req.headers?.["user-agent"],
       ip: req.ip ?? null,
@@ -396,6 +397,9 @@ async function loginUsuario(req, res, next) {
 
     return response;
   } catch (error) {
+    if (!createdSession && error?.code === "AUTH_SESSION_CREDENTIAL_STATE_CHANGED") {
+      return await sendInvalidCredentials(res, startedAt);
+    }
     log(rid, "error", "Erro no login", error);
 
     if (createdSession?.session?.id && sessionService && usuarioIdDaSessao !== null) {

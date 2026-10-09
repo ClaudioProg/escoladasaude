@@ -99,6 +99,7 @@ test("login local cria sessao, preserva JWT e nunca expoe ou registra token opac
 
   assert.deepEqual(sessionArgs, {
     usuarioId: 7,
+    expectedAuthVersion: 1,
     manterConectado: false,
     userAgent: "browser raw/1.0",
     ip: "203.0.113.7",
@@ -311,7 +312,7 @@ for (const [label, result] of [
     });
     assert.deepEqual(calls.verify.mock.calls[0].arguments, [req.body.senha, USER.senha]);
     assert.deepEqual(calls.generateJwt.mock.calls[0].arguments, [{ id: 7, perfil: "usuario", auth_version: 1 }, "1d"]);
-    assert.deepEqual(calls.createSession.mock.calls[0].arguments, [{ usuarioId: 7, manterConectado: false, userAgent: "browser raw/1.0", ip: "203.0.113.7" }]);
+    assert.deepEqual(calls.createSession.mock.calls[0].arguments, [{ usuarioId: 7, expectedAuthVersion: 1, manterConectado: false, userAgent: "browser raw/1.0", ip: "203.0.113.7" }]);
     assert.deepEqual(calls.notify.mock.calls[0].arguments, [7]);
     assert.deepEqual(res.cookies, [{ name: "escola_saude_session", value: "opaque-session-token", options: sessionCookieOptions(false, false) }]);
     assert.match(res.headers["Cache-Control"], /no-store/);
@@ -494,6 +495,7 @@ for (const version of [1, 2, 2147483647]) {
     assert.match(calls.query.mock.calls[0].arguments[0], /\bu\.auth_version\b/);
     assert.deepEqual(calls.generateJwt.mock.calls[0].arguments,
       [{ id: 7, perfil: "usuario", auth_version: version }, "1d"]);
+    assert.equal(calls.createSession.mock.calls[0].arguments[0].expectedAuthVersion, version);
     assert.equal(res.body.token, "legacy.jwt");
     assert.equal(Object.hasOwn(res.body.usuario, "auth_version"), false);
     assertNoPasswordWriter(calls);
@@ -534,3 +536,53 @@ for (const [label, options, expectedCode] of [
     assertNoAccess(calls, res);
   });
 }
+
+test("guard usa snapshot original e perde corrida com 401 sem publicar credenciais", async (t) => {
+  let version = 1;
+  let revocations = 0;
+  let notified = 0;
+  let queries = 0;
+  let args;
+  const { loginUsuario } = loadLoginController({
+    verifyPassword: async () => { version = 2; return { authenticated: true }; },
+    generateJwt: (user) => { assert.equal(user.auth_version, 1); return "unpublished.jwt"; },
+    createSession: async (input) => {
+      args = input;
+      assert.equal(version, 2);
+      throw Object.assign(new Error("segredo interno"), { code: "AUTH_SESSION_CREDENTIAL_STATE_CHANGED" });
+    },
+    notify: async () => { notified += 1; },
+    revokeSession: async () => { revocations += 1; },
+  });
+  const req = request();
+  req.db.query = async () => { queries += 1; return { rows: [{ ...USER, auth_version: version }] }; };
+  const res = response();
+  const start = performance.now();
+  await loginUsuario(req, res, assert.fail);
+  assert.ok(performance.now() - start >= 248);
+  assertInvalidCredentials(res);
+  assert.equal(args.expectedAuthVersion, 1);
+  assert.equal(queries, 1);
+  assert.equal(notified, 0);
+  assert.equal(revocations, 0);
+  assert.equal(Object.hasOwn(res.body, "token"), false);
+});
+
+test("mismatch desconta processamento e nao acrescenta espera apos 250 ms", async (t) => {
+  for (const elapsed of [210, 300]) {
+    let tick = 0;
+    const waits = [];
+    const { loginUsuario } = loadLoginController({
+      clock: { now: () => tick },
+      createSession: async () => {
+        tick = elapsed;
+        throw Object.assign(new Error("state changed"), { code: "AUTH_SESSION_CREDENTIAL_STATE_CHANGED" });
+      },
+    });
+    const timer = t.mock.method(global, "setTimeout", (resolve, ms) => { waits.push(ms); tick += ms; resolve(); });
+    const res = response();
+    try { await loginUsuario(request(), res, assert.fail); } finally { timer.mock.restore(); }
+    assertInvalidCredentials(res);
+    assert.deepEqual(waits, elapsed < 250 ? [250 - elapsed] : []);
+  }
+});

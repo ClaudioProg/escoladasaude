@@ -11,7 +11,7 @@ function fakeDb({ profiles = ["usuario"], context = null, active = [], session =
   const calls = [];
   const query = async (sql, params = []) => {
     calls.push({ sql, params });
-    if (sql.includes("FROM public.usuarios WHERE")) return { rows: [{ id: params[0] }] };
+    if (sql.includes("FROM public.usuarios WHERE")) return { rows: [{ id: params[0], auth_version: 1 }] };
     if (sql.includes("SELECT perfil_codigo")) return { rows: profiles.map((perfil_codigo) => ({ perfil_codigo })) };
     if (sql.includes("SELECT ultima_area_ativa")) return { rows: context ? [{ ultima_area_ativa: context }] : [] };
     if (sql.includes("ORDER BY criada_em")) return { rows: active };
@@ -38,7 +38,7 @@ test("criacao bloqueia usuario, resolve area e limita cinco sessoes", async (t) 
   await t.test("UUID, area concedida e manter=false", async () => {
     const db = fakeDb({ profiles: ["usuario", "gestor"] });
     const service = createAuthSessionService({ db, now: () => NOW });
-    const output = await service.createSession({ usuarioId: 7, areaInicial: "gestor" });
+    const output = await service.createSession({ usuarioId: 7, expectedAuthVersion: 1, areaInicial: "gestor" });
     assert.match(output.session.id, /^[0-9a-f-]{36}$/);
     assert.equal(output.session.limiteAbsolutoEm, null);
     assert.ok(db.calls.some((call) => call.sql.includes("FOR UPDATE")));
@@ -49,23 +49,23 @@ test("criacao bloqueia usuario, resolve area e limita cinco sessoes", async (t) 
   await t.test("preferencia valida, invalida e ausente", async () => {
     for (const [context, expected] of [["gestor", "gestor"], ["removido", "usuario"], [null, "usuario"]]) {
       const service = createAuthSessionService({ db: fakeDb({ profiles: ["usuario", "gestor"], context }), now: () => NOW });
-      assert.equal((await service.createSession({ usuarioId: 7 })).session.areaAtiva, expected);
+      assert.equal((await service.createSession({ usuarioId: 7, expectedAuthVersion: 1 })).session.areaAtiva, expected);
     }
   });
   await t.test("area nao concedida rejeita e manter=true limita 30d", async () => {
     const service = createAuthSessionService({ db: fakeDb(), now: () => NOW });
-    await assert.rejects(service.createSession({ usuarioId: 7, areaInicial: "gestor" }), AuthSessionError);
+    await assert.rejects(service.createSession({ usuarioId: 7, expectedAuthVersion: 1, areaInicial: "gestor" }), AuthSessionError);
     const persistent = createAuthSessionService({ db: fakeDb(), now: () => NOW });
-    const made = await persistent.createSession({ usuarioId: 7, manterConectado: true });
+    const made = await persistent.createSession({ usuarioId: 7, expectedAuthVersion: 1, manterConectado: true });
     assert.equal(made.session.limiteAbsolutoEm - NOW, 30 * 24 * 60 * 60 * 1000);
   });
   await t.test("sexta revoga a mais antiga e expiradas nao contam", async () => {
     const db = fakeDb({ active: Array.from({ length: 5 }, (_, index) => ({ id: `old-${index}` })) });
     const service = createAuthSessionService({ db, now: () => NOW });
-    await service.createSession({ usuarioId: 7 });
+    await service.createSession({ usuarioId: 7, expectedAuthVersion: 1 });
     assert.equal(db.calls.filter((call) => call.params.includes("old-0")).length, 1);
     const clean = fakeDb({ active: [] });
-    await createAuthSessionService({ db: clean, now: () => NOW }).createSession({ usuarioId: 7 });
+    await createAuthSessionService({ db: clean, now: () => NOW }).createSession({ usuarioId: 7, expectedAuthVersion: 1 });
     assert.equal(clean.calls.some((call) => call.params.includes("session_limit")), false);
   });
 });
@@ -114,6 +114,41 @@ test("validacao, touch, revogacao e area mantem contratos", async (t) => {
     const service = createAuthSessionService({ db, now: () => NOW });
     assert.deepEqual(await service.changeActiveArea({ sessionId: "s1", usuarioId: 7, areaAtiva: "gestor" }), { areaAtiva: "gestor" });
     assert.equal(db.calls.some((call) => call.sql.includes("ON CONFLICT (usuario_id)")), true);
+  });
+});
+
+test("troca de area bloqueia usuario antes dos efeitos e preserva rejeicoes", async (t) => {
+  await t.test("ordem usuario, sessao e contexto no mesmo executor", async () => {
+    const db = fakeDb({ profiles: ["usuario", "gestor"], updateRows: [{ id: "s1" }] });
+    await createAuthSessionService({ db, now: () => NOW }).changeActiveArea({ sessionId: "s1", usuarioId: 7, areaAtiva: "gestor" });
+    assert.match(db.calls[0].sql, /SELECT id FROM public\.usuarios WHERE id = \$1 FOR UPDATE/);
+    assert.deepEqual(db.calls[0].params, [7]);
+    const sessionIndex = db.calls.findIndex((call) => call.sql.includes("UPDATE public.auth_sessao SET area_ativa"));
+    const contextIndex = db.calls.findIndex((call) => call.sql.includes("INSERT INTO public.auth_usuario_contexto"));
+    assert.ok(sessionIndex > 0 && contextIndex > sessionIndex);
+  });
+  await t.test("sessao revogada ou de outro usuario nao grava contexto", async () => {
+    const db = fakeDb({ profiles: ["usuario", "gestor"], updateRows: [] });
+    await assert.rejects(createAuthSessionService({ db, now: () => NOW }).changeActiveArea({ sessionId: "s1", usuarioId: 7, areaAtiva: "gestor" }),
+      (error) => error.code === "AUTH_SESSION_INVALID");
+    const update = db.calls.find((call) => call.sql.includes("UPDATE public.auth_sessao SET area_ativa"));
+    assert.match(update.sql, /id = \$1 AND usuario_id = \$2 AND revogada_em IS NULL/);
+    assert.deepEqual(update.params.slice(0, 2), ["s1", 7]);
+    assert.equal(db.calls.some((call) => call.sql.includes("INSERT INTO public.auth_usuario_contexto")), false);
+  });
+  await t.test("area nao concedida continua sem efeitos", async () => {
+    const db = fakeDb();
+    await assert.rejects(createAuthSessionService({ db }).changeActiveArea({ sessionId: "s1", usuarioId: 7, areaAtiva: "gestor" }),
+      (error) => error.code === "AUTH_SESSION_AREA_NOT_GRANTED");
+    assert.equal(db.calls.some((call) => call.sql.includes("UPDATE public.auth_sessao") || call.sql.includes("INSERT INTO public.auth_usuario_contexto")), false);
+  });
+  await t.test("falha no lock interrompe antes de permissoes e escritas", async () => {
+    const original = Object.assign(new Error("lock unavailable"), { code: "55P03" });
+    let calls = 0;
+    const db = { tx: async (fn) => fn({ query: async () => { calls++; throw original; } }) };
+    await assert.rejects(createAuthSessionService({ db }).changeActiveArea({ sessionId: "s1", usuarioId: 7, areaAtiva: "usuario" }),
+      (error) => error === original);
+    assert.equal(calls, 1);
   });
 });
 
@@ -213,7 +248,7 @@ test("revokeUserSessions preserva API antiga e usa somente o executor explicito"
 test("hardening prova predicates de limite, touch e revogacao", async (t) => {
   await t.test("limite absoluto vencido nao entra no limite e ordenacao e deterministica", async () => {
     const db = fakeDb({ active: Array.from({ length: 6 }, (_, index) => ({ id: `old-${index}` })) });
-    await createAuthSessionService({ db, now: () => NOW }).createSession({ usuarioId: 7 });
+    await createAuthSessionService({ db, now: () => NOW }).createSession({ usuarioId: 7, expectedAuthVersion: 1 });
     const activeQuery = db.calls.find((call) => call.sql.includes("ORDER BY criada_em"));
     assert.match(activeQuery.sql, /limite_absoluto_em IS NULL OR limite_absoluto_em > \$2/);
     assert.match(activeQuery.sql, /ORDER BY criada_em ASC, id ASC FOR UPDATE/);
@@ -277,4 +312,71 @@ test("CAS de area preserva concorrencia e falha fechado", async (t) => {
     const db = concurrentDb({ ...base, revogada_em: NOW }, ["usuario"]);
     await assert.rejects(createAuthSessionService({ db, now: () => NOW }).validateSession("x"), AuthSessionError);
   });
+});
+
+const INVALID_VERSIONS = [undefined, null, "1", 0, -1, 1.5, 2147483648, NaN, Infinity, {}, [], true];
+for (const version of INVALID_VERSIONS) {
+  test("createSession rejeita expectedAuthVersion invalido: " + String(version), async () => {
+    const db = fakeDb();
+    db.tx = async () => assert.fail("Input invalido nao abre transacao.");
+    await assert.rejects(createAuthSessionService({ db }).createSession({ usuarioId: 7, expectedAuthVersion: version }),
+      { code: "AUTH_SESSION_EXPECTED_AUTH_VERSION_INVALID" });
+    assert.equal(db.calls.length, 0);
+  });
+}
+
+for (const version of INVALID_VERSIONS) {
+  test("createSession rejeita versao DB invalida: " + String(version), async () => {
+    const calls = [];
+    const db = { tx: async fn => fn({ query: async (sql) => {
+      calls.push(sql);
+      return { rows: [{ id: 7, auth_version: version }] };
+    } }) };
+    await assert.rejects(createAuthSessionService({ db }).createSession({ usuarioId: 7, expectedAuthVersion: 1 }),
+      { code: "AUTH_SESSION_DB_AUTH_VERSION_INVALID" });
+    assert.equal(calls.length, 1);
+    assert.match(calls[0], /SELECT id, auth_version[\s\S]*FOR UPDATE/);
+  });
+}
+
+test("guard sob lock provoca rollback antes de limite, contexto e INSERT", async () => {
+  const events = [];
+  const db = {
+    tx: async fn => {
+      events.push("begin");
+      try {
+        const output = await fn({ query: async sql => {
+          events.push(sql);
+          return { rows: [{ id: 7, auth_version: 2 }] };
+        } });
+        events.push("commit");
+        return output;
+      } catch (error) { events.push("rollback"); throw error; }
+    },
+  };
+  await assert.rejects(createAuthSessionService({ db }).createSession({ usuarioId: 7, expectedAuthVersion: 1 }),
+    { code: "AUTH_SESSION_CREDENTIAL_STATE_CHANGED" });
+  assert.equal(events.length, 3);
+  assert.match(events[1], /FOR UPDATE/);
+  assert.equal(events[2], "rollback");
+});
+
+for (const version of [1, 2, 2147483647]) {
+  test("createSession aceita igualdade estrita: " + version, async () => {
+    const db = fakeDb();
+    const original = db.query;
+    db.tx = fn => fn({ query: async (sql, params) => {
+      if (sql.includes("FROM public.usuarios WHERE")) return { rows: [{ id: 7, auth_version: version }] };
+      return original(sql, params);
+    } });
+    const made = await createAuthSessionService({ db }).createSession({ usuarioId: 7, expectedAuthVersion: version });
+    assert.equal(made.session.usuarioId, 7);
+  });
+}
+
+test("createSession sem argumentos falha com erro tipado antes da transacao", async () => {
+  const db = fakeDb();
+  db.tx = async () => assert.fail("Transacao inesperada.");
+  await assert.rejects(createAuthSessionService({ db }).createSession(),
+    { code: "AUTH_SESSION_EXPECTED_AUTH_VERSION_INVALID" });
 });

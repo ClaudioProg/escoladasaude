@@ -1,16 +1,21 @@
 # Testes e evidências de fechamento
 
-Atualização documental: 2026-10-08. Último commit funcional de referência:
-`665b3de7002748412d0942d124c6e501f1c2ac3d`, anterior a esta atualização documental.
+Atualização documental: 2026-10-09. Base Git anterior ao fechamento da Etapa 07:
+`b84fafdec24dd527a78739e27bf1456b126d3bea`. O commit que incorpora este registro
+reúne código, testes e quatro documentos; seu SHA é consultável no histórico da
+branch `revisao-premium-bloco-1-auth`.
 
 ## Origem e limites
 
 Os resultados abaixo registram fechamentos informados e aprovados pelo responsável
 nas etapas anteriores, incluindo a consolidação explícita da Etapa 04 e as
-validações locais das Etapas 05 e 06. Arquivos e
-commits foram conferidos no repositório. Resultados de banco são **históricos do
-clone**, não nova consulta nem prova de produção. Testes não foram reexecutados
-na etapa exclusivamente documental. Não há logs brutos ou dados pessoais aqui.
+validações locais das Etapas 05 e 06. A Etapa 07 acrescenta implementação local,
+resultados finais de testes e evidências PostgreSQL originais e complementares,
+com revisão independente aprovada pelo responsável em **09/10/2026**. Arquivos,
+commits, logs de testes e artefatos de banco existentes foram conferidos.
+Resultados de banco são **históricos do rehearsal isolado**, sem nova consulta
+ou prova de produção. O fechamento documental não reexecutou testes nem banco.
+Não há logs brutos, credenciais, tokens reais ou dados pessoais aqui.
 
 ## TOUCH — fechado
 
@@ -182,11 +187,170 @@ Os testes não foram reexecutados nesta sincronização exclusivamente documenta
   ambiente de produção **não foi comprovada**.
 - Nenhuma migration foi criada/modificada; nenhum writer incrementa
   `auth_version`.
-- Reset legado continua sem invalidar access JWT por versão; sessão opaca não
+- No fechamento da Etapa 06, reset legado ainda não invalidava access JWT por
+  versão; a integração local é registrada na Etapa 07 abaixo. Sessão opaca não
   é invalidada apenas por `auth_version`.
 - D8 continua aberta para o cutover `bridge → strict`.
 - Não houve deploy. Evidência local não equivale a produção e não comprova
   que `AUTH_VERSION_MODE` esteja configurado nesse ambiente.
+
+## ETAPA 07 — IMPLEMENTAÇÃO LOCAL CONCLUÍDA / FECHAMENTO LOCAL APROVADO
+
+Base: `b84fafdec24dd527a78739e27bf1456b126d3bea`, branch
+`revisao-premium-bloco-1-auth`. Revisão independente aprovada pelo responsável
+em **09/10/2026**, após conferência do código e das evidências PostgreSQL
+originais e complementares. Este registro integra o commit único de fechamento.
+
+### Validação final prévia após a correção
+
+| Grupo focado | Resultado |
+| --- | --- |
+| [authUsuarioController](../../backend/src/controllers/authUsuarioController.test.js) | 69/69 |
+| [loginController](../../backend/src/controllers/loginController.test.js) | 50/50 |
+| [authSessionService](../../backend/src/services/authSessionService.test.js) | 69/69 |
+| [authSessionMiddleware](../../backend/src/auth/authSessionMiddleware.test.js) | 5/5 |
+| Total focado final | **193/193** |
+| Suíte backend completa final | **670/670** |
+
+Zero falhas/cancelados/skips/todo nos dois conjuntos. Logs originais:
+`focused-tests.log` e `full-tests.log`, no diretório externo
+`escola-etapa07-r12-fix-20261009`. A correção acrescentou um grupo e quatro
+subtestes (cinco casos Node): backend de 665 para 670. O total 383/383 pertence à
+seleção mais ampla anterior à correção; não é o total focado final.
+
+Sintaxe: 7/7 JS na implementação inicial e 2/2 arquivos na correção; aprovada.
+`git diff --check` aprovado anteriormente e exigido novamente antes do commit.
+Lint backend sem script/configuração pertinente; nenhuma dependência instalada.
+Drivers PostgreSQL/SMTP bloqueados nos testes locais; 30 processos instrumentados
+com zero tentativas de conexão/query PostgreSQL ou transporte SMTP. As suítes
+não substituem o rehearsal real abaixo. Não houve reexecução de testes neste
+fechamento documental.
+
+### Evidência local
+
+- Guarda obrigatória/estrita em `createSession`: invalidade do argumento/DB,
+  igualdade e mismatch sob lock antes de efeitos, rollback e limite de cinco.
+- Login preserva o snapshot original; perda simulada retorna 401 canônico com
+  piso de 250 ms, espera somente do restante e sem espera adicional após o piso;
+  sem JWT/cookie/notificação/compensação/next. Erros operacionais preservados.
+- Emissão de reset usa JWT real com segredo fictício e claim estrita; DB inválida
+  mantém resposta genérica sem token/e-mail. Ausência e invalidez da claim,
+  assinatura/issuer/audience/expiração/finalidade/sub inválidos retornam 400.
+- Reset usa hash bcrypt custo 10 preparado antes da tx. DB atômico simulado,
+  revogação e helper de auditoria reais verificam ordem e o mesmo executor.
+  Falhas de hash/begin/lock/UPDATE/revogação/auditoria/commit preservam estado;
+  auditoria é crítica e sucesso só responde após conclusão da tx.
+- Transições 1 → 2, 2 → 3, 2147483646 → 2147483647; máximo produz 500/no-op.
+  Conta excluída/inexistente e mismatch produzem o mesmo 400 genérico.
+- Replay do mesmo JWT e outro JWT emitido em N rejeitados após N → N+1;
+  nenhum novo efeito. Zero sessões revogadas é válido; UPDATE zero linhas falha.
+- Logging adversarial sem senha/hash/JWT/versões numéricas/PII ou erro bruto
+  nos caminhos cobertos. Detalhes de auditoria fixos, sem req/body/segredos.
+- Execução protegida por guardas de PostgreSQL/rede/SMTP/leitura de .env;
+  contadores de tentativas proibidas zero. Configuração dummy só no processo.
+
+### Rehearsal PostgreSQL original e correção do deadlock
+
+Execuções de **09/10/2026**, PostgreSQL 16.15, branch Neon exclusiva
+`rehearsal-etapa-07-descartavel`, derivada do clone auth-recuperação. Identidade,
+TLS no socket do cliente e checksums das três migrations pertinentes do ledger
+confirmados antes das fixtures; nenhuma migration executada.
+
+Controllers, serviço de sessões, middleware Bearer, bcrypt, JWT e auditoria
+reais, com transações e dados PostgreSQL reais. Barreiras no executor controlaram
+interleavings; `pg_blocking_pids` demonstrou esperas entre backends distintos.
+HTTP capturado localmente, sem servidor HTTP/browser; mailer e notificações
+suprimidos nas fronteiras; nenhum SMTP real.
+
+**R1–R11 operacionais aprovados** na execução original. R12 original com
+contexto inicialmente ausente reproduziu **deadlock `40P01`**: troca de área
+retinha sessão e aguardava usuário pela FK do contexto; reset retinha usuário
+e aguardava sessão para revogar. Reset abortado com 500 e rollback integral.
+A tentativa anterior com contexto existente teve timeout de barreira, sem prova
+de deadlock; ambas as evidências foram preservadas.
+
+Correção localizada em `changeActiveArea`: `SELECT ... usuarios ... FOR UPDATE`
+no início da transação, alinhando **usuário → sessão → contexto**. Permissões,
+proprietário, sessão não revogada e contexto após UPDATE efetivo preservados.
+Sem retries ou alterações em migrations/constraints/triggers. Os sete JS atuais
+coincidem com os hashes da evidência complementar.
+
+### Sete provas PostgreSQL complementares
+
+| Prova complementar | Resultado e comportamento comprovado |
+| --- | --- |
+| C1 — troca de área primeiro; contexto ausente | Aprovada; reset espera usuário, troca cria contexto e reset revoga; nova troca pós-commit rejeitada. |
+| C2 — reset primeiro; contexto ausente | Aprovada; troca espera usuário, rejeita sessão revogada após commit e não cria contexto. |
+| C3 — reset primeiro; contexto existente | Aprovada; troca rejeitada e contexto anterior preservado. |
+| C4 — touch primeiro; reset depois | Aprovada; reset espera sessão, depois revoga; touch pós-commit rejeitado. |
+| C5 — reset primeiro; touch depois | Aprovada; touch espera sessão e rejeita após commit, sem renovar uso/expiração. |
+| C6 — JWT legado sem claim em bridge | Aprovada; aceito com DB=1 antes/durante reset não confirmado; 401 após commit DB=2. |
+| C7 — login com senha nova antes/depois do commit | Aprovada; antes 401 sem token/cookie/next; depois 200, JWT N+1 aceito e nova sessão legítima; sessão antiga permanece revogada. |
+
+**7/7 provas aprovadas; zero deadlocks/40P01.** C1–C7 são identificadores
+documentais para as sete provas, sem renumerar os nomes originais do harness.
+C1–C3 cobrem R12 corrigido; C4–C7 eram identificados como `Additional` no artefato.
+
+### Numeração canônica e correspondência operacional
+
+Fonte canônica: roteiro explícito fornecido pelo responsável em **09/10/2026**.
+A ausência desse roteiro nos relatórios anteriores era uma limitação documental,
+agora resolvida por esta correspondência; os artefatos originais permanecem
+inalterados. **Todos os 13 cenários canônicos estão cobertos pelo conjunto das
+evidências originais e complementares**, com revisão independente aprovada.
+
+| Cenário canônico | Contrato | Correspondência ao harness / prova |
+| --- | --- | --- |
+| R1 | reset confirma antes do login antigo. | R11 operacional, reset vencedor: commit N+1 antecede a decisão de criação da sessão com snapshot antigo; 401 sem credenciais. Teste local da guarda preserva o snapshot original. |
+| R2 | login bloqueia primeiro; reset aguarda e revoga. | R11 operacional, login vencedor e resposta atrasada; bloqueio real, sessão depois revogada e Bearer 401. |
+| R3 | reset bloqueia primeiro; login antigo é rejeitado. | R11 operacional, reset vencedor; espera real no usuário, reset 200/login 401. |
+| R4 | falha de auditoria provoca rollback integral. | R10 operacional; PostgreSQL 23514 após revogação, 500 e senha/versão/sessões restauradas. |
+| R5 | falha de revogação provoca rollback integral. | R9 operacional; PostgreSQL 23514, 500 e estado integral preservado. |
+| R6 | JWT anterior, inclusive bridge legado, é rejeitado. | R3/R11 operacionais para access JWT anterior; C6 para JWT realmente sem claim em bridge, 401 após commit. |
+| R7 | sessão anterior permanece revogada. | R3/R11 operacionais e C1–C7; C7 distingue nova sessão legítima da antiga revogada. |
+| R8 | JWT de reset não admite replay. | R5 operacional; mesmo JWT e outro JWT N rejeitados com 400, sem novos efeitos. |
+| R9 | limite máximo de auth_version sem overflow. | R4/R7 operacionais; transição até 2147483647, máximo retorna 500 sem wrap/mutação. |
+| R10 | duas redefinições concorrentes, somente uma confirma. | R5 operacional; mesmo token e tokens distintos, bloqueio real, 200/400 e único incremento/auditoria. |
+| R11 | touchSession não ressuscita sessão revogada. | C4/C5; ambos os ordenamentos, rejeição pós-commit e ausência de renovação quando reset vence. |
+| R12 | changeActiveArea e reset sem deadlock. | R12 original preserva 40P01; C1–C3 aprovam a correção, contexto ausente/existente, ambos os ordenamentos e zero deadlocks. |
+| R13 | login com senha nova antes/depois do commit. | C7; 401 antes, 200/JWT N+1 após commit, nova sessão e antiga ainda revogada. |
+
+A numeração **operacional** é distinta: R1 guarda estrita; R2 emissão; R3 reset/
+revogação; R4 transições; R5 replay/consumo concorrente; R6 token/estado inválido;
+R7 máximo; R8 zero sessões/UPDATE zero; R9 falha de revogação; R10 falha de
+auditoria; R11 login/reset; R12 troca de área/reset; R13 invariantes/logs.
+
+**R13 operacional permanece somente pré-checagem histórica**, sem execução de
+fechamento após o deadlock. O `PASS` da primeira tentativa não é prova posterior
+ao R12 definitivo, que registra `NOT_RUN_AFTER_R12`. Nenhuma aprovação final é
+atribuída à pré-checagem; **R13 canônico está comprovado por C7**.
+
+### Proveniência, preservação e limites
+
+Artefatos externos ao repositório, consultados sem executar harness ou SQL:
+
+- `escola-etapa07-20261009`: `relatorio.md`, `harness.cjs`, `scenarios.cjs`,
+  `r1-r13-first-attempt.json`, `r12-missing-context.json` e
+  `final-readonly-verification.json`.
+- `escola-etapa07-r12-fix-20261009`: `relatorio-complementar.md`,
+  `postgresql-complement.json`, `verification-summary.json`,
+  `focused-tests.log` e `full-tests.log`.
+
+Relatórios anteriores registram a etapa aberta naquelas execuções; a aprovação
+independente de **09/10/2026**, fornecida pelo responsável, fecha agora a etapa
+local. Fixtures sintéticas e branch descartável preservadas; fingerprints dos
+dados herdados e fixtures anteriores preservados no complemento. Nenhum artefato
+bruto é incluído no commit documental.
+
+Não houve **teste de UI/browser nem implantação em produção**. O fechamento
+documental não acessou PostgreSQL, não executou migrations, testes, SMTP ou deploy,
+não fez merge na main e não excluiu a branch Neon descartável. Os resultados
+comprovam rehearsal isolado; produção exige comprovação própria.
+
+Bcrypt/política legada permanecem; histórico não integrado e reutilização possível.
+`atualizarBasico` continua sem incremento de versão/revogação; outros writers
+pendentes. Requests já autenticados antes do commit podem terminar. **D1–D8 e
+demais pendências futuras já aprovadas permanecem abertas**.
 
 ## PENDÊNCIA — evidência de produção
 

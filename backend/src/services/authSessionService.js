@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const { isValidAuthVersion } = require("../auth/authVersion");
 
 const IDLE_MS = 30 * 60 * 1000;
 const ABSOLUTE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -45,7 +46,10 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
     return rows(result).map((row) => row.perfil_codigo);
   }
 
-  async function createSession({ usuarioId, manterConectado = false, userAgent = null, ip = null, areaInicial = null }) {
+  async function createSession({ usuarioId, expectedAuthVersion, manterConectado = false, userAgent = null, ip = null, areaInicial = null } = {}) {
+    if (!isValidAuthVersion(expectedAuthVersion)) {
+      throw new AuthSessionError("AUTH_SESSION_EXPECTED_AUTH_VERSION_INVALID");
+    }
     const token = makeToken(cryptoApi);
     const tokenHash = hashToken(token, cryptoApi);
     const createdAt = now();
@@ -55,10 +59,16 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
 
     const session = await db.tx(async (tx) => {
       const user = await tx.query(
-        `SELECT id FROM public.usuarios WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+        `SELECT id, auth_version FROM public.usuarios WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
         [usuarioId],
       );
       if (rows(user).length !== 1) throw new AuthSessionError("AUTH_SESSION_USER_UNAVAILABLE");
+      if (!isValidAuthVersion(rows(user)[0].auth_version)) {
+        throw new AuthSessionError("AUTH_SESSION_DB_AUTH_VERSION_INVALID");
+      }
+      if (rows(user)[0].auth_version !== expectedAuthVersion) {
+        throw new AuthSessionError("AUTH_SESSION_CREDENTIAL_STATE_CHANGED");
+      }
 
       const perfis = await getProfiles(tx, usuarioId);
       let areaAtiva = areaInicial;
@@ -208,6 +218,11 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
 
   async function changeActiveArea({ sessionId, usuarioId, areaAtiva }) {
     return db.tx(async (tx) => {
+      // Mesma ordem do reset: usuario -> sessao -> contexto.
+      await tx.query(
+        `SELECT id FROM public.usuarios WHERE id = $1 FOR UPDATE`,
+        [usuarioId],
+      );
       const granted = await getProfiles(tx, usuarioId);
       if (!granted.includes(areaAtiva)) throw new AuthSessionError("AUTH_SESSION_AREA_NOT_GRANTED");
       const changed = await tx.query(
