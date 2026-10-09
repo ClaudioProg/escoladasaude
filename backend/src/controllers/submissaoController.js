@@ -901,8 +901,16 @@ exports.obterSubmissao = async (req, res, next) => {
       code: "ACESSO_NEGADO",
     });
 
+    const liberarNotas = isAdmin(req) ||
+      Number(row.usuario_id) !== Number(getUsuarioId(req)) ||
+      Boolean(row.nota_visivel);
     return responder(res, {
       ...row,
+      nota_escrita: liberarNotas ? row.nota_escrita : null,
+      nota_oral: liberarNotas ? row.nota_oral : null,
+      nota_final: liberarNotas ? row.nota_final : null,
+      total_pontos: liberarNotas ? row.total_pontos : null,
+      observacoes_admin: isAdmin(req) ? row.observacoes_admin : null,
       ...derivarFlagsAprovacao(row),
     });
   } catch (error) {
@@ -1389,6 +1397,12 @@ exports.listarAvaliacaoDaSubmissao = async (req, res, next) => {
     assert(allowed, "Acesso negado.", 403, {
       code: "ACESSO_NEGADO",
     });
+    const ehAutor = Number(submissao.usuario_id) === Number(getUsuarioId(req));
+    assert(
+      !ehAutor || isAdmin(req) || Boolean(submissao.nota_visivel),
+      "A avaliação ainda não foi liberada ao autor.",
+      403, { code: "NOTA_NAO_PUBLICADA" },
+    );
 
     const itens = await queryMany(
       req,
