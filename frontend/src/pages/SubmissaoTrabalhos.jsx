@@ -957,7 +957,9 @@ export default function SubmissaoTrabalhos() {
     const id = parseChamadaId(rawId);
 
     if (id === null) {
-      setErro("O link de submissão possui um identificador de chamada inválido.");
+      setErro(
+        "O link de submissão possui um identificador de chamada inválido.",
+      );
       return;
     }
 
