@@ -39,6 +39,7 @@
 
 const { pool, query } = require("../db");
 const {
+  consultarDisponibilidadeTurmas,
   resumirDisponibilidadeEvento,
 } = require("../services/eventoInscricaoDisponibilidadeService");
 
@@ -563,75 +564,15 @@ async function avaliarElegibilidadeInscricao({ client, usuarioId, evento }) {
 
 async function carregarDisponibilidadeTurmas(client, eventoIds) {
   const ids = uniqueInts(eventoIds);
+  if (!ids.length) return new Map();
 
-  if (!ids.length) {
-    return new Map();
-  }
-
-  const { rows } = await client.query(
-    `
-    SELECT
-      t.id,
-      t.evento_id,
-      t.nome,
-      t.vagas_total,
-      COALESCE(i.inscritos, 0)::int AS vagas_preenchidas,
-      CASE
-        WHEN COALESCE(d.total_encontros, 0) > 0 THEN d.total_encontros
-        WHEN t.data_inicio IS NOT NULL THEN 1
-        ELSE 0
-      END::int AS total_encontros,
-      CASE
-        WHEN COALESCE(d.total_encontros, 0) > 0 THEN d.encontros_iniciados
-        WHEN t.data_inicio IS NOT NULL
-          AND (
-            t.data_inicio::date
-            + COALESCE(t.horario_inicio, '00:00'::time)
-          ) <= (NOW() AT TIME ZONE 'America/Sao_Paulo')
-          THEN 1
-        ELSE 0
-      END::int AS encontros_iniciados,
-      CASE
-        WHEN COALESCE(d.total_encontros, 0) > 0
-          THEN d.encontros_encerrados = d.total_encontros
-        WHEN t.data_fim IS NOT NULL
-          THEN (
-            t.data_fim::date
-            + COALESCE(t.horario_fim, '23:59'::time)
-          ) < (NOW() AT TIME ZONE 'America/Sao_Paulo')
-        ELSE FALSE
-      END AS encerrada
-    FROM turmas t
-    LEFT JOIN LATERAL (
-      SELECT
-        COUNT(*)::int AS total_encontros,
-        COUNT(*) FILTER (
-          WHERE (
-            dt.data::date
-            + COALESCE(dt.horario_inicio, t.horario_inicio, '00:00'::time)
-          ) <= (NOW() AT TIME ZONE 'America/Sao_Paulo')
-        )::int AS encontros_iniciados,
-        COUNT(*) FILTER (
-          WHERE (
-            dt.data::date
-            + COALESCE(dt.horario_fim, t.horario_fim, '23:59'::time)
-          ) < (NOW() AT TIME ZONE 'America/Sao_Paulo')
-        )::int AS encontros_encerrados
-      FROM datas_turma dt
-      WHERE dt.turma_id = t.id
-    ) d ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT COUNT(*)::int AS inscritos
-      FROM inscricoes ins
-      WHERE ins.turma_id = t.id
-    ) i ON TRUE
-    WHERE t.evento_id = ANY($1::int[])
-    ORDER BY t.evento_id, t.data_inicio NULLS LAST, t.id
-    `,
-    [ids],
+  // Mesma fonte de tempo efetivo utilizada pelo POST de inscrição.
+  const rows = await consultarDisponibilidadeTurmas(
+    (sql, params) => client.query(sql, params),
+    ids,
+    { porEvento: true },
   );
-
-  const porEvento = groupRows(rows || [], "evento_id");
+  const porEvento = groupRows(rows, "evento_id");
   const resumos = new Map();
 
   for (const eventoId of ids) {
@@ -640,7 +581,6 @@ async function carregarDisponibilidadeTurmas(client, eventoIds) {
       resumirDisponibilidadeEvento(porEvento.get(eventoId) || []),
     );
   }
-
   return resumos;
 }
 
