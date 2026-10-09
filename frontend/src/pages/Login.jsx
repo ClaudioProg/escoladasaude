@@ -1390,7 +1390,9 @@ export default function Login() {
 
                         <button
                           type="button"
-                          onClick={() => navigate(caminhoCadastroComRetorno(redirectPath))}
+                          onClick={() =>
+                            navigate(caminhoCadastroComRetorno(redirectPath))
+                          }
                           className={cx(
                             "w-full rounded-xl px-3 py-2 font-extrabold hover:underline sm:w-auto",
                             "focus:outline-none focus:ring-2 focus:ring-emerald-500/70",
