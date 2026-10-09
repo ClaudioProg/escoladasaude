@@ -927,7 +927,14 @@ function statusChamada(chamada) {
   return { label: "Rascunho", tone: "slate", icon: XCircle };
 }
 
-function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, onCompartilhar, busy }) {
+function ChamadaCard({
+  chamada,
+  onEditar,
+  onPublicar,
+  onExcluir,
+  onCompartilhar,
+  busy,
+}) {
   const status = statusChamada(chamada);
 
   return (
@@ -1031,7 +1038,6 @@ function ChamadaCard({ chamada, onEditar, onPublicar, onExcluir, onCompartilhar,
   );
 }
 
-
 function CompartilharChamadaModal({ chamada, onClose }) {
   const [mensagem, setMensagem] = useState("");
   const [baixando, setBaixando] = useState(false);
@@ -1050,7 +1056,9 @@ function CompartilharChamadaModal({ chamada, onClose }) {
       await navigator.clipboard.writeText(url);
       setMensagem("Link copiado para a área de transferência.");
     } catch {
-      setMensagem("Não foi possível copiar automaticamente. Selecione o endereço acima para copiar.");
+      setMensagem(
+        "Não foi possível copiar automaticamente. Selecione o endereço acima para copiar.",
+      );
     }
   }
 
@@ -1097,12 +1105,18 @@ function CompartilharChamadaModal({ chamada, onClose }) {
             value={url}
             size={220}
             level="M"
-            title={"QR Code para submissão de trabalhos: " + (chamada.titulo || chamada.id)}
+            title={
+              "QR Code para submissão de trabalhos: " +
+              (chamada.titulo || chamada.id)
+            }
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="link-publico-chamada" className="text-sm font-bold text-slate-800 dark:text-slate-100">
+          <label
+            htmlFor="link-publico-chamada"
+            className="text-sm font-bold text-slate-800 dark:text-slate-100"
+          >
             Endereço permanente de submissão
           </label>
           <input
@@ -1118,7 +1132,12 @@ function CompartilharChamadaModal({ chamada, onClose }) {
             <Button tone="primary" icon={Copy} onClick={copiarLink}>
               Copiar link
             </Button>
-            <Button tone="slate" icon={Download} loading={baixando} onClick={baixarQrCode}>
+            <Button
+              tone="slate"
+              icon={Download}
+              loading={baixando}
+              onClick={baixarQrCode}
+            >
               Baixar QR Code (PNG)
             </Button>
           </div>
@@ -1126,8 +1145,8 @@ function CompartilharChamadaModal({ chamada, onClose }) {
 
         {!chamada.publicado ? (
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            A chamada ainda não está publicada. O link e o QR Code serão utilizáveis
-            para envio de trabalhos após a publicação.
+            A chamada ainda não está publicada. O link e o QR Code serão
+            utilizáveis para envio de trabalhos após a publicação.
           </p>
         ) : chamada.dentro_prazo === false ? (
           <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -1141,7 +1160,10 @@ function CompartilharChamadaModal({ chamada, onClose }) {
           </p>
         )}
         {mensagem ? (
-          <p role="status" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          <p
+            role="status"
+            className="text-sm font-medium text-slate-700 dark:text-slate-200"
+          >
             {mensagem}
           </p>
         ) : null}
