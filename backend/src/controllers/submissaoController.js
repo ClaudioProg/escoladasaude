@@ -1023,10 +1023,17 @@ exports.baixarPoster = async (req, res, next) => {
     });
 
     const allowed = await usuarioPodeAcessarSubmissao(req, submissao);
+    // O repositório institucional permite o download dos trabalhos aprovados,
+    // sem abrir acesso aos detalhes privados e às avaliações internas.
+    const aprovadoNoRepositorio = [
+      "aprovado_exposicao", "aprovado_oral",
+      "aprovada_exposicao", "aprovada_oral", "aprovada",
+    ].includes(String(submissao.status || "").toLowerCase());
 
-    assert(allowed, "Acesso negado.", 403, {
-      code: "ACESSO_NEGADO",
-    });
+    assert(allowed || (Boolean(req.user?.id) && aprovadoNoRepositorio),
+      "Acesso negado.", 403, {
+        code: "ACESSO_NEGADO",
+      });
 
     assert(
       submissao.poster_arquivo_id,
