@@ -1000,7 +1000,54 @@ exports.atualizar = async (req, res, next) => {
         );
       }
 
-      if (linhas) {
+      // Sem submissões, o formulário pode reconfigurar toda a estrutura.
+      // Com histórico, qualquer edição de linhas/critério precisa preservar
+      // IDs e notas existentes; nesta versão, a estrutura fica imutável.
+      const count = await tx.one(
+        `SELECT COUNT(*)::int AS total FROM trabalhos_submissoes WHERE chamada_id=$1`,
+        [chamadaId],
+      );
+      const temHistorico = Number(count.total) > 0;
+      if (temHistorico && (linhas || criterios || criteriosOrais)) {
+        const normalized = (lista, campos) =>
+          lista.map((row) =>
+            campos.map((campo) => {
+              const value = row[campo];
+              return typeof value === "number"
+                ? value
+                : campo === "peso" || campo === "escala_min" ||
+                    campo === "escala_max" || campo === "ordem"
+                  ? Number(value)
+                  : String(value ?? "").trim();
+            }),
+          );
+        const comparar = async (nomeTabela, entrada, campos, ordem) => {
+          if (entrada === null) return;
+          const atuais = await tx.many(
+            `SELECT * FROM ${nomeTabela} WHERE chamada_id=$1 ORDER BY ${ordem}`,
+            [chamadaId],
+          );
+          const a = normalized(atuais, campos);
+          const b = normalized(entrada, campos);
+          assert(
+            JSON.stringify(a) === JSON.stringify(b),
+            "A chamada possui submissões. Linhas temáticas e critérios não " +
+              "podem ser regravados, removidos ou alterados sem preservar o histórico.",
+            409,
+            { code: "ESTRUTURA_CHAMADA_COM_HISTORICO" },
+          );
+        };
+        await comparar("trabalhos_chamada_linhas", linhas,
+          ["nome", "descricao"], "nome ASC, id ASC");
+        await comparar("trabalhos_chamada_criterios", criterios,
+          ["ordem", "titulo", "escala_min", "escala_max", "peso"],
+          "ordem ASC, id ASC");
+        await comparar("trabalhos_chamada_criterios_orais", criteriosOrais,
+          ["ordem", "titulo", "escala_min", "escala_max", "peso"],
+          "ordem ASC, id ASC");
+      }
+
+      if (!temHistorico && linhas) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_linhas WHERE chamada_id = $1`,
           [chamadaId],
@@ -1019,7 +1066,7 @@ exports.atualizar = async (req, res, next) => {
         }
       }
 
-      if (criterios) {
+      if (!temHistorico && criterios) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_criterios WHERE chamada_id = $1`,
           [chamadaId],
@@ -1045,7 +1092,7 @@ exports.atualizar = async (req, res, next) => {
         }
       }
 
-      if (criteriosOrais) {
+      if (!temHistorico && criteriosOrais) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_criterios_orais WHERE chamada_id = $1`,
           [chamadaId],
