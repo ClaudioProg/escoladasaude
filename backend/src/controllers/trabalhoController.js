@@ -1178,6 +1178,11 @@ exports.atualizarBanner = async (req, res, next) => {
           (submissao_id, caminho, nome_original, mime_type,
            tamanho_bytes, hash_sha256, arquivo, tipo)
         VALUES ($1,$2,$3,$4,$5,$6,$7,'submissao')
+        ON CONFLICT (submissao_id, tipo, hash_sha256) DO UPDATE
+          SET nome_original = EXCLUDED.nome_original,
+              mime_type = EXCLUDED.mime_type,
+              tamanho_bytes = EXCLUDED.tamanho_bytes,
+              arquivo = EXCLUDED.arquivo
         RETURNING id, submissao_id, caminho, nome_original,
                   mime_type, tamanho_bytes, hash_sha256, criado_em
         `,
@@ -1199,7 +1204,10 @@ exports.atualizarBanner = async (req, res, next) => {
         [trabalhoId, novo.id],
       );
 
-      if (locked.poster_arquivo_id) {
+      if (
+        locked.poster_arquivo_id &&
+        Number(locked.poster_arquivo_id) !== Number(novo.id)
+      ) {
         await tx.none(
           `DELETE FROM trabalhos_arquivos WHERE id = $1 AND submissao_id = $2`,
           [locked.poster_arquivo_id, trabalhoId],
