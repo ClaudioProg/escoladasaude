@@ -131,22 +131,22 @@ function normalizarStatusPrincipal(raw) {
   if (status === "rascunho") {
     return "rascunho";
   }
-  if (status === "submetida") {
+  if (status === "submetida" || status === "submetido") {
     return "submetida";
   }
   if (status === "em_avaliacao") {
     return "em_avaliacao";
   }
-  if (status === "aprovada_exposicao") {
+  if (status === "aprovada_exposicao" || status === "aprovado_exposicao") {
     return "aprovada_exposicao";
   }
-  if (status === "aprovada_oral") {
+  if (status === "aprovada_oral" || status === "aprovado_oral") {
     return "aprovada_oral";
   }
-  if (status === "aprovada") {
+  if (status === "aprovada" || status === "aprovado") {
     return "aprovada";
   }
-  if (status === "reprovada") {
+  if (status === "reprovada" || status === "reprovado") {
     return "reprovada";
   }
   if (status === "cancelada") {

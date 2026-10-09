@@ -160,7 +160,7 @@ function unwrapArray(response) {
 const chamadaApi = {
   listarAdmin: async () => unwrapArray(await apiGet("chamada/admin")),
 
-  obter: async (id) => unwrap(await apiGet(`chamada/${id}`), null),
+  obter: async (id) => unwrap(await apiGet(`chamada/admin/${id}`), null),
 
   criar: async (payload) =>
     unwrap(await apiPost("chamada/admin", payload), null),

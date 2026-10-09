@@ -748,15 +748,16 @@ exports.listarAtivas = async (req, res, next) => {
   }
 };
 
-exports.obterChamada = async (req, res, next) => {
+async function responderDetalhesChamada(req, res, next, permitirRascunho = false) {
   try {
     const chamadaId = toId(req.params.id);
 
     const chamada = await obterChamadaPorId(req, chamadaId);
 
-    assert(chamada, "Chamada não encontrada.", 404, {
-      code: "CHAMADA_NAO_ENCONTRADA",
-    });
+    assert(chamada && (permitirRascunho || chamada.publicado),
+      "Chamada não encontrada.", 404, {
+        code: "CHAMADA_NAO_ENCONTRADA",
+      });
 
     const complementos = await carregarComplementosChamada(req, chamadaId);
 
@@ -784,7 +785,11 @@ exports.obterChamada = async (req, res, next) => {
     logError(req, "Erro ao obter chamada.", error);
     return next(error);
   }
-};
+}
+exports.obterChamada = (req, res, next) =>
+  responderDetalhesChamada(req, res, next, false);
+exports.obterChamadaAdmin = (req, res, next) =>
+  responderDetalhesChamada(req, res, next, true);
 
 /* =========================================================================
    Admin — chamadas
@@ -1561,11 +1566,17 @@ function criarMetaModelo(tipoModelo) {
   };
 }
 
-function criarDownloadModelo(tipoModelo) {
+function criarDownloadModelo(tipoModelo, exigirPublicacao = false) {
   return async (req, res, next) => {
     try {
       const chamadaId = toId(req.params.id);
       const cfg = normalizarTipoModelo(tipoModelo);
+      if (exigirPublicacao) {
+        const chamada = await obterChamadaPorId(req, chamadaId);
+        assert(chamada && chamada.publicado, "Modelo não encontrado.", 404, {
+          code: "MODELO_NAO_ENCONTRADO",
+        });
+      }
       const row = await obterModeloMaisRecente(req, chamadaId, cfg.tipo);
 
       if (!row) {
@@ -1687,8 +1698,10 @@ function criarImportacaoModelo(tipoModelo) {
 exports.modeloBannerMeta = criarMetaModelo("banner");
 exports.modeloOralMeta = criarMetaModelo("oral");
 
-exports.baixarModeloBanner = criarDownloadModelo("banner");
-exports.baixarModeloOral = criarDownloadModelo("oral");
+exports.baixarModeloBanner = criarDownloadModelo("banner", true);
+exports.baixarModeloOral = criarDownloadModelo("oral", true);
+exports.baixarModeloBannerAdmin = criarDownloadModelo("banner");
+exports.baixarModeloOralAdmin = criarDownloadModelo("oral");
 
 /**
  * Mantido temporariamente como nome de função para rota antiga interna.
