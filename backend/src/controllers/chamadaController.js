@@ -456,8 +456,8 @@ function normalizarCriterios(criterios, tipo = "escrito") {
     );
 
     assert(
-      escalaMax >= escalaMin,
-      "Escala máxima deve ser maior ou igual à mínima.",
+      escalaMax > escalaMin,
+      "Escala máxima deve ser estritamente maior que a mínima.",
       400,
       {
         code: "ESCALA_INVALIDA",
