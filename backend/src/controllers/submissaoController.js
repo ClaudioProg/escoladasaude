@@ -177,37 +177,12 @@ async function queryMany(req, sql, params = []) {
 
 async function transaction(req, callback) {
   const db = getDb(req);
-
-  await db.query("BEGIN");
-
-  try {
-    const tx = {
-      query: (sql, params = []) => db.query(sql, params),
-      one: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows?.[0] || null;
-      },
-      many: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows || [];
-      },
-      none: async (sql, params = []) => {
-        await db.query(sql, params);
-      },
-    };
-
-    const output = await callback(tx);
-    await db.query("COMMIT");
-    return output;
-  } catch (error) {
-    try {
-      await db.query("ROLLBACK");
-    } catch (rollbackError) {
-      logWarn(req, "Falha ao executar ROLLBACK.", rollbackError);
-    }
-
-    throw error;
+  if (typeof db.tx !== "function") {
+    throw criarErro("Transações indisponíveis no banco oficial.", 500, {
+      code: "DB_TRANSACAO_INDISPONIVEL",
+    });
   }
+  return db.tx(callback);
 }
 
 /* =========================================================================
@@ -445,10 +420,12 @@ function derivarFlagsAprovacao(row) {
     _exposicao_aprovada:
       escrita === "aprovado" ||
       status === "aprovada_exposicao" ||
+      status === "aprovado_exposicao" ||
       status === "aprovada",
     _oral_aprovada:
       oral === "aprovado" ||
       status === "aprovada_oral" ||
+      status === "aprovado_oral" ||
       status === "aprovada",
   };
 }
@@ -924,8 +901,16 @@ exports.obterSubmissao = async (req, res, next) => {
       code: "ACESSO_NEGADO",
     });
 
+    const liberarNotas = isAdmin(req) ||
+      Number(row.usuario_id) !== Number(getUsuarioId(req)) ||
+      Boolean(row.nota_visivel);
     return responder(res, {
       ...row,
+      nota_escrita: liberarNotas ? row.nota_escrita : null,
+      nota_oral: liberarNotas ? row.nota_oral : null,
+      nota_final: liberarNotas ? row.nota_final : null,
+      total_pontos: liberarNotas ? row.total_pontos : null,
+      observacoes_admin: isAdmin(req) ? row.observacoes_admin : null,
       ...derivarFlagsAprovacao(row),
     });
   } catch (error) {
@@ -1046,10 +1031,17 @@ exports.baixarPoster = async (req, res, next) => {
     });
 
     const allowed = await usuarioPodeAcessarSubmissao(req, submissao);
+    // O repositório institucional permite o download dos trabalhos aprovados,
+    // sem abrir acesso aos detalhes privados e às avaliações internas.
+    const aprovadoNoRepositorio = [
+      "aprovado_exposicao", "aprovado_oral",
+      "aprovada_exposicao", "aprovada_oral", "aprovada",
+    ].includes(String(submissao.status || "").toLowerCase());
 
-    assert(allowed, "Acesso negado.", 403, {
-      code: "ACESSO_NEGADO",
-    });
+    assert(allowed || (Boolean(req.user?.id) && aprovadoNoRepositorio),
+      "Acesso negado.", 403, {
+        code: "ACESSO_NEGADO",
+      });
 
     assert(
       submissao.poster_arquivo_id,
@@ -1405,6 +1397,12 @@ exports.listarAvaliacaoDaSubmissao = async (req, res, next) => {
     assert(allowed, "Acesso negado.", 403, {
       code: "ACESSO_NEGADO",
     });
+    const ehAutor = Number(submissao.usuario_id) === Number(getUsuarioId(req));
+    assert(
+      !ehAutor || isAdmin(req) || Boolean(submissao.nota_visivel),
+      "A avaliação ainda não foi liberada ao autor.",
+      403, { code: "NOTA_NAO_PUBLICADA" },
+    );
 
     const itens = await queryMany(
       req,

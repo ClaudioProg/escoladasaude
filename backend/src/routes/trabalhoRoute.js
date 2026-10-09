@@ -46,7 +46,6 @@
 
 const express = require("express");
 const multer = require("multer");
-const fs = require("fs");
 const path = require("path");
 const { param, validationResult } = require("express-validator");
 
@@ -141,18 +140,8 @@ const chamadaIdParam = [
    Upload oficial
 =========================================================================== */
 
-const TMP_DIR = path.join(process.cwd(), "uploads", "tmp");
-
-function garantirTmpDir() {
-  if (!fs.existsSync(TMP_DIR)) {
-    fs.mkdirSync(TMP_DIR, { recursive: true });
-  }
-}
-
-garantirTmpDir();
-
 const uploadArquivo = multer({
-  dest: TMP_DIR,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 30 * 1024 * 1024,
     files: 1,

@@ -185,37 +185,12 @@ async function queryMany(req, sql, params = []) {
 
 async function transaction(req, callback) {
   const db = getDb(req);
-
-  await db.query("BEGIN");
-
-  try {
-    const tx = {
-      query: (sql, params = []) => db.query(sql, params),
-      one: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows?.[0] || null;
-      },
-      many: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows || [];
-      },
-      none: async (sql, params = []) => {
-        await db.query(sql, params);
-      },
-    };
-
-    const output = await callback(tx);
-    await db.query("COMMIT");
-    return output;
-  } catch (error) {
-    try {
-      await db.query("ROLLBACK");
-    } catch (rollbackError) {
-      logWarn(req, "Falha ao executar ROLLBACK.", rollbackError);
-    }
-
-    throw error;
+  if (typeof db.tx !== "function") {
+    throw criarErro("Transações indisponíveis no banco oficial.", 500, {
+      code: "DB_TRANSACAO_INDISPONIVEL",
+    });
   }
+  return db.tx(callback);
 }
 
 /* =========================================================================
@@ -481,8 +456,8 @@ function normalizarCriterios(criterios, tipo = "escrito") {
     );
 
     assert(
-      escalaMax >= escalaMin,
-      "Escala máxima deve ser maior ou igual à mínima.",
+      escalaMax > escalaMin,
+      "Escala máxima deve ser estritamente maior que a mínima.",
       400,
       {
         code: "ESCALA_INVALIDA",
@@ -628,7 +603,7 @@ function normalizarChamadaPayload(body, parcial = false) {
     !parcial ||
     Object.prototype.hasOwnProperty.call(body, "disposicao_finais_texto")
   ) {
-    payload.disposicao_finais_texto = textoOpcional(
+    payload.disposicoes_finais_texto = textoOpcional(
       body.disposicao_finais_texto,
       30000,
       "Disposições finais",
@@ -773,15 +748,16 @@ exports.listarAtivas = async (req, res, next) => {
   }
 };
 
-exports.obterChamada = async (req, res, next) => {
+async function responderDetalhesChamada(req, res, next, permitirRascunho = false) {
   try {
     const chamadaId = toId(req.params.id);
 
     const chamada = await obterChamadaPorId(req, chamadaId);
 
-    assert(chamada, "Chamada não encontrada.", 404, {
-      code: "CHAMADA_NAO_ENCONTRADA",
-    });
+    assert(chamada && (permitirRascunho || chamada.publicado),
+      "Chamada não encontrada.", 404, {
+        code: "CHAMADA_NAO_ENCONTRADA",
+      });
 
     const complementos = await carregarComplementosChamada(req, chamadaId);
 
@@ -792,7 +768,7 @@ exports.obterChamada = async (req, res, next) => {
       criterios_outros: chamada.criterios_outros || null,
       oral_outros: chamada.oral_outros || null,
       premiacao_texto: chamada.premiacao_texto || null,
-      disposicao_finais_texto: chamada.disposicao_finais_texto || null,
+      disposicao_finais_texto: chamada.disposicoes_finais_texto || null,
       link_modelo_poster: chamada.link_modelo_poster || null,
       aceita_poster: Boolean(chamada.aceita_poster),
     };
@@ -809,7 +785,11 @@ exports.obterChamada = async (req, res, next) => {
     logError(req, "Erro ao obter chamada.", error);
     return next(error);
   }
-};
+}
+exports.obterChamada = (req, res, next) =>
+  responderDetalhesChamada(req, res, next, false);
+exports.obterChamadaAdmin = (req, res, next) =>
+  responderDetalhesChamada(req, res, next, true);
 
 /* =========================================================================
    Admin — chamadas
@@ -817,128 +797,20 @@ exports.obterChamada = async (req, res, next) => {
 
 exports.listarAdmin = async (req, res, next) => {
   try {
-    requireAdmin(req);
-
-    const chamadaId = req.params.chamadaId
-      ? toId(req.params.chamadaId, "chamadaId")
-      : req.query.chamada_id
-        ? toId(req.query.chamada_id, "chamada_id")
-        : null;
-
-    const status = req.query.status
-      ? normalizarStatusSubmissao(req.query.status)
-      : null;
-
-    const params = [];
-    const where = [];
-
-    if (chamadaId) {
-      params.push(chamadaId);
-      where.push(`s.chamada_id = $${params.length}`);
-    }
-
-    if (status) {
-      params.push(status);
-      where.push(`s.status = $${params.length}`);
-    }
-
-    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
     const rows = await queryMany(
       req,
       `
-      SELECT
-        s.id,
-        s.titulo,
-        s.status,
-        s.status_escrita,
-        s.status_oral,
-        s.chamada_id,
-        s.usuario_id,
-        s.criado_em AS submetido_em,
-        s.atualizado_em,
-        s.nota_escrita,
-        s.nota_oral,
-        s.nota_final,
-        COALESCE(s.nota_visivel, false) AS nota_visivel,
-        c.titulo AS chamada_titulo,
-        tcl.nome AS linha_tematica_nome,
-        u.nome AS autor_nome,
-        u.email AS autor_email,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-        ) AS total_avaliadores,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-            AND tsa.tipo = 'escrita'
-        ) AS total_avaliadores_escrita,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-            AND tsa.tipo = 'oral'
-        ) AS total_avaliadores_oral,
-
-        (
-          SELECT COUNT(*)::int
-          FROM trabalhos_submissoes_avaliadores tsa
-          WHERE tsa.submissao_id = s.id
-            AND tsa.revoked_at IS NULL
-            AND (
-              (
-                tsa.tipo = 'escrita'
-                AND EXISTS (
-                  SELECT 1
-                  FROM trabalhos_avaliacoes_itens ai
-                  WHERE ai.submissao_id = tsa.submissao_id
-                    AND ai.avaliador_id = tsa.avaliador_id
-                )
-              )
-              OR
-              (
-                tsa.tipo = 'oral'
-                AND EXISTS (
-                  SELECT 1
-                  FROM trabalhos_apresentacoes_orais_itens aoi
-                  WHERE aoi.submissao_id = tsa.submissao_id
-                    AND aoi.avaliador_id = tsa.avaliador_id
-                )
-              )
-            )
-        ) AS total_avaliadores_com_nota
-
-      FROM trabalhos_submissoes s
-      LEFT JOIN trabalhos_chamadas c ON c.id = s.chamada_id
-      LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
-      LEFT JOIN usuarios u ON u.id = s.usuario_id
-      ${whereSql}
-      ORDER BY s.criado_em DESC NULLS LAST, s.id DESC
+      SELECT c.*,
+        (timezone('America/Sao_Paulo', now()) <= c.prazo_final_br) AS dentro_prazo,
+        (SELECT COUNT(*)::int FROM trabalhos_submissoes s
+         WHERE s.chamada_id = c.id) AS total_submissoes
+      FROM trabalhos_chamadas c
+      ORDER BY c.criado_em DESC, c.id DESC
       `,
-      params,
     );
-
-    const data = rows.map((row) => ({
-      ...row,
-      ...derivarFlagsAprovacao(row),
-    }));
-
-    return responder(res, data, {
-      total: data.length,
-      chamada_id: chamadaId,
-      status,
-    });
+    return responder(res, rows, { total: rows.length });
   } catch (error) {
-    logError(req, "Erro ao listar submissões administrativas.", error);
+    logError(req, "Erro ao listar chamadas administrativas.", error);
     return next(error);
   }
 };
@@ -961,6 +833,11 @@ exports.criar = async (req, res, next) => {
     const linhas = normalizarLinhas(body.linhas);
     const criterios = normalizarCriterios(body.criterios, "escrito");
     const criteriosOrais = normalizarCriterios(body.criterios_orais, "oral");
+    if (payload.publicado) {
+      assert(linhas.length > 0 && criterios.length > 0,
+        "Uma chamada publicada precisa ter linha temática e critério de avaliação.",
+        400, { code: "CHAMADA_INCOMPLETA" });
+    }
 
     const nova = await transaction(req, async (tx) => {
       const chamada = await tx.one(
@@ -981,7 +858,7 @@ exports.criar = async (req, res, next) => {
             criterios_outros,
             oral_outros,
             premiacao_texto,
-            disposicao_finais_texto
+            disposicoes_finais_texto
           )
         VALUES
           ($1,$2,$3,$4,$5::timestamp,$6,$7,$8,$9,$10,$11::jsonb,$12,$13,$14,$15)
@@ -1002,7 +879,7 @@ exports.criar = async (req, res, next) => {
           payload.criterios_outros,
           payload.oral_outros,
           payload.premiacao_texto,
-          payload.disposicao_finais_texto,
+          payload.disposicoes_finais_texto,
         ],
       );
 
@@ -1133,7 +1010,54 @@ exports.atualizar = async (req, res, next) => {
         );
       }
 
-      if (linhas) {
+      // Sem submissões, o formulário pode reconfigurar toda a estrutura.
+      // Com histórico, qualquer edição de linhas/critério precisa preservar
+      // IDs e notas existentes; nesta versão, a estrutura fica imutável.
+      const count = await tx.one(
+        `SELECT COUNT(*)::int AS total FROM trabalhos_submissoes WHERE chamada_id=$1`,
+        [chamadaId],
+      );
+      const temHistorico = Number(count.total) > 0;
+      if (temHistorico && (linhas || criterios || criteriosOrais)) {
+        const normalized = (lista, campos) =>
+          lista.map((row) =>
+            campos.map((campo) => {
+              const value = row[campo];
+              return typeof value === "number"
+                ? value
+                : campo === "peso" || campo === "escala_min" ||
+                    campo === "escala_max" || campo === "ordem"
+                  ? Number(value)
+                  : String(value ?? "").trim();
+            }),
+          );
+        const comparar = async (nomeTabela, entrada, campos, ordem) => {
+          if (entrada === null) return;
+          const atuais = await tx.many(
+            `SELECT * FROM ${nomeTabela} WHERE chamada_id=$1 ORDER BY ${ordem}`,
+            [chamadaId],
+          );
+          const a = normalized(atuais, campos);
+          const b = normalized(entrada, campos);
+          assert(
+            JSON.stringify(a) === JSON.stringify(b),
+            "A chamada possui submissões. Linhas temáticas e critérios não " +
+              "podem ser regravados, removidos ou alterados sem preservar o histórico.",
+            409,
+            { code: "ESTRUTURA_CHAMADA_COM_HISTORICO" },
+          );
+        };
+        await comparar("trabalhos_chamada_linhas", linhas,
+          ["nome", "descricao"], "nome ASC, id ASC");
+        await comparar("trabalhos_chamada_criterios", criterios,
+          ["ordem", "titulo", "escala_min", "escala_max", "peso"],
+          "ordem ASC, id ASC");
+        await comparar("trabalhos_chamada_criterios_orais", criteriosOrais,
+          ["ordem", "titulo", "escala_min", "escala_max", "peso"],
+          "ordem ASC, id ASC");
+      }
+
+      if (!temHistorico && linhas) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_linhas WHERE chamada_id = $1`,
           [chamadaId],
@@ -1152,7 +1076,7 @@ exports.atualizar = async (req, res, next) => {
         }
       }
 
-      if (criterios) {
+      if (!temHistorico && criterios) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_criterios WHERE chamada_id = $1`,
           [chamadaId],
@@ -1178,7 +1102,7 @@ exports.atualizar = async (req, res, next) => {
         }
       }
 
-      if (criteriosOrais) {
+      if (!temHistorico && criteriosOrais) {
         await tx.none(
           `DELETE FROM trabalhos_chamada_criterios_orais WHERE chamada_id = $1`,
           [chamadaId],
@@ -1202,6 +1126,18 @@ exports.atualizar = async (req, res, next) => {
             ],
           );
         }
+      }
+
+      if (payload.publicado) {
+        const valido = await tx.one(
+          `SELECT
+            (SELECT count(*) FROM trabalhos_chamada_linhas WHERE chamada_id=$1) AS linhas,
+            (SELECT count(*) FROM trabalhos_chamada_criterios WHERE chamada_id=$1) AS criterios`,
+          [chamadaId],
+        );
+        assert(Number(valido.linhas) > 0 && Number(valido.criterios) > 0,
+          "Chamada publicada precisa de linha temática e critério.",
+          400, { code: "CHAMADA_INCOMPLETA" });
       }
 
       return tx.one(
@@ -1516,7 +1452,8 @@ async function obterModeloMaisRecente(req, chamadaId, tipo) {
       tamanho_bytes,
       hash_sha256,
       tipo,
-      updated_at
+      updated_at,
+      (arquivo IS NOT NULL) AS armazenado_banco
     FROM trabalhos_chamadas_modelos
     WHERE chamada_id = $1
       AND tipo = $2
@@ -1573,66 +1510,38 @@ async function salvarModelo(req, chamadaId, file, cfg) {
   );
 
   const hash = crypto.createHash("sha256").update(file.buffer).digest("hex");
-  const dirRelativa = String(chamadaId);
-  const nomeArquivoStorage = `${cfg.tipo}${ext}`;
-  const storageKey = `${dirRelativa}/${nomeArquivoStorage}`;
-  const absPath = storagePathSeguro(storageKey);
+  const storageKey = `db:chamada/${chamadaId}/${cfg.tipo}`;
 
-  assert(absPath, "Caminho de armazenamento inválido.", 500, {
-    code: "STORAGE_PATH_INVALIDO",
-  });
-
-  await fsp.mkdir(path.dirname(absPath), { recursive: true });
-
-  const tmpPath = `${absPath}.tmp-${Date.now()}`;
-  await fsp.writeFile(tmpPath, file.buffer);
-  await fsp.rename(tmpPath, absPath);
-
-  const usuarioId = req.user?.id || null;
-
+  // O banco é a fonte de verdade do modelo. Arquivos históricos continuam
+  // acessíveis pelo caminho legado quando ainda não possuem bytes no banco.
   return queryOne(
     req,
     `
     INSERT INTO trabalhos_chamadas_modelos
-      (
-        chamada_id,
-        nome_arquivo,
-        mime,
-        storage_key,
-        tamanho_bytes,
-        hash_sha256,
-        tipo,
-        updated_at
-      )
+      (chamada_id, nome_arquivo, mime, storage_key,
+       tamanho_bytes, hash_sha256, tipo, arquivo, updated_at)
     VALUES
-      ($1,$2,$3,$4,$5,$6,$7,NOW(),$8)
+      ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
     ON CONFLICT (chamada_id, tipo) DO UPDATE
-    SET nome_arquivo  = EXCLUDED.nome_arquivo,
-        mime          = EXCLUDED.mime,
-        storage_key   = EXCLUDED.storage_key,
+    SET nome_arquivo = EXCLUDED.nome_arquivo,
+        mime = EXCLUDED.mime,
+        storage_key = EXCLUDED.storage_key,
         tamanho_bytes = EXCLUDED.tamanho_bytes,
-        hash_sha256   = EXCLUDED.hash_sha256,
-        updated_at    = NOW(),
-    RETURNING
-      id,
-      chamada_id,
-      nome_arquivo,
-      mime,
-      storage_key,
-      tamanho_bytes,
-      hash_sha256,
-      tipo,
-      updated_at
+        hash_sha256 = EXCLUDED.hash_sha256,
+        arquivo = EXCLUDED.arquivo,
+        updated_at = NOW()
+    RETURNING id, chamada_id, nome_arquivo, mime, storage_key,
+              tamanho_bytes, hash_sha256, tipo, updated_at
     `,
     [
       chamadaId,
       nomeOriginal,
-      file.mimetype || mime.lookup(nomeOriginal) || "application/octet-stream",
+      file.mimetype || "application/octet-stream",
       storageKey,
       file.size || file.buffer.length,
       hash,
       cfg.tipo,
-      usuarioId,
+      file.buffer,
     ],
   );
 }
@@ -1651,7 +1560,9 @@ function criarMetaModelo(tipoModelo) {
       });
 
       const absPath = storagePathSeguro(row.storage_key);
-      const exists = absPath ? fs.existsSync(absPath) : false;
+      const exists =
+        Boolean(row.armazenado_banco) ||
+        Boolean(absPath && fs.existsSync(absPath));
 
       const data = {
         chamada_id: row.chamada_id,
@@ -1672,11 +1583,17 @@ function criarMetaModelo(tipoModelo) {
   };
 }
 
-function criarDownloadModelo(tipoModelo) {
+function criarDownloadModelo(tipoModelo, exigirPublicacao = false) {
   return async (req, res, next) => {
     try {
       const chamadaId = toId(req.params.id);
       const cfg = normalizarTipoModelo(tipoModelo);
+      if (exigirPublicacao) {
+        const chamada = await obterChamadaPorId(req, chamadaId);
+        assert(chamada && chamada.publicado, "Modelo não encontrado.", 404, {
+          code: "MODELO_NAO_ENCONTRADO",
+        });
+      }
       const row = await obterModeloMaisRecente(req, chamadaId, cfg.tipo);
 
       if (!row) {
@@ -1685,6 +1602,30 @@ function criarDownloadModelo(tipoModelo) {
         throw criarErro("Modelo não encontrado.", 404, {
           code: "MODELO_NAO_ENCONTRADO",
         });
+      }
+
+      if (row.armazenado_banco) {
+        const binario = await queryOne(
+          req,
+          `SELECT arquivo FROM trabalhos_chamadas_modelos WHERE id = $1`,
+          [row.id],
+        );
+        const buffer = binario?.arquivo;
+        assert(
+          Buffer.isBuffer(buffer) && buffer.length > 0,
+          "Arquivo do modelo está indisponível no banco.",
+          410,
+          { code: "MODELO_ARQUIVO_INDISPONIVEL" },
+        );
+
+        res.setHeader("Content-Type", row.mime || "application/octet-stream");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename*=UTF-8''${encodeURIComponent(row.nome_arquivo || cfg.nomePadrao)}`,
+        );
+        res.setHeader("Content-Length", String(buffer.length));
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).send(buffer);
       }
 
       const absPath = storagePathSeguro(row.storage_key);
@@ -1774,8 +1715,10 @@ function criarImportacaoModelo(tipoModelo) {
 exports.modeloBannerMeta = criarMetaModelo("banner");
 exports.modeloOralMeta = criarMetaModelo("oral");
 
-exports.baixarModeloBanner = criarDownloadModelo("banner");
-exports.baixarModeloOral = criarDownloadModelo("oral");
+exports.baixarModeloBanner = criarDownloadModelo("banner", true);
+exports.baixarModeloOral = criarDownloadModelo("oral", true);
+exports.baixarModeloBannerAdmin = criarDownloadModelo("banner");
+exports.baixarModeloOralAdmin = criarDownloadModelo("oral");
 
 /**
  * Mantido temporariamente como nome de função para rota antiga interna.

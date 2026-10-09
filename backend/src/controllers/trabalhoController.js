@@ -102,6 +102,9 @@ const STATUS_BLOQUEADOS_EDICAO_AUTOR = Object.freeze([
   "aprovada_oral",
   "aprovada",
   "reprovada",
+  "aprovado_exposicao",
+  "aprovado_oral",
+  "reprovado",
   "cancelada",
 ]);
 
@@ -216,37 +219,12 @@ async function queryMany(req, sql, params = []) {
 
 async function transaction(req, callback) {
   const db = getDb(req);
-
-  await db.query("BEGIN");
-
-  try {
-    const tx = {
-      query: (sql, params = []) => db.query(sql, params),
-      one: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows?.[0] || null;
-      },
-      many: async (sql, params = []) => {
-        const result = await db.query(sql, params);
-        return result.rows || [];
-      },
-      none: async (sql, params = []) => {
-        await db.query(sql, params);
-      },
-    };
-
-    const output = await callback(tx);
-    await db.query("COMMIT");
-    return output;
-  } catch (error) {
-    try {
-      await db.query("ROLLBACK");
-    } catch (rollbackError) {
-      logWarn(req, "Falha ao executar ROLLBACK.", rollbackError);
-    }
-
-    throw error;
+  if (typeof db.tx !== "function") {
+    throw criarErro("Transações indisponíveis no banco oficial.", 500, {
+      code: "DB_TRANSACAO_INDISPONIVEL",
+    });
   }
+  return db.tx(callback);
 }
 
 /* =========================================================================
@@ -675,7 +653,7 @@ exports.criar = async (req, res, next) => {
             objetivos,
             metodo,
             resultados,
-            consideracao,
+            consideracoes,
             bibliografia,
             status,
             criado_em,
@@ -821,7 +799,7 @@ exports.atualizar = async (req, res, next) => {
                objetivos = $6,
                metodo = $7,
                resultados = $8,
-               consideracao = $9,
+               consideracoes = $9,
                bibliografia = $10,
                status = $11,
                atualizado_em = NOW()
@@ -915,7 +893,11 @@ exports.obter = async (req, res, next) => {
       code: "TRABALHO_NAO_ENCONTRADO",
     });
 
-    validarPermissaoAutorOuAdmin(req, trabalho, "visualizar");
+    const { ehAdmin } = validarPermissaoAutorOuAdmin(
+      req,
+      trabalho,
+      "visualizar",
+    );
 
     const coautores = await queryMany(
       req,
@@ -951,6 +933,12 @@ exports.obter = async (req, res, next) => {
 
     return responder(res, {
       ...trabalho,
+      consideracao: trabalho.consideracoes || "",
+      nota_escrita: ehAdmin || trabalho.nota_visivel ? trabalho.nota_escrita : null,
+      nota_oral: ehAdmin || trabalho.nota_visivel ? trabalho.nota_oral : null,
+      nota_final: ehAdmin || trabalho.nota_visivel ? trabalho.nota_final : null,
+      total_pontos: ehAdmin || trabalho.nota_visivel ? trabalho.total_pontos : null,
+      observacoes_admin: ehAdmin ? trabalho.observacoes_admin : null,
       coautores,
       banner,
       banner_url: banner ? `/api/submissao/${trabalho.id}/poster` : null,
@@ -971,12 +959,29 @@ exports.remover = async (req, res, next) => {
     });
 
     const { ehAdmin } = validarPermissaoAutorOuAdmin(req, trabalho, "remover");
+    const historico = await queryOne(
+      req,
+      `SELECT
+        (SELECT count(*) FROM trabalhos_avaliacoes_itens WHERE submissao_id=$1) AS escritas,
+        (SELECT count(*) FROM trabalhos_apresentacoes_orais_itens WHERE submissao_id=$1) AS orais,
+        (SELECT count(*) FROM trabalhos_submissoes_avaliadores WHERE submissao_id=$1) AS avaliadores`,
+      [trabalhoId],
+    );
+    assert(
+      !STATUS_BLOQUEADOS_EDICAO_AUTOR.includes(
+        String(trabalho.status || "").toLowerCase(),
+      ) && Number(historico.escritas) === 0 &&
+        Number(historico.orais) === 0 && Number(historico.avaliadores) === 0,
+      "Trabalho com histórico de avaliação não pode ser excluído definitivamente.",
+      409,
+      { code: "TRABALHO_COM_HISTORICO" },
+    );
 
     if (!ehAdmin) {
       validarEdicaoPermitida(trabalho, false);
 
       assert(
-        ["rascunho", "submetida"].includes(
+        ["rascunho", "submetida", "submetido"].includes(
           String(trabalho.status || "").toLowerCase(),
         ),
         "Somente trabalho em rascunho ou submetido pode ser removido pelo autor.",
@@ -1046,11 +1051,12 @@ function validarArquivoBanner(file) {
     adminHint: "Contrato v2.0: multipart field oficial = arquivo.",
   });
 
-  assert(file.path, "Upload inválido: arquivo temporário ausente.", 400, {
-    code: "UPLOAD_TEMP_AUSENTE",
-    adminHint:
-      "A rota deve usar multer.diskStorage ou middleware equivalente que disponibilize req.file.path.",
-  });
+  assert(
+    Buffer.isBuffer(file.buffer) && file.buffer.length > 0,
+    "Upload inválido: conteúdo binário ausente.",
+    400,
+    { code: "UPLOAD_BUFFER_AUSENTE" },
+  );
 
   const originalName = file.originalname || "arquivo";
   const ext = path.extname(originalName).toLowerCase();
@@ -1169,8 +1175,6 @@ async function removerArquivoFisicoSeguro(req, caminho) {
 }
 
 exports.atualizarBanner = async (req, res, next) => {
-  let tempPath = null;
-
   try {
     const trabalhoId = toId(req.params.id);
     const trabalho = await obterTrabalhoComChamada(req, trabalhoId);
@@ -1184,82 +1188,62 @@ exports.atualizarBanner = async (req, res, next) => {
       trabalho,
       "enviar banner",
     );
-
     validarEdicaoPermitida(trabalho, ehAdmin);
-
     const info = validarArquivoBanner(req.file);
-    tempPath = req.file.path;
+    const buffer = req.file.buffer;
+    const sha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
-    const moved = await moverArquivoParaStorage(req.file, trabalhoId, info.ext);
-    tempPath = null;
+    const arquivo = await transaction(req, async (tx) => {
+      // Impede que dois uploads simultâneos deixem vínculos concorrentes.
+      const locked = await tx.one(
+        `SELECT poster_arquivo_id FROM trabalhos_submissoes
+         WHERE id = $1 FOR UPDATE`,
+        [trabalhoId],
+      );
 
-    const sha256 = await hashArquivo(moved.absPath);
-
-    const resultado = await transaction(req, async (tx) => {
-      const anterior = trabalho.poster_arquivo_id
-        ? await tx.one(
-            `
-            SELECT id, caminho
-            FROM trabalhos_arquivos
-            WHERE id = $1
-            `,
-            [trabalho.poster_arquivo_id],
-          )
-        : null;
-
-      const arquivo = await tx.one(
+      const novo = await tx.one(
         `
         INSERT INTO trabalhos_arquivos
-          (
-            submissao_id,
-            caminho,
-            nome_original,
-            mime_type,
-            tamanho,
-            hash_sha256,
-            criado_em
-          )
-        VALUES
-          ($1,$2,$3,$4,$5,$6,NOW())
-        RETURNING
-          id,
-          submissao_id,
-          caminho,
-          nome_original,
-          mime_type,
-          tamanho,
-          hash_sha256,
-          criado_em
+          (submissao_id, caminho, nome_original, mime_type,
+           tamanho_bytes, hash_sha256, arquivo, tipo)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,'submissao')
+        ON CONFLICT (submissao_id, tipo, hash_sha256) DO UPDATE
+          SET nome_original = EXCLUDED.nome_original,
+              mime_type = EXCLUDED.mime_type,
+              tamanho_bytes = EXCLUDED.tamanho_bytes,
+              arquivo = EXCLUDED.arquivo
+        RETURNING id, submissao_id, caminho, nome_original,
+                  mime_type, tamanho_bytes, hash_sha256, criado_em
         `,
         [
           trabalhoId,
-          moved.relPath,
+          `db:trabalho/${trabalhoId}/${sha256}`,
           info.originalName,
           info.mime,
           info.size,
           sha256,
+          buffer,
         ],
       );
 
       await tx.none(
-        `
-        UPDATE trabalhos_submissoes
-           SET poster_arquivo_id = $2,
-               atualizado_em = NOW()
-         WHERE id = $1
-        `,
-        [trabalhoId, arquivo.id],
+        `UPDATE trabalhos_submissoes
+         SET poster_arquivo_id = $2, atualizado_em = NOW()
+         WHERE id = $1`,
+        [trabalhoId, novo.id],
       );
 
-      return {
-        arquivo,
-        anterior,
-      };
+      if (
+        locked.poster_arquivo_id &&
+        Number(locked.poster_arquivo_id) !== Number(novo.id)
+      ) {
+        await tx.none(
+          `DELETE FROM trabalhos_arquivos WHERE id = $1 AND submissao_id = $2`,
+          [locked.poster_arquivo_id, trabalhoId],
+        );
+      }
+      return novo;
     });
-
-    if (resultado.anterior?.caminho) {
-      await removerArquivoFisicoSeguro(req, resultado.anterior.caminho);
-    }
 
     await notificarSemBloquear(
       req,
@@ -1272,25 +1256,11 @@ exports.atualizarBanner = async (req, res, next) => {
       },
       "banner atualizado",
     );
-
-    logInfo(req, "Banner do trabalho atualizado.", {
-      trabalhoId,
-      arquivoId: resultado.arquivo.id,
-    });
-
     return responder(res, {
-      ...resultado.arquivo,
+      ...arquivo,
       banner_url: `/api/submissao/${trabalhoId}/poster`,
     });
   } catch (error) {
-    if (tempPath) {
-      try {
-        await fsp.unlink(tempPath);
-      } catch {
-        // ignore
-      }
-    }
-
     logError(req, "Erro ao atualizar banner do trabalho.", error);
     return next(error);
   }
@@ -1359,9 +1329,9 @@ END AS status,
   s.resultados,
   s.consideracoes,
   s.bibliografia,
-  s.nota_escrita,
-  s.nota_oral,
-  s.nota_final,
+  CASE WHEN s.nota_visivel THEN s.nota_escrita ELSE NULL END AS nota_escrita,
+  CASE WHEN s.nota_visivel THEN s.nota_oral ELSE NULL END AS nota_oral,
+  CASE WHEN s.nota_visivel THEN s.nota_final ELSE NULL END AS nota_final,
   s.poster_arquivo_id,
   a.nome_original AS poster_nome,
   a.mime_type AS poster_mime
@@ -1371,7 +1341,10 @@ JOIN trabalhos_chamadas c ON c.id = s.chamada_id
 LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
 LEFT JOIN unidades un ON un.id = u.unidade_id
 LEFT JOIN trabalhos_arquivos a ON a.id = s.poster_arquivo_id
-WHERE COALESCE(NULLIF(s.status, ''), 'submetida') NOT IN ('rascunho', 'cancelada')
+WHERE s.status IN (
+  'aprovado_exposicao', 'aprovado_oral',
+  'aprovada_exposicao', 'aprovada_oral', 'aprovada'
+)
 ORDER BY c.titulo ASC, tcl.nome ASC NULLS LAST, s.titulo ASC, s.id ASC
       `,
       params,

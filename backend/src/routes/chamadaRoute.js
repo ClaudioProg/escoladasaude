@@ -223,6 +223,12 @@ router.use("/admin", requireAuth, authorize("administrador"), noStore);
  * GET /api/chamada/admin
  */
 router.get("/admin", asyncHandler(ctrl.listarAdmin));
+router.get(
+  "/admin/:id(\\d+)",
+  idParam,
+  validate,
+  asyncHandler(ctrl.obterChamadaAdmin),
+);
 
 /**
  * Cria chamada.
@@ -292,7 +298,7 @@ router.get(
   "/admin/:id(\\d+)/modelo-banner/download",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloBanner),
+  asyncHandler(ctrl.baixarModeloBannerAdmin),
 );
 
 /**
@@ -332,7 +338,7 @@ router.get(
   "/admin/:id(\\d+)/modelo-oral/download",
   idParam,
   validate,
-  asyncHandler(ctrl.baixarModeloOral),
+  asyncHandler(ctrl.baixarModeloOralAdmin),
 );
 
 /**

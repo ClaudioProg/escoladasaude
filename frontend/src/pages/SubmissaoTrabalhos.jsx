@@ -173,22 +173,22 @@ function normalizarStatus(status) {
   if (value === "rascunho") {
     return "rascunho";
   }
-  if (value === "submetida") {
+  if (value === "submetida" || value === "submetido") {
     return "submetida";
   }
   if (value === "em_avaliacao") {
     return "em_avaliacao";
   }
-  if (value === "aprovada_exposicao") {
+  if (value === "aprovada_exposicao" || value === "aprovado_exposicao") {
     return "aprovada_exposicao";
   }
-  if (value === "aprovada_oral") {
+  if (value === "aprovada_oral" || value === "aprovado_oral") {
     return "aprovada_oral";
   }
-  if (value === "aprovada") {
+  if (value === "aprovada" || value === "aprovado") {
     return "aprovada";
   }
-  if (value === "reprovada") {
+  if (value === "reprovada" || value === "reprovado") {
     return "reprovada";
   }
   if (value === "cancelada") {
@@ -968,7 +968,7 @@ export default function SubmissaoTrabalhos() {
       setErro("A chamada deste link não está publicada ou disponível.");
       return;
     }
-    if (!Boolean(chamada.dentro_prazo ?? chamada.dentroPrazo)) {
+    if (!(chamada.dentro_prazo ?? chamada.dentroPrazo)) {
       setErro("O prazo de submissão desta chamada está encerrado.");
       return;
     }
