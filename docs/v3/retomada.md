@@ -5,9 +5,9 @@ Projeto: **Plataforma Escola da Saúde — V3**.
 Branch: `revisao-premium-bloco-1-auth`.
 
 Atualização documental: 2026-10-09.
-Base Git do fechamento da Etapa 08:
-`3210ad6c6a6b82c1ed65819f1b37e94839357ee5`, fechamento da Etapa 07.
-Confirmar o HEAD real no histórico da branch ao retomar.
+HEAD versionado e base local da Etapa 09:
+`aceb73ac845542255b843e704525084e90654f6c`, fechamento da Etapa 08.
+Confirmar HEAD/status ao retomar; Etapa 09 permanece somente no worktree.
 
 Última etapa funcional concluída: **07 — proteção de login/reset concorrentes**.
 Etapas **01–06 versionadas na branch**; Etapa 07 com **fechamento local aprovado**.
@@ -19,7 +19,7 @@ após conferência do código e das evidências PostgreSQL originais e complemen
 integra o commit único de implementação, testes e documentos na branch V3.
 Pendências futuras permanecem abertas; nenhuma produção foi validada.
 
-Etapa atual: **08 — EXPAND CONCLUÍDO / REHEARSAL E REVISÃO APROVADOS**.
+Última etapa de infraestrutura fechada: **08 — EXPAND CONCLUÍDO / REHEARSAL E REVISÃO APROVADOS**.
 Revisão independente aprovada pelo responsável em **09/10/2026**. Migration
 `2026-10-09-auth-quotas-expand.sql`, testes e inventário oficial concluídos:
 `auth_quota_evento`, uma linha por emissão, conta e/ou IP HMAC, oito constraints,
@@ -38,11 +38,24 @@ O fechamento documental/Git não repete testes nem executa SQL, migration ou
 operações Neon. Branch de rehearsal preservada. Aprovação isolada não significa
 implantação em produção; não houve deploy ou merge na main.
 
-Próximo passo funcional, sob autorização própria: Etapa 09. **Quotas, HMAC
-operacional, limpeza de 48 horas e integração permanecem pendentes**; rate limit
-legado preservado. Composição das finalidades, falhas de emissão, origem do IP,
-rotação HMAC e operação da limpeza continuam abertas. D1–D8 e demais pendências
-aprovadas não foram alteradas.
+Etapa atual: **09 — NÚCLEO LOCAL IMPLEMENTADO / REHEARSAL PENDENTE**.
+Decisão **A aprovada**: três finalidades compartilham os limites por conta e IP.
+`authQuotaService.js` / `authQuotaIp.js` e testes locais criados; **142/142 focados**,
+**829/829 backend completos**, sintaxe **4/4**. Suíte completa executada uma vez.
+Sem novas migrations ou import do serviço nas rotas/controller/server.
+
+API e limites em [decisões](decisoes-canonicas.md#etapa-09--núcleo-transacional-local-sem-integração).
+Usar executor de `db.tx` READ COMMITTED de escrita, uma emissão por transação;
+usuário antes dos advisory locks, clock único após locks. Aceita aguarda commit
+externo; erros críticos devem abortar o chamador. Sem retries SMTP contabilizados.
+
+Próximo passo: revisão do núcleo e rehearsal PostgreSQL proporcional sob
+nova autorização, conforme [plano](testes-e-evidencias.md#plano-proporcional-de-rehearsal-da-etapa-09).
+**Etapa 09 não concluída**, sem concorrência real comprovada. Proxies efetivos,
+segredo dedicado/rotação, integração desafio/outbox/HTTP e limpeza operacional
+48 h pendentes. Solicitações sem emissão não receberam política. Rate limit
+legado e D1–D8 preservados. Sem Neon, SQL real, migration, SMTP real, commit,
+push ou deploy na Etapa 09.
 
 Estado funcional relevante:
 

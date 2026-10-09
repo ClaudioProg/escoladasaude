@@ -1,7 +1,9 @@
 # Plataforma Escola da Saúde — V3
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
-HEAD de código inspecionado: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
+HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
+Atualização editorial da Etapa 09: 09/10/2026, base
+`aceb73ac845542255b843e704525084e90654f6c`, implementação local/rehearsal pendente.
 
 ## Finalidade e tipos de autoridade
 
@@ -47,7 +49,10 @@ Serão criados quando seus contratos forem efetivamente fechados.
 Princípio: **expand → compatibilidade → rehearsal → cutover → contract**.
 A presença de estruturas expand não autoriza ativar writers ou remover leitores
 legados. Antes do primeiro writer Argon2id operacional, o login precisa aceitar
-Argon2id e bcrypt legado. O próximo trabalho é a Etapa 05.
+Argon2id e bcrypt legado; essa compatibilidade foi entregue na Etapa 05.
+O trabalho atual é o núcleo local de quotas da Etapa 09, com decisão A de limites
+compartilhados aprovada e rehearsal pendente. Isso não ativa writers Argon2id
+ou quotas nas rotas públicas.
 
 Ao atualizar um documento, registrar HEAD/data, origem da decisão ou evidência,
 ambiente, limites da comprovação e pendências relacionadas. Alterar o status

@@ -1,10 +1,9 @@
 # Bloco 1 — estado real
 
 Atualização documental: 2026-10-09. Branch: `revisao-premium-bloco-1-auth`.
-Base Git do fechamento da Etapa 08, correspondente ao fechamento da Etapa 07:
-`3210ad6c6a6b82c1ed65819f1b37e94839357ee5`.
-O fechamento da Etapa 08 integra um único commit de migration, testes e cinco
-documentos; consultar seu SHA no histórico da branch.
+Último commit versionado, fechamento da Etapa 08 e base da Etapa 09:
+`aceb73ac845542255b843e704525084e90654f6c`.
+Etapa 09 somente no worktree local, sem commit/push ou ativação nas rotas.
 
 ## FECHADO / versionado na branch
 
@@ -107,6 +106,30 @@ Sem backfill, alteração de objetos legados, writer, serviço de quotas ou limp
 - Aprovação do rehearsal isolado não comprova implantação/funcionamento em produção.
   Este fechamento não executa SQL, migration, operações Neon, SMTP ou deploy.
 
+## ETAPA 09 — NÚCLEO LOCAL IMPLEMENTADO / REHEARSAL PENDENTE
+
+Decisão funcional **A aprovada**: confirmação, alteração de e-mail e recuperação
+de senha compartilham os mesmos limites por conta e IP. Núcleo em
+[authQuotaService](../../backend/src/services/authQuotaService.js), normalização/
+HMAC em [authQuotaIp](../../backend/src/services/authQuotaIp.js), sem nova migration.
+
+- **142/142 testes focados** e **829/829 testes completos do backend** aprovados;
+  suíte completa executada uma vez após as alterações de código. Sintaxe JS 4/4.
+- Executor explícito `db.tx`, `READ COMMITTED` de escrita e savepoint; usuário
+  primeiro, advisory locks transacionais ordenados por sujeito/UUID. Clock único
+  do banco após locks, com microssegundos preservados; check + INSERT na mesma tx.
+- Uma emissão por executor/transação; aceita fica pendente até commit do chamador.
+  Negação não grava linha; replay idêntico não conta novamente; divergência falha
+  fechado. Sem retries automáticos, associação desafio/outbox ou contabilização SMTP.
+- HMAC-SHA-256 com segredo dedicado injetado, versões explícitas e guarda contra
+  omissão de versões presentes na janela IP; sem leitura de headers/ambiente,
+  configuração de segredo em produção ou rotação automática.
+- **Etapa 09 não concluída.** Sem concorrência PostgreSQL real comprovada ou
+  rehearsal. Proxy efetivo, configuração/rotação de chaves, integração e limpeza
+  operacional de 48 horas pendentes. Solicitações sem emissão não receberam política.
+- Rotas/controller/server, rate limit legado, frontend, schema e D1–D8 preservados.
+  Sem Neon, SQL real, migration, SMTP real, commit, push ou deploy nesta etapa.
+
 ## PARCIAL
 
 - Login local já usa o verificador misto e cria sessão/cookie de transição.
@@ -151,7 +174,8 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Outbox dedicada, rate limit PostgreSQL, retenção/limpeza e integração crítica.
+- Outbox dedicada, integração do núcleo local de quotas PostgreSQL,
+  retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 

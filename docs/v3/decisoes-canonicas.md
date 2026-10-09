@@ -2,7 +2,7 @@
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
-das Etapas 04/05/06/07/08 e decisões anteriores fornecidas pelo responsável. As seções de
+das Etapas 04/05/06/07/08/09 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
 
@@ -320,8 +320,9 @@ Cronogramas completos de tentativas já aprovados:
   `key_id`; o challenge armazena somente hash.
 - Segredo criptografado deve ser apagado após envio bem-sucedido.
 
-**DECISÃO CANÔNICA / CONTRATO ALVO — rate limit:** para emissão de confirmação
-e recuperação, com a emissão inicial também contabilizada nas quotas.
+**DECISÃO CANÔNICA / CONTRATO ALVO — rate limit:** decisão funcional **A aprovada**
+na Etapa 09: confirmação, alteração de e-mail e recuperação de senha compartilham
+os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 
 | Escopo | Quotas aprovadas |
 | --- | --- |
@@ -333,8 +334,10 @@ e recuperação, com a emissão inicial também contabilizada nas quotas.
 - IP bruto não deve ser persistido.
 - Retenção dos registros de rate limit: 48 horas.
 
-**IMPLEMENTAÇÃO ATUAL:** o worker da outbox dedicada à autenticação e o serviço de
-quotas PostgreSQL continuam pendentes. O expand da Etapa 08 foi aplicado somente
+**IMPLEMENTAÇÃO ATUAL:** o worker da outbox dedicada à autenticação e a integração
+de quotas continuam pendentes. O núcleo transacional da Etapa 09 está implementado
+e testado somente localmente, sem ativação nas rotas; rehearsal pendente.
+O expand da Etapa 08 foi aplicado somente
 na branch Neon descartável `br-super-wave-adut7rdn`, com rehearsal e revisão
 independente aprovados em 09/10/2026. Rate limit legado em memória preservado.
 Aprovação da estrutura não constitui ativação de quotas ou implantação em produção.
@@ -343,8 +346,9 @@ Aprovação da estrutura não constitui ativação de quotas ou implantação em
 
 Contrato autorizado: `public.auth_quota_evento` com uma linha por emissão e
 `emissao_id UUID` como PK simples. `finalidade` factual admite `confirmacao`,
-`alteracao` e `recuperacao`; armazenar esses códigos não define sua composição
-para quotas. `usuario_id INTEGER NULL` referencia `usuarios(id)` por FK imediata,
+`alteracao` e `recuperacao`; a estrutura expand não definia sua composição.
+A decisão A da Etapa 09 agora determina limites compartilhados entre as três.
+`usuario_id INTEGER NULL` referencia `usuarios(id)` por FK imediata,
 `ON UPDATE RESTRICT ON DELETE RESTRICT`. Conta e IP podem coexistir na mesma linha.
 
 `ip_hmac BYTEA NULL` e `ip_hmac_key_id TEXT NULL` devem estar ambos ausentes ou
@@ -372,11 +376,68 @@ Sem backfill ou alteração de objetos legados. Quotas, HMAC operacional, limpez
 integração e Etapa 09 permanecem pendentes; rehearsal não comprova produção.
 Os testes e SQL não foram reexecutados neste fechamento documental/Git.
 
-**QUESTÕES ABERTAS, SEM DECISÃO NESTA ETAPA:** composição por finalidade/sujeito/
-janela; contabilização diante de falhas de emissão; origem confiável e normalização
-do IP; rotação HMAC; execução/frequência/monitoramento da limpeza. Não inferir
-quotas independentes nem combinadas, nem contar retries SMTP automaticamente.
+**QUESTÕES ABERTAS:** contabilização diante de falhas/solicitações sem emissão;
+origem confiável do IP na integração HTTP; configuração e rotação operacional
+HMAC; execução/frequência/monitoramento da limpeza. Composição das finalidades
+resolvida pela decisão A. Não contar retries SMTP como novas emissões.
 D1–D8 e demais pendências aprovadas permanecem abertas.
+
+### Etapa 09 — núcleo transacional local, sem integração
+
+Base `aceb73ac845542255b843e704525084e90654f6c`, somente worktree local.
+API: `createAuthQuotaService({ hmacConfig })` e
+`registrarEmissao(executor, { emissaoId, finalidade, usuarioId, ip })`.
+Executor é o objeto de `db.tx`, com `raw === client`; serviço usa `raw.query` do
+mesmo cliente para evitar logging de parâmetros da facade. Sem pool/fallback.
+Uma emissão por executor/transação, inclusive negação; segunda chamada é rejeitada
+para impedir acumulação de locks em ordem inversa. Argumentos são estritos;
+conta e/ou IP explícito, sem CPF/e-mail ou objetos HTTP como sujeitos.
+
+Savepoint exige transação ativa. Somente `READ COMMITTED` de escrita é admitido,
+sem alterar silenciosamente o isolamento do chamador. Ordem: usuário `FOR UPDATE`
+quando aplicável, advisory locks transacionais de conta/IP/UUID ordenados pelos
+identificadores int4. Namespace `0x41515441` separado do runner. Locks existem
+mesmo sem eventos. Hash do sujeito usado no lock é identificador efêmero, não
+chave persistida de quota; colisões serializam trabalho adicional. O lock IP
+independe da versão HMAC. Chamador deve respeitar essa ordem também nas operações
+que vier a integrar antes/depois do serviço.
+
+Um `clock_timestamp()` após todos os locks, representado em UTC com seis casas,
+é reutilizado nas consultas e no INSERT. Janelas exatas **(t−W, t]**: intervalo
+mínimo de 60 s, 5/h e 10/24 h por conta, 10/15 min por IP. Finalidade não filtra
+as contagens. Primeiro evento conta; conta/IP conjuntos criam uma linha. Evento
+futuro do sujeito impede nova emissão, falhando fechado diante de anomalia temporal.
+
+Resultado interno: `status: aceita`, `repetida`, `registradaEm`, ou somente
+`status: negada`. Conta inexistente e limite negado usam o mesmo resultado.
+Aceita é provisória até o commit externo; erros críticos são `AuthQuotaError`
+com código fixo, sem causa/detail brutos. Serviço não faz commit ou retry;
+negação/falha desfaz seus efeitos por savepoint, e o chamador deve propagar erro
+crítico para abortar `db.tx`. Falha do rollback também é crítica.
+
+PK e lock de emissão protegem UUID. Replay idêntico retorna o instante original,
+sem INSERT ou nova contagem. Finalidade, conta ou identidade IP divergentes são
+rejeitadas. Comparação IP admite as versões explicitamente configuradas.
+Idempotência depende do evento retido; a integração definitiva com desafio/outbox
+e o comportamento após futura remoção de eventos ainda exigem etapa própria.
+
+Normalização isolada: IPv4 estrito, IPv6 em forma expandida minúscula e IPv4-mapped
+unificado ao IPv4. Rejeita whitespace, listas, portas, CIDR e zone IDs. Não interpreta
+`X-Forwarded-For`. HMAC-SHA-256 recebe segredo dedicado como Buffer (mínimo 32 bytes),
+sem env/default; key_ids controlados/únicos, até 16 versões explícitas, uma ativa.
+Segredos são copiados para evitar mutação externa. O serviço grava apenas o digest
+ativo e consulta todas as versões configuradas. Conta isolada não exige HMAC.
+
+Guarda de cobertura rejeita versão não configurada presente na janela IP de 15 min,
+inclusive registros futuros. Essa consulta global requer avaliação de custo no
+rehearsal. Não comprova consistência do segredo entre instâncias: `key_id` deve
+ter vínculo imutável com a chave dedicada; completude/rollout/retirada de versões
+permanecem decisões operacionais abertas. Sem rotação automática.
+
+Testes locais: **142/142 focados**, **829/829 completos**, sintaxe **4/4**; mocks e
+cliente simulado com `db.tx` real. Sem prova de concorrência PostgreSQL real.
+Rehearsal pendente; Etapa 09 não concluída. Sem ativação HTTP, associação outbox/
+desafio, SMTP, limpeza, mudança de schema ou D1–D8.
 
 ## DECISÃO CANÔNICA — auditoria
 

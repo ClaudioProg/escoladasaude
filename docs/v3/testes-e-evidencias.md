@@ -450,6 +450,78 @@ reexecutados testes, SQL, migration ou operações Neon; não houve merge na mai
 nem exclusão da branch descartável. Logs brutos, credenciais e PII não são
 incluídos no commit.
 
+## ETAPA 09 — IMPLEMENTAÇÃO LOCAL / REHEARSAL PENDENTE
+
+Data: 09/10/2026. HEAD base `aceb73ac845542255b843e704525084e90654f6c`.
+Decisão A fornecida pelo responsável: confirmação, alteração de e-mail e
+recuperação compartilham os mesmos limites por conta/IP. Nenhuma aprovação de
+fechamento da Etapa 09 ou concorrência PostgreSQL real é reivindicada.
+
+| Validação local final | Resultado |
+| --- | --- |
+| `authQuotaIp.test.js` + `authQuotaService.test.js` | **142/142 aprovados** |
+| Suíte completa do backend (`node --test`) | **829/829 aprovados**, uma execução após as alterações de código |
+| `node --check` nos quatro JS novos | **4/4 aprovados** |
+
+Zero falhas/cancelados/skips/todo nos conjuntos finais. Nenhum teste PostgreSQL
+real foi executado. Guardas processuais de Pool/Client, TCP/TLS, SMTP e leitura
+`.env`, com URL dummy somente no processo. Focados: zero tentativas proibidas.
+Suíte completa: zero tentativas PostgreSQL/rede/SMTP; **uma tentativa de leitura
+`.env` bloqueada**, sem conteúdo lido. Não se presume uso de credenciais reais.
+
+Cobertura: fronteiras exatas (t−W, t] em 60 s/15 min/1 h/24 h, incluindo diferenças
+de um microssegundo; primeira emissão/excedentes; finalidades misturadas;
+conta/IP isolados e conjuntos; clock único após locks; resultado genérico de
+negação; replay e UUID divergente; configuração/normalização IPv4/IPv6/mapped;
+HMAC e múltiplas versões; cobertura incompleta de key_ids; dados futuros;
+falhas de query/INSERT/resposta/release/rollback; ausência de retries/logs/import
+pelas rotas legadas. Provas usam dados sintéticos, sem registros reais exportados.
+
+`db.tx` real carregado com pool/cliente inteiramente simulados comprova uso do
+mesmo cliente e protocolo de commit/rollback, inclusive falha posterior do chamador
+ou commit. Mocks de contagens e SQL não comprovam execução semântica, planner,
+locks/advisory waits ou concorrência em PostgreSQL. As 57 provas da Etapa 08 são
+históricas do expand; não validam este novo serviço.
+
+Riscos/pendências: proxy efetivo não validado (`server.js` usa `trust proxy = 1`
+e helper legado lê diretamente `X-Forwarded-For`); nenhuma integração HTTP nova.
+Guarda global de versões HMAC pode ter custo proporcional ao volume da janela;
+medir planner antes de operação. Vínculo imutável key_id/segredo e rollout entre
+instâncias precisam de política operacional própria. Idempotência depende do
+evento retido; desafios/outbox e futuro cleanup devem preservar seu contrato.
+Uma emissão por executor db.tx evita batches que invertam a ordem dos locks;
+integração deve respeitar usuário antes de sujeitos/UUID e propagar falhas críticas.
+
+Solicitações sem emissão e falhas de emissão continuam sem nova política.
+Não contar retry SMTP como emissão. Retenção operacional de 48 horas pendente;
+nenhuma limpeza automática, migration, operação Neon, SMTP real, commit, push,
+merge ou deploy realizado. Schema, rate limit legado, frontend e D1–D8 intactos.
+**Etapa 09 não concluída; rehearsal pendente.**
+
+### Plano proporcional de rehearsal da Etapa 09
+
+Após autorização própria, usar nova branch Neon descartável filha do rehearsal
+da Etapa 08 (`br-super-wave-adut7rdn`), cujo expand já foi aplicado. Confirmar
+projeto/filiação/endpoint/database/TLS, schema e SHA/ledger da Etapa 08 antes das
+fixtures; não aplicar migrations antigas ou alterar a migration aprovada.
+
+1. Conferir SQL real, casts/arrays bytea, precisão de microssegundos e timezone;
+   eventos nas quatro fronteiras e finalidades misturadas, conta/IP e ambos.
+2. Duas ou mais conexões com barreiras reais: usuário primeiro, IP sem eventos,
+   mesma conta/IP e contas distintas com IP comum; somente o espaço disponível
+   confirma, sem deadlock ou excesso. Capturar esperas no catálogo de locks.
+3. UUID igual com argumentos iguais/divergentes, commit vencedor e rollback;
+   falhas críticas com savepoints e falha posterior do chamador. Provar que
+   aceita não persiste antes do commit e que negação/falha não deixa evento.
+4. Configuração explícita de múltiplas versões, quotas somadas, versão ausente,
+   lock IP estável; medir `EXPLAIN` das contagens e da guarda global, sem afirmar
+   política de rotação/retirada de chaves aprovada.
+5. Preservação de dados/catalogo herdados e ledger, tabela de quotas e cleanup
+   somente das fixtures do ensaio. Preservar branches/evidências anteriores.
+
+Sem SMTP/HTTP/produção. O ensaio do núcleo não autoriza ativar rotas, limpeza ou
+rotacionar segredos. Integração definitiva com desafio/outbox exige etapa própria.
+
 ## PENDÊNCIA — evidência de produção
 
 Aplicação de migrations, ledger, deploy, cutover e fluxos autenticados de produção
