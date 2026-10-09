@@ -30,8 +30,9 @@
 // ModalVerEdital, ModalInscreverTrabalho e ModalConfirmacao devem ser revisados
 // em seguida para garantir contrato v2.0 completo.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -58,6 +59,7 @@ import ModalInscreverTrabalho from "../components/trabalhos/ModalInscreverTrabal
 import ModalConfirmacao from "../components/ui/ModalConfirmacao";
 import Footer from "../components/layout/Footer";
 import HeaderHero from "../components/layout/HeaderHero";
+import { parseChamadaId } from "../utils/submissaoDeepLink";
 
 /* =========================================================================
    Helpers
@@ -845,6 +847,8 @@ function SubmissionCard({
 
 export default function SubmissaoTrabalhos() {
   const reduceMotion = useReducedMotion();
+  const location = useLocation();
+  const deepLinkTratadoRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -937,6 +941,38 @@ export default function SubmissaoTrabalhos() {
     document.title = "Submissão de Trabalhos | Escola da Saúde";
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const rawId = new URLSearchParams(location.search).get("chamada_id");
+    if (
+      rawId === null ||
+      loading ||
+      erro ||
+      deepLinkTratadoRef.current === rawId
+    ) {
+      return;
+    }
+
+    deepLinkTratadoRef.current = rawId;
+    const id = parseChamadaId(rawId);
+
+    if (id === null) {
+      setErro("O link de submissão possui um identificador de chamada inválido.");
+      return;
+    }
+
+    const chamada = chamadas.find((item) => Number(item.id) === id);
+    if (!chamada || chamada.publicado !== true) {
+      setErro("A chamada deste link não está publicada ou disponível.");
+      return;
+    }
+    if (!Boolean(chamada.dentro_prazo ?? chamada.dentroPrazo)) {
+      setErro("O prazo de submissão desta chamada está encerrado.");
+      return;
+    }
+
+    setModalInscricao({ chamadaId: id });
+  }, [location.search, loading, erro, chamadas]);
 
   async function refresh() {
     setRefreshing(true);
