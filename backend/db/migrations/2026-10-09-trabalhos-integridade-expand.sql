@@ -1,7 +1,6 @@
 -- 2026-10-09: expansão compatível com o histórico dos trabalhos.
 -- Não reescreve ou apaga chamadas, trabalhos, avaliações ou arquivos existentes.
-BEGIN;
-
+SET LOCAL lock_timeout = '10s';
 ALTER TABLE public.trabalhos_chamadas_modelos
   ADD COLUMN IF NOT EXISTS arquivo bytea;
 
@@ -60,4 +59,3 @@ ALTER TABLE public.trabalhos_arquivos
   ADD CONSTRAINT trabalhos_arquivos_tamanho_max_30mb_check
   CHECK (tamanho_bytes <= 31457280);
 
-COMMIT;
