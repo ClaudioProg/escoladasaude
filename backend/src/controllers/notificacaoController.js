@@ -1060,7 +1060,7 @@ async function notificarSubmissaoCriada({
     {
       tipo: "submissao",
       titulo: `Submissão criada: ${trabalhoTitulo}`,
-      link: "/trabalho",
+      link: "/submissao",
     },
   );
 }
@@ -1096,7 +1096,7 @@ async function notificarPosterAtualizado({
     {
       tipo: "submissao",
       titulo: `Pôster anexado: ${trabalhoTitulo}`,
-      link: "/trabalho",
+      link: "/submissao",
     },
   );
 }
@@ -1126,7 +1126,19 @@ async function notificarStatusSubmissao({
     required: true,
   });
 
+  // O histórico utiliza status no masculino; o novo fluxo usa status no
+  // feminino. Ambos devem produzir as mesmas notificações.
+  const aliases = {
+    submetida: "submetido",
+    aprovada_exposicao: "aprovado_exposicao",
+    aprovada_oral: "aprovado_oral",
+    reprovada: "reprovado",
+  };
+  const statusChave = aliases[statusOficial] || statusOficial;
+
   const mapaTitulo = {
+    aprovada: "Trabalho aprovado",
+    cancelada: "Submissão cancelada",
     submetido: "Submissão enviada",
     em_avaliacao: "Em avaliação",
     aprovado_exposicao: "Selecionado para Exposição",
@@ -1135,6 +1147,8 @@ async function notificarStatusSubmissao({
   };
 
   const mapaMensagem = {
+    aprovada: `O trabalho "${trabalhoTitulo}" foi aprovado na chamada "${chamadaTitulo}".`,
+    cancelada: `A submissão "${trabalhoTitulo}" foi cancelada na chamada "${chamadaTitulo}".`,
     submetido: `Sua submissão "${trabalhoTitulo}" foi enviada e aguarda avaliação na chamada "${chamadaTitulo}".`,
     em_avaliacao: `Sua submissão "${trabalhoTitulo}" está em avaliação na chamada "${chamadaTitulo}".`,
     aprovado_exposicao: `Parabéns! O trabalho "${trabalhoTitulo}" foi selecionado para Exposição na chamada "${chamadaTitulo}".`,
@@ -1142,8 +1156,8 @@ async function notificarStatusSubmissao({
     reprovado: `O trabalho "${trabalhoTitulo}" não foi selecionado na chamada "${chamadaTitulo}".`,
   };
 
-  const titulo = mapaTitulo[statusOficial];
-  const mensagem = mapaMensagem[statusOficial];
+  const titulo = mapaTitulo[statusChave];
+  const mensagem = mapaMensagem[statusChave];
 
   if (!titulo || !mensagem) {
     throw criarErroNotificacao(
@@ -1156,7 +1170,7 @@ async function notificarStatusSubmissao({
   return criarNotificacao(usuarioId, mensagem, {
     tipo: "submissao",
     titulo,
-    link: "/trabalho",
+    link: "/submissao",
     metadata: {
       status: statusOficial,
     },
