@@ -20,7 +20,11 @@ const habilitado =
  */
 test(
   "prazo real em PostgreSQL: aula, curso de dois dias, intervalo e limite exato",
-  { skip: !habilitado && "Requer PostgreSQL local isolado explicitamente habilitado." },
+  {
+    skip:
+      !habilitado &&
+      "Requer PostgreSQL local isolado explicitamente habilitado.",
+  },
   async () => {
     const { Client } = require("pg");
     const client = new Client({
@@ -83,24 +87,24 @@ test(
         return avaliarPrazoInscricaoTurma(rows[0]);
       }
       const casos = [
-        [9001,"2026-10-09 07:59:59",true],
-        [9001,"2026-10-09 08:00:00",true],
-        [9001,"2026-10-09 08:59:59",true],
-        [9001,"2026-10-09 09:00:00",true],
-        [9001,"2026-10-09 09:00:01",false],
-        [9001,"2026-10-09 12:00:00",false],
-        [9002,"2026-10-09 08:00:00",true],
-        [9002,"2026-10-09 11:59:59",true],
-        [9002,"2026-10-09 12:00:00",true],
-        [9002,"2026-10-09 12:00:01",false],
-        [9003,"2026-10-09 10:00:00",true],
-        [9003,"2026-10-09 10:00:01",false],
-        [9004,"2026-10-09 16:00:00",true],
-        [9004,"2026-10-11 18:00:00",true],
-        [9004,"2026-10-12 08:00:00",true],
-        [9004,"2026-10-12 08:00:01",false],
-        [9005,"2026-10-09 08:00:00",false],
-        [9006,"2026-10-09 08:00:00",false],
+        [9001, "2026-10-09 07:59:59", true],
+        [9001, "2026-10-09 08:00:00", true],
+        [9001, "2026-10-09 08:59:59", true],
+        [9001, "2026-10-09 09:00:00", true],
+        [9001, "2026-10-09 09:00:01", false],
+        [9001, "2026-10-09 12:00:00", false],
+        [9002, "2026-10-09 08:00:00", true],
+        [9002, "2026-10-09 11:59:59", true],
+        [9002, "2026-10-09 12:00:00", true],
+        [9002, "2026-10-09 12:00:01", false],
+        [9003, "2026-10-09 10:00:00", true],
+        [9003, "2026-10-09 10:00:01", false],
+        [9004, "2026-10-09 16:00:00", true],
+        [9004, "2026-10-11 18:00:00", true],
+        [9004, "2026-10-12 08:00:00", true],
+        [9004, "2026-10-12 08:00:01", false],
+        [9005, "2026-10-09 08:00:00", false],
+        [9006, "2026-10-09 08:00:00", false],
       ];
 
       for (const [id, agora, esperado] of casos) {
@@ -114,14 +118,20 @@ test(
         { porEvento: true, agoraBr: "2026-10-09 08:30:00" },
       );
       assert.equal(vitrine[0].vagas_preenchidas, 2);
-      assert.equal(resumirDisponibilidadeEvento(vitrine).evento_visivel_vitrine, true);
+      assert.equal(
+        resumirDisponibilidadeEvento(vitrine).evento_visivel_vitrine,
+        true,
+      );
 
       const aposPrazo = await consultarDisponibilidadeTurmas(
         client.query.bind(client),
         [9101],
         { porEvento: true, agoraBr: "2026-10-09 09:00:01" },
       );
-      assert.equal(resumirDisponibilidadeEvento(aposPrazo).evento_visivel_vitrine, false);
+      assert.equal(
+        resumirDisponibilidadeEvento(aposPrazo).evento_visivel_vitrine,
+        false,
+      );
 
       const t2ViaId = await buscar(9002, "2026-10-09 12:00:00");
       const t2ViaEvento = await buscar(9102, "2026-10-09 12:00:00", true);
@@ -130,7 +140,9 @@ test(
       const pausa = await buscar(9004, "2026-10-11 18:00:00");
       assert.equal(pausa.segundos_decorridos, 8 * 3600);
 
-      console.log(`PostgreSQL: ${casos.length + 4} verificações de tempo, pausa, vitrine e coerência passaram.`);
+      console.log(
+        `PostgreSQL: ${casos.length + 4} verificações de tempo, pausa, vitrine e coerência passaram.`,
+      );
     } finally {
       await client.query("ROLLBACK").catch(() => {});
       await client.end();
