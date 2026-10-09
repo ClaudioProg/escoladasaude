@@ -53,7 +53,7 @@ async function consultarDisponibilidadeTurmas(
     CROSS JOIN (
       SELECT COALESCE(
         $2::timestamp,
-        timezone('America/Sao_Paulo', NOW())
+        timezone('America/Sao_Paulo', statement_timestamp())
       ) AS agora
     ) momento
     LEFT JOIN LATERAL (
