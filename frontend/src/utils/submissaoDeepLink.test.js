@@ -7,7 +7,17 @@ test("aceita somente identificadores inteiros positivos seguros", () => {
   for (const value of [1, "42", "9007199254740991"]) {
     assert.equal(parseChamadaId(value), Number(value));
   }
-  for (const value of [null, undefined, "", "0", "01", "-1", "1.5", "x", "9007199254740992"]) {
+  for (const value of [
+    null,
+    undefined,
+    "",
+    "0",
+    "01",
+    "-1",
+    "1.5",
+    "x",
+    "9007199254740992",
+  ]) {
     assert.equal(parseChamadaId(value), null, String(value));
   }
 });
@@ -24,6 +34,12 @@ test("gera link permanente para a chamada, sem dados do participante", () => {
 });
 
 test("rejeita chamadas inválidas e origens não HTTP", () => {
-  assert.throws(() => urlSubmissaoChamada("https://exemplo.org", "abc"), /inválido/);
-  assert.throws(() => urlSubmissaoChamada("javascript:alert(1)", 12), /inválida|Invalid URL/);
+  assert.throws(
+    () => urlSubmissaoChamada("https://exemplo.org", "abc"),
+    /inválido/,
+  );
+  assert.throws(
+    () => urlSubmissaoChamada("javascript:alert(1)", 12),
+    /inválida|Invalid URL/,
+  );
 });
