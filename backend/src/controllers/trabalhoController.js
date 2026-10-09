@@ -102,6 +102,9 @@ const STATUS_BLOQUEADOS_EDICAO_AUTOR = Object.freeze([
   "aprovada_oral",
   "aprovada",
   "reprovada",
+  "aprovado_exposicao",
+  "aprovado_oral",
+  "reprovado",
   "cancelada",
 ]);
 
@@ -952,7 +955,7 @@ exports.remover = async (req, res, next) => {
       validarEdicaoPermitida(trabalho, false);
 
       assert(
-        ["rascunho", "submetida"].includes(
+        ["rascunho", "submetida", "submetido"].includes(
           String(trabalho.status || "").toLowerCase(),
         ),
         "Somente trabalho em rascunho ou submetido pode ser removido pelo autor.",
@@ -1300,9 +1303,9 @@ END AS status,
   s.resultados,
   s.consideracoes,
   s.bibliografia,
-  s.nota_escrita,
-  s.nota_oral,
-  s.nota_final,
+  CASE WHEN s.nota_visivel THEN s.nota_escrita ELSE NULL END AS nota_escrita,
+  CASE WHEN s.nota_visivel THEN s.nota_oral ELSE NULL END AS nota_oral,
+  CASE WHEN s.nota_visivel THEN s.nota_final ELSE NULL END AS nota_final,
   s.poster_arquivo_id,
   a.nome_original AS poster_nome,
   a.mime_type AS poster_mime
@@ -1312,7 +1315,10 @@ JOIN trabalhos_chamadas c ON c.id = s.chamada_id
 LEFT JOIN trabalhos_chamada_linhas tcl ON tcl.id = s.linha_tematica_id
 LEFT JOIN unidades un ON un.id = u.unidade_id
 LEFT JOIN trabalhos_arquivos a ON a.id = s.poster_arquivo_id
-WHERE COALESCE(NULLIF(s.status, ''), 'submetida') NOT IN ('rascunho', 'cancelada')
+WHERE s.status IN (
+  'aprovado_exposicao', 'aprovado_oral',
+  'aprovada_exposicao', 'aprovada_oral', 'aprovada'
+)
 ORDER BY c.titulo ASC, tcl.nome ASC NULLS LAST, s.titulo ASC, s.id ASC
       `,
       params,
