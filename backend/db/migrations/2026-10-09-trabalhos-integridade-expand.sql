@@ -46,6 +46,8 @@ ALTER TABLE public.trabalhos_submissoes
 ALTER TABLE public.trabalhos_chamadas
   DROP CONSTRAINT IF EXISTS trabalhos_chamadas_max_coautores_positive_check;
 ALTER TABLE public.trabalhos_chamadas
+  DROP CONSTRAINT IF EXISTS trabalhos_chamadas_max_coautores_nonnegative_check;
+ALTER TABLE public.trabalhos_chamadas
   ADD CONSTRAINT trabalhos_chamadas_max_coautores_nonnegative_check
   CHECK (max_coautores >= 0);
 
