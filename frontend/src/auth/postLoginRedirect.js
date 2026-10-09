@@ -114,14 +114,18 @@ export function sanitizePostLoginRedirect(raw) {
  * A sanitização evita redirecionamentos para sites externos ou rotas inexistentes.
  */
 export function caminhoCadastroComRetorno(rawNext) {
-  return `/cadastro?next=${encodeURIComponent(sanitizePostLoginRedirect(rawNext))}`;
+  return `/cadastro?next=${encodeURIComponent(
+    sanitizePostLoginRedirect(rawNext),
+  )}`;
 }
 
 export function caminhoLoginComRetorno(rawNext) {
   if (rawNext === null || rawNext === undefined || rawNext === "") {
     return "/login";
   }
-  return `/login?next=${encodeURIComponent(sanitizePostLoginRedirect(rawNext))}`;
+  return `/login?next=${encodeURIComponent(
+    sanitizePostLoginRedirect(rawNext),
+  )}`;
 }
 
 export { DEFAULT_POST_LOGIN_PATH };
