@@ -57,6 +57,17 @@ test("preserva somente destinos privados atuais e seus parâmetros", () => {
   );
 });
 
+test("mantém o destino de eventos e chamadas para retorno após cadastro", () => {
+  assert.equal(
+    sanitizePostLoginRedirect("/eventos/21?origem=qrcode"),
+    "/eventos/21?origem=qrcode",
+  );
+  assert.equal(
+    sanitizePostLoginRedirect("/submissao?chamada_id=42"),
+    "/submissao?chamada_id=42",
+  );
+});
+
 test("retorno ao evento rejeita identificador inválido e open redirect", () => {
   assert.equal(sanitizePostLoginRedirect("/eventos/abc"), "/painel");
   assert.equal(
