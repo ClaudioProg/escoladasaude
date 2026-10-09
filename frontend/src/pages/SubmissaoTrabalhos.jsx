@@ -968,7 +968,7 @@ export default function SubmissaoTrabalhos() {
       setErro("A chamada deste link não está publicada ou disponível.");
       return;
     }
-    if (!Boolean(chamada.dentro_prazo ?? chamada.dentroPrazo)) {
+    if (!(chamada.dentro_prazo ?? chamada.dentroPrazo)) {
       setErro("O prazo de submissão desta chamada está encerrado.");
       return;
     }
