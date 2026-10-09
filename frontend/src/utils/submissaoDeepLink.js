@@ -4,7 +4,7 @@
  */
 export function parseChamadaId(value) {
   const text = String(value ?? "");
-  if (!/^[1-9]\\d*$/.test(text)) {
+  if (!/^[1-9]\d*$/.test(text)) {
     return null;
   }
   const number = Number(text);
