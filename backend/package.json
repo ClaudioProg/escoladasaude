@@ -9,6 +9,7 @@
     "node": ">=20.11.0"
   },
   "scripts": {
+    "prestart": "node scripts/run-migration.js --file db/migrations/2026-10-09-trabalhos-integridade-expand.sql",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "dev:clean": "npx kill-port 3000 || true",
