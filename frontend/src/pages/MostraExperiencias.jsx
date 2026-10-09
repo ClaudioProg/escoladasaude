@@ -1153,8 +1153,8 @@ function CompartilharChamadaModal({ chamada, onClose }) {
           </p>
         ) : chamada.dentro_prazo === false ? (
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            O prazo de submissão está encerrado. O link permanece válido,
-            mas não permitirá novos envios.
+            O prazo de submissão está encerrado. O link permanece válido, mas
+            não permitirá novos envios.
           </p>
         ) : (
           <p className="text-sm text-slate-600 dark:text-slate-300">
