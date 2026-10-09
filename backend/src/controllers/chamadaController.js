@@ -833,6 +833,11 @@ exports.criar = async (req, res, next) => {
     const linhas = normalizarLinhas(body.linhas);
     const criterios = normalizarCriterios(body.criterios, "escrito");
     const criteriosOrais = normalizarCriterios(body.criterios_orais, "oral");
+    if (payload.publicado) {
+      assert(linhas.length > 0 && criterios.length > 0,
+        "Uma chamada publicada precisa ter linha temática e critério de avaliação.",
+        400, { code: "CHAMADA_INCOMPLETA" });
+    }
 
     const nova = await transaction(req, async (tx) => {
       const chamada = await tx.one(
@@ -1121,6 +1126,18 @@ exports.atualizar = async (req, res, next) => {
             ],
           );
         }
+      }
+
+      if (payload.publicado) {
+        const valido = await tx.one(
+          `SELECT
+            (SELECT count(*) FROM trabalhos_chamada_linhas WHERE chamada_id=$1) AS linhas,
+            (SELECT count(*) FROM trabalhos_chamada_criterios WHERE chamada_id=$1) AS criterios`,
+          [chamadaId],
+        );
+        assert(Number(valido.linhas) > 0 && Number(valido.criterios) > 0,
+          "Chamada publicada precisa de linha temática e critério.",
+          400, { code: "CHAMADA_INCOMPLETA" });
       }
 
       return tx.one(
