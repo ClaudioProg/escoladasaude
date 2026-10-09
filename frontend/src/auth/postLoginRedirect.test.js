@@ -100,14 +100,21 @@ test("retorno de presença rejeita variantes externas e caminhos parecidos", () 
 });
 
 test("passagem pelo cadastro e login mantém link específico do evento ou chamada", () => {
-  for (const destino of ["/eventos/21?origem=qrcode", "/submissao?chamada_id=42"]) {
+  for (const destino of [
+    "/eventos/21?origem=qrcode",
+    "/submissao?chamada_id=42",
+  ]) {
     const cadastro = caminhoCadastroComRetorno(destino);
     assert.equal(cadastro.startsWith("/cadastro?next="), true);
-    const recebidoNoCadastro = new URLSearchParams(cadastro.split("?")[1]).get("next");
+    const recebidoNoCadastro = new URLSearchParams(cadastro.split("?")[1]).get(
+      "next",
+    );
     assert.equal(recebidoNoCadastro, destino);
 
     const login = caminhoLoginComRetorno(recebidoNoCadastro);
-    const recebidoNoLogin = new URLSearchParams(login.split("?")[1]).get("next");
+    const recebidoNoLogin = new URLSearchParams(login.split("?")[1]).get(
+      "next",
+    );
     assert.equal(recebidoNoLogin, destino);
     assert.equal(sanitizePostLoginRedirect(recebidoNoLogin), destino);
   }
