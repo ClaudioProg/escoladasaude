@@ -1022,11 +1022,12 @@ function validarArquivoBanner(file) {
     adminHint: "Contrato v2.0: multipart field oficial = arquivo.",
   });
 
-  assert(file.path, "Upload inválido: arquivo temporário ausente.", 400, {
-    code: "UPLOAD_TEMP_AUSENTE",
-    adminHint:
-      "A rota deve usar multer.diskStorage ou middleware equivalente que disponibilize req.file.path.",
-  });
+  assert(
+    Buffer.isBuffer(file.buffer) && file.buffer.length > 0,
+    "Upload inválido: conteúdo binário ausente.",
+    400,
+    { code: "UPLOAD_BUFFER_AUSENTE" },
+  );
 
   const originalName = file.originalname || "arquivo";
   const ext = path.extname(originalName).toLowerCase();
@@ -1145,8 +1146,6 @@ async function removerArquivoFisicoSeguro(req, caminho) {
 }
 
 exports.atualizarBanner = async (req, res, next) => {
-  let tempPath = null;
-
   try {
     const trabalhoId = toId(req.params.id);
     const trabalho = await obterTrabalhoComChamada(req, trabalhoId);
@@ -1160,82 +1159,54 @@ exports.atualizarBanner = async (req, res, next) => {
       trabalho,
       "enviar banner",
     );
-
     validarEdicaoPermitida(trabalho, ehAdmin);
-
     const info = validarArquivoBanner(req.file);
-    tempPath = req.file.path;
+    const buffer = req.file.buffer;
+    const sha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
-    const moved = await moverArquivoParaStorage(req.file, trabalhoId, info.ext);
-    tempPath = null;
+    const arquivo = await transaction(req, async (tx) => {
+      // Impede que dois uploads simultâneos deixem vínculos concorrentes.
+      const locked = await tx.one(
+        `SELECT poster_arquivo_id FROM trabalhos_submissoes
+         WHERE id = $1 FOR UPDATE`,
+        [trabalhoId],
+      );
 
-    const sha256 = await hashArquivo(moved.absPath);
-
-    const resultado = await transaction(req, async (tx) => {
-      const anterior = trabalho.poster_arquivo_id
-        ? await tx.one(
-            `
-            SELECT id, caminho
-            FROM trabalhos_arquivos
-            WHERE id = $1
-            `,
-            [trabalho.poster_arquivo_id],
-          )
-        : null;
-
-      const arquivo = await tx.one(
+      const novo = await tx.one(
         `
         INSERT INTO trabalhos_arquivos
-          (
-            submissao_id,
-            caminho,
-            nome_original,
-            mime_type,
-            tamanho,
-            hash_sha256,
-            criado_em
-          )
-        VALUES
-          ($1,$2,$3,$4,$5,$6,NOW())
-        RETURNING
-          id,
-          submissao_id,
-          caminho,
-          nome_original,
-          mime_type,
-          tamanho,
-          hash_sha256,
-          criado_em
+          (submissao_id, caminho, nome_original, mime_type,
+           tamanho_bytes, hash_sha256, arquivo, tipo)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,'submissao')
+        RETURNING id, submissao_id, caminho, nome_original,
+                  mime_type, tamanho_bytes, hash_sha256, criado_em
         `,
         [
           trabalhoId,
-          moved.relPath,
+          `db:trabalho/${trabalhoId}/${sha256}`,
           info.originalName,
           info.mime,
           info.size,
           sha256,
+          buffer,
         ],
       );
 
       await tx.none(
-        `
-        UPDATE trabalhos_submissoes
-           SET poster_arquivo_id = $2,
-               atualizado_em = NOW()
-         WHERE id = $1
-        `,
-        [trabalhoId, arquivo.id],
+        `UPDATE trabalhos_submissoes
+         SET poster_arquivo_id = $2, atualizado_em = NOW()
+         WHERE id = $1`,
+        [trabalhoId, novo.id],
       );
 
-      return {
-        arquivo,
-        anterior,
-      };
+      if (locked.poster_arquivo_id) {
+        await tx.none(
+          `DELETE FROM trabalhos_arquivos WHERE id = $1 AND submissao_id = $2`,
+          [locked.poster_arquivo_id, trabalhoId],
+        );
+      }
+      return novo;
     });
-
-    if (resultado.anterior?.caminho) {
-      await removerArquivoFisicoSeguro(req, resultado.anterior.caminho);
-    }
 
     await notificarSemBloquear(
       req,
@@ -1248,25 +1219,11 @@ exports.atualizarBanner = async (req, res, next) => {
       },
       "banner atualizado",
     );
-
-    logInfo(req, "Banner do trabalho atualizado.", {
-      trabalhoId,
-      arquivoId: resultado.arquivo.id,
-    });
-
     return responder(res, {
-      ...resultado.arquivo,
+      ...arquivo,
       banner_url: `/api/submissao/${trabalhoId}/poster`,
     });
   } catch (error) {
-    if (tempPath) {
-      try {
-        await fsp.unlink(tempPath);
-      } catch {
-        // ignore
-      }
-    }
-
     logError(req, "Erro ao atualizar banner do trabalho.", error);
     return next(error);
   }

@@ -1383,7 +1383,8 @@ async function obterModeloMaisRecente(req, chamadaId, tipo) {
       tamanho_bytes,
       hash_sha256,
       tipo,
-      updated_at
+      updated_at,
+      (arquivo IS NOT NULL) AS armazenado_banco
     FROM trabalhos_chamadas_modelos
     WHERE chamada_id = $1
       AND tipo = $2
@@ -1440,66 +1441,38 @@ async function salvarModelo(req, chamadaId, file, cfg) {
   );
 
   const hash = crypto.createHash("sha256").update(file.buffer).digest("hex");
-  const dirRelativa = String(chamadaId);
-  const nomeArquivoStorage = `${cfg.tipo}${ext}`;
-  const storageKey = `${dirRelativa}/${nomeArquivoStorage}`;
-  const absPath = storagePathSeguro(storageKey);
+  const storageKey = `db:chamada/${chamadaId}/${cfg.tipo}`;
 
-  assert(absPath, "Caminho de armazenamento inválido.", 500, {
-    code: "STORAGE_PATH_INVALIDO",
-  });
-
-  await fsp.mkdir(path.dirname(absPath), { recursive: true });
-
-  const tmpPath = `${absPath}.tmp-${Date.now()}`;
-  await fsp.writeFile(tmpPath, file.buffer);
-  await fsp.rename(tmpPath, absPath);
-
-  const usuarioId = req.user?.id || null;
-
+  // O banco é a fonte de verdade do modelo. Arquivos históricos continuam
+  // acessíveis pelo caminho legado quando ainda não possuem bytes no banco.
   return queryOne(
     req,
     `
     INSERT INTO trabalhos_chamadas_modelos
-      (
-        chamada_id,
-        nome_arquivo,
-        mime,
-        storage_key,
-        tamanho_bytes,
-        hash_sha256,
-        tipo,
-        updated_at
-      )
+      (chamada_id, nome_arquivo, mime, storage_key,
+       tamanho_bytes, hash_sha256, tipo, arquivo, updated_at)
     VALUES
-      ($1,$2,$3,$4,$5,$6,$7,NOW(),$8)
+      ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
     ON CONFLICT (chamada_id, tipo) DO UPDATE
-    SET nome_arquivo  = EXCLUDED.nome_arquivo,
-        mime          = EXCLUDED.mime,
-        storage_key   = EXCLUDED.storage_key,
+    SET nome_arquivo = EXCLUDED.nome_arquivo,
+        mime = EXCLUDED.mime,
+        storage_key = EXCLUDED.storage_key,
         tamanho_bytes = EXCLUDED.tamanho_bytes,
-        hash_sha256   = EXCLUDED.hash_sha256,
-        updated_at    = NOW(),
-    RETURNING
-      id,
-      chamada_id,
-      nome_arquivo,
-      mime,
-      storage_key,
-      tamanho_bytes,
-      hash_sha256,
-      tipo,
-      updated_at
+        hash_sha256 = EXCLUDED.hash_sha256,
+        arquivo = EXCLUDED.arquivo,
+        updated_at = NOW()
+    RETURNING id, chamada_id, nome_arquivo, mime, storage_key,
+              tamanho_bytes, hash_sha256, tipo, updated_at
     `,
     [
       chamadaId,
       nomeOriginal,
-      file.mimetype || mime.lookup(nomeOriginal) || "application/octet-stream",
+      file.mimetype || "application/octet-stream",
       storageKey,
       file.size || file.buffer.length,
       hash,
       cfg.tipo,
-      usuarioId,
+      file.buffer,
     ],
   );
 }
@@ -1518,7 +1491,9 @@ function criarMetaModelo(tipoModelo) {
       });
 
       const absPath = storagePathSeguro(row.storage_key);
-      const exists = absPath ? fs.existsSync(absPath) : false;
+      const exists =
+        Boolean(row.armazenado_banco) ||
+        Boolean(absPath && fs.existsSync(absPath));
 
       const data = {
         chamada_id: row.chamada_id,
@@ -1552,6 +1527,30 @@ function criarDownloadModelo(tipoModelo) {
         throw criarErro("Modelo não encontrado.", 404, {
           code: "MODELO_NAO_ENCONTRADO",
         });
+      }
+
+      if (row.armazenado_banco) {
+        const binario = await queryOne(
+          req,
+          `SELECT arquivo FROM trabalhos_chamadas_modelos WHERE id = $1`,
+          [row.id],
+        );
+        const buffer = binario?.arquivo;
+        assert(
+          Buffer.isBuffer(buffer) && buffer.length > 0,
+          "Arquivo do modelo está indisponível no banco.",
+          410,
+          { code: "MODELO_ARQUIVO_INDISPONIVEL" },
+        );
+
+        res.setHeader("Content-Type", row.mime || "application/octet-stream");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename*=UTF-8''${encodeURIComponent(row.nome_arquivo || cfg.nomePadrao)}`,
+        );
+        res.setHeader("Content-Length", String(buffer.length));
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).send(buffer);
       }
 
       const absPath = storagePathSeguro(row.storage_key);
