@@ -156,6 +156,38 @@ HMAC em [authQuotaIp](../../backend/src/services/authQuotaIp.js), sem nova migra
   documental/Git não repete testes/rehearsal nem executa SQL, migration, operações
   Neon, deploy, merge ou Etapa 10.
 
+## ETAPA 10 — OUTBOX EXPAND LOCAL / REHEARSAL PENDENTE
+
+Implementação local em **13/10/2026**, base `bfb3e314933e3710897379a6e1c903d614667826`.
+[Migration nova](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql),
+sem aplicação em banco, backfill ou alteração de migrations/DDL legados.
+
+- `auth_outbox`: 19 colunas, PK UUID, exatamente uma das duas FKs de desafio e
+  uma mensagem por desafio. Finalidade/conta derivam do desafio; sem duplicação
+  que permita finalidade ou usuário divergentes. Confirmação/alteração usam
+  `auth_email_confirmacao`; recuperação usa `auth_recuperacao_senha`.
+- `email_destino` e identidade imutáveis por trigger somente na tabela nova.
+  Envelope opaco com ciphertext, nonce 12 bytes, tag 16 bytes e key_id externo;
+  SQL valida formato, não comprova criptografia. `sent` exige remoção do envelope.
+- Estados `pending`, `processing`, `sent`, `failed`; tentativas não negativas,
+  timestamps finitos, lease completo somente em processamento e terminal fechado.
+  SMTP permanente/esgotamento exigem `failed`; diagnóstico em categorias controladas.
+- Seis índices adicionais: unicidade dos dois desafios e key_id/nonce retidos,
+  pendentes, leases e terminais. Estrutura apoia claim futuro, sem SQL de claim.
+- FKs imediatas `ON UPDATE RESTRICT ON DELETE CASCADE`: mensagem subordinada ao
+  desafio, preservando a remoção canônica do cadastro nunca ativado. Não ativam
+  exclusão/limpeza. São esperados triggers internos das FKs nos desafios quando
+  a migration for aplicada; nenhum objeto/trigger legado de aplicação é alterado.
+- **162/162 testes focados**, incluindo **30 da outbox**, **859/859 completos**
+  (uma execução), sintaxe JS 2/2, gramática PostgreSQL 16 SQL e dois blocos PL/pgSQL,
+  identidade/LF/SHA e dry-run oficial de um arquivo aprovados.
+- **Etapa 10 aberta**: aplicação/ledger, constraints e trigger em banco,
+  concorrência de claim, leases, rollback e planos reais ainda não comprovados.
+  [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand-local--rehearsal-pendente).
+- Etapas 01–09 e D1–D8 preservados. Sem criptografia/enqueue (Etapa 11), worker/
+  retries/claim operacional/limpeza (Etapa 12), integração com rotas/quotas/desafios
+  reais, SMTP, produção ou deploy. Homologação permanente intacta.
+
 ## PARCIAL
 
 - Login local já usa o verificador misto e cria sessão/cookie de transição.
@@ -200,7 +232,8 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Outbox dedicada, integração do núcleo aprovado de quotas PostgreSQL,
+- Expand local da outbox com rehearsal pendente; enqueue/worker e integração
+  do núcleo aprovado de quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.

@@ -410,6 +410,7 @@ test("--dir aceita somente a arvore oficial", async () => {
       "db/migrations/2026-08-25-auth-sessoes-contexto-expand.sql",
       CANONICAL_AUTH_EMAIL_RECUPERACAO,
       "db/migrations/2026-10-09-auth-quotas-expand.sql",
+      "db/migrations/2026-10-13-auth-outbox-expand.sql",
     ],
   );
 

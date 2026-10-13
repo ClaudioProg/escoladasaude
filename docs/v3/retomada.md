@@ -11,7 +11,9 @@ Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 
 Última etapa concluída: **09 — núcleo transacional de quotas compartilhadas**,
 com revisão independente e rehearsal PostgreSQL isolado aprovados em 13/10/2026.
-Etapa 10 não iniciada neste fechamento.
+Etapa atual: **10 — outbox expand local, rehearsal PostgreSQL pendente**.
+Base de implementação `bfb3e314933e3710897379a6e1c903d614667826`; confirmar
+o commit posterior de implementação no histórico da branch.
 Proteção de login/reset concorrentes da Etapa 07 permanece aprovada.
 Etapas **01–06 versionadas na branch**; Etapa 07 com **fechamento local aprovado**.
 Etapa 04 documental incorporada em `3247b3d305234414a493e60097d1bae8e0b238d1`;
@@ -64,13 +66,37 @@ segunda execução fez skip. Tabela de quotas **vazia**; **89 tabelas / 54.394 l
 herdadas preservadas**. Catálogo: **1.717 atributos ativos + dez descartados =
 1.727 entradas**. [Evidências e limitações](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
 
-O próximo trabalho depende de autorização própria; **não iniciar Etapa 10 neste
-fechamento**. Custo da guarda HMAC sujeito à avaliação operacional; proxy efetivo,
+A Etapa 09 está fechada; suas pendências de integração permanecem. A Etapa 10
+local está registrada abaixo, sem avançar para a Etapa 11. Custo da guarda HMAC
+sujeito à avaliação operacional; proxy efetivo,
 segredo dedicado/rotação, integração desafio/outbox/HTTP e limpeza de 48 h
 pendentes. Solicitações sem emissão não receberam política. Rate limit legado
 e D1–D8 preservados. Sem ativação HTTP, SMTP, limpeza, outbox ou produção.
-Este fechamento somente documental/Git não repete testes/rehearsal nem executa
+O fechamento documental/Git da Etapa 09 não repetiu testes/rehearsal nem executou
 SQL, migrations, operações Neon, deploy ou merge.
+
+Etapa 10 local: `2026-10-13-auth-outbox-expand.sql`, SHA-256
+`2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`.
+`auth_outbox` dedicada com mensagem/desafio único, destinatário imutável, envelope
+AES-GCM, quatro estados, diagnósticos controlados, leases e seis índices adicionais.
+Finalidade/conta derivam do desafio; FKs CASCADE subordinam mensagem ao desafio,
+preservando remoção canônica de cadastro nunca ativado, sem ativar exclusão.
+
+Validações: **162/162 focados** (30 novos), **859/859 completos**, uma execução
+completa; JS 2/2, gramática PostgreSQL 16 SQL/PL/pgSQL e dry-run oficial de um
+arquivo aprovados. Não houve conexão/SQL PostgreSQL, SMTP ou leitura de .env.
+**Etapa 10 aberta: publicação Git não substitui rehearsal**. Aplicação/ledger,
+constraints, trigger, claim concorrente, rollback e planos PostgreSQL dependem
+de autorização futura para `v3-homologacao`, preservada intacta neste trabalho.
+Não executar novamente testes locais já aprovados somente por retomada.
+
+Próximo passo autorizado futuro: revisão e rehearsal proporcional da Etapa 10,
+sem iniciar a Etapa 11 agora. Enqueue/criptografia, worker, retries operacionais,
+leases/fencing, limpeza, HTTP/quotas/desafios reais e produção não foram entregues.
+Não presumir duração de lease, cronograma de alteração ou política de limpeza.
+Ver [contratos](decisoes-canonicas.md#etapa-10--estrutura-local-da-outbox-sem-ativação),
+[migration](migrations.md#etapa-10--outbox-expand-local-nao-aplicado) e
+[evidências](testes-e-evidencias.md#etapa-10--outbox-expand-local--rehearsal-pendente).
 
 Estado funcional relevante:
 

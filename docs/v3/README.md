@@ -66,7 +66,19 @@ atributos ativos + dez descartados = 1.727 entradas. Ver
 [evidências e limites](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
 O custo da guarda HMAC continua sujeito à avaliação operacional. Sem ativação
 HTTP, SMTP, limpeza, integração com outbox ou implantação em produção; writers
-Argon2id continuam pendentes. A Etapa 10 não foi iniciada neste fechamento.
+Argon2id continuam pendentes. Esse fechamento da Etapa 09 não iniciou a Etapa 10.
+
+Atualização de **13/10/2026 — Etapa 10: expand da outbox implementado localmente**
+sobre `bfb3e314933e3710897379a6e1c903d614667826`. Nova migration
+`2026-10-13-auth-outbox-expand.sql`: `auth_outbox` dedicada, uma mensagem por
+desafio, snapshot imutável e envelope AES-256-GCM, estados/leases e índices
+para processamento futuro. **162/162 focados** e **859/859 completos**, suíte
+completa executada uma vez; dry-run de um arquivo e sintaxe SQL/PL/pgSQL aprovados.
+**Etapa 10 aberta: rehearsal PostgreSQL ainda não realizado**. Sem enqueue,
+criptografia operacional, worker, HTTP, SMTP, limpeza, SQL no Neon ou deploy.
+`v3-homologacao` intacta; Etapa 11 não iniciada. Ver
+[evidências](testes-e-evidencias.md#etapa-10--outbox-expand-local--rehearsal-pendente) e
+[migration](migrations.md#etapa-10--outbox-expand-local-nao-aplicado).
 
 Ao atualizar um documento, registrar HEAD/data, origem da decisão ou evidência,
 ambiente, limites da comprovação e pendências relacionadas. Alterar o status

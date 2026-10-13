@@ -336,8 +336,9 @@ os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 - IP bruto não deve ser persistido.
 - Retenção dos registros de rate limit: 48 horas.
 
-**IMPLEMENTAÇÃO ATUAL:** o worker da outbox dedicada à autenticação e a integração
-de quotas continuam pendentes. O núcleo transacional da Etapa 09 está implementado
+**IMPLEMENTAÇÃO ATUAL:** o expand da outbox foi implementado localmente na
+Etapa 10 abaixo, sem aplicação em banco. Enqueue, worker e integração de quotas
+continuam pendentes. O núcleo transacional da Etapa 09 está implementado
 e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
 em 13/10/2026, sem ativação nas rotas. O expand da Etapa 08 foi ensaiado na branch
 descartável `br-super-wave-adut7rdn` (já excluída), aprovado em 09/10/2026;
@@ -453,7 +454,53 @@ Quotas vazias; **89 tabelas / 54.394 linhas herdadas preservadas**. Catálogo:
 **1.717 atributos ativos + dez descartados = 1.727 entradas**. Branch permanente
 preservada. [Evidências e limites](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
 Sem ativação HTTP, associação outbox/desafio, SMTP, limpeza ou implantação em
-produção. Sem nova migration ou alteração de D1–D8; Etapa 10 não iniciada.
+produção. Sem nova migration ou alteração de D1–D8; Etapa 10 não iniciada naquele
+fechamento da Etapa 09.
+
+### Etapa 10 — estrutura local da outbox, sem ativação
+
+Implementação sobre `bfb3e314933e3710897379a6e1c903d614667826`, em 13/10/2026.
+Esta seção registra escolhas técnicas do expand, preservando os contratos acima;
+não aprova políticas operacionais nem encerra a Etapa 10.
+
+`auth_outbox.id` UUID identifica a mensagem. Exatamente um de `confirmacao_id` e
+`recuperacao_id` é obrigatório, com FK imediata e índice único parcial: uma mensagem
+por desafio, retries na mesma linha. Não existe finalidade/conta redundante:
+`auth_email_confirmacao.finalidade` distingue confirmação e alteração;
+`auth_recuperacao_senha` determina recuperação. O destinatário é snapshot `text`
+imutável, não fonte de verdade da identidade; validação da origem/destino e do
+estado/validade/versão do desafio cabe ao enqueue da Etapa 11, não está integrada.
+
+FKs `ON UPDATE RESTRICT ON DELETE CASCADE` tornam a outbox dependente do desafio,
+sem bloquear o CASCADE canônico de confirmação para cadastro nunca ativado.
+A proteção RESTRICT de recuperação para usuário continua no desafio original.
+Excluir desafio eliminará sua mensagem quando houver outbox; isso não autoriza
+exclusão nem decide retenção. O worker futuro deve revalidar o desafio e coordenar
+remoção/invalidação com envios; não se garante cancelamento de SMTP já iniciado.
+
+Envelope AES-256-GCM: ciphertext não vazio, nonce de 12 bytes, tag de 16 e key_id
+ASCII de 1–64 bytes. Todos presentes ou todos ausentes; ausência somente terminal,
+obrigatória em `sent`. SQL não prova conteúdo cifrado/autenticado. Índice único
+key_id/nonce protege apenas envelopes retidos; não substitui geração segura nem
+controle de unicidade histórica após apagar conteúdo. Chave externa distinta da
+HMAC de quotas; algoritmo, criptografia, AAD, gestão de chaves e enqueue operacional
+não implementados. Trigger impede reescrever envelope e permite remoção terminal.
+
+Estados `pending`/`processing`/`sent`/`failed`, timestamps finitos, agendamento
+somente pendente, lease UUID com aquisição/expiração somente em processamento,
+tentativas não negativas e não decrescentes e terminais sem reabertura. Não há
+intervalo/cap de lease ou cronograma embutido no SQL. Categorias fixas de erro,
+sem texto SMTP bruto; SMTP permanente e esgotamento somente em `failed`.
+At-least-once controlado preservado, sem promessa exactly-once. `lease_id` é
+suporte a fencing futuro: o worker deverá comparar posse/estado/expiração e trocar
+a identidade ao reclaim; constraints não implementam nem provam esse protocolo.
+
+Cronogramas aprovados de confirmação e recuperação permanecem acima. A seção
+canônica não especifica cronograma próprio de alteração de e-mail; não assumir
+um silenciosamente no worker. Duração/renovação de lease, worker, implantação,
+limpeza/retenção operacional e execução SMTP continuam pendentes. 162/162 focados
+e 859/859 completos aprovados, sem prova PostgreSQL real. **Etapa 10 aberta**;
+sem mudança de D1–D8 ou contratos 01–09 e sem início da Etapa 11.
 
 ## DECISÃO CANÔNICA — auditoria
 

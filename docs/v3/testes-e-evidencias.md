@@ -620,6 +620,78 @@ não significa ativação HTTP, SMTP, limpeza, outbox ou implantação em produ�
 Branch permanente preservada; nenhuma operação de banco, deploy, merge ou
 início da Etapa 10 neste fechamento documental/Git.
 
+## ETAPA 10 — OUTBOX EXPAND LOCAL / REHEARSAL PENDENTE
+
+Data: **13/10/2026**. Base `bfb3e314933e3710897379a6e1c903d614667826`, branch
+`revisao-premium-bloco-1-auth`, HEAD/branch esperados e worktree limpo no preflight.
+Contratos de outbox e challenges conferidos; sem conflito canônico identificado.
+Migration única `backend/db/migrations/2026-10-13-auth-outbox-expand.sql`;
+SHA-256 LF `2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`.
+
+Preflight local leu as migrations de perfis/sessões/email/quotas, o runner,
+DDL de `auth_email_confirmacao`/`auth_recuperacao_senha`, mailer, controllers de
+notificação e services de lembrete de evento/uso de sala. `notificacoes` atende
+notificações funcionais; `notificacoes_programadas` mantém mensagens/controles dos
+services funcionais. Para `notificacoes_evento_agendadas`, o checkout contém
+referência de exclusão no controller legado, sem DDL encontrado: a finalidade
+vem da auditoria preliminar fornecida pelo responsável, não de catálogo atual.
+Não se inferiu schema de produção; nenhuma dessas estruturas foi modificada.
+
+| Validação local | Resultado |
+| --- | --- |
+| `auth-outbox-migration.test.js` | **30/30 aprovados** no conjunto focado final |
+| Outbox + `run-migration.identity.test.js` + `run-migration.sql-contract.test.js` | **162/162 aprovados**, zero falhas/skips/cancelados/todo finais |
+| Suíte completa backend `node --test` | **859/859 aprovados**, executada uma vez após focados aprovados |
+| `node --check` dos dois JS criados/alterados | **2/2 aprovados** |
+| Parser PostgreSQL 16 `libpg-query@16.3.0` WASM | **21 statements SQL e dois blocos PL/pgSQL aprovados**, versão reportada 160001; sem executar SQL |
+| Runner oficial `--file db/migrations/2026-10-13-auth-outbox-expand.sql --dry-run` | **Um arquivo**, identidade canônica e SHA acima; nenhum pool/SQL/ledger |
+| `git diff --check` | Aprovado |
+
+Histórico transparente: primeira rodada focada **161/162**, com uma falha do teste
+por regex ampla que confundia `IF NOT EXISTS` do preflight com DDL tolerante a
+colisão. Asserção restringida a `CREATE TABLE/INDEX`; rodada final **162/162**.
+Nenhuma falha funcional encontrada. Parser Python `pglast` não compilou no Windows;
+o parser WASM foi instalado somente em diretório temporário, com scripts de
+instalação desativados. O loader exigiu carregar o binário local diretamente.
+Nenhum manifest/lockfile ou dependência do projeto foi alterado.
+
+Guardas temporárias de Pool/Client, TCP/TLS, SMTP e leitura `.env`, herdadas pelos
+processos de testes; DATABASE_URL dummy somente no processo. **Zero tentativas
+PostgreSQL/rede/SMTP**; **uma tentativa de leitura `.env` bloqueada**, sem conteúdo
+lido, na suíte completa. Artefatos fora do Git em
+`C:/tmp/escola-v3-etapa10-20261013-bfb3e314`: `focused.log`, `focused-final.log`,
+`full.log`, `syntax.json` e registros sanitizados das guardas. Suíte completa
+não foi repetida; nenhuma migration foi aplicada ou enviada ao Neon.
+
+Cobertura documental/lexical: 19 colunas, PK e FKs XOR, finalidade derivada dos
+desafios sem duplicação, unicidade por desafio, snapshot imutável, envelope GCM
+completo/remoção terminal, estados/agendamento/tentativas/leases, timestamps
+finitos, erros controlados/SMTP permanente, terminais, índices sem predicado
+volátil, preflight e ausência de DDL/DML em objetos legados. Inventário oficial
+atualizado somente com a nova identidade. Runner real com arquivo real e executor
+simulado cobre aplicação, skip, SHA divergente e falhas de DDL/ledger/rollback.
+
+**Limites:** testes de contrato e parser não executam constraints, FKs ou trigger,
+não comprovam semântica de catálogo, planos, aplicação/ledger atômicos ou rollback
+PostgreSQL real. Índices e lease_id fornecem estrutura para futura seleção com
+`FOR UPDATE SKIP LOCKED` e fencing, mas nenhum claim/worker foi implementado ou
+provado concorrente. [PostgreSQL 16 — seleção e locking](https://www.postgresql.org/docs/16/sql-select.html)
+e [triggers](https://www.postgresql.org/docs/16/sql-createtrigger.html) foram
+consultados para o desenho. Envelope SQL não prova criptografia, AAD ou unicidade
+histórica de nonce após remoção; essas validações pertencem à Etapa 11.
+
+FKs CASCADE preservam dependência da mensagem ao desafio e o fluxo canônico de
+remoção do cadastro nunca ativado; aplicação adicionará triggers internos das FKs
+nos challenges, sem reescrever objetos/constraints/triggers de aplicação existentes.
+Política de limpeza/cancelamento e coordenação com SMTP futuro permanecem pendentes.
+Preservação do schema/dados existentes e essas ações precisam de provas no rehearsal.
+
+**Implementação local publicada não encerra a Etapa 10**. Rehearsal posterior
+somente sob autorização própria em `v3-homologacao` (`br-round-union-adok19ir`),
+intacta neste trabalho. Sem enqueue/criptografia operacional, worker/retries/claim/
+limpeza, integração HTTP/quotas/desafios reais, SMTP, SQL no Neon, produção, deploy,
+merge ou início da Etapa 11. D1–D8, Etapas 01–09 e configuração Vercel/main preservados.
+
 ## PENDÊNCIA — evidência de produção
 
 Aplicação de migrations, ledger, deploy, cutover e fluxos autenticados de produção
