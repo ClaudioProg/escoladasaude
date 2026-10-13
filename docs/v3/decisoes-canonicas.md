@@ -2,7 +2,7 @@
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
-das Etapas 04/05/06/07/08/09/10 e decisões anteriores fornecidas pelo responsável. As seções de
+das Etapas 04/05/06/07/08/09/10/11 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
 Atualização da Etapa 09: **13/10/2026**, código em
@@ -337,8 +337,9 @@ os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 - Retenção dos registros de rate limit: 48 horas.
 
 **IMPLEMENTAÇÃO ATUAL:** o expand da outbox foi versionado e aprovado na Etapa 10
-abaixo, com aplicação somente em homologação. Enqueue, worker e integração de quotas
-continuam pendentes. O núcleo transacional da Etapa 09 está implementado
+abaixo, com aplicação somente em homologação. O núcleo local de criptografia/
+enqueue da Etapa 11 está registrado abaixo; revisão/rehearsal, integração HTTP
+e worker continuam pendentes. O núcleo transacional da Etapa 09 está implementado
 e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
 em 13/10/2026, sem ativação nas rotas. O expand da Etapa 08 foi ensaiado na branch
 descartável `br-super-wave-adut7rdn` (já excluída), aprovado em 09/10/2026;
@@ -518,6 +519,74 @@ sem worker/claim/ack ou fencing integral. Outbox e quotas vazias; **90 tabelas /
 Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
 exactly-once, limpeza operacional ou implantação em produção. **Etapas 11 e 12
 pendentes**; sem mudança de D1–D8 ou contratos 01–09 e sem início da Etapa 11.
+
+### Etapa 11 — núcleo local de criptografia e enqueue, sem ativação
+
+Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`; implementação local de 13/10/2026
+para revisão independente. **Etapa 11 não concluída**. D1–D8 e contratos anteriores
+preservados; escolhas técnicas abaixo não definem políticas funcionais/operacionais.
+
+API criptográfica: `createAuthOutboxCrypto({ activeKeyId, keys })`, com entradas
+`{ keyId, secret }` de exatamente 32 bytes, copiadas. `cifrar(contexto, Buffer)` e
+`decifrar(contexto, envelope)`; contexto obrigatório com `mensagemId`, `desafioId`,
+`finalidade`, `emailDestino`. AAD é array JSON com domínio `escola:v3:auth-outbox:aad:v1`,
+UUIDs canônicos e snapshot exato. Envelope contém byte público de formato 1 seguido
+do ciphertext, nonce de 12 bytes, tag de 16 e key_id externo; sem coluna/migration
+nova. Versão desconhecida, chave ausente/incorreta, AAD/envelope adulterado ou
+configuração incompleta falham fechado. Plaintext só é retornado pelo método
+interno de decifragem após `final()` autenticar; nunca pela API de enqueue.
+Buffer aberto máximo 64 KiB e identidade de destinatário máxima 1 KiB são limites
+técnicos do serviço local, não novas regras de cadastro. Buffers abertos temporários
+próprios são zerados em finally; não se promete apagar cópias nativas/strings ou todo o heap.
+
+API transacional: `createAuthEnqueueService({ cryptoConfig, hmacConfig,
+registrarAuditoria })` e `enqueue(executor, { emissaoId, finalidade, usuarioId,
+expectedAuthVersion, expectedEmailVersion, ip?, emailCandidato? })`.
+`emailCandidato` é obrigatório somente em alteração; demais destinos vêm de
+`usuarios.email` sob lock. Caller privilegiado deve validar autorização/identificação
+antes de integrar HTTP; versões esperadas não são prova de autenticação ou de posse.
+Criptografia e HMAC usam material externo distinto; configuração com mesmos bytes
+AES/HMAC é rejeitada. Não há leitura de env ou uso de JWT_SECRET.
+
+Executor explícito de db.tx, raw===client, READ COMMITTED de escrita; sem pool,
+BEGIN/COMMIT próprio ou fallback. Uma emissão por executor; usuário FOR UPDATE
+antes dos advisory locks das quotas, depois desafio/outbox. Relógio único retornado
+pelas quotas, UTC com seis casas, reutilizado na criação/agendamento/expiração por
+intervalos PostgreSQL de 24 h ou 30 min. Quota, desafio, mensagem e auditoria crítica
+no mesmo cliente; falhas sanitizadas provocam rollback dos efeitos do serviço e
+propagam para db.tx. O caller deve abortar a transação diante de erro crítico.
+
+Emissão/desafio/mensagem compartilham UUID técnico; token CSPRNG de 32 bytes em
+base64url, SHA-256 dos 43 bytes ASCII no desafio. Payload cifrado contém somente
+`{"v":1,"token":"..."}`. Auditoria obrigatória recebe somente ID e finalidade,
+com critica=true e executor sem logging de parâmetros. Resultado normal único:
+`{ status: "processada" }`, sem token, endereço, identidade ou indicação de conta,
+aceitação ou replay. Não prova envio nem commit, e não equaliza timing HTTP.
+
+Replay valida quota/sujeitos e identidade/destinatário/versão/instantes do desafio
+e mensagem, inclusive envelope já removido; nunca recria conteúdo. Divergência,
+quota órfã ou mensagem sem quota retida são falhas críticas sem reparo automático.
+Retenção/descarte futuro precisa preservar ou decidir explicitamente esse vínculo;
+não se definiu um TTL para enqueue. Quota negada não invalida desafio nem cria
+mensagem. Nova emissão aceita invalida o desafio anterior aberto, inclusive
+expirado; confirmação/alteração compartilham o agregado de e-mail, recuperação
+mantém seu agregado separado. Envelopes das mensagens antigas não são apagados;
+worker futuro deverá revalidar desafios antes de enviar. Índice de nonce só
+protege envelopes retidos; colisão detectável de nonce/hash falha sem retry.
+
+**Recorte seguro local, sem decisão canônica nova:** não emitir para cadastro
+pendente/excluído ou snapshots de versão divergentes; confirmação no endereço
+oficial não confirmado; recuperação/alteração no subconjunto existente com e-mail
+confirmado. Criação/retomada de cadastro e colisões/provas D1, recuperação não
+confirmada/reativação D4, identidade pública por CPF e autorização/reautenticação
+HTTP permanecem fora deste núcleo. Não alterar D1–D8 por inferência.
+
+**134/134 novos, 290/290 focados, 993/993 completos**, JS 4/4 e 24 consultas no
+parser PG16 aprovados; testes de persistência/locks usam cliente e modelo simulados.
+Sem PostgreSQL real ou revisão independente aprovados, Etapa 11 continua aberta.
+Sem worker/SMTP/retries/claim/ack/fencing/limpeza, rotas públicas, Neon, produção,
+merge, deploy ou início da Etapa 12.
+[Evidências e rehearsal necessário](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue-local--revisão-e-rehearsal-pendentes).
 
 ## DECISÃO CANÔNICA — auditoria
 

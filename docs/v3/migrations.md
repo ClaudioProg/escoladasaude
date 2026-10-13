@@ -152,6 +152,30 @@ não executa SQL, operações Neon, testes, deploy, merge ou Etapa 11.
 Conteúdo/checksum da migration aplicada são imutáveis; correções futuras exigem
 plano explícito. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
 
+## Etapa 11 — núcleo local sem nova migration
+
+Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`, implementação local de 13/10/2026 para
+revisão/rehearsal, sem fechamento da etapa. `authOutboxCrypto` e `authEnqueueService`
+usam exclusivamente os expands aprovados 08–10: quota/desafio/mensagem com mesmo
+UUID técnico, bytea cifrado opaco com versão de formato, nonce/tag/key_id e snapshot
+imutável. Prazos PostgreSQL de 24 h/30 min e microssegundos preservados; auditoria
+crítica no mesmo executor do caller. Nenhuma migration nova, alteração do SQL
+das migrations/runner, mudança de estrutura/checksum ou aplicação em banco. Ledger id 8/SHA da Etapa 10 é evidência
+histórica aprovada, não nova consulta de banco desta tarefa.
+
+Compatibilidade local conferida com **134/134 novos, 290/290 focados e 993/993
+completos**, JS 4/4 e gramática PG16 de 24 consultas; persistência, constraints,
+locks/casts/bytea e atomicidade integrada ainda exigem PostgreSQL real. O replay
+exige vínculo íntegro quota/desafio/mensagem; expurgo independente futuro não é
+presumido seguro nem implementado. Colisões detectáveis de nonce/hash falham fechado;
+nonce seguro não promete unicidade histórica após remoção do envelope.
+
+D1/D4 e integrações/autorização permanecem abertas; somente núcleo existente seguro,
+sem cadastro pendente, reativação, recuperação não confirmada ou políticas novas.
+Não executar SQL/Neon, migrations, SMTP, worker, retries, claim/ack, limpeza,
+rotas públicas, merge, deploy ou Etapa 12. `v3-homologacao` preservada.
+[Rehearsal necessário](testes-e-evidencias.md#rehearsal-postgresql-necessário-da-etapa-11).
+
 ## Estrutura expand de e-mail/recuperação
 
 **FATO DO REPOSITÓRIO:** o SQL atual contém 29 constraints nomeadas: cinco em

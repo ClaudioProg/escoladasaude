@@ -11,7 +11,9 @@ Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 
 Última etapa concluída: **10 — expand da outbox de autenticação**, com revisão
 independente e rehearsal PostgreSQL isolado aprovados em **13/10/2026**.
-Etapas **01–10 encerradas**; **11 e 12 pendentes**. Etapa 11 não iniciada.
+Etapas **01–10 encerradas**. **11 implementada localmente para revisão/rehearsal**,
+sobre `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`; **12 pendente e não iniciada**.
+A Etapa 11 não está concluída; confirmar o commit de implementação no histórico.
 
 **Dez etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
@@ -95,12 +97,38 @@ Limites: sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
 exactly-once, limpeza operacional ou implantação em produção. Duração de lease,
 cronograma de alteração e política de limpeza continuam pendentes. Não confundir
 seleção concorrente estrutural com protocolo completo de claim/ack ou worker.
-O próximo trabalho exige autorização própria; **Etapas 11 e 12 pendentes** e
-**Etapa 11 não iniciada neste fechamento**. Preservar a homologação permanente.
+No fechamento da Etapa 10, as Etapas 11 e 12 permaneceram pendentes. A
+implementação local da Etapa 11 está registrada abaixo e não inicia a Etapa 12.
+Preservar a homologação permanente.
 Sem SQL, operações Neon, SMTP, deploy, merge ou novos testes no fechamento.
 Ver [contratos](decisoes-canonicas.md#etapa-10--outbox-aprovada-em-rehearsal-sem-ativação),
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação) e
 [evidências](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
+
+Etapa 11 — implementação local para revisão, sem fechamento:
+`authOutboxCrypto.js` / `authEnqueueService.js` e dois testes dedicados.
+AES-256-GCM real com chave externa 32, nonce aleatório 12, tag 16, AAD versionada
+vinculada a mensagem/desafio/finalidade/destinatário e leitura de chaves explícitas.
+Enqueue no executor do caller, mesmo UUID nas três estruturas, tokens opacos de
+256 bits, somente hash no desafio e envelope na outbox, auditoria crítica.
+Relógio das quotas preserva microssegundos e prazos de 24 h/30 min; resposta
+normal genérica, sem token ou indicação da existência/aceitação de conta.
+
+**134/134 testes novos** (47 crypto/87 enqueue), **290/290 focados**, **993/993
+completos** (uma execução), JS 4/4 e gramática PG16 de 24 consultas aprovados.
+Sem acesso externo; teste de persistência/rollback é simulado. D1/D4 e integração
+HTTP/autorização permanecem bloqueios funcionais objetivos; o núcleo não emite
+para cadastro pendente ou recuperação não confirmada e não implementa reativação.
+Não presumir política nova nem autorização por conhecer versões de usuário.
+
+Próxima ação depende de autorização: revisão e somente o
+[rehearsal PostgreSQL necessário](testes-e-evidencias.md#rehearsal-postgresql-necessário-da-etapa-11),
+na `v3-homologacao` preservada. Verificar binário, ledger/schema existentes e
+identidades sintéticas; não aplicar migration nova ou repetir o rehearsal 08–10.
+Não executar SMTP/worker, retries/claim/ack, limpeza operacional, frontend,
+ativação de rotas, SQL externo, Neon, merge ou deploy neste trabalho.
+**Etapa 12 não iniciada; contagem de concluídas permanece dez entre 57.**
+Ver [contratos](decisoes-canonicas.md#etapa-11--núcleo-local-de-criptografia-e-enqueue-sem-ativação).
 
 Estado funcional relevante:
 

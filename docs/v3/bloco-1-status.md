@@ -192,6 +192,46 @@ fechamento exclusivamente documental/Git, sem backfill ou alteração do legado.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
+## ETAPA 11 — CRIPTOGRAFIA E ENQUEUE LOCAL / REVISÃO E REHEARSAL PENDENTES
+
+Implementação local em **13/10/2026**, base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`;
+commit único para revisão independente na branch V3. **Não é fechamento da etapa**.
+
+- [Criptografia](../../backend/src/services/authOutboxCrypto.js): `node:crypto`,
+  AES-256-GCM, chaves externas de 32 bytes, nonce aleatório 12, tag 16, AAD JSON
+  determinística/versionada vinculada a mensagem/desafio/finalidade/destinatário.
+  Configuração explícita de até 16 key_ids; leitura de chaves anteriores somente
+  quando configuradas. Sem JWT_SECRET, env, defaults ou chaves HMAC reutilizadas.
+- [Enqueue](../../backend/src/services/authEnqueueService.js): executor de `db.tx`
+  READ COMMITTED de escrita, uma emissão por executor, usuário antes dos advisory
+  locks ordenados das quotas; mesmo cliente e relógio PostgreSQL com microssegundos.
+  Mesmo UUID identifica quota/desafio/mensagem; 24 h para e-mail e 30 min para reset.
+- Token opaco CSPRNG de 256 bits, base64url 43 caracteres; desafio guarda apenas
+  SHA-256 e outbox apenas envelope. Auditoria crítica obrigatória com IDs/finalidade,
+  sem conteúdo, IP, destinatário, token, hash ou chave nos parâmetros de auditoria.
+  Queries do núcleo usam raw client, evitando logging de parâmetros da facade.
+- Invalidação do desafio aberto anterior no mesmo agregado, persistência conjunta
+  e rollback por savepoint/erro propagado ao chamador. Negação não cria mensagem;
+  replay não gera token/cobrança/mensagem/auditoria nova; divergência falha fechado.
+  Resultado normal sempre `{ status: "processada" }`, provisório até commit.
+- Limite local: usuários existentes, não excluídos e sem cadastro pendente;
+  confirmação do endereço oficial ainda não confirmado, alteração/recuperação
+  somente no subconjunto com e-mail confirmado e versões esperadas atuais.
+  D1/D4, criação/retomada de cadastro, autorização/reautenticação/reativação e HTTP
+  não foram implementados ou decididos; este recorte não cria política canônica.
+- **47/47 criptografia + 87/87 enqueue = 134/134 novos**, **290/290 focados** com
+  quotas/auditoria, **993/993 completos** (uma execução). JS 4/4 e gramática de
+  24 consultas PG16 aprovados; executor/atomicidade/concorrência local simulados.
+- **Revisão independente e PostgreSQL real pendentes**. Retenção futura não pode
+  desmembrar as identidades sem contrato próprio: quota sem mensagem, ou mensagem
+  sem quota retida, falham fechado; sem reconstrução, emissão ou cobrança nova.
+  Colisões detectáveis de nonce/hash são críticas, sem retry; não há unicidade
+  histórica de nonce após remoção de envelope.
+- Migrations, serviços 08–10, db.tx, auditoria, rotas/controllers/server, frontend
+  e Vercel preservados. Sem Neon/SQL externo, SMTP, worker, retries, claim/ack,
+  limpeza, merge, deploy ou início da Etapa 12. D1–D8 intactos.
+  [Evidências e limites](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue-local--revisão-e-rehearsal-pendentes).
+
 ## PARCIAL
 
 - Login local já usa o verificador misto e cria sessão/cookie de transição.
@@ -236,7 +276,7 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Enqueue/criptografia da Etapa 11 e worker da Etapa 12, ainda pendentes;
+- Revisão/rehearsal da Etapa 11 local e worker da Etapa 12, ainda pendentes;
   integração do núcleo aprovado de quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.

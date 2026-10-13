@@ -94,6 +94,21 @@ repete testes/rehearsal nem executa SQL ou operações Neon. Ver
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
+Etapa 11 — **criptografia e enqueue implementados localmente para revisão**,
+sobre `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`. Serviços isolados
+`authOutboxCrypto.js` e `authEnqueueService.js`: AES-256-GCM com chaves externas,
+AAD versionada, token opaco, composição de quotas/desafios/outbox/auditoria no
+executor explícito do chamador e resultado genérico sem token bruto.
+**134/134 testes novos, 290/290 focados e 993/993 completos** aprovados;
+suíte completa executada uma vez, sintaxe JS 4/4 e 24 consultas no parser PG16.
+**Etapa 11 aberta: revisão independente e rehearsal PostgreSQL pendentes**.
+Casos de cadastro pendente/D1, recuperação não confirmada/reativação/D4 e
+integração/autorização HTTP permanecem fora do núcleo; não se definiram políticas.
+Sem nova migration, SQL externo, Neon, SMTP, worker, claim/ack, limpeza, ativação,
+merge ou deploy. Etapa 12 não iniciada; contagem permanece em **dez de 57 etapas
+concluídas**, sem equivalência com avanço ponderado. Ver
+[evidências e rehearsal necessário](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue-local--revisão-e-rehearsal-pendentes).
+
 Ao atualizar um documento, registrar HEAD/data, origem da decisão ou evidência,
 ambiente, limites da comprovação e pendências relacionadas. Alterar o status
 somente com a evidência correspondente. Não modificar migration aplicada para

@@ -783,6 +783,118 @@ exactly-once, limpeza operacional ou implantação em produção. Sem integraç�
 HTTP, deploy, merge ou início da Etapa 11 neste fechamento. D1–D8 e Etapas 01–09
 preservados; nenhum código, migration, teste ou runner alterado.
 
+## ETAPA 11 — CRIPTOGRAFIA E ENQUEUE LOCAL / REVISÃO E REHEARSAL PENDENTES
+
+Data: **13/10/2026**. Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e` na branch
+`revisao-premium-bloco-1-auth`. Preflight confirmou branch/HEAD esperados e árvore
+limpa. Contratos de quotas/locks, challenges, outbox, db.tx, auditoria e autenticação
+examinados; nenhuma alteração de schema necessária identificada. Quatro JS novos,
+sem mudar serviços anteriores, migrations, rotas/controllers/server ou frontend.
+
+| Validação local final | Resultado |
+| --- | --- |
+| `authOutboxCrypto.test.js` | **47/47 aprovados**, criptografia real node:crypto |
+| `authEnqueueService.test.js` | **87/87 aprovados**, persistência/locks em modelo simulado |
+| Novos + `authQuotaIp.test.js`, `authQuotaService.test.js`, `auditoriaService.test.js` | **290/290 aprovados**, zero falhas/skips/cancelados/todo |
+| Backend completo `node --test` | **993/993 aprovados**, uma execução após estabilização/focados |
+| `node --check` dos quatro JS novos | **4/4 aprovados** |
+| Parser PostgreSQL 16 WASM `libpg-query@16.3.0` | **24/24 consultas distintas aprovadas**, incluindo invalidação de ambos os agregados; sem SQL externo |
+| `git diff --check` | Aprovado |
+
+Histórico local: rodada inicial dos dois novos testes **122/122**, depois cobertura
+ampliada de falhas/replay/colisões para **134/134** dentro dos 290 focados finais.
+Nenhuma rodada de testes falhou. A suíte completa foi executada somente uma vez.
+Após a suíte completa, revisão alinhou somente fixtures do teste novo ao schema:
+prazo expirado de 24 h consistente e hashes distintos entre desafios distintos.
+Os focados foram conferidos novamente: **290/290 aprovados**, sem alteração dos
+dois serviços ou repetição da suíte completa. O resultado 993/993 refere-se ao
+mesmo código de implementação, antes desse ajuste exclusivo de dados de teste.
+Consulta de gramática cobre SQL dos serviços/quotas/auditoria e savepoints;
+parser não verifica catálogo, casts/tipos do driver, locks ou constraints em banco.
+Reutilizado parser temporário existente, sem dependência/manifest/lockfile novo.
+
+Guardas externas de Pool/Client, TCP/TLS, SMTP e `.env`, herdadas pelos processos;
+DATABASE_URL dummy somente no processo. **Zero tentativas PostgreSQL/rede/SMTP**;
+**uma tentativa de leitura `.env` bloqueada**, sem conteúdo lido, na suíte completa.
+Artefatos fora do Git: `C:/tmp/escola-v3-etapa11-20261013-a745a9d1`, com
+`focused-initial.log`, `focused-final.log`, `focused-fixtures-final.log`,
+`full.log`, `sql-syntax.json` e guardas
+sanitizadas. Há um arquivo Vercel versionado conferido sem alterações; ignorar
+builds da branch V3 é configuração externa informada pelo responsável, não
+verificada no painel nesta tarefa. Não houve deploy ou mudança de configuração.
+
+Criptografia exercitada com dados/chaves exclusivamente sintéticos: AES-256-GCM
+real, nonce/tag, AAD independente, adulterações de ciphertext/nonce/tag e identidade,
+key_id/versão desconhecidos, chave incorreta e anterior explicitamente configurada,
+configurações incompletas/acessors, mutação de configuração e RNG. Nenhum plaintext
+parcial é exposto antes de autenticar. Buffers abertos temporários próprios são zerados,
+sem promessa de limpar cópias nativas/strings ou todo o heap. Limites técnicos:
+64 KiB de plaintext e 1 KiB de destinatário; sem redefinir regras funcionais.
+
+Enqueue compõe quota real, crypto real e db.tx/auditoria reais carregados com
+pool/cliente inteiramente simulados. O modelo verifica ordem usuário/advisory locks/
+clock/desafio/outbox, cliente único sem pool/facade, microssegundos, prazos 24 h/30 min,
+SHA-256 de token base64url de 256 bits, vínculos/UUIDs e destinatário. Exercitados
+negação sem efeitos, desafios anteriores abertos/expirados/consumidos/invalidos,
+versões/estado, replay igual/divergente, envelope removido, pares órfãos e replay
+retido fora da janela. Colisões de nonce/hash são falhas críticas sem retry.
+
+Falhas simuladas nos pontos do protocolo: savepoint/modo/usuário/locks/clock/
+contagens/INSERT de quota, leitura/replay/desafio anterior/invalidação, RNG/cipher,
+INSERT/resposta de desafio e outbox, auditoria, RELEASE, rollback, falha posterior
+do caller e COMMIT. Preservação/restauração integral de quotas/desafios/mensagens/
+auditoria verificada no modelo; não são provas PostgreSQL reais. Concorrência
+local testa rejeição da segunda chamada no mesmo executor com barreira async;
+não comprova serialização de duas conexões PostgreSQL. Sem logs/respostas com
+conteúdo, token, chave, causa/detail do driver ou destinatário; auditoria recebe
+somente IDs/finalidade. `{ status: "processada" }` é igual nos resultados normais,
+sem provar commit, envio, autorização ou equalização de timing HTTP.
+
+**Limites funcionais objetivos:** D1/retomada/provas de cadastro e colisões,
+D4/recuperação sem confirmação/reativação assistida, identificação pública por CPF
+e autorização/reautenticação/HTTP não implementados. Núcleo não emite para
+cadastro pendente/excluído ou versões divergentes; confirmação somente de endereço
+oficial não confirmado, alteração/recuperação no subconjunto com e-mail confirmado.
+Nenhuma política nova de elegibilidade foi aprovada. Retenção futura deve preservar
+ou definir explicitamente vínculo quota/desafio/mensagem: par incompleto falha
+fechado, sem reconstrução ou cobrança. Nonce aleatório não garante unicidade
+histórica depois de remover envelope; índice só protege entradas retidas.
+Mensagens de desafios antigos invalidados não são apagadas nem enviadas aqui;
+worker futuro deve revalidar o desafio.
+
+### Rehearsal PostgreSQL necessário da Etapa 11
+
+Somente sob autorização futura na homologação permanente `v3-homologacao`
+(`br-round-union-adok19ir`), usando o commit então aprovado e identidades
+exclusivamente sintéticas, sem alterar usuários/dados herdados. Não repetir
+migrations/rehearsal das Etapas 08–10 e não testar worker/SMTP da Etapa 12.
+
+1. Preflight do alvo/TLS, ledger existente id 8/checksum, schema/challenges/outbox
+   e baseline sanitizado. Executar o serviço com db.tx e cliente PostgreSQL reais:
+   três finalidades, hash/bytea/envelope em round-trip, referências/destinatário,
+   microssegundos e expiração exata de 24 h/30 min após locks reais.
+2. Commit conjunto quota/desafio/outbox/auditoria, observador sem visibilidade
+   antes do commit, rollback externo e savepoints reais diante de falha em cada
+   escrita/auditoria; restauração do desafio anterior invalidado, sem eventos órfãos.
+3. Duas ou mais conexões: mesma conta/IP, contas distintas com IP comum, finalidades
+   compartilhadas e uma vaga de quota; UUID igual e divergente, commit/rollback do
+   vencedor. Confirmar ordem de locks/waits, sem duplicar cobrança/desafio/mensagem.
+   Concorrência com mudança de auth/email_version sob lock, sem usar snapshot antigo.
+4. Desafio anterior aberto/expirado/consumido/invalidado, FK/PK/unicidade reais,
+   colisões dirigidas de hash/nonce somente em fixtures e falha crítica sem retry.
+   Replay retido, destinatário/identidade divergentes e envelope removido; pares
+   incompletos de quota/mensagem falhando sem efeitos ou reparo automático.
+5. Preservação de dados/catalogs/ledger/checksums e serviços anteriores; finalizar
+   fixtures por rollback ou allowlist exata dos IDs efetivamente criados, com
+   quotas/outbox sem resíduos e homologação permanente preservada. Sem limpeza
+   operacional, HTTP/SMTP, worker/claim/ack/fencing, merge, deploy ou produção.
+
+**Etapa 11 aberta para revisão independente e rehearsal**; publicação é entrega
+para revisão, não aprovação/conclusão. Contagem de concluídas permanece dez de 57,
+sem percentual ponderado ou prazo novo. D1–D8 preservados. Sem nova migration,
+Neon/SQL externo, envio SMTP, worker/retries/claim/ack/limpeza, ativação de rotas,
+merge, deploy ou início da Etapa 12.
+
 ## PENDÊNCIA — evidência de produção
 
 Aplicação de migrations, ledger, deploy, cutover e fluxos autenticados de produção
