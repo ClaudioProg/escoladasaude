@@ -2,7 +2,7 @@
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
-das Etapas 04/05/06/07/08/09 e decisões anteriores fornecidas pelo responsável. As seções de
+das Etapas 04/05/06/07/08/09/10 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
 Atualização da Etapa 09: **13/10/2026**, código em
@@ -336,8 +336,8 @@ os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 - IP bruto não deve ser persistido.
 - Retenção dos registros de rate limit: 48 horas.
 
-**IMPLEMENTAÇÃO ATUAL:** o expand da outbox foi implementado localmente na
-Etapa 10 abaixo, sem aplicação em banco. Enqueue, worker e integração de quotas
+**IMPLEMENTAÇÃO ATUAL:** o expand da outbox foi versionado e aprovado na Etapa 10
+abaixo, com aplicação somente em homologação. Enqueue, worker e integração de quotas
 continuam pendentes. O núcleo transacional da Etapa 09 está implementado
 e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
 em 13/10/2026, sem ativação nas rotas. O expand da Etapa 08 foi ensaiado na branch
@@ -457,11 +457,12 @@ Sem ativação HTTP, associação outbox/desafio, SMTP, limpeza ou implantação
 produção. Sem nova migration ou alteração de D1–D8; Etapa 10 não iniciada naquele
 fechamento da Etapa 09.
 
-### Etapa 10 — estrutura local da outbox, sem ativação
+### Etapa 10 — outbox aprovada em rehearsal, sem ativação
 
-Implementação sobre `bfb3e314933e3710897379a6e1c903d614667826`, em 13/10/2026.
-Esta seção registra escolhas técnicas do expand, preservando os contratos acima;
-não aprova políticas operacionais nem encerra a Etapa 10.
+Implementação em `7bb864245409155a9130756911ce531b6b5454ca`, sobre
+`bfb3e314933e3710897379a6e1c903d614667826`. **Etapa 10 expand encerrada em
+13/10/2026**, com revisão independente e rehearsal PostgreSQL aprovados.
+Escolhas técnicas e contratos preservados; não aprova novas políticas operacionais.
 
 `auth_outbox.id` UUID identifica a mensagem. Exatamente um de `confirmacao_id` e
 `recuperacao_id` é obrigatório, com FK imediata e índice único parcial: uma mensagem
@@ -474,8 +475,9 @@ estado/validade/versão do desafio cabe ao enqueue da Etapa 11, não está integ
 FKs `ON UPDATE RESTRICT ON DELETE CASCADE` tornam a outbox dependente do desafio,
 sem bloquear o CASCADE canônico de confirmação para cadastro nunca ativado.
 A proteção RESTRICT de recuperação para usuário continua no desafio original.
-Excluir desafio eliminará sua mensagem quando houver outbox; isso não autoriza
-exclusão nem decide retenção. O worker futuro deve revalidar o desafio e coordenar
+CASCADE de desafios sintéticos e restauração por rollback foram comprovados;
+isso não autoriza exclusão de contas/desafios reais nem decide retenção.
+O worker futuro deve revalidar o desafio e coordenar
 remoção/invalidação com envios; não se garante cancelamento de SMTP já iniciado.
 
 Envelope AES-256-GCM: ciphertext não vazio, nonce de 12 bytes, tag de 16 e key_id
@@ -498,9 +500,24 @@ a identidade ao reclaim; constraints não implementam nem provam esse protocolo.
 Cronogramas aprovados de confirmação e recuperação permanecem acima. A seção
 canônica não especifica cronograma próprio de alteração de e-mail; não assumir
 um silenciosamente no worker. Duração/renovação de lease, worker, implantação,
-limpeza/retenção operacional e execução SMTP continuam pendentes. 162/162 focados
-e 859/859 completos aprovados, sem prova PostgreSQL real. **Etapa 10 aberta**;
-sem mudança de D1–D8 ou contratos 01–09 e sem início da Etapa 11.
+limpeza/retenção operacional e execução SMTP continuam pendentes. **30/30
+dedicados, 162/162 focados e 859/859 completos** aprovados anteriormente;
+**186/186 provas finais**, incluindo **161 PostgreSQL**, com **112 erros esperados
+e zero inesperados**. Nenhum teste reexecutado no fechamento documental.
+
+Migration aplicada exclusivamente em `v3-homologacao` (`br-round-union-adok19ir`),
+ledger **id 8**, SHA-256 `2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`;
+atomicidade pela transação **6100996** e segunda execução com skip. Estrutura real:
+**19 colunas, 13 constraints, sete índices**, função e triggers aprovados.
+Identidade, integridade referencial, CASCADE, rollback, estados e leases
+comprovados; seleção concorrente estrutural comprovada com duas conexões,
+sem worker/claim/ack ou fencing integral. Outbox e quotas vazias; **90 tabelas /
+54.395 linhas herdadas preservadas**. Homologação permanente preservada.
+[Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
+
+Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
+exactly-once, limpeza operacional ou implantação em produção. **Etapas 11 e 12
+pendentes**; sem mudança de D1–D8 ou contratos 01–09 e sem início da Etapa 11.
 
 ## DECISÃO CANÔNICA — auditoria
 

@@ -1,8 +1,8 @@
 # Bloco 1 — estado real
 
 Atualização documental: 2026-10-13. Branch: `revisao-premium-bloco-1-auth`.
-HEAD do núcleo da Etapa 09, versionado e publicado na branch:
-`a6f49e6c15157f92b3b06d203213a27b7c454182`.
+HEAD da implementação da Etapa 10, versionado e publicado na branch:
+`7bb864245409155a9130756911ce531b6b5454ca`.
 Revisão independente e rehearsal PostgreSQL isolado aprovados em 13/10/2026.
 Sem ativação nas rotas ou implantação em produção.
 
@@ -156,37 +156,41 @@ HMAC em [authQuotaIp](../../backend/src/services/authQuotaIp.js), sem nova migra
   documental/Git não repete testes/rehearsal nem executa SQL, migration, operações
   Neon, deploy, merge ou Etapa 10.
 
-## ETAPA 10 — OUTBOX EXPAND LOCAL / REHEARSAL PENDENTE
+## ETAPA 10 — EXPAND CONCLUÍDO / REHEARSAL E REVISÃO APROVADOS
 
-Implementação local em **13/10/2026**, base `bfb3e314933e3710897379a6e1c903d614667826`.
-[Migration nova](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql),
-sem aplicação em banco, backfill ou alteração de migrations/DDL legados.
+Implementação em `7bb864245409155a9130756911ce531b6b5454ca`, sobre
+`bfb3e314933e3710897379a6e1c903d614667826`. **Revisão independente aprovada em
+13/10/2026**, conforme instrução do responsável e relatório técnico aprovado.
+[Migration](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) preservada;
+fechamento exclusivamente documental/Git, sem backfill ou alteração do legado.
 
-- `auth_outbox`: 19 colunas, PK UUID, exatamente uma das duas FKs de desafio e
-  uma mensagem por desafio. Finalidade/conta derivam do desafio; sem duplicação
-  que permita finalidade ou usuário divergentes. Confirmação/alteração usam
-  `auth_email_confirmacao`; recuperação usa `auth_recuperacao_senha`.
-- `email_destino` e identidade imutáveis por trigger somente na tabela nova.
-  Envelope opaco com ciphertext, nonce 12 bytes, tag 16 bytes e key_id externo;
-  SQL valida formato, não comprova criptografia. `sent` exige remoção do envelope.
-- Estados `pending`, `processing`, `sent`, `failed`; tentativas não negativas,
-  timestamps finitos, lease completo somente em processamento e terminal fechado.
-  SMTP permanente/esgotamento exigem `failed`; diagnóstico em categorias controladas.
-- Seis índices adicionais: unicidade dos dois desafios e key_id/nonce retidos,
-  pendentes, leases e terminais. Estrutura apoia claim futuro, sem SQL de claim.
-- FKs imediatas `ON UPDATE RESTRICT ON DELETE CASCADE`: mensagem subordinada ao
-  desafio, preservando a remoção canônica do cadastro nunca ativado. Não ativam
-  exclusão/limpeza. São esperados triggers internos das FKs nos desafios quando
-  a migration for aplicada; nenhum objeto/trigger legado de aplicação é alterado.
-- **162/162 testes focados**, incluindo **30 da outbox**, **859/859 completos**
-  (uma execução), sintaxe JS 2/2, gramática PostgreSQL 16 SQL e dois blocos PL/pgSQL,
-  identidade/LF/SHA e dry-run oficial de um arquivo aprovados.
-- **Etapa 10 aberta**: aplicação/ledger, constraints e trigger em banco,
-  concorrência de claim, leases, rollback e planos reais ainda não comprovados.
-  [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand-local--rehearsal-pendente).
-- Etapas 01–09 e D1–D8 preservados. Sem criptografia/enqueue (Etapa 11), worker/
-  retries/claim operacional/limpeza (Etapa 12), integração com rotas/quotas/desafios
-  reais, SMTP, produção ou deploy. Homologação permanente intacta.
+- **30/30 testes dedicados, 162/162 focados e 859/859 completos**, aprovados
+  anteriormente. Nenhum teste reexecutado neste fechamento.
+- **186/186 provas finais do rehearsal**, incluindo **161 PostgreSQL**;
+  **112 erros esperados e zero inesperados**, sem falha do instrumento ou repetição.
+- Aplicação exclusivamente em **`v3-homologacao` (`br-round-union-adok19ir`)**,
+  ledger **id 8**, SHA-256 `2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`.
+  DDL, função, triggers e ledger na transação **6100996**; segunda execução com skip.
+- Estrutura real aprovada: **19 colunas, 13 constraints, sete índices** (PK + seis
+  adicionais), uma função PL/pgSQL invoker, um trigger de UPDATE e oito internos
+  de FK novos. Nenhum trigger herdado alterado.
+- Integridade referencial, unicidade por desafio, CASCADE, savepoints/rollback,
+  identidade e destinatário imutáveis, estados, leases, tentativas e envelope
+  estrutural comprovados. Remoção integral do envelope obrigatória em `sent`.
+- Duas conexões selecionaram candidatos diferentes com `FOR UPDATE SKIP LOCKED`;
+  omissão de bloqueados e liberação por commit/rollback provadas. **Suporte
+  estrutural à seleção concorrente**, sem claim/ack de worker ou fencing integral.
+- Outbox e quotas **vazias** ao final; **90 tabelas / 54.395 linhas herdadas
+  preservadas**, sete registros anteriores do ledger intactos. Homologação
+  permanente preservada. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
+- Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
+  exactly-once, limpeza operacional ou implantação em produção. Etapas **11 e 12
+  pendentes**, sem início da Etapa 11. D1–D8 e Etapas 01–09 preservados.
+- Este fechamento não executa SQL, operações Neon, SMTP, deploy, merge ou testes.
+
+**Dez etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
+percentual global, esforço restante ou estimativa de prazo.
 
 ## PARCIAL
 
@@ -232,13 +236,13 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Expand local da outbox com rehearsal pendente; enqueue/worker e integração
-  do núcleo aprovado de quotas PostgreSQL,
+- Enqueue/criptografia da Etapa 11 e worker da Etapa 12, ainda pendentes;
+  integração do núcleo aprovado de quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–09 estão versionadas na branch; a Etapa 08 expand e o núcleo da
-Etapa 09 têm rehearsal e revisão aprovados. Nenhum desses estados comprova produção.
+Etapas 01–10 estão concluídas e versionadas na branch; a Etapa 10 expand tem
+rehearsal e revisão aprovados. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).

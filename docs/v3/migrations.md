@@ -1,7 +1,7 @@
 # Migrations V3
 
-Atualização documental: **13/10/2026**. HEAD do núcleo da Etapa 09:
-`a6f49e6c15157f92b3b06d203213a27b7c454182`.
+Atualização documental: **13/10/2026**. HEAD da implementação da Etapa 10:
+`7bb864245409155a9130756911ce531b6b5454ca`. Revisão independente e rehearsal aprovados.
 **FATO DO REPOSITÓRIO:** inventário V3 preservado; a Etapa 09 não cria migration.
 Migration 08 com rehearsal e revisão independente aprovados, aplicação histórica
 na branch descartável da Etapa 08 (já excluída) e aplicação única na homologação
@@ -15,7 +15,7 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-08-25-auth-sessoes-contexto-expand.sql](../../backend/db/migrations/2026-08-25-auth-sessoes-contexto-expand.sql) | `auth_sessao` e `auth_usuario_contexto`, FKs/checks/índices. Commit `d500d90808710bb2aa3b1f112ef39fec62d08576`. | Aplicada no mesmo clone durante preparo do rehearsal da Etapa 02. | Não comprovada por esta baseline. |
 | [2026-10-02-auth-email-recuperacao-senha-expand.sql](../../backend/db/migrations/2026-10-02-auth-email-recuperacao-senha-expand.sql) | Campos em `usuarios`, `auth_email_confirmacao`, `auth_recuperacao_senha`, `auth_senha_historico`. Commit `7e47b5d40e64fbfc1601b8b0001a50bfd24e95e8`. | Fechamento em PostgreSQL 16, clone isolado; preservação, integridade, concorrência, rollback e skip pelo ledger relatados. | Não comprovada por esta baseline. |
 | [2026-10-09-auth-quotas-expand.sql](../../backend/db/migrations/2026-10-09-auth-quotas-expand.sql) | Etapa 08: tabela/eventos e índices de quotas; expand concluído, sem ativação. | 57/57 no ensaio histórico da Etapa 08, branch descartável já excluída; aplicação única em `v3-homologacao` na Etapa 09, ledger id 7, SHA preservado; rehearsal final 129/129 e revisão independente aprovada em 13/10/2026. | Não implantada; rehearsal não comprova produção. |
-| [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: outbox dedicada, estrutura local; sem enqueue/worker/ativação. | **Não realizado**; testes locais e parser somente. | Não aplicada; sem deploy. |
+| [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
 
 ## Etapa 08 — expand concluído, rehearsal aprovado
 
@@ -98,9 +98,10 @@ integração com outbox ou implantação em produção. Este fechamento document
 não repete testes/rehearsal nem executa SQL, migration, operações Neon, deploy,
 merge ou Etapa 10. Ver [evidências e limites](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
 
-## Etapa 10 — outbox expand local, nao aplicado
+## Etapa 10 — outbox expand aprovada em homologação
 
-Data: **13/10/2026**, base `bfb3e314933e3710897379a6e1c903d614667826`.
+Fechamento aprovado em **13/10/2026**. Implementação em
+`7bb864245409155a9130756911ce531b6b5454ca`, sobre `bfb3e314933e3710897379a6e1c903d614667826`.
 Arquivo [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql).
 SHA-256 dos bytes LF: `2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`.
 
@@ -108,8 +109,8 @@ Uma nova tabela `auth_outbox` com 19 colunas e 13 constraints (PK, duas FKs e de
 CHECKs); seis índices B-tree adicionais, uma função/trigger de UPDATE somente na
 tabela nova e comentários somente dos objetos novos. Sem extensão, backfill,
 ALTER de tabela/constraint legada ou alteração de migration antiga. FKs criam
-triggers internos nos challenges quando aplicadas; não alteram triggers legados
-de aplicação. Preflight valida PK UUID imediata dos dois desafios, finalidade
+triggers internos novos nos challenges, aprovados no rehearsal; não alteram
+triggers legados de aplicação. Preflight valida PK UUID imediata dos dois desafios, finalidade
 da confirmação e ausência de colisões de relações/função antes do DDL.
 
 Mensagem UUID, exatamente um desafio, unicidade por desafio; finalidade e conta
@@ -121,21 +122,35 @@ sem chave/token/corpo aberto; SQL não prova criptografia. Categorias de erro se
 texto SMTP; permanente/esgotamento em `failed`. Quatro estados, leases/timestamps
 finitos e índices de pendência/lease/terminal; sem claim operacional ou TTL fixo.
 
-**162/162 focados**, **859/859 completos** (uma execução), JS 2/2, parser
-PostgreSQL 16 SQL/PL/pgSQL, LF/identidade/SHA e dry-run oficial de um arquivo
-aprovados. Protocolo de falha/rollback do runner simulado, sem SQL real.
-**Não aplicada em nenhum banco nesta tarefa; nenhum ledger da Etapa 10 existe
-como evidência local comprovada**. Rehearsal PostgreSQL ainda não realizado;
-Etapa 10 aberta mesmo após publicação. Validar aplicação/skip/rollback, catálogo,
-constraints/trigger, CASCADE, preservação, claim concorrente/fencing e planos
-posteriormente na homologação permanente, sob autorização própria.
+**30/30 dedicados, 162/162 focados e 859/859 completos** aprovados anteriormente;
+JS 2/2, parser SQL/PL/pgSQL e dry-run de um arquivo históricos. Não reexecutados.
+**186/186 provas finais**, incluindo **161 PostgreSQL**; **112 erros esperados
+e zero inesperados**, conforme relatório técnico aprovado.
+
+Aplicada **exclusivamente em `v3-homologacao` (`br-round-union-adok19ir`)**.
+Ledger **id 8**, SHA acima, atomicidade na transação **6100996**: DDL, constraints,
+sete índices (PK + seis adicionais), função e nove triggers novos compartilham
+`xmin` com o ledger. Um trigger UPDATE e oito internos de FK aprovados;
+segunda execução oficial fez skip por mesmo SHA, preservando as sete linhas
+anteriores do ledger. Integridade referencial, CASCADE de desafios sintéticos,
+rollback, identidade, estados, leases e suporte estrutural à seleção concorrente
+comprovados. **Outbox e quotas vazias**; **90 tabelas / 54.395 linhas herdadas
+preservadas**. Homologação permanente preservada.
+
+Não houve falha DDL/ledger/checksum divergente injetada no banco: a atomicidade
+provada é da aplicação bem-sucedida, distinta do protocolo de falha simulado.
+Seleção concorrente real não comprova worker, claim/ack ou fencing integral;
+EXPLAIN sem ANALYZE não valida desempenho de produção. Envelope sintético não
+prova criptografia/AAD ou unicidade histórica de nonce após remoção.
 
 Duração de lease, implantação do worker, cronograma de alteração e política
 operacional de limpeza permanecem pendentes; cronogramas canônicos existentes e
-at-least-once sem exactly-once preservados. Sem Etapa 11, SMTP, integração real,
-SQL no Neon, deploy ou alteração da Vercel/main. `v3-homologacao` intacta. Após
-aprovação/aplicação, conteúdo/checksum imutáveis; correções futuras exigem plano
-explícito. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand-local--rehearsal-pendente).
+at-least-once sem exactly-once preservados. **Etapas 11 e 12 pendentes**: sem
+criptografia operacional, enqueue, worker, SMTP, fencing integral, exactly-once,
+limpeza operacional ou implantação em produção. Este fechamento documental/Git
+não executa SQL, operações Neon, testes, deploy, merge ou Etapa 11.
+Conteúdo/checksum da migration aplicada são imutáveis; correções futuras exigem
+plano explícito. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
 
 ## Estrutura expand de e-mail/recuperação
 

@@ -620,10 +620,13 @@ não significa ativação HTTP, SMTP, limpeza, outbox ou implantação em produ�
 Branch permanente preservada; nenhuma operação de banco, deploy, merge ou
 início da Etapa 10 neste fechamento documental/Git.
 
-## ETAPA 10 — OUTBOX EXPAND LOCAL / REHEARSAL PENDENTE
+## ETAPA 10 — OUTBOX EXPAND / REHEARSAL E REVISÃO APROVADOS
 
-Data: **13/10/2026**. Base `bfb3e314933e3710897379a6e1c903d614667826`, branch
-`revisao-premium-bloco-1-auth`, HEAD/branch esperados e worktree limpo no preflight.
+Data: **13/10/2026**. Implementação publicada em `7bb864245409155a9130756911ce531b6b5454ca`,
+sobre `bfb3e314933e3710897379a6e1c903d614667826`, branch
+`revisao-premium-bloco-1-auth`. Revisão independente aprovada pelo responsável
+em **13/10/2026**; este fechamento é exclusivamente documental/Git.
+HEAD/branch esperados e worktree limpo conferidos no preflight.
 Contratos de outbox e challenges conferidos; sem conflito canônico identificado.
 Migration única `backend/db/migrations/2026-10-13-auth-outbox-expand.sql`;
 SHA-256 LF `2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`.
@@ -637,7 +640,7 @@ referência de exclusão no controller legado, sem DDL encontrado: a finalidade
 vem da auditoria preliminar fornecida pelo responsável, não de catálogo atual.
 Não se inferiu schema de produção; nenhuma dessas estruturas foi modificada.
 
-| Validação local | Resultado |
+| Validação local anterior, não reexecutada no fechamento | Resultado |
 | --- | --- |
 | `auth-outbox-migration.test.js` | **30/30 aprovados** no conjunto focado final |
 | Outbox + `run-migration.identity.test.js` + `run-migration.sql-contract.test.js` | **162/162 aprovados**, zero falhas/skips/cancelados/todo finais |
@@ -661,7 +664,8 @@ PostgreSQL/rede/SMTP**; **uma tentativa de leitura `.env` bloqueada**, sem conte
 lido, na suíte completa. Artefatos fora do Git em
 `C:/tmp/escola-v3-etapa10-20261013-bfb3e314`: `focused.log`, `focused-final.log`,
 `full.log`, `syntax.json` e registros sanitizados das guardas. Suíte completa
-não foi repetida; nenhuma migration foi aplicada ou enviada ao Neon.
+não foi repetida; na implementação local não houve aplicação no Neon. A aplicação
+posterior e o rehearsal aprovado estão registrados abaixo.
 
 Cobertura documental/lexical: 19 colunas, PK e FKs XOR, finalidade derivada dos
 desafios sem duplicação, unicidade por desafio, snapshot imutável, envelope GCM
@@ -671,26 +675,113 @@ volátil, preflight e ausência de DDL/DML em objetos legados. Inventário ofici
 atualizado somente com a nova identidade. Runner real com arquivo real e executor
 simulado cobre aplicação, skip, SHA divergente e falhas de DDL/ledger/rollback.
 
-**Limites:** testes de contrato e parser não executam constraints, FKs ou trigger,
-não comprovam semântica de catálogo, planos, aplicação/ledger atômicos ou rollback
+**Limites da validação local anterior:** testes de contrato e parser não executam
+constraints, FKs ou trigger; não comprovam semântica de catálogo, planos, aplicação/ledger atômicos ou rollback
 PostgreSQL real. Índices e lease_id fornecem estrutura para futura seleção com
-`FOR UPDATE SKIP LOCKED` e fencing, mas nenhum claim/worker foi implementado ou
-provado concorrente. [PostgreSQL 16 — seleção e locking](https://www.postgresql.org/docs/16/sql-select.html)
+`FOR UPDATE SKIP LOCKED` e fencing. A seleção estrutural foi posteriormente
+comprovada no rehearsal abaixo; claim/worker e fencing integral permanecem
+pendentes. [PostgreSQL 16 — seleção e locking](https://www.postgresql.org/docs/16/sql-select.html)
 e [triggers](https://www.postgresql.org/docs/16/sql-createtrigger.html) foram
 consultados para o desenho. Envelope SQL não prova criptografia, AAD ou unicidade
 histórica de nonce após remoção; essas validações pertencem à Etapa 11.
 
 FKs CASCADE preservam dependência da mensagem ao desafio e o fluxo canônico de
-remoção do cadastro nunca ativado; aplicação adicionará triggers internos das FKs
-nos challenges, sem reescrever objetos/constraints/triggers de aplicação existentes.
-Política de limpeza/cancelamento e coordenação com SMTP futuro permanecem pendentes.
-Preservação do schema/dados existentes e essas ações precisam de provas no rehearsal.
+remoção do cadastro nunca ativado. A aplicação adicionou somente os triggers
+internos das novas FKs nos challenges, sem reescrever objetos/constraints/triggers
+de aplicação existentes. CASCADE e preservação foram provados no rehearsal abaixo;
+política de limpeza/cancelamento e coordenação com SMTP futuro permanecem pendentes.
 
-**Implementação local publicada não encerra a Etapa 10**. Rehearsal posterior
-somente sob autorização própria em `v3-homologacao` (`br-round-union-adok19ir`),
-intacta neste trabalho. Sem enqueue/criptografia operacional, worker/retries/claim/
-limpeza, integração HTTP/quotas/desafios reais, SMTP, SQL no Neon, produção, deploy,
-merge ou início da Etapa 11. D1–D8, Etapas 01–09 e configuração Vercel/main preservados.
+### Rehearsal PostgreSQL da Etapa 10 aprovado
+
+Fonte técnica consultada somente por leitura:
+`C:/tmp/escola-v3-etapa10-20261013-7bb86424/RELATORIO.txt`.
+O relatório técnico registrava revisão/fechamento pendentes; a instrução do
+responsável aprova a revisão independente e o fechamento em **13/10/2026**.
+Artefatos brutos permanecem fora do repositório. Nenhum SQL, operação Neon,
+teste ou rehearsal foi executado neste fechamento documental/Git.
+
+Alvo exclusivo: homologação permanente **`v3-homologacao`
+(`br-round-union-adok19ir`)**, PostgreSQL 16.15, HEAD `7bb864245409155a9130756911ce531b6b5454ca`.
+Identidade, TLS cliente, certificado e hostname foram validados no ensaio antes
+do SQL. Nenhuma implantação em produção; credenciais e dados pessoais não foram
+incluídos neste registro.
+
+| Grupo final | Provas aprovadas |
+| --- | ---: |
+| Preflight | 9/9 |
+| Aplicação / estrutura / runner | 8/8 |
+| Rehearsal PostgreSQL real | **161/161** |
+| Preservação | 8/8 |
+| Total | **186/186** |
+
+Zero falhas, repetições ou erros do instrumento no rehearsal. **112 erros
+PostgreSQL esperados e zero inesperados**: `23502` = 1, `23503` = 4,
+`23505` = 5, `23514` = 101 e `55P03` = 1. Rejeições esperadas são provas
+aprovadas: SQLSTATE e rollback por savepoint real conferidos, preservando o
+fingerprint anterior. Restrições sobrepostas podem rejeitar pela primeira
+constraint efetivamente observada; não se atribui erro a outro check por inferência.
+As **161 provas PostgreSQL** não são os 162 testes focados locais e não os substituem.
+
+### Aplicação, estrutura e preservação aprovadas
+
+Runner oficial aplicou exclusivamente
+`db/migrations/2026-10-13-auth-outbox-expand.sql` na homologação permanente.
+Ledger **id 8**, SHA-256 `2be1525aa0bf1064de5d594ad026e5cc0c0fb533c0fcaedcf42032f489d52c0a`;
+sete registros anteriores intactos, ledger final com oito linhas. Atomicidade da
+aplicação bem-sucedida: DDL, constraints, índices, função, triggers e linha do
+ledger compartilham `xmin`/transação **6100996**. Segunda execução fez **skip**
+por mesmo SHA, sem reaplicar ou duplicar registro. Migration e checksum preservados.
+
+Estrutura real: **19 colunas, 13 constraints e sete índices** (PK + seis adicionais),
+uma função PL/pgSQL invoker com `search_path=pg_catalog`, um trigger BEFORE UPDATE
+na outbox e oito triggers internos das novas FKs: quatro na outbox, dois em
+`auth_email_confirmacao` e dois em `auth_recuperacao_senha`. Todos novos;
+nenhum trigger herdado alterado.
+
+Integridade referencial, unicidade, CASCADE de desafios sintéticos e restauração
+por rollback, defaults, identidade/referências/criada_em e destinatário imutáveis,
+contadores, estados, timestamps e leases comprovados. Envelope de bytes opacos
+completo, rejeição de parciais/tamanhos inválidos, imutabilidade, remoção terminal
+obrigatória em `sent` e impossibilidade de restaurar envelope removido verificadas.
+Outbox e desafio invisíveis ao observador antes do commit; rollback externo e
+savepoints restauraram/desfizeram fixtures, inclusive após CASCADE. Não houve
+escrita/exclusão de usuários herdados.
+
+**Outbox e quotas vazias ao final**, sem resíduos de fixtures. **90 tabelas /
+54.395 linhas herdadas preservadas**: 88 tabelas / 54.388 linhas, sete registros
+anteriores do ledger e tabela de quotas vazia. Contagens/fingerprints agregados
+no servidor e definições do catálogo comparadas sem exportar linhas pessoais.
+Adições autorizadas: tabela/seus índices, 13 constraints, uma função e nove
+triggers novos; nenhuma sequência nova. Valores mutáveis de sequências e
+estatísticas de runtime não foram comparados. Três desafios e três mensagens
+confirmados para concorrência foram removidos por UUIDs de INSERTs confirmados,
+com allowlist exata; isso não implementa limpeza operacional. **Homologação
+permanente preservada**, sem reset ou exclusão.
+
+### Seleção concorrente e limites do ensaio
+
+Seis cenários com duas conexões reais: seleção de linhas diferentes por
+`FOR UPDATE SKIP LOCKED`, `NOWAIT` contra linha bloqueada retornando `55P03`,
+omissão de candidato bloqueado, seleção vazia quando todos bloqueados e liberação
+após commit/rollback. Candidatos permaneceram `pending`: **suporte estrutural à
+seleção concorrente comprovado**, sem claim/ack operacional de worker ou fencing
+integral. Três EXPLAIN JSON de candidatos, leases e terminais foram inspecionados,
+sem ANALYZE ou benchmark de produção; não aprovam custo operacional.
+
+Limites preservados: envelope usa bytes sintéticos sem criptografia real,
+autenticidade AES-GCM ou AAD. Unicidade key_id/nonce só enquanto o envelope existe;
+remoção terminal permite reutilização no SQL, sem garantia histórica/criptográfica.
+Constraints/trigger não são máquina operacional de worker; `pending` → `sent` com
+campos consistentes é estruturalmente permitido. Leases de duração positiva foram
+fixtures, sem definir duração, teto de tentativas, cronograma, cancelamento ou retenção.
+Não se injetaram falhas DDL/ledger, checksum divergente, deadlock, perda de conexão
+ou falha do rollback; atomicidade comprovada é a da aplicação bem-sucedida.
+
+**Etapa 10 expand encerrada**, com revisão e rehearsal aprovados. **Etapas 11 e 12
+pendentes**. Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
+exactly-once, limpeza operacional ou implantação em produção. Sem integração
+HTTP, deploy, merge ou início da Etapa 11 neste fechamento. D1–D8 e Etapas 01–09
+preservados; nenhum código, migration, teste ou runner alterado.
 
 ## PENDÊNCIA — evidência de produção
 
