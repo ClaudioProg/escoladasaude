@@ -1,9 +1,10 @@
 # Testes e evidências de fechamento
 
-Atualização documental: 2026-10-09. Base Git do fechamento da Etapa 08:
-`3210ad6c6a6b82c1ed65819f1b37e94839357ee5`, fechamento da Etapa 07, na branch
-`revisao-premium-bloco-1-auth`. O fechamento da Etapa 08 integra um único commit
-de migration, testes e cinco documentos; consultar seu SHA no histórico.
+Atualização documental: 2026-10-13. Branch `revisao-premium-bloco-1-auth`.
+HEAD do núcleo da Etapa 09: `a6f49e6c15157f92b3b06d203213a27b7c454182`,
+versionado e publicado na branch. Revisão independente aprovada em **13/10/2026**
+após análise do código, relatório do rehearsal e verificações independentes no
+Neon, conforme instrução do responsável. Fechamento atual exclusivamente documental/Git.
 
 ## Origem e limites
 
@@ -17,6 +18,8 @@ Resultados de banco são **históricos do rehearsal isolado**, sem nova consulta
 ou prova de produção. O fechamento documental não reexecutou testes nem banco.
 A Etapa 08 acrescenta resultados locais e o relatório do rehearsal PostgreSQL
 isolado, com revisão independente aprovada em 09/10/2026, descritos abaixo.
+A Etapa 09 acrescenta o relatório isolado de 13/10/2026 e a aprovação independente
+fornecida pelo responsável; nenhum banco foi consultado para este fechamento.
 Nenhum teste ou SQL foi reexecutado neste fechamento documental/Git.
 Não há logs brutos, credenciais, tokens reais ou dados pessoais aqui.
 
@@ -394,12 +397,15 @@ executar harness ou SQL. Artefatos brutos permanecem externos ao repositório.
 O relatório técnico registrava revisão pendente; a instrução do responsável
 aprova a **revisão independente em 09/10/2026**, fechando agora a Etapa 08 expand.
 
-Aplicação **somente** na branch Neon descartável `br-super-wave-adut7rdn`
+Na Etapa 08, aplicação **somente** na branch Neon descartável `br-super-wave-adut7rdn`
 (`rehearsal-etapa-08-descartavel`), filha de `br-small-union-ad2nicvt`
 (`revisao-premium-ensaio-auth-recuperacao`). PostgreSQL 16.15; identidade e TLS
 confirmados no rehearsal. Único arquivo aplicado pelo runner oficial:
 `db/migrations/2026-10-09-auth-quotas-expand.sql`, SHA acima, ledger **id 7**.
 DDL/ledger criados na mesma transação; segunda execução fez skip por mesmo SHA.
+Essa branch descartável já foi excluída; os artefatos históricos permanecem.
+O rehearsal da Etapa 09 usou a homologação permanente descrita abaixo, com
+aplicação única dessa mesma migration naquele alvo.
 
 | Grupo PostgreSQL | Provas aprovadas |
 | --- | ---: |
@@ -437,25 +443,27 @@ rollback das fixtures; não comprova rollback de migration que falhou. Os testes
 locais de falha do runner continuam evidência simulada.
 
 A prova com duas conexões demonstra isolamento de eventos sem commit; não
-comprova enforcement concorrente de quotas. **Quotas, HMAC operacional, limpeza
-de 48 horas, integração e Etapa 09 permanecem pendentes**. Janelas móveis de
-60 s/15 min/1 h/24 h, primeira emissão contabilizada e retenção permanecem como
-contratos futuros. Rate limit legado intacto. Composição de finalidades, falhas
-de emissão, origem do IP, rotação HMAC e operação da limpeza continuam abertas.
+comprova enforcement concorrente de quotas; essa evidência foi acrescentada
+no rehearsal da Etapa 09 abaixo. Na Etapa 08, núcleo/HMAC e janelas ainda eram
+contratos futuros. A decisão A e a Etapa 09 fecham o núcleo compartilhado, sem
+ativação. Retenção/limpeza de 48 horas, integração, falhas/solicitações sem emissão,
+origem confiável do IP e rotação operacional HMAC continuam abertas.
+Rate limit legado intacto.
 D1–D8 e demais pendências aprovadas preservadas.
 
 **Rehearsal e revisão aprovados não significam implantação em produção.**
 Não houve UI/browser, SMTP ou deploy. Neste fechamento documental/Git não foram
 reexecutados testes, SQL, migration ou operações Neon; não houve merge na main
-nem exclusão da branch descartável. Logs brutos, credenciais e PII não são
+nem exclusão da branch descartável naquele fechamento. Ela foi excluída
+posteriormente; não é alvo atual. Logs brutos, credenciais e PII não são
 incluídos no commit.
 
-## ETAPA 09 — IMPLEMENTAÇÃO LOCAL / REHEARSAL PENDENTE
+## ETAPA 09 — NÚCLEO VERSIONADO / REHEARSAL E REVISÃO APROVADOS
 
-Data: 09/10/2026. HEAD base `aceb73ac845542255b843e704525084e90654f6c`.
+Implementação local sobre `aceb73ac845542255b843e704525084e90654f6c`, publicada
+em `a6f49e6c15157f92b3b06d203213a27b7c454182`. Fechamento aprovado em **13/10/2026**.
 Decisão A fornecida pelo responsável: confirmação, alteração de e-mail e
-recuperação compartilham os mesmos limites por conta/IP. Nenhuma aprovação de
-fechamento da Etapa 09 ou concorrência PostgreSQL real é reivindicada.
+recuperação compartilham os mesmos limites por conta/IP.
 
 | Validação local final | Resultado |
 | --- | --- |
@@ -463,8 +471,9 @@ fechamento da Etapa 09 ou concorrência PostgreSQL real é reivindicada.
 | Suíte completa do backend (`node --test`) | **829/829 aprovados**, uma execução após as alterações de código |
 | `node --check` nos quatro JS novos | **4/4 aprovados** |
 
-Zero falhas/cancelados/skips/todo nos conjuntos finais. Nenhum teste PostgreSQL
-real foi executado. Guardas processuais de Pool/Client, TCP/TLS, SMTP e leitura
+Zero falhas/cancelados/skips/todo nos conjuntos locais finais. Nessas execuções
+locais não houve PostgreSQL real; o rehearsal posterior está documentado abaixo.
+Guardas processuais de Pool/Client, TCP/TLS, SMTP e leitura
 `.env`, com URL dummy somente no processo. Focados: zero tentativas proibidas.
 Suíte completa: zero tentativas PostgreSQL/rede/SMTP; **uma tentativa de leitura
 `.env` bloqueada**, sem conteúdo lido. Não se presume uso de credenciais reais.
@@ -494,33 +503,122 @@ integração deve respeitar usuário antes de sujeitos/UUID e propagar falhas cr
 
 Solicitações sem emissão e falhas de emissão continuam sem nova política.
 Não contar retry SMTP como emissão. Retenção operacional de 48 horas pendente;
-nenhuma limpeza automática, migration, operação Neon, SMTP real, commit, push,
-merge ou deploy realizado. Schema, rate limit legado, frontend e D1–D8 intactos.
-**Etapa 09 não concluída; rehearsal pendente.**
+sem ativação HTTP, SMTP, limpeza, associação desafio/outbox ou produção.
+Schema, rate limit legado, frontend e D1–D8 intactos; nenhuma nova migration.
 
-### Plano proporcional de rehearsal da Etapa 09
+### Rehearsal PostgreSQL da Etapa 09 aprovado
 
-Após autorização própria, usar nova branch Neon descartável filha do rehearsal
-da Etapa 08 (`br-super-wave-adut7rdn`), cujo expand já foi aplicado. Confirmar
-projeto/filiação/endpoint/database/TLS, schema e SHA/ledger da Etapa 08 antes das
-fixtures; não aplicar migrations antigas ou alterar a migration aprovada.
+Fonte local consultada somente por leitura:
+`C:/tmp/escola-v3-etapa09-20261013-a6f49e6c/RELATORIO.txt`, acompanhado de
+`resumo.json`, `preservation.json` e artefatos das tentativas/finais no mesmo
+diretório. Logs brutos, fixtures, credenciais e dados pessoais ficam fora do Git.
+O relatório técnico ainda registrava revisão/fechamento pendentes; a instrução
+do responsável aprova a revisão independente em **13/10/2026**, após análise do
+código, relatório e verificações independentes no Neon. Este fechamento não
+reexecuta o harness, testes, SQL ou operações Neon.
 
-1. Conferir SQL real, casts/arrays bytea, precisão de microssegundos e timezone;
-   eventos nas quatro fronteiras e finalidades misturadas, conta/IP e ambos.
-2. Duas ou mais conexões com barreiras reais: usuário primeiro, IP sem eventos,
-   mesma conta/IP e contas distintas com IP comum; somente o espaço disponível
-   confirma, sem deadlock ou excesso. Capturar esperas no catálogo de locks.
-3. UUID igual com argumentos iguais/divergentes, commit vencedor e rollback;
-   falhas críticas com savepoints e falha posterior do chamador. Provar que
-   aceita não persiste antes do commit e que negação/falha não deixa evento.
-4. Configuração explícita de múltiplas versões, quotas somadas, versão ausente,
-   lock IP estável; medir `EXPLAIN` das contagens e da guarda global, sem afirmar
-   política de rotação/retirada de chaves aprovada.
-5. Preservação de dados/catalogo herdados e ledger, tabela de quotas e cleanup
-   somente das fixtures do ensaio. Preservar branches/evidências anteriores.
+Alvo isolado permanente: **`v3-homologacao` (`br-round-union-adok19ir`)**,
+PostgreSQL 16.15, HEAD `a6f49e6c15157f92b3b06d203213a27b7c454182`. Identidade e TLS
+cliente/certificado/hostname validados no rehearsal. A antiga branch descartável
+da Etapa 08 (`br-super-wave-adut7rdn`) já foi excluída; o alvo deste ensaio
+é a homologação permanente. A homologação permanente foi preservada, sem reset ou exclusão.
 
-Sem SMTP/HTTP/produção. O ensaio do núcleo não autoriza ativar rotas, limpeza ou
-rotacionar segredos. Integração definitiva com desafio/outbox exige etapa própria.
+| Grupo final | Provas aprovadas |
+| --- | ---: |
+| Preflight | 7/7 |
+| Migration 08 / runner | 7/7 |
+| Núcleo Etapa 09 | 97/97 |
+| Complemento dirigido Etapa 09 | 10/10 |
+| Preservação | 8/8 |
+| Total | **129/129** |
+
+As **107 provas da Etapa 09** são 97 do núcleo + dez complementares: **99 com
+SQL/transações reais e oito validações JavaScript sem SQL de quotas**.
+Não somar as 57 provas históricas da Etapa 08 a esse total.
+
+### Histórico transparente das tentativas
+
+**141 checagens efetivamente executadas: 137 aprovações e quatro falhas
+intermediárias do harness, diagnosticadas e corrigidas**. As 137 incluem oito
+repetições aprovadas de preflight; as 97 provas aprovadas do núcleo não foram
+repetidas na retomada. O total final consolidado é 129/129, não 141/141.
+
+| Falha intermediária do instrumento | Correção / diagnóstico preservado |
+| --- | --- |
+| TLS do endpoint confundido com `pg_stat_ssl` do backend | Conferidos socket cliente criptografado, cadeia e hostname; o sinal do backend não descreve o TLS do endpoint. |
+| Exigência de arquivos locais para migrations históricas do ledger | Bytes dos blobs Git históricos e seus SHAs exatos verificados somente por leitura. |
+| Fronteira de 60 s, t−W+1 µs | Coleta tardia de fixture corretamente desfeita pelo savepoint na negação; instrumento corrigido. |
+| Replay divergente por finalidade | Fixture alterada em memória depois do INSERT; o banco ainda recebia replay idêntico; instrumento corrigido. |
+
+Separadamente, uma inicialização abortada **antes de qualquer prova ou chamada
+ao serviço** gerou **dois erros PostgreSQL inesperados `22012`**, sem inserir
+eventos. A execução corrigida teve **zero erros inesperados**. Quatro erros
+esperados foram registrados: `25P01` uma vez, `22012` duas e `55P03` uma.
+Nenhum defeito material do serviço foi encontrado nas condições reproduzidas.
+
+### Migration, preservação e catálogo
+
+O runner oficial aplicou **somente a migration 08, uma única vez neste alvo**:
+`db/migrations/2026-10-09-auth-quotas-expand.sql`, ledger **id 7**, SHA-256
+`a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a` inalterado e igual aos bytes Git.
+Segunda execução fez skip por mesmo SHA, sem reaplicar ou duplicar ledger.
+DDL/ledger compartilham a transação, comprovada por `xmin`; falha de DDL/ledger
+não foi injetada. A Etapa 09 não adiciona migration.
+
+Estado final: **`auth_quota_evento` vazia (0 eventos)**. Preservadas **89 tabelas /
+54.394 linhas herdadas**: 88 tabelas / 54.388 linhas + seis linhas anteriores do
+ledger. Fingerprints calculados no servidor, sem exportar linhas pessoais.
+Ledger final com sete linhas, sendo somente uma nova linha autorizada.
+
+Correção da contagem de catálogo, conforme verificação independente informada
+pelo responsável: **1.717 atributos ativos e dez descartados, total de 1.727
+entradas**. A referência a 1.717 colunas no relatório corresponde aos atributos
+ativos; não é o total incluindo descartados. Catálogo herdado preservado:
+541 relações, 578 constraints, 365 índices, 663 triggers, 117 funções e definições
+de 77 sequências. Valores mutáveis das sequências não foram comparados.
+As adições próprias da migration foram cinco relações, 16 atributos ativos
+(incluindo atributos dos índices), oito constraints, quatro índices e quatro
+triggers internos da nova FK; dois destes em `usuarios`, sem alteração de
+triggers herdados. As contagens herdadas acima são separadas dessas adições.
+
+Fixtures em rollback ou, após commits de concorrência, removidas por allowlist
+exata de UUIDs sintéticos no ensaio já concluído. Isso não ativa rotina de
+limpeza operacional; nenhuma limpeza é executada neste fechamento.
+
+### Comportamento comprovado e limitações
+
+Primeira emissão, três finalidades compartilhadas, conta/IP/ambos e uma linha
+por emissão; janelas **(t−W, t]** de 60 s/1 h/24 h/15 min com microssegundos,
+eventos futuros falhando fechado, replay igual/divergente e UUID concorrente.
+Onze cenários reais de concorrência, com quatro conexões de emissão e observador,
+registraram waits/blockers/locks, usuário antes dos advisory locks ordenados,
+clock único depois dos locks e liberação em commit/rollback. Savepoints, negação
+sem evento e falha posterior do chamador comprovados; normalização, HMAC
+independente, múltiplas versões e guarda de cobertura também exercitados.
+
+Executor do ensaio é adaptador com `raw === client` e `pg.Client` real; não
+comprova integração definitiva com `db.tx` nas rotas. Fronteiras usam fixtures
+inseridas após o clock real no mesmo cliente, sem substituir clock/respostas.
+Não houve UI/browser, HTTP, SMTP ou fluxo real de desafio/outbox. Concorrência
+limitada a quatro emissões por cenário, sem estresse prolongado. Deadlock
+`40P01`, perda física de conexão, falha de rollback, falhas de migration/ledger
+e checksum divergente não foram injetados no banco.
+
+Cinco planos das queries publicadas foram inspecionados: SELECTs com
+ANALYZE/BUFFERS e INSERT sem ANALYZE. Guarda global HMAC com 100/1.000/10.000
+eventos recentes sintéticos: **0,061 / 0,326 / 2,491 ms** de execução PostgreSQL.
+Ela examina os eventos recentes conhecidos, inclusive de IPs distintos; índice
+temporal não elimina a dependência do volume. **Custo ainda sujeito à avaliação
+operacional**, sem critério aprovado de aceitação em produção. Cache quente,
+sem ANALYZE da tabela ou alteração de índices; cache frio, estatísticas,
+distribuição e carga prolongada de produção não reproduzidos.
+
+Consistência dos segredos entre instâncias, rollout/retirada de versões HMAC,
+proxy efetivo, retenção/limpeza de 48 h e integração continuam pendentes.
+**Núcleo implementado, versionado, revisado e aprovado em rehearsal isolado**
+não significa ativação HTTP, SMTP, limpeza, outbox ou implantação em produção.
+Branch permanente preservada; nenhuma operação de banco, deploy, merge ou
+início da Etapa 10 neste fechamento documental/Git.
 
 ## PENDÊNCIA — evidência de produção
 

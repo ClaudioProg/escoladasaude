@@ -2,8 +2,10 @@
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
-Atualização editorial da Etapa 09: 09/10/2026, base
-`aceb73ac845542255b843e704525084e90654f6c`, implementação local/rehearsal pendente.
+Fechamento documental da Etapa 09: **13/10/2026**. Núcleo implementado e publicado
+na branch em `a6f49e6c15157f92b3b06d203213a27b7c454182`, com revisão independente
+e rehearsal PostgreSQL isolado aprovados. A aprovação foi fornecida pelo
+responsável após análise do código, relatório e verificações independentes no Neon.
 
 ## Finalidade e tipos de autoridade
 
@@ -50,9 +52,21 @@ Princípio: **expand → compatibilidade → rehearsal → cutover → contract*
 A presença de estruturas expand não autoriza ativar writers ou remover leitores
 legados. Antes do primeiro writer Argon2id operacional, o login precisa aceitar
 Argon2id e bcrypt legado; essa compatibilidade foi entregue na Etapa 05.
-O trabalho atual é o núcleo local de quotas da Etapa 09, com decisão A de limites
-compartilhados aprovada e rehearsal pendente. Isso não ativa writers Argon2id
-ou quotas nas rotas públicas.
+A Etapa 09 fecha o núcleo transacional de quotas compartilhadas: **142/142 testes
+focados**, **829/829 completos** e **129/129 provas finais do rehearsal**, incluindo
+**107 da Etapa 09**. O histórico registra 141 checagens, 137 aprovações e quatro
+falhas intermediárias do harness corrigidas; dois erros PostgreSQL inesperados
+vieram de inicialização abortada antes do serviço, nenhum na execução corrigida.
+
+A homologação permanente `v3-homologacao` (`br-round-union-adok19ir`) foi preservada.
+A migration 08 foi aplicada uma única vez nesse alvo, ledger id 7 e SHA-256
+inalterado; a branch descartável da Etapa 08 já foi excluída. Quotas terminaram
+vazias, com 89 tabelas / 54.394 linhas herdadas preservadas. Catálogo: 1.717
+atributos ativos + dez descartados = 1.727 entradas. Ver
+[evidências e limites](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
+O custo da guarda HMAC continua sujeito à avaliação operacional. Sem ativação
+HTTP, SMTP, limpeza, integração com outbox ou implantação em produção; writers
+Argon2id continuam pendentes. A Etapa 10 não foi iniciada neste fechamento.
 
 Ao atualizar um documento, registrar HEAD/data, origem da decisão ou evidência,
 ambiente, limites da comprovação e pendências relacionadas. Alterar o status
@@ -76,4 +90,5 @@ contrato alvo, mas sua existência não prova migração de todas as rotas.
 Nesta baseline, decisões são transcritas da aprovação explícita da Etapa 04 e das
 decisões anteriores fornecidas pelo responsável. Resultados PostgreSQL são
 históricos, conforme [evidências](testes-e-evidencias.md); nenhum banco foi
-consultado nesta etapa. Produção e publicação remota não foram verificadas.
+consultado neste fechamento. O HEAD do núcleo foi conferido no remoto da branch
+V3; publicação Git não comprova implantação ou funcionamento em produção.

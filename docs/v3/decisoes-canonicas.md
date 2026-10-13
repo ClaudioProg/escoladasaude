@@ -5,6 +5,8 @@ Referência: baseline de 2026-10-05, código em
 das Etapas 04/05/06/07/08/09 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
+Atualização da Etapa 09: **13/10/2026**, código em
+`a6f49e6c15157f92b3b06d203213a27b7c454182`, revisão independente e rehearsal aprovados.
 
 ## DECISÃO CANÔNICA — identidade e perfis
 
@@ -336,10 +338,11 @@ os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 
 **IMPLEMENTAÇÃO ATUAL:** o worker da outbox dedicada à autenticação e a integração
 de quotas continuam pendentes. O núcleo transacional da Etapa 09 está implementado
-e testado somente localmente, sem ativação nas rotas; rehearsal pendente.
-O expand da Etapa 08 foi aplicado somente
-na branch Neon descartável `br-super-wave-adut7rdn`, com rehearsal e revisão
-independente aprovados em 09/10/2026. Rate limit legado em memória preservado.
+e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
+em 13/10/2026, sem ativação nas rotas. O expand da Etapa 08 foi ensaiado na branch
+descartável `br-super-wave-adut7rdn` (já excluída), aprovado em 09/10/2026;
+posteriormente aplicado uma única vez na homologação permanente `v3-homologacao`
+(`br-round-union-adok19ir`), preservada. Rate limit legado em memória preservado.
 Aprovação da estrutura não constitui ativação de quotas ou implantação em produção.
 
 ### Etapa 08 — estrutura de quotas aprovada em rehearsal, sem ativação
@@ -368,12 +371,14 @@ dedicado e validação da origem criptográfica pertencem à integração futura
 Implementação sobre `3210ad6c6a6b82c1ed65819f1b37e94839357ee5`:
 **149/149 testes locais** e **57/57 provas PostgreSQL** aprovados; sintaxe 2/2 e
 dry-run aprovados. Revisão independente aprovada em **09/10/2026**.
-Aplicação somente na branch Neon descartável `br-super-wave-adut7rdn`, ledger
+Na Etapa 08, aplicação somente na branch descartável `br-super-wave-adut7rdn`
+(já excluída), ledger
 **id 7**, SHA-256
 `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
 Tabela final vazia; dados herdados preservados conforme relatório aprovado.
-Sem backfill ou alteração de objetos legados. Quotas, HMAC operacional, limpeza,
-integração e Etapa 09 permanecem pendentes; rehearsal não comprova produção.
+Sem backfill ou alteração de objetos legados. O núcleo de quotas/HMAC foi
+implementado na Etapa 09 abaixo; configuração operacional, limpeza e integração
+continuam pendentes. Rehearsal não comprova produção.
 Os testes e SQL não foram reexecutados neste fechamento documental/Git.
 
 **QUESTÕES ABERTAS:** contabilização diante de falhas/solicitações sem emissão;
@@ -382,9 +387,10 @@ HMAC; execução/frequência/monitoramento da limpeza. Composição das finalida
 resolvida pela decisão A. Não contar retries SMTP como novas emissões.
 D1–D8 e demais pendências aprovadas permanecem abertas.
 
-### Etapa 09 — núcleo transacional local, sem integração
+### Etapa 09 — núcleo transacional aprovado em rehearsal, sem integração
 
-Base `aceb73ac845542255b843e704525084e90654f6c`, somente worktree local.
+Núcleo versionado/publicado em `a6f49e6c15157f92b3b06d203213a27b7c454182`;
+revisão independente e rehearsal PostgreSQL isolado aprovados em **13/10/2026**.
 API: `createAuthQuotaService({ hmacConfig })` e
 `registrarEmissao(executor, { emissaoId, finalidade, usuarioId, ip })`.
 Executor é o objeto de `db.tx`, com `raw === client`; serviço usa `raw.query` do
@@ -429,15 +435,25 @@ Segredos são copiados para evitar mutação externa. O serviço grava apenas o 
 ativo e consulta todas as versões configuradas. Conta isolada não exige HMAC.
 
 Guarda de cobertura rejeita versão não configurada presente na janela IP de 15 min,
-inclusive registros futuros. Essa consulta global requer avaliação de custo no
-rehearsal. Não comprova consistência do segredo entre instâncias: `key_id` deve
+inclusive registros futuros. O rehearsal mediu até 10.000 eventos sintéticos,
+mas o custo por volume recente ainda exige avaliação operacional. Não comprova
+consistência do segredo entre instâncias: `key_id` deve
 ter vínculo imutável com a chave dedicada; completude/rollout/retirada de versões
 permanecem decisões operacionais abertas. Sem rotação automática.
 
-Testes locais: **142/142 focados**, **829/829 completos**, sintaxe **4/4**; mocks e
-cliente simulado com `db.tx` real. Sem prova de concorrência PostgreSQL real.
-Rehearsal pendente; Etapa 09 não concluída. Sem ativação HTTP, associação outbox/
-desafio, SMTP, limpeza, mudança de schema ou D1–D8.
+Testes locais prévios: **142/142 focados**, **829/829 completos**, sintaxe **4/4**.
+Rehearsal final: **129/129 provas**, incluindo **107 da Etapa 09**, com concorrência
+PostgreSQL real no alcance documentado. Histórico: 141 checagens, 137 aprovações,
+quatro falhas intermediárias do harness corrigidas e dois erros PostgreSQL
+inesperados na inicialização abortada antes do serviço; nenhum na execução corrigida.
+
+Migration 08 aplicada uma única vez na homologação permanente, ledger **id 7**,
+SHA-256 `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
+Quotas vazias; **89 tabelas / 54.394 linhas herdadas preservadas**. Catálogo:
+**1.717 atributos ativos + dez descartados = 1.727 entradas**. Branch permanente
+preservada. [Evidências e limites](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
+Sem ativação HTTP, associação outbox/desafio, SMTP, limpeza ou implantação em
+produção. Sem nova migration ou alteração de D1–D8; Etapa 10 não iniciada.
 
 ## DECISÃO CANÔNICA — auditoria
 

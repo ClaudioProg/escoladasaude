@@ -4,12 +4,15 @@ Projeto: **Plataforma Escola da Saúde — V3**.
 
 Branch: `revisao-premium-bloco-1-auth`.
 
-Atualização documental: 2026-10-09.
-HEAD versionado e base local da Etapa 09:
-`aceb73ac845542255b843e704525084e90654f6c`, fechamento da Etapa 08.
-Confirmar HEAD/status ao retomar; Etapa 09 permanece somente no worktree.
+Atualização documental: 2026-10-13.
+HEAD do núcleo da Etapa 09, versionado/publicado na branch:
+`a6f49e6c15157f92b3b06d203213a27b7c454182`.
+Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 
-Última etapa funcional concluída: **07 — proteção de login/reset concorrentes**.
+Última etapa concluída: **09 — núcleo transacional de quotas compartilhadas**,
+com revisão independente e rehearsal PostgreSQL isolado aprovados em 13/10/2026.
+Etapa 10 não iniciada neste fechamento.
+Proteção de login/reset concorrentes da Etapa 07 permanece aprovada.
 Etapas **01–06 versionadas na branch**; Etapa 07 com **fechamento local aprovado**.
 Etapa 04 documental incorporada em `3247b3d305234414a493e60097d1bae8e0b238d1`;
 manutenção do inventário de migrations em `dd0722b54a3837994eda44ae7434179db1ccbca1`.
@@ -26,36 +29,48 @@ Revisão independente aprovada pelo responsável em **09/10/2026**. Migration
 três B-trees adicionais e FK imediata RESTRICT.
 
 Validação prévia: **149/149 testes locais**, sintaxe JS 2/2, dry-run oficial e
-**57/57 provas PostgreSQL aprovados**. Migration aplicada somente na branch Neon
-descartável `br-super-wave-adut7rdn` (`rehearsal-etapa-08-descartavel`), filha do
-clone auth-recuperação. Ledger **id 7**, SHA-256
+**57/57 provas PostgreSQL aprovados**. Na Etapa 08, migration aplicada somente na
+branch descartável `br-super-wave-adut7rdn` (`rehearsal-etapa-08-descartavel`),
+já excluída, filha do clone auth-recuperação. Ledger **id 7**, SHA-256
 `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
 Tabela final vazia; dados herdados preservados conforme relatório aprovado.
 Ver [rehearsal](migrations.md#etapa-08--expand-concluído-rehearsal-aprovado) e
 [evidências](testes-e-evidencias.md#etapa-08--expand-concluído--rehearsal-e-revisão-aprovados).
 
 O fechamento documental/Git não repete testes nem executa SQL, migration ou
-operações Neon. Branch de rehearsal preservada. Aprovação isolada não significa
-implantação em produção; não houve deploy ou merge na main.
+operações Neon. Homologação permanente `v3-homologacao` (`br-round-union-adok19ir`)
+preservada; a branch descartável da Etapa 08 não é mais alvo de retomada.
+Aprovação isolada não significa implantação em produção; não houve deploy ou merge na main.
 
-Etapa atual: **09 — NÚCLEO LOCAL IMPLEMENTADO / REHEARSAL PENDENTE**.
+Etapa 09: **NÚCLEO VERSIONADO / REHEARSAL E REVISÃO APROVADOS**.
 Decisão **A aprovada**: três finalidades compartilham os limites por conta e IP.
 `authQuotaService.js` / `authQuotaIp.js` e testes locais criados; **142/142 focados**,
 **829/829 backend completos**, sintaxe **4/4**. Suíte completa executada uma vez.
 Sem novas migrations ou import do serviço nas rotas/controller/server.
 
-API e limites em [decisões](decisoes-canonicas.md#etapa-09--núcleo-transacional-local-sem-integração).
+API e limites em [decisões](decisoes-canonicas.md#etapa-09--núcleo-transacional-aprovado-em-rehearsal-sem-integração).
 Usar executor de `db.tx` READ COMMITTED de escrita, uma emissão por transação;
 usuário antes dos advisory locks, clock único após locks. Aceita aguarda commit
 externo; erros críticos devem abortar o chamador. Sem retries SMTP contabilizados.
 
-Próximo passo: revisão do núcleo e rehearsal PostgreSQL proporcional sob
-nova autorização, conforme [plano](testes-e-evidencias.md#plano-proporcional-de-rehearsal-da-etapa-09).
-**Etapa 09 não concluída**, sem concorrência real comprovada. Proxies efetivos,
-segredo dedicado/rotação, integração desafio/outbox/HTTP e limpeza operacional
-48 h pendentes. Solicitações sem emissão não receberam política. Rate limit
-legado e D1–D8 preservados. Sem Neon, SQL real, migration, SMTP real, commit,
-push ou deploy na Etapa 09.
+Rehearsal: **129/129 provas finais**, incluindo **107 da Etapa 09**. Histórico:
+**141 checagens executadas, 137 aprovações, quatro falhas intermediárias do harness
+corrigidas**, mais dois erros PostgreSQL inesperados na inicialização abortada
+antes do serviço; nenhum inesperado na execução corrigida.
+
+Migration 08 aplicada uma única vez em `v3-homologacao`, ledger **id 7**, SHA-256
+`a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a` inalterado;
+segunda execução fez skip. Tabela de quotas **vazia**; **89 tabelas / 54.394 linhas
+herdadas preservadas**. Catálogo: **1.717 atributos ativos + dez descartados =
+1.727 entradas**. [Evidências e limitações](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
+
+O próximo trabalho depende de autorização própria; **não iniciar Etapa 10 neste
+fechamento**. Custo da guarda HMAC sujeito à avaliação operacional; proxy efetivo,
+segredo dedicado/rotação, integração desafio/outbox/HTTP e limpeza de 48 h
+pendentes. Solicitações sem emissão não receberam política. Rate limit legado
+e D1–D8 preservados. Sem ativação HTTP, SMTP, limpeza, outbox ou produção.
+Este fechamento somente documental/Git não repete testes/rehearsal nem executa
+SQL, migrations, operações Neon, deploy ou merge.
 
 Estado funcional relevante:
 
@@ -121,7 +136,8 @@ alvo. A documentação não exige acesso a banco.
    de senhas e demais pendências. Writers Argon2id ainda exigem aprovação e
    compatibilidade; o fechamento da Etapa 07 não os ativa. Novas operações em
    banco/produção exigem autorização e preflight próprios; preservar a branch
-   Neon descartável e as evidências existentes.
+   permanente `v3-homologacao` e as evidências existentes. Não usar a branch
+   descartável da Etapa 08 já excluída como origem ou alvo.
 5. Preservar decisões 1A/2A/3A/4A/5B/6A/7A e pendências D1–D8. Requisições já
    autenticadas antes do commit podem terminar. Não reduzir versões/reativar sessões
    em rollback. Revisão independente e rehearsal da Etapa 07 já aprovados;

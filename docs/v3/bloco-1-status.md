@@ -1,15 +1,17 @@
 # Bloco 1 — estado real
 
-Atualização documental: 2026-10-09. Branch: `revisao-premium-bloco-1-auth`.
-Último commit versionado, fechamento da Etapa 08 e base da Etapa 09:
-`aceb73ac845542255b843e704525084e90654f6c`.
-Etapa 09 somente no worktree local, sem commit/push ou ativação nas rotas.
+Atualização documental: 2026-10-13. Branch: `revisao-premium-bloco-1-auth`.
+HEAD do núcleo da Etapa 09, versionado e publicado na branch:
+`a6f49e6c15157f92b3b06d203213a27b7c454182`.
+Revisão independente e rehearsal PostgreSQL isolado aprovados em 13/10/2026.
+Sem ativação nas rotas ou implantação em produção.
 
 ## FECHADO / versionado na branch
 
 **FATO DO REPOSITÓRIO:** os commits abaixo existem e são ancestrais do HEAD.
-"Publicado" neste registro significa incorporado ao histórico da branch V3;
-publicação remota/deploy e aplicação em produção não foram comprovados nesta etapa.
+"Publicado" neste registro significa incorporado ao histórico da branch V3.
+O HEAD da Etapa 09 também foi conferido no remoto; deploy e aplicação em
+produção não foram comprovados neste fechamento.
 Fechamento de uma fundação não significa integração completa do contrato V3.
 
 | Item fechado | Commit comprovado | Alcance |
@@ -91,22 +93,29 @@ Sem backfill, alteração de objetos legados, writer, serviço de quotas ou limp
 - **149/149 testes locais aprovados**, sintaxe JS 2/2 e dry-run oficial aprovados.
   **57/57 provas PostgreSQL aprovadas**, sem erros PostgreSQL inesperados.
   Nenhum teste reexecutado neste fechamento documental/Git.
-- Migration aplicada **somente** na branch Neon descartável
+- Na Etapa 08, migration aplicada **somente** na branch Neon descartável
   `br-super-wave-adut7rdn` (`rehearsal-etapa-08-descartavel`), filha do clone
   auth-recuperação. Ledger **id 7**, SHA-256
   `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`.
   Tabela final **vazia (0 linhas)**; segunda execução oficial fez skip.
+  Essa branch descartável já foi excluída; o histórico do ensaio permanece.
+  A aplicação posterior em `v3-homologacao` consta na Etapa 09 abaixo.
 - Conforme o relatório aprovado, dados das **89 tabelas herdadas / 54.394 linhas**
   e os seis registros anteriores do ledger preservados; catálogo legado também
   preservado. Limites e método em [evidências](testes-e-evidencias.md#etapa-08--expand-concluído--rehearsal-e-revisão-aprovados).
-- Quotas, HMAC operacional, limpeza de 48 horas, integração e **Etapa 09 pendentes**.
-  Primeira emissão e janelas canônicas mantidas como contrato futuro; rate limit
-  legado intacto. Composição de finalidades, falhas de emissão, origem do IP,
-  rotação HMAC e operação da limpeza continuam abertas; D1–D8 preservadas.
+- Naquele fechamento, o núcleo de quotas/HMAC e a Etapa 09 ainda eram pendentes;
+  agora estão implementados e aprovados no alcance abaixo. Decisão A resolve
+  a composição de finalidades. Integração, falhas/solicitações sem emissão,
+  origem confiável do IP, rotação operacional HMAC e limpeza de 48 horas
+  continuam abertas; rate limit legado e D1–D8 preservados.
 - Aprovação do rehearsal isolado não comprova implantação/funcionamento em produção.
   Este fechamento não executa SQL, migration, operações Neon, SMTP ou deploy.
 
-## ETAPA 09 — NÚCLEO LOCAL IMPLEMENTADO / REHEARSAL PENDENTE
+## ETAPA 09 — NÚCLEO VERSIONADO / REHEARSAL E REVISÃO APROVADOS
+
+Fechamento aprovado em **13/10/2026**, após revisão independente do código em
+`a6f49e6c15157f92b3b06d203213a27b7c454182`, relatório do rehearsal e verificações
+independentes no Neon, conforme instrução do responsável.
 
 Decisão funcional **A aprovada**: confirmação, alteração de e-mail e recuperação
 de senha compartilham os mesmos limites por conta e IP. Núcleo em
@@ -124,11 +133,28 @@ HMAC em [authQuotaIp](../../backend/src/services/authQuotaIp.js), sem nova migra
 - HMAC-SHA-256 com segredo dedicado injetado, versões explícitas e guarda contra
   omissão de versões presentes na janela IP; sem leitura de headers/ambiente,
   configuração de segredo em produção ou rotação automática.
-- **Etapa 09 não concluída.** Sem concorrência PostgreSQL real comprovada ou
-  rehearsal. Proxy efetivo, configuração/rotação de chaves, integração e limpeza
-  operacional de 48 horas pendentes. Solicitações sem emissão não receberam política.
-- Rotas/controller/server, rate limit legado, frontend, schema e D1–D8 preservados.
-  Sem Neon, SQL real, migration, SMTP real, commit, push ou deploy nesta etapa.
+- **129/129 provas finais do rehearsal aprovadas**, incluindo **107 da Etapa 09**
+  (99 com SQL/transações reais e oito validações JavaScript). Concorrência real,
+  locks, janelas, replay, rollback e HMAC comprovados no alcance do ensaio.
+- Histórico: **141 checagens executadas, 137 aprovações e quatro falhas do harness
+  corrigidas**. Dois erros PostgreSQL inesperados na inicialização abortada antes
+  do serviço, sem eventos; **nenhum inesperado na execução corrigida**.
+- Migration 08 aplicada uma única vez em `v3-homologacao`
+  (`br-round-union-adok19ir`), ledger **id 7**, SHA-256
+  `a9b2f706473ff160f7dfac16eb36eecf7f2d78862ea01593193c9e2f45e8901a`;
+  segunda execução fez skip. Tabela de quotas **vazia** e **89 tabelas / 54.394
+  linhas herdadas preservadas**. Catálogo: **1.717 atributos ativos + dez
+  descartados = 1.727 entradas**. Branch permanente preservada.
+- Limites: adaptador com cliente PostgreSQL real, sem integração definitiva HTTP/
+  `db.tx`; quatro emissões simultâneas por cenário, sem estresse prolongado. Custo
+  da guarda HMAC ainda sujeito à avaliação operacional.
+  [Detalhes e limitações](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
+- Proxy efetivo, configuração/rotação operacional HMAC, integração e limpeza de
+  48 horas pendentes. Solicitações sem emissão não receberam política.
+- Sem ativação HTTP, SMTP, limpeza, integração com outbox ou produção. Rotas,
+  rate limit legado, frontend e D1–D8 preservados. Este fechamento somente
+  documental/Git não repete testes/rehearsal nem executa SQL, migration, operações
+  Neon, deploy, merge ou Etapa 10.
 
 ## PARCIAL
 
@@ -174,12 +200,12 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Outbox dedicada, integração do núcleo local de quotas PostgreSQL,
+- Outbox dedicada, integração do núcleo aprovado de quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–07 estão versionadas; a Etapa 08 expand tem rehearsal e revisão
-aprovados e integra o commit deste fechamento. Nenhum desses estados comprova produção.
+Etapas 01–09 estão versionadas na branch; a Etapa 08 expand e o núcleo da
+Etapa 09 têm rehearsal e revisão aprovados. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).
