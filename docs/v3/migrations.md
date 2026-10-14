@@ -1,7 +1,7 @@
 # Migrations V3
 
-Atualização documental: **13/10/2026**. HEAD da implementação da Etapa 10:
-`7bb864245409155a9130756911ce531b6b5454ca`. Revisão independente e rehearsal aprovados.
+Atualização documental: **14/10/2026**. HEAD da implementação da Etapa 11:
+`d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
 **FATO DO REPOSITÓRIO:** inventário V3 preservado; a Etapa 09 não cria migration.
 Migration 08 com rehearsal e revisão independente aprovados, aplicação histórica
 na branch descartável da Etapa 08 (já excluída) e aplicação única na homologação
@@ -145,36 +145,62 @@ prova criptografia/AAD ou unicidade histórica de nonce após remoção.
 
 Duração de lease, implantação do worker, cronograma de alteração e política
 operacional de limpeza permanecem pendentes; cronogramas canônicos existentes e
-at-least-once sem exactly-once preservados. **Etapas 11 e 12 pendentes**: sem
-criptografia operacional, enqueue, worker, SMTP, fencing integral, exactly-once,
-limpeza operacional ou implantação em produção. Este fechamento documental/Git
-não executa SQL, operações Neon, testes, deploy, merge ou Etapa 11.
+at-least-once sem exactly-once preservados. No fechamento da Etapa 10, as Etapas
+11/12 e criptografia/enqueue estavam pendentes. A Etapa 11 foi aprovada depois,
+conforme seção abaixo. Worker, SMTP, fencing integral, exactly-once, limpeza
+operacional e implantação em produção continuam pendentes. O fechamento documental/Git
+da Etapa 10 não executou SQL, operações Neon, testes, deploy, merge ou Etapa 11.
 Conteúdo/checksum da migration aplicada são imutáveis; correções futuras exigem
 plano explícito. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
 
-## Etapa 11 — núcleo local sem nova migration
+## Etapa 11 — criptografia e enqueue aprovados, sem nova migration
 
-Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`, implementação local de 13/10/2026 para
-revisão/rehearsal, sem fechamento da etapa. `authOutboxCrypto` e `authEnqueueService`
-usam exclusivamente os expands aprovados 08–10: quota/desafio/mensagem com mesmo
-UUID técnico, bytea cifrado opaco com versão de formato, nonce/tag/key_id e snapshot
-imutável. Prazos PostgreSQL de 24 h/30 min e microssegundos preservados; auditoria
-crítica no mesmo executor do caller. Nenhuma migration nova, alteração do SQL
-das migrations/runner, mudança de estrutura/checksum ou aplicação em banco. Ledger id 8/SHA da Etapa 10 é evidência
-histórica aprovada, não nova consulta de banco desta tarefa.
+Implementação em `d9acb48b2f13ae998bfc688f1834511f0e3771bd`, base
+`a745a9d18c56ff50941a7f01131d32d1cbf21e5e`. **Etapa encerrada em 14/10/2026**, com
+revisão independente aprovada pelo responsável e rehearsal consolidado aprovado.
+`authOutboxCrypto` e `authEnqueueService` usam exclusivamente os expands aprovados
+08–10: quota/desafio/mensagem com mesmo UUID técnico, bytea cifrado opaco com
+versão de formato, nonce/tag/key_id e snapshot imutável. Prazos PostgreSQL de
+24 h/30 min e microssegundos preservados; auditoria crítica no executor do caller.
+**Nenhuma nova migration ou reaplicação**; estruturas, SQL, runner e checksums
+preservados. Ledger da homologação permanece com **oito registros**, incluindo
+id 8/SHA da Etapa 10; nenhuma consulta ao banco neste fechamento documental/Git.
 
-Compatibilidade local conferida com **134/134 novos, 290/290 focados e 993/993
-completos**, JS 4/4 e gramática PG16 de 24 consultas; persistência, constraints,
-locks/casts/bytea e atomicidade integrada ainda exigem PostgreSQL real. O replay
-exige vínculo íntegro quota/desafio/mensagem; expurgo independente futuro não é
-presumido seguro nem implementado. Colisões detectáveis de nonce/hash falham fechado;
-nonce seguro não promete unicidade histórica após remoção do envelope.
+Validações anteriores: **47/47 criptografia, 87/87 enqueue, 290/290 focados e
+993/993 backend completo**; JS 4/4 e gramática PG16 de 24 consultas. Rehearsal:
+**37/37 provas únicas aprovadas**, **38 tentativas** com uma falha histórica do
+instrumento de observação corrigida, **oito erros PostgreSQL esperados e zero
+inesperados**. Dez verificações iniciais de preflight não recontadas; seis controles
+complementares separados. Três finalidades, criptografia real, atomicidade, replay,
+concorrência e rollback aprovados no alcance documentado. Conexões distintas,
+`pg_backend_pid()`, `pg_stat_activity` e `pg_blocking_pids` demonstraram esperas
+reais. [Evidências e limites](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-11-aprovado).
 
-D1/D4 e integrações/autorização permanecem abertas; somente núcleo existente seguro,
-sem cadastro pendente, reativação, recuperação não confirmada ou políticas novas.
-Não executar SQL/Neon, migrations, SMTP, worker, retries, claim/ack, limpeza,
-rotas públicas, merge, deploy ou Etapa 12. `v3-homologacao` preservada.
-[Rehearsal necessário](testes-e-evidencias.md#rehearsal-postgresql-necessário-da-etapa-11).
+Duas limpezas transacionais autorizadas restauraram o trigger de proteção do
+perfil-base antes do commit; **zero resíduos sintéticos**. Sequência da auditoria
+**349 → 358 → 364**, sem reinicialização. A conferência independente no Neon
+informada pelo responsável confirmou **2.668 usuários / 2.774 vínculos**,
+outbox/quotas/desafios vazios, auditorias sintéticas removidas, trigger original
+habilitado, **oito registros no ledger** e **89 tabelas originais / 54.394 linhas
+preservadas**, com zero divergências de conteúdo após excluir os registros das
+migrations 08 e 10. Homologação permanente `v3-homologacao` preservada. O recorte
+original é distinto das contagens herdadas históricas do rehearsal da Etapa 10.
+
+Replay exige vínculo íntegro quota/desafio/mensagem; expurgo independente futuro
+não é presumido seguro nem implementado. Colisões detectáveis de nonce/hash
+falham fechado; nonce não promete unicidade histórica após remoção do envelope.
+**D1–D8 e demais pendências preservadas; Etapa 12 não iniciada**. A Etapa 11 não
+implementa worker SMTP, retries, claim/ack, ativação HTTP, integrações públicas ou
+exactly-once; limpeza operacional e fencing integral pendentes. Não repetir testes
+ou operações PostgreSQL/Neon, executar SQL/migrations, SMTP, deploy ou merge
+neste fechamento.
+
+Decisão de implantação aprovada: **uma única plataforma pública no endereço
+atual, modernizada progressivamente por blocos**, com produção operacional durante
+a transição e homologação separada. Substituição da autenticação exige validação
+integral das integrações essenciais, plano de implantação/reversão e autorização
+expressa; não presumir duas plataformas públicas ou implantação automática após
+o Bloco 1. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
 
 ## Estrutura expand de e-mail/recuperação
 

@@ -5,8 +5,21 @@ Referência: baseline de 2026-10-05, código em
 das Etapas 04/05/06/07/08/09/10/11 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
-Atualização da Etapa 09: **13/10/2026**, código em
-`a6f49e6c15157f92b3b06d203213a27b7c454182`, revisão independente e rehearsal aprovados.
+Atualização da Etapa 11: **14/10/2026**, código em
+`d9acb48b2f13ae998bfc688f1834511f0e3771bd`, revisão independente e rehearsal aprovados.
+
+## DECISÃO CANÔNICA — implantação progressiva na plataforma pública atual
+
+Decisão já aprovada pelo responsável, incorporada neste fechamento de **14/10/2026**:
+**uma única plataforma pública, mantendo o endereço atual, com modernização
+progressiva por blocos**. A produção deverá continuar operacional durante a
+transição; homologação e produção permanecem separadas.
+
+A substituição da autenticação só ocorrerá após **validação integral das integrações
+essenciais**, **plano de implantação/reversão** e **autorização expressa**. Não
+presumir duas plataformas públicas ou implantação automática após o fechamento
+do Bloco 1. O fechamento documental/Git da Etapa 11 não realiza essa substituição
+nem altera configurações de implantação; D1–D8 e demais pendências preservadas.
 
 ## DECISÃO CANÔNICA — identidade e perfis
 
@@ -337,10 +350,10 @@ os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 - Retenção dos registros de rate limit: 48 horas.
 
 **IMPLEMENTAÇÃO ATUAL:** o expand da outbox foi versionado e aprovado na Etapa 10
-abaixo, com aplicação somente em homologação. O núcleo local de criptografia/
-enqueue da Etapa 11 está registrado abaixo; revisão/rehearsal, integração HTTP
-e worker continuam pendentes. O núcleo transacional da Etapa 09 está implementado
-e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
+abaixo, com aplicação somente em homologação. O núcleo de criptografia/enqueue
+da Etapa 11 está registrado abaixo, com revisão independente e rehearsal aprovados
+em 14/10/2026; integração HTTP e worker continuam pendentes. O núcleo transacional
+da Etapa 09 está implementado e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
 em 13/10/2026, sem ativação nas rotas. O expand da Etapa 08 foi ensaiado na branch
 descartável `br-super-wave-adut7rdn` (já excluída), aprovado em 09/10/2026;
 posteriormente aplicado uma única vez na homologação permanente `v3-homologacao`
@@ -516,15 +529,18 @@ sem worker/claim/ack ou fencing integral. Outbox e quotas vazias; **90 tabelas /
 54.395 linhas herdadas preservadas**. Homologação permanente preservada.
 [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
 
-Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
-exactly-once, limpeza operacional ou implantação em produção. **Etapas 11 e 12
-pendentes**; sem mudança de D1–D8 ou contratos 01–09 e sem início da Etapa 11.
+No fechamento da Etapa 10, criptografia operacional/enqueue e Etapas 11/12 estavam
+pendentes. A Etapa 11 foi aprovada depois, conforme seção abaixo. Worker, SMTP,
+fencing integral, exactly-once, limpeza operacional e implantação em produção
+continuam pendentes; D1–D8 e contratos 01–09 preservados.
 
-### Etapa 11 — núcleo local de criptografia e enqueue, sem ativação
+### Etapa 11 — criptografia e enqueue aprovados, sem ativação pública
 
-Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`; implementação local de 13/10/2026
-para revisão independente. **Etapa 11 não concluída**. D1–D8 e contratos anteriores
-preservados; escolhas técnicas abaixo não definem políticas funcionais/operacionais.
+Implementação de 13/10/2026 em `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
+base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`. **Etapa encerrada**, com revisão
+independente aprovada pelo responsável em **14/10/2026** e rehearsal PostgreSQL
+consolidado aprovado. D1–D8 e contratos anteriores preservados; escolhas técnicas
+abaixo não definem políticas funcionais/operacionais.
 
 API criptográfica: `createAuthOutboxCrypto({ activeKeyId, keys })`, com entradas
 `{ keyId, secret }` de exatamente 32 bytes, copiadas. `cifrar(contexto, Buffer)` e
@@ -581,12 +597,30 @@ confirmado. Criação/retomada de cadastro e colisões/provas D1, recuperação 
 confirmada/reativação D4, identidade pública por CPF e autorização/reautenticação
 HTTP permanecem fora deste núcleo. Não alterar D1–D8 por inferência.
 
-**134/134 novos, 290/290 focados, 993/993 completos**, JS 4/4 e 24 consultas no
-parser PG16 aprovados; testes de persistência/locks usam cliente e modelo simulados.
-Sem PostgreSQL real ou revisão independente aprovados, Etapa 11 continua aberta.
-Sem worker/SMTP/retries/claim/ack/fencing/limpeza, rotas públicas, Neon, produção,
-merge, deploy ou início da Etapa 12.
-[Evidências e rehearsal necessário](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue-local--revisão-e-rehearsal-pendentes).
+**47/47 criptografia, 87/87 enqueue, 290/290 focados e 993/993 completos**,
+JS 4/4 e 24 consultas no parser PG16 aprovados anteriormente; testes locais de
+persistência/locks usam modelo simulado, distinto do rehearsal real aprovado.
+**37/37 provas únicas**, em **38 tentativas** com uma falha histórica do observador
+corrigida; **oito erros PostgreSQL esperados e zero inesperados**. Dez verificações
+de preflight e seis controles complementares separados das 37 provas. Três
+finalidades, criptografia real, atomicidade, replay, concorrência e rollback
+aprovados no alcance documentado; conexões distintas, `pg_backend_pid()`,
+`pg_stat_activity` e `pg_blocking_pids` comprovaram esperas e bloqueios.
+
+Duas limpezas transacionais autorizadas restauraram o trigger de proteção do
+perfil-base antes do commit. Zero resíduos sintéticos; sequência de auditoria
+**349 → 358 → 364**, sem reinicialização. A conferência independente no Neon
+informada pelo responsável confirmou **2.668 usuários / 2.774 vínculos**, tabelas
+de outbox/quotas/desafios vazias, auditorias sintéticas removidas, trigger original
+habilitado, oito registros no ledger e **89 tabelas originais / 54.394 linhas
+preservadas**, sem divergências de conteúdo após excluir os registros das
+migrations 08 e 10. Homologação permanente preservada.
+
+A Etapa 11 não implementa worker SMTP, retries, claim/ack, ativação HTTP,
+integrações públicas ou exactly-once; fencing integral e limpeza operacional
+pendentes. Este fechamento documental/Git não reexecuta testes/SQL/Neon nem
+realiza SMTP, merge ou deploy. **Etapa 12 não iniciada**, demais pendências
+preservadas. [Evidências e limites](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue--rehearsal-e-revisão-aprovados).
 
 ## DECISÃO CANÔNICA — auditoria
 

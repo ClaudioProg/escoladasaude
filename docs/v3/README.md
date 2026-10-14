@@ -2,6 +2,8 @@
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
+Atualização documental e fechamento da Etapa 11: **14/10/2026**.
+HEAD da implementação aprovada: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 Fechamento documental da Etapa 09: **13/10/2026**. Núcleo implementado e publicado
 na branch em `a6f49e6c15157f92b3b06d203213a27b7c454182`, com revisão independente
 e rehearsal PostgreSQL isolado aprovados. A aprovação foi fornecida pelo
@@ -84,30 +86,55 @@ Outbox e quotas vazias ao final; **90 tabelas / 54.395 linhas herdadas preservad
 Integridade referencial, CASCADE, rollback, identidade, estados, leases e suporte
 estrutural à seleção concorrente comprovados. Homologação permanente preservada.
 
-Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
-exactly-once, limpeza operacional ou implantação em produção. **Etapas 11 e 12
-pendentes**; Etapa 11 não iniciada. Este fechamento somente documental/Git não
+No fechamento da Etapa 10, criptografia operacional/enqueue e as Etapas 11/12
+estavam pendentes. A Etapa 11 foi aprovada posteriormente, conforme seção abaixo.
+Worker, SMTP, fencing integral, exactly-once, limpeza operacional e implantação
+em produção continuam pendentes. O fechamento da Etapa 10 documental/Git não
 repete testes/rehearsal nem executa SQL ou operações Neon. Ver
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação).
 
-**Dez etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+**Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
-Etapa 11 — **criptografia e enqueue implementados localmente para revisão**,
-sobre `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`. Serviços isolados
-`authOutboxCrypto.js` e `authEnqueueService.js`: AES-256-GCM com chaves externas,
-AAD versionada, token opaco, composição de quotas/desafios/outbox/auditoria no
-executor explícito do chamador e resultado genérico sem token bruto.
-**134/134 testes novos, 290/290 focados e 993/993 completos** aprovados;
-suíte completa executada uma vez, sintaxe JS 4/4 e 24 consultas no parser PG16.
-**Etapa 11 aberta: revisão independente e rehearsal PostgreSQL pendentes**.
-Casos de cadastro pendente/D1, recuperação não confirmada/reativação/D4 e
-integração/autorização HTTP permanecem fora do núcleo; não se definiram políticas.
-Sem nova migration, SQL externo, Neon, SMTP, worker, claim/ack, limpeza, ativação,
-merge ou deploy. Etapa 12 não iniciada; contagem permanece em **dez de 57 etapas
-concluídas**, sem equivalência com avanço ponderado. Ver
-[evidências e rehearsal necessário](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue-local--revisão-e-rehearsal-pendentes).
+Etapa 11 — **criptografia e enqueue transacional encerrados**, com revisão
+independente aprovada em **14/10/2026** pelo responsável. Implementação em
+`d9acb48b2f13ae998bfc688f1834511f0e3771bd`, sobre `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`.
+`authOutboxCrypto.js` e `authEnqueueService.js` compõem AES-256-GCM/AAD versionada,
+token opaco e quotas/desafio/outbox/auditoria no executor transacional do chamador.
+Validações anteriores: **47/47 criptografia, 87/87 enqueue, 290/290 focados e
+993/993 backend completo**; não reexecutadas neste fechamento.
+
+Rehearsal isolado: **37/37 provas únicas aprovadas**, **38 tentativas históricas**
+com uma falha do instrumento de observação posteriormente corrigida; **oito erros
+PostgreSQL esperados e zero inesperados**. As **dez verificações do preflight** e
+os **seis controles complementares** têm contagens separadas. Três finalidades,
+criptografia real, atomicidade, replay, concorrência e rollback aprovados no
+alcance documentado, com conexões distintas e PIDs SQL reais.
+Duas limpezas transacionais autorizadas restauraram o trigger de proteção do
+perfil-base antes do commit; **zero resíduos sintéticos**. Sequência de auditoria:
+**349 → 358 → 364**, sem reinicialização.
+
+A conferência independente no Neon informada pelo responsável confirmou **2.668
+usuários, 2.774 vínculos de perfis**, outbox/quotas/desafios vazios, auditorias
+sintéticas removidas, trigger original habilitado e **oito registros no ledger**.
+**89 tabelas originais / 54.394 linhas preservadas**, com zero divergências de
+conteúdo após excluir os registros das migrations 08 e 10. `v3-homologacao`
+preservada. Fontes, contagens e limites em [evidências](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue--rehearsal-e-revisão-aprovados).
+
+**DECISÃO CANÔNICA aprovada pelo responsável:** uma única plataforma pública,
+mantendo o endereço atual, com modernização progressiva por blocos. A produção
+continua operacional durante a transição; homologação e produção permanecem
+separadas. A substituição da autenticação exige validação integral das integrações
+essenciais, plano de implantação/reversão e autorização expressa. O fechamento
+do Bloco 1 não autoriza implantação automática nem pressupõe duas plataformas
+públicas. Ver [decisão de implantação](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
+
+D1–D8 e demais pendências preservadas. A Etapa 11 não implementa worker SMTP,
+retries, claim/ack, ativação HTTP, integrações públicas ou exactly-once; limpeza
+operacional e fencing integral permanecem fora do núcleo. **Etapa 12 não iniciada**.
+Este fechamento altera somente os seis documentos autorizados; não repete testes
+ou operações PostgreSQL/Neon, nem executa SMTP, deploy ou merge.
 
 Ao atualizar um documento, registrar HEAD/data, origem da decisão ou evidência,
 ambiente, limites da comprovação e pendências relacionadas. Alterar o status
@@ -129,7 +156,8 @@ contrato JWT/perfil único vigente no legado. O middleware de sessão já possui
 contrato alvo, mas sua existência não prova migração de todas as rotas.
 
 Nesta baseline, decisões são transcritas da aprovação explícita da Etapa 04 e das
-decisões anteriores fornecidas pelo responsável. Resultados PostgreSQL são
+decisões anteriores fornecidas pelo responsável, incluindo o fechamento da Etapa
+11 e a decisão de implantação aprovados em 14/10/2026. Resultados PostgreSQL são
 históricos, conforme [evidências](testes-e-evidencias.md); nenhum banco foi
 consultado neste fechamento. O HEAD do núcleo foi conferido no remoto da branch
 V3; publicação Git não comprova implantação ou funcionamento em produção.

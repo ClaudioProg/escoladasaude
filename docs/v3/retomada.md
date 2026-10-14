@@ -4,20 +4,27 @@ Projeto: **Plataforma Escola da Saúde — V3**.
 
 Branch: `revisao-premium-bloco-1-auth`.
 
-Atualização documental: 2026-10-13.
-HEAD da implementação da Etapa 10, versionado/publicado na branch:
-`7bb864245409155a9130756911ce531b6b5454ca`.
+Atualização documental: 2026-10-14.
+HEAD da implementação da Etapa 11, versionado/publicado na branch:
+`d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 
-Última etapa concluída: **10 — expand da outbox de autenticação**, com revisão
-independente e rehearsal PostgreSQL isolado aprovados em **13/10/2026**.
-Etapas **01–10 encerradas**. **11 implementada localmente para revisão/rehearsal**,
-sobre `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`; **12 pendente e não iniciada**.
-A Etapa 11 não está concluída; confirmar o commit de implementação no histórico.
+Última etapa concluída: **11 — criptografia e enqueue transacional**, com revisão
+independente aprovada pelo responsável em **14/10/2026** e rehearsal PostgreSQL
+consolidado aprovado. Etapas **01–11 encerradas**; **12 não iniciada**.
+Implementação aprovada em `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 
-**Dez etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+**Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
+
+Decisão de implantação aprovada: **uma única plataforma pública, mantendo o
+endereço atual, com modernização progressiva por blocos**. Produção operacional
+durante a transição; homologação e produção separadas. A substituição da
+autenticação depende de validação integral das integrações essenciais, plano de
+implantação/reversão e autorização expressa. Não presumir duas plataformas
+públicas ou implantação automática após o fechamento do Bloco 1.
+[Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
 
 Proteção de login/reset concorrentes da Etapa 07 permanece aprovada.
 Etapas **01–06 versionadas na branch**; Etapa 07 com **fechamento local aprovado**.
@@ -72,8 +79,8 @@ herdadas preservadas**. Catálogo: **1.717 atributos ativos + dez descartados =
 1.727 entradas**. [Evidências e limitações](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-09-aprovado).
 
 A Etapa 09 está fechada; suas pendências de integração permanecem. A Etapa 10
-aprovada está registrada abaixo, sem avançar para a Etapa 11. Custo da guarda HMAC
-sujeito à avaliação operacional; proxy efetivo,
+aprovada está registrada abaixo; a Etapa 11 foi aprovada posteriormente. Custo da
+guarda HMAC sujeito à avaliação operacional; proxy efetivo,
 segredo dedicado/rotação, integração desafio/outbox/HTTP e limpeza de 48 h
 pendentes. Solicitações sem emissão não receberam política. Rate limit legado
 e D1–D8 preservados. Sem ativação HTTP, SMTP, limpeza, outbox ou produção.
@@ -93,19 +100,20 @@ identidade, estados, leases e suporte estrutural à seleção concorrente compro
 Outbox e quotas **vazias**; **90 tabelas / 54.395 linhas herdadas preservadas** e
 homologação permanente preservada. Nenhuma validação reexecutada neste fechamento.
 
-Limites: sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
+Limites no fechamento da Etapa 10: sem criptografia operacional, enqueue, worker,
+SMTP, fencing integral,
 exactly-once, limpeza operacional ou implantação em produção. Duração de lease,
 cronograma de alteração e política de limpeza continuam pendentes. Não confundir
 seleção concorrente estrutural com protocolo completo de claim/ack ou worker.
 No fechamento da Etapa 10, as Etapas 11 e 12 permaneceram pendentes. A
-implementação local da Etapa 11 está registrada abaixo e não inicia a Etapa 12.
+conclusão da Etapa 11 está registrada abaixo e não inicia a Etapa 12.
 Preservar a homologação permanente.
 Sem SQL, operações Neon, SMTP, deploy, merge ou novos testes no fechamento.
 Ver [contratos](decisoes-canonicas.md#etapa-10--outbox-aprovada-em-rehearsal-sem-ativação),
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação) e
 [evidências](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
 
-Etapa 11 — implementação local para revisão, sem fechamento:
+Etapa 11 encerrada em **14/10/2026**, implementação `d9acb48b2f13ae998bfc688f1834511f0e3771bd`:
 `authOutboxCrypto.js` / `authEnqueueService.js` e dois testes dedicados.
 AES-256-GCM real com chave externa 32, nonce aleatório 12, tag 16, AAD versionada
 vinculada a mensagem/desafio/finalidade/destinatário e leitura de chaves explícitas.
@@ -114,21 +122,33 @@ Enqueue no executor do caller, mesmo UUID nas três estruturas, tokens opacos de
 Relógio das quotas preserva microssegundos e prazos de 24 h/30 min; resposta
 normal genérica, sem token ou indicação da existência/aceitação de conta.
 
-**134/134 testes novos** (47 crypto/87 enqueue), **290/290 focados**, **993/993
-completos** (uma execução), JS 4/4 e gramática PG16 de 24 consultas aprovados.
-Sem acesso externo; teste de persistência/rollback é simulado. D1/D4 e integração
-HTTP/autorização permanecem bloqueios funcionais objetivos; o núcleo não emite
-para cadastro pendente ou recuperação não confirmada e não implementa reativação.
-Não presumir política nova nem autorização por conhecer versões de usuário.
+Validações anteriores: **47/47 criptografia, 87/87 enqueue, 290/290 focados e
+993/993 backend completo** (uma execução), JS 4/4 e gramática PG16 de 24 consultas.
+Rehearsal real aprovado: **37/37 provas únicas**, **38 tentativas** com uma falha
+histórica do observador corrigida, oito erros PostgreSQL esperados e zero
+inesperados. Dez verificações de preflight não recontadas; seis controles
+complementares separados. Três finalidades, criptografia real, atomicidade,
+replay, concorrência e rollback aprovados no alcance documentado. Conexões
+distintas, `pg_backend_pid()`, `pg_stat_activity` e `pg_blocking_pids` usados para
+comprovar esperas e bloqueios reais. [Rehearsal aprovado](testes-e-evidencias.md#rehearsal-postgresql-da-etapa-11-aprovado).
 
-Próxima ação depende de autorização: revisão e somente o
-[rehearsal PostgreSQL necessário](testes-e-evidencias.md#rehearsal-postgresql-necessário-da-etapa-11),
-na `v3-homologacao` preservada. Verificar binário, ledger/schema existentes e
-identidades sintéticas; não aplicar migration nova ou repetir o rehearsal 08–10.
-Não executar SMTP/worker, retries/claim/ack, limpeza operacional, frontend,
-ativação de rotas, SQL externo, Neon, merge ou deploy neste trabalho.
-**Etapa 12 não iniciada; contagem de concluídas permanece dez entre 57.**
-Ver [contratos](decisoes-canonicas.md#etapa-11--núcleo-local-de-criptografia-e-enqueue-sem-ativação).
+Duas limpezas transacionais autorizadas, trigger de proteção do perfil-base
+restaurado antes do commit; zero resíduos sintéticos. Sequência de auditoria
+**349 → 358 → 364**, sem reinicialização. Conferência independente no Neon informada
+pelo responsável: **2.668 usuários / 2.774 vínculos**, outbox/quotas/desafios vazios,
+auditorias sintéticas removidas, trigger original habilitado, oito registros no
+ledger, **89 tabelas originais / 54.394 linhas preservadas**, zero divergências de
+conteúdo após excluir os registros das migrations 08 e 10. `v3-homologacao`
+preservada, sem reset/exclusão; não repetir testes ou operações PostgreSQL.
+
+D1–D8 e demais pendências preservadas, inclusive D1/D4 e integração HTTP/autorização.
+O núcleo não emite para cadastro pendente ou recuperação não confirmada e não
+implementa reativação. A Etapa 11 não implementa worker SMTP, retries, claim/ack,
+ativação HTTP, integrações públicas ou exactly-once; limpeza operacional e
+fencing integral permanecem pendentes. **Etapa 12 não iniciada**. Este fechamento
+é somente documental/Git, sem SQL/Neon, testes, SMTP, deploy ou merge. Próxima
+etapa exige autorização própria; não há implantação automática do Bloco 1.
+Ver [contratos](decisoes-canonicas.md#etapa-11--criptografia-e-enqueue-aprovados-sem-ativação-pública).
 
 Estado funcional relevante:
 

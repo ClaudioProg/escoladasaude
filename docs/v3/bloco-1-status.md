@@ -1,9 +1,9 @@
 # Bloco 1 — estado real
 
-Atualização documental: 2026-10-13. Branch: `revisao-premium-bloco-1-auth`.
-HEAD da implementação da Etapa 10, versionado e publicado na branch:
-`7bb864245409155a9130756911ce531b6b5454ca`.
-Revisão independente e rehearsal PostgreSQL isolado aprovados em 13/10/2026.
+Atualização documental: 2026-10-14. Branch: `revisao-premium-bloco-1-auth`.
+HEAD da implementação da Etapa 11, versionado e publicado na branch:
+`d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
+Revisão independente aprovada em 14/10/2026, com rehearsal PostgreSQL isolado aprovado.
 Sem ativação nas rotas ou implantação em produção.
 
 ## FECHADO / versionado na branch
@@ -183,19 +183,22 @@ fechamento exclusivamente documental/Git, sem backfill ou alteração do legado.
 - Outbox e quotas **vazias** ao final; **90 tabelas / 54.395 linhas herdadas
   preservadas**, sete registros anteriores do ledger intactos. Homologação
   permanente preservada. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
-- Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
-  exactly-once, limpeza operacional ou implantação em produção. Etapas **11 e 12
-  pendentes**, sem início da Etapa 11. D1–D8 e Etapas 01–09 preservados.
+- No fechamento da Etapa 10, criptografia operacional/enqueue e Etapas 11/12
+  estavam pendentes. A Etapa 11 foi aprovada posteriormente, conforme seção abaixo.
+  Worker, SMTP, fencing integral, exactly-once, limpeza operacional e implantação
+  em produção continuam pendentes. D1–D8 e Etapas 01–09 preservados.
 - Este fechamento não executa SQL, operações Neon, SMTP, deploy, merge ou testes.
 
-**Dez etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+**Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
-## ETAPA 11 — CRIPTOGRAFIA E ENQUEUE LOCAL / REVISÃO E REHEARSAL PENDENTES
+## ETAPA 11 — CRIPTOGRAFIA E ENQUEUE / REHEARSAL E REVISÃO APROVADOS
 
-Implementação local em **13/10/2026**, base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`;
-commit único para revisão independente na branch V3. **Não é fechamento da etapa**.
+Implementação em `d9acb48b2f13ae998bfc688f1834511f0e3771bd`, de **13/10/2026**,
+base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e`. **Etapa encerrada em 14/10/2026**,
+com revisão independente aprovada pelo responsável após o rehearsal consolidado
+e a conferência independente no Neon. Fechamento atual exclusivamente documental/Git.
 
 - [Criptografia](../../backend/src/services/authOutboxCrypto.js): `node:crypto`,
   AES-256-GCM, chaves externas de 32 bytes, nonce aleatório 12, tag 16, AAD JSON
@@ -221,16 +224,39 @@ commit único para revisão independente na branch V3. **Não é fechamento da e
   não foram implementados ou decididos; este recorte não cria política canônica.
 - **47/47 criptografia + 87/87 enqueue = 134/134 novos**, **290/290 focados** com
   quotas/auditoria, **993/993 completos** (uma execução). JS 4/4 e gramática de
-  24 consultas PG16 aprovados; executor/atomicidade/concorrência local simulados.
-- **Revisão independente e PostgreSQL real pendentes**. Retenção futura não pode
+  24 consultas PG16 aprovados; testes locais de persistência/locks são simulados,
+  distintos do rehearsal real aprovado. Nenhum teste reexecutado neste fechamento.
+- **37/37 provas únicas PostgreSQL aprovadas** em **38 tentativas**; uma falha
+  histórica do observador corrigida, oito erros esperados e zero inesperados.
+  Dez verificações do preflight não recontadas nas 37; seis controles complementares
+  separados. Três finalidades, criptografia real, atomicidade, replay, concorrência
+  e rollback aprovados no alcance documentado. Conexões distintas, `pg_backend_pid()`,
+  `pg_stat_activity` e `pg_blocking_pids` comprovaram esperas e bloqueios reais.
+- Duas limpezas transacionais autorizadas, trigger de proteção do perfil-base
+  restaurado antes do commit, zero resíduos sintéticos. Sequência da auditoria
+  **349 → 358 → 364**, sem reinicialização. Conferência independente informada:
+  **2.668 usuários / 2.774 vínculos**, outbox/quotas/desafios vazios, auditorias
+  sintéticas removidas, trigger original habilitado, ledger com oito registros,
+  **89 tabelas originais / 54.394 linhas preservadas** e zero divergências de
+  conteúdo após excluir os registros das migrations 08 e 10; `v3-homologacao` preservada.
+- Retenção futura não pode
   desmembrar as identidades sem contrato próprio: quota sem mensagem, ou mensagem
   sem quota retida, falham fechado; sem reconstrução, emissão ou cobrança nova.
   Colisões detectáveis de nonce/hash são críticas, sem retry; não há unicidade
   histórica de nonce após remoção de envelope.
 - Migrations, serviços 08–10, db.tx, auditoria, rotas/controllers/server, frontend
-  e Vercel preservados. Sem Neon/SQL externo, SMTP, worker, retries, claim/ack,
-  limpeza, merge, deploy ou início da Etapa 12. D1–D8 intactos.
-  [Evidências e limites](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue-local--revisão-e-rehearsal-pendentes).
+  e Vercel preservados. O núcleo não implementa worker SMTP, retries, claim/ack,
+  ativação HTTP, integrações públicas ou exactly-once; limpeza operacional e
+  fencing integral pendentes. Sem SQL/Neon, testes, SMTP, merge ou deploy neste
+  fechamento. **Etapa 12 não iniciada**; D1–D8 e demais pendências intactos.
+  [Evidências e limites](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue--rehearsal-e-revisão-aprovados).
+
+Implantação aprovada: **uma única plataforma pública no endereço atual**, com
+modernização por blocos e produção operacional durante a transição. Homologação
+e produção separadas; substituir a autenticação somente após validação integral
+das integrações essenciais, plano de implantação/reversão e autorização expressa.
+O fechamento do Bloco 1 não autoriza implantação automática ou duas plataformas
+públicas. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
 
 ## PARCIAL
 
@@ -276,13 +302,13 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Revisão/rehearsal da Etapa 11 local e worker da Etapa 12, ainda pendentes;
-  integração do núcleo aprovado de quotas PostgreSQL,
+- Worker da Etapa 12, não iniciado; integração pública dos núcleos aprovados
+  de criptografia/enqueue e quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–10 estão concluídas e versionadas na branch; a Etapa 10 expand tem
+Etapas 01–11 estão concluídas e versionadas na branch; as Etapas 10 e 11 têm
 rehearsal e revisão aprovados. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).

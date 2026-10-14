@@ -1,8 +1,8 @@
 # Testes e evidências de fechamento
 
-Atualização documental: 2026-10-13. Branch `revisao-premium-bloco-1-auth`.
-HEAD do núcleo da Etapa 09: `a6f49e6c15157f92b3b06d203213a27b7c454182`,
-versionado e publicado na branch. Revisão independente aprovada em **13/10/2026**
+Atualização documental: 2026-10-14. Branch `revisao-premium-bloco-1-auth`.
+HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
+versionado e publicado na branch. Revisão independente aprovada em **14/10/2026**
 após análise do código, relatório do rehearsal e verificações independentes no
 Neon, conforme instrução do responsável. Fechamento atual exclusivamente documental/Git.
 
@@ -20,7 +20,10 @@ A Etapa 08 acrescenta resultados locais e o relatório do rehearsal PostgreSQL
 isolado, com revisão independente aprovada em 09/10/2026, descritos abaixo.
 A Etapa 09 acrescenta o relatório isolado de 13/10/2026 e a aprovação independente
 fornecida pelo responsável; nenhum banco foi consultado para este fechamento.
-Nenhum teste ou SQL foi reexecutado neste fechamento documental/Git.
+A Etapa 11 acrescenta o relatório consolidado local e a revisão independente
+aprovada em 14/10/2026, conforme instrução do responsável, incluindo a conferência
+independente no Neon informada por ele. Nenhum teste ou SQL foi reexecutado neste
+fechamento documental/Git.
 Não há logs brutos, credenciais, tokens reais ou dados pessoais aqui.
 
 ## TOUCH — fechado
@@ -777,15 +780,22 @@ fixtures, sem definir duração, teto de tentativas, cronograma, cancelamento ou
 Não se injetaram falhas DDL/ledger, checksum divergente, deadlock, perda de conexão
 ou falha do rollback; atomicidade comprovada é a da aplicação bem-sucedida.
 
-**Etapa 10 expand encerrada**, com revisão e rehearsal aprovados. **Etapas 11 e 12
-pendentes**. Sem criptografia operacional, enqueue, worker, SMTP, fencing integral,
-exactly-once, limpeza operacional ou implantação em produção. Sem integração
-HTTP, deploy, merge ou início da Etapa 11 neste fechamento. D1–D8 e Etapas 01–09
+**Etapa 10 expand encerrada**, com revisão e rehearsal aprovados. Naquele
+fechamento, as Etapas 11 e 12 estavam pendentes, sem criptografia operacional
+ou enqueue. A Etapa 11 foi aprovada posteriormente, conforme seção abaixo.
+Continuam pendentes worker, SMTP, fencing integral, exactly-once, limpeza
+operacional e implantação em produção. O fechamento da Etapa 10 não executou
+integração HTTP, deploy, merge ou início da Etapa 11. D1–D8 e Etapas 01–09
 preservados; nenhum código, migration, teste ou runner alterado.
 
-## ETAPA 11 — CRIPTOGRAFIA E ENQUEUE LOCAL / REVISÃO E REHEARSAL PENDENTES
+## ETAPA 11 — CRIPTOGRAFIA E ENQUEUE / REHEARSAL E REVISÃO APROVADOS
 
-Data: **13/10/2026**. Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e` na branch
+**Fechamento aprovado em 14/10/2026**, após revisão independente informada pelo
+responsável. HEAD da implementação: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
+O registro de implementação/testes locais abaixo é histórico, de **13/10/2026**;
+o rehearsal real aprovado está registrado em seção própria.
+
+Data da implementação: **13/10/2026**. Base `a745a9d18c56ff50941a7f01131d32d1cbf21e5e` na branch
 `revisao-premium-bloco-1-auth`. Preflight confirmou branch/HEAD esperados e árvore
 limpa. Contratos de quotas/locks, challenges, outbox, db.tx, auditoria e autenticação
 examinados; nenhuma alteração de schema necessária identificada. Quatro JS novos,
@@ -862,38 +872,134 @@ histórica depois de remover envelope; índice só protege entradas retidas.
 Mensagens de desafios antigos invalidados não são apagadas nem enviadas aqui;
 worker futuro deve revalidar o desafio.
 
-### Rehearsal PostgreSQL necessário da Etapa 11
+### Rehearsal PostgreSQL da Etapa 11 aprovado
 
-Somente sob autorização futura na homologação permanente `v3-homologacao`
-(`br-round-union-adok19ir`), usando o commit então aprovado e identidades
-exclusivamente sintéticas, sem alterar usuários/dados herdados. Não repetir
-migrations/rehearsal das Etapas 08–10 e não testar worker/SMTP da Etapa 12.
+Fonte técnica local: `C:/tmp/escola-v3-etapa11-20261013-d9acb48b/RELATORIO.txt`,
+registro UTC **2026-10-14T16:02:52.241Z**, consultado somente por leitura neste
+fechamento. Alvo exclusivo do ensaio: projeto `wild-sky-49742510`, branch
+**`v3-homologacao` (`br-round-union-adok19ir`)**, banco `neondb`, HEAD
+`d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Identidade/TLS, certificado e hostname
+conferidos antes das escritas e em cada conexão transacional, segundo o relatório.
 
-1. Preflight do alvo/TLS, ledger existente id 8/checksum, schema/challenges/outbox
-   e baseline sanitizado. Executar o serviço com db.tx e cliente PostgreSQL reais:
-   três finalidades, hash/bytea/envelope em round-trip, referências/destinatário,
-   microssegundos e expiração exata de 24 h/30 min após locks reais.
-2. Commit conjunto quota/desafio/outbox/auditoria, observador sem visibilidade
-   antes do commit, rollback externo e savepoints reais diante de falha em cada
-   escrita/auditoria; restauração do desafio anterior invalidado, sem eventos órfãos.
-3. Duas ou mais conexões: mesma conta/IP, contas distintas com IP comum, finalidades
-   compartilhadas e uma vaga de quota; UUID igual e divergente, commit/rollback do
-   vencedor. Confirmar ordem de locks/waits, sem duplicar cobrança/desafio/mensagem.
-   Concorrência com mudança de auth/email_version sob lock, sem usar snapshot antigo.
-4. Desafio anterior aberto/expirado/consumido/invalidado, FK/PK/unicidade reais,
-   colisões dirigidas de hash/nonce somente em fixtures e falha crítica sem retry.
-   Replay retido, destinatário/identidade divergentes e envelope removido; pares
-   incompletos de quota/mensagem falhando sem efeitos ou reparo automático.
-5. Preservação de dados/catalogs/ledger/checksums e serviços anteriores; finalizar
-   fixtures por rollback ou allowlist exata dos IDs efetivamente criados, com
-   quotas/outbox sem resíduos e homologação permanente preservada. Sem limpeza
-   operacional, HTTP/SMTP, worker/claim/ack/fencing, merge, deploy ou produção.
+O relatório técnico ainda registra a etapa aberta para revisão e fechamento
+formal: esse era o estado no momento da emissão. A **revisão independente foi
+posteriormente aprovada em 14/10/2026**, conforme instrução explícita do responsável,
+que também informou a conferência independente no Neon. Este registro encerra a
+Etapa 11 no alcance aprovado; não resulta de uma nova consulta ao banco.
 
-**Etapa 11 aberta para revisão independente e rehearsal**; publicação é entrega
-para revisão, não aprovação/conclusão. Contagem de concluídas permanece dez de 57,
-sem percentual ponderado ou prazo novo. D1–D8 preservados. Sem nova migration,
-Neon/SQL externo, envio SMTP, worker/retries/claim/ack/limpeza, ativação de rotas,
-merge, deploy ou início da Etapa 12.
+| Conjunto | Resultado / contagem |
+| --- | --- |
+| Provas PostgreSQL únicas consolidadas | **37/37 aprovadas** |
+| Histórico de tentativas funcionais | **38 tentativas: 37 aprovadas e uma falha histórica do instrumento**, corrigida posteriormente |
+| Erros PostgreSQL | **Oito esperados; zero inesperados** |
+| Preflight inicial já aprovado | **Dez verificações**, reutilizadas e não contadas novamente nas 37 provas |
+| Controles complementares | **Seis aprovados**, registrados separadamente das provas funcionais |
+
+A primeira rodada registrou **27 tentativas, 26 aprovadas e uma falha
+`E11_BLOCK_NOT_OBSERVED`** do instrumento de observação. A rodada complementar
+funcional registrou **11/11 aprovações**. A prova corrigida de concorrência na
+mesma conta/IP substitui a falha apenas na consolidação por nome: **27 + 11 = 38
+tentativas; 26 + 11 = 37 provas únicas aprovadas**. A tentativa original, o
+diagnóstico e as 26 aprovações anteriores permanecem preservados. Não declarar
+38/38 provas nem apagar a falha histórica; ela não foi erro PostgreSQL inesperado.
+Oito erros esperados abrangem o ensaio consolidado, incluindo um da rodada
+complementar; não somar esse erro novamente. Preflight e controles não aumentam
+o total das 37 provas únicas. Os controles complementares verificaram:
+
+1. Três usuários sintéticos sem colisão, CPF válido e IDs explícitos.
+2. Fronteira real de 60 segundos para a conta de recuperação.
+3. Limpeza exata e atômica com exceção temporária autorizada do trigger.
+4. Preservação final de dados, catálogo, ledger e homologação.
+5. Valores finais das sequências, sem reinicialização.
+6. Privacidade de logs e evidências.
+
+### Alcance funcional real aprovado da Etapa 11
+
+Serviço oficial de enqueue e `db.tx` reais, com criptografia real e identidades
+sintéticas. **Confirmação de e-mail, recuperação de senha e alteração de e-mail**
+aprovadas: emissão, hash, AES-GCM/AAD, envelope lido do PostgreSQL, TTL e auditoria;
+adulterações rejeitadas. Microssegundos e prazos de 24 h/30 min preservados no
+alcance ensaiado. Desafios anteriores `open`, `consumed` e `invalidated`, quota
+negada, elegibilidade/versões, colisões reais de hash/nonce e PK e FK de mensagem
+para desafio inexistente exercitados; falhas críticas sem retry nem efeitos órfãos.
+
+**Atomicidade e rollback:** quota/desafio/outbox/auditoria compõem a transação;
+falhas reais em CHECK de desafio, CHECK da outbox e FK da auditoria desfazem o
+agregado e restauram o desafio anterior. Erro posterior do chamador restaura o
+desafio confirmado e desfaz as quatro escritas. Não há transação independente
+do serviço ou reparo automático de pares incompletos.
+
+**Replay:** UUID idêntico concorrente aguarda commit e faz replay; após rollback
+do líder, o seguidor cria a emissão. Replay idêntico com IP IPv4-mapped aprovado;
+divergência por IP/finalidade rejeitada. Alteração mantém o destinatário e rejeita
+candidato divergente; envelope removido em estado terminal não é recriado.
+Pares quota-only, par sem quota e timestamps divergentes falham fechado.
+
+**Concorrência:** mesma conta/IP produz uma emissão e uma quota negada;
+recuperação/alteração compartilham quotas sob bloqueio; contas distintas disputando
+a última vaga do IP não excedem a quota. Mudanças de `auth_version` e `email_version`
+enquanto a emissão aguarda lock impedem uso de snapshot antigo. Observador, líder
+e seguidor usam **conexões distintas e `pg_backend_pid()`**, com
+**`pg_stat_activity` e `pg_blocking_pids`** para demonstrar esperas e bloqueios reais.
+A falha histórica do observador foi `E11_BLOCK_NOT_OBSERVED`; a correção usa
+os PIDs SQL reais. A validação isolada do observador não substitui a concorrência
+do enqueue, comprovada nos cenários funcionais complementares.
+
+### Limpezas, sequências e preservação da Etapa 11
+
+**Duas limpezas transacionais explicitamente autorizadas**, limitadas aos IDs
+sintéticos efetivamente confirmados; trigger
+`auth_usuario_perfis_proteger_perfil_base` suspenso somente na transação protegida
+e **restaurado antes de cada commit**. Na segunda limpeza, 63 referências FK
+conferidas, contas com `FOR UPDATE NOWAIT` e perfil-base sob `ACCESS EXCLUSIVE NOWAIT`;
+sem `session_replication_role`. Trigger original habilitado após a limpeza
+(estado `O`). **Zero resíduos sintéticos** em usuários, vínculos, quotas,
+desafios, outbox e auditorias. Essas limpezas não implementam limpeza operacional.
+
+Sequência de auditoria avançou **349 → 358 → 364** por INSERTs, inclusive desfeitos;
+**nenhuma reinicialização**. Na rodada complementar, 77 sequências conferidas,
+somente `auditoria_eventos_id_seq` avançou de 358 para 364; `usuarios_id_seq`
+inalterada. Não confundir rollback de dados com reversão de sequência.
+
+A **conferência independente no Neon informada pelo responsável** confirmou:
+
+- **2.668 usuários e 2.774 vínculos de perfis** preservados.
+- **Outbox, quotas e desafios vazios**, auditorias sintéticas removidas e trigger
+  original habilitado.
+- **Oito registros no ledger**, sem reaplicação de migrations ou mudança de checksum.
+- **89 tabelas originais e 54.394 linhas preservadas**, com **zero divergências de
+  conteúdo após excluir os registros das migrations 08 e 10**. Essa comparação
+  usa o recorte original; não substitui as contagens históricas de 90 tabelas /
+  54.395 linhas herdadas usadas no rehearsal da Etapa 10.
+- Branch **`v3-homologacao` preservada**, sem reset ou exclusão.
+
+O relatório registra preservação de dados, catálogo/OIDs/definições e ledger
+contra o baseline; snapshots cobrem o estado observado. Manifest com 48 arquivos,
+34 artefatos anteriores com hashes inalterados. Segredos/chaves/tokens/destinatários
+sintéticos e valores sensíveis mantidos em memória; evidências e logs sanitizados.
+A prova histórica de redação da facade foi preservada, sem reexecução; controle
+complementar registrou zero logs novos e 78 valores sensíveis verificados em memória.
+
+### Limites e implantação da Etapa 11
+
+**Etapa 11 encerrada; onze etapas concluídas entre 57**, sem percentual ponderado
+ou novo prazo. **D1–D8 e demais pendências preservadas; Etapa 12 não iniciada**.
+Não implementa worker SMTP, retries, claim/ack, ativação HTTP, integrações públicas
+ou exactly-once; limpeza operacional e fencing integral continuam pendentes.
+Três finalidades e garantias aprovadas se limitam aos cenários documentados,
+sem prova de produção, entrega SMTP ou autorização pública.
+
+Decisão aprovada pelo responsável: **uma única plataforma pública, mantendo o
+endereço atual, com modernização progressiva por blocos**; produção operacional
+durante a transição, homologação e produção separadas. Substituição da autenticação
+somente após validação integral das integrações essenciais, plano de implantação/
+reversão e autorização expressa. Não presumir duas plataformas públicas ou
+implantação automática após o Bloco 1. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
+
+Este fechamento altera somente os seis documentos pertinentes de `docs/v3`.
+Nenhum código, teste, migration, banco ou configuração de implantação alterado;
+nenhuma reexecução de testes, SQL, operações Neon/PostgreSQL, SMTP, deploy, merge
+ou início da Etapa 12. Aprovação e publicação Git não equivalem a implantação.
 
 ## PENDÊNCIA — evidência de produção
 
