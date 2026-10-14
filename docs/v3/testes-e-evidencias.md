@@ -1,5 +1,8 @@
 # Testes e evidências de fechamento
 
+Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
+base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+
 Atualização documental: 2026-10-14. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
 versionado e publicado na branch. Revisão independente aprovada em **14/10/2026**
@@ -983,7 +986,7 @@ complementar registrou zero logs novos e 78 valores sensíveis verificados em me
 ### Limites e implantação da Etapa 11
 
 **Etapa 11 encerrada; onze etapas concluídas entre 57**, sem percentual ponderado
-ou novo prazo. **D1–D8 e demais pendências preservadas; Etapa 12 não iniciada**.
+ou novo prazo. **D1–D8 e demais pendências preservadas; Etapa 12 não iniciada naquele fechamento**.
 Não implementa worker SMTP, retries, claim/ack, ativação HTTP, integrações públicas
 ou exactly-once; limpeza operacional e fencing integral continuam pendentes.
 Três finalidades e garantias aprovadas se limitam aos cenários documentados,
@@ -996,10 +999,164 @@ somente após validação integral das integrações essenciais, plano de implan
 reversão e autorização expressa. Não presumir duas plataformas públicas ou
 implantação automática após o Bloco 1. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
 
-Este fechamento altera somente os seis documentos pertinentes de `docs/v3`.
-Nenhum código, teste, migration, banco ou configuração de implantação alterado;
-nenhuma reexecução de testes, SQL, operações Neon/PostgreSQL, SMTP, deploy, merge
-ou início da Etapa 12. Aprovação e publicação Git não equivalem a implantação.
+O fechamento documental/Git da Etapa 11 alterou somente os seis documentos de
+`docs/v3`, sem código, teste, migration, banco ou configuração de implantação,
+reexecução de testes/SQL/Neon/PostgreSQL, SMTP, deploy, merge ou início da Etapa 12.
+A implementação posterior da Etapa 12 está registrada abaixo; aprovação e
+publicação Git não equivalem a implantação.
+
+## ETAPA 12 — WORKER LOCAL / REVISÃO E REHEARSAL PENDENTES
+
+Data: **14/10/2026**. Branch `revisao-premium-bloco-1-auth`, base de implementação
+`93ede97275139dcb9285e4326f0dd8f69fd94022`, confirmada com worktree limpo no
+preflight. Decisões operacionais autorizadas pelo responsável na solicitação;
+**implementação para revisão, sem encerramento da Etapa 12 ou início da Etapa 13**.
+
+### Arquivos e validação local da Etapa 12
+
+Sete novos JS: `authOutboxWorker.js` / `.test.js`, `authSmtpSender.js` / `.test.js`,
+`authSmtpProcess.js`, `jobs/authOutboxJob.js` / `.test.js`. Alterações pontuais em
+`mailer.js` (factory institucional exclusiva) e `server.js` (start/shutdown).
+Somente os seis documentos pertinentes de `docs/v3` atualizados. Nenhuma migration,
+rota pública, controller, frontend, configuração Vercel, manifest/dependência,
+serviço de quotas/enqueue/criptografia anterior ou job de eventos/salas alterado.
+
+| Validação final | Resultado / alcance |
+| --- | --- |
+| Testes novos do worker, processo SMTP e job | **118/118**, incluídos nos focados finais |
+| Focados com crypto/enqueue/quotas/auditoria e safeAuthLogging | **435/435**, zero falhas/skips/cancelados/todo |
+| Backend completo `node --test` | **1.111/1.111**, executado **uma única vez após estabilização** |
+| Sintaxe dos nove JS criados/alterados | **9/9**, `node --check` |
+| PostgreSQL / SMTP reais | **Não executados**; dependem de revisão e autorização posteriores |
+
+Rodada inicial dos três novos arquivos: **100/100**; revisão ampliou para 118
+novos casos, todos aprovados nos focados finais. Ajustes de código terminaram antes
+da única suíte completa; não foi reexecutada após documentação. Não somar 100,
+435 e 1.111 como provas únicas nem confundir resultados com o rehearsal da Etapa 11.
+
+Modelo transacional deliberado, com estado compartilhado, isolamento de escritas
+até commit, SKIP LOCKED simulado, ordem de locks e invariantes de transição
+independentes das queries. Não é emulador PostgreSQL nem prova de seus locks,
+triggers, casts, constraints ou query planner. Crypto/AES-GCM realmente executado
+com chave/token/destinatários sintéticos; filhos SMTP e timers substituídos por
+mocks, sem processo real de envio. A tentativa adicional de parser SQL local
+não produziu validação: `queryparser.node` ausente no pacote nativo temporário.
+**Sem conclusão de gramática SQL nesta etapa**; sintaxe JS aprovada não substitui
+PostgreSQL real. Nenhuma dependência foi instalada ou alterada para contornar isso.
+
+Cobertura: três finalidades/destinatário imutável e hash, seis slots absolutos,
+slots atrasados sem rajada, TTL/microssegundos, três workers concorrentes, claim
+exclusivo/invisível antes do commit, identidade nova em reclaim, fencing e limite
+exato do lease, crash antes/depois de SMTP, aceitação tardia após perda da posse,
+limite de tentativas interrompidas, erro transacional/commit/ack e rollback,
+conta/desafio/versão/destino inválidos, adulteração GCM e chave ausente, limpeza
+terminal, dry-run/desabilitado sem efeitos, polling sem sobreposição, stop/restart,
+logs com códigos fixos e compatibilidade de mailer/jobs/lifecycle.
+
+Mocks do adaptador conferem término com `SIGKILL` aos 115 s e espera por exit,
+resultados de aceitação/4xx/5xx/indeterminado/dry-run, configuração TLS/timeouts,
+nenhuma credencial em argumentos/env/stdout/stderr e payload sem cc/bcc/envelope.
+Não provam latência física nem cancelamento efetivo de sockets no SO/SMTP real.
+
+Artefatos fora do Git: `C:/tmp/escola-v3-etapa12-20261014-93ede972/`,
+`focused-initial.log`, `focused-final.log`, `full.log` e guardas `guard-*.json`.
+DATABASE_URL dummy somente nos processos de validação. Guardas bloquearam
+Pool/Client/TCP/TLS/transporte SMTP e leitura `.env`: **zero tentativas PostgreSQL,
+rede ou SMTP reais**; uma tentativa de leitura `.env` bloqueada, sem conteúdo
+lido, durante a suíte completa. Nenhum acesso Neon/produção, envio real, deploy,
+merge ou mudança de configuração de implantação.
+
+### Garantias locais e dependências da ativação da Etapa 12
+
+Claim/reclaim transacional com `SKIP LOCKED` e UUID novo, lease **180 s**, tentativa
+consumida na aquisição; polling **30 s**, uma mensagem por processamento. Usuário
+→ desafio → outbox; ack/revalidação esperam brevemente na mesma ordem, sem locks
+reversos. Clock PostgreSQL e UTC com seis casas; SMTP fora de transação.
+Ack exige id/estado/UUID e lease não expirado no UPDATE; resultado obsoleto `stale`
+não altera a posse nova. Statement timeout 5 s e lock timeout 2 s por transação.
+
+Offsets absolutos desde `criada_em`: recuperação **0/1/3/7/15/25 min**,
+confirmação/alteração **0/1/5/15/60/180 min**. Até seis claims, incluindo inicial e
+interrompidos. Retry escolhe primeiro slot futuro permitido, pula vencidos e não
+agenda em/apos expiração. Permanente termina `failed`; esgotamento idem. Terminais
+limpam ciphertext/nonce/tag/key_id sem excluir identidade, histórico ou auditoria.
+Quotas de 48 horas e sua limpeza permanecem inalteradas.
+
+Antes do SMTP revalida desafio aberto/TTL/finalidade, conta elegível/destinatário e
+**versão persistida por finalidade**, conforme expand: e-mail em confirmação/
+alteração, auth em recuperação. Schema não guarda ambos os snapshots por desafio;
+nenhum snapshot ausente inventado. AES-GCM/AAD autenticados, token/hash comparados;
+buffers próprios zerados, sem promessa sobre strings/copias IPC/heap. Logs/respostas
+contêm status/códigos fixos, nunca conteúdo/token/hash/chave/URL ou SMTP bruto.
+
+**Ativação real bloqueada antes de claim:** consumidor V3 ausente no job padrão.
+Rotas de recuperação atuais usam JWT `pwd-reset`, não token opaco; nenhum link V3
+para essas rotas. Um flag de prontidão não abre o gate. Habilitação explícita,
+consumidor V3 integrado e configuração completa devem preceder processamento real.
+Desabilitado e dry-run não consultam DB, fazem claim, consomem, decifram ou enviam.
+
+Adaptador institucional dedicado em processo isolado: kill aos **115 s**, margem
+de 5 s no limite técnico **120 s**, aguarda saída efetiva; timeouts por fase e TLS
+seguro. Falha de kill bloqueia novos envios, sem ack presumido. Para iniciar SMTP,
+a revalidação exige ainda **mais de 125 s de lease**. `sent` representa aceitação
+pelo transporte; nunca dry-run, garantia de leitura ou entrega na caixa postal.
+Prazo físico/cancelamento real exigem comprovação separada antes da ativação.
+
+Perda de resultado/ack ou crash após aceitação podem causar duplicidade externa,
+mesmo com fencing de banco; não há exactly-once. Invalidação pode ocorrer entre
+liberar os locks e iniciar SMTP; não prometer cancelamento retroativo. Retenção
+histórica não aprovada: sem exclusão automática nem política nova de descarte.
+Consumo HTTP/links V3, revisão independente, provas PostgreSQL e transporte real
+são dependências abertas; não bloqueiam a publicação do núcleo desabilitado para
+revisão, mas bloqueiam sua ativação real e o encerramento da Etapa 12.
+
+D1–D8, decisões anteriores e **uma plataforma pública no endereço atual**
+preservados, modernização progressiva por blocos com produção operacional e
+separada da homologação. Cutover só com integrações essenciais integralmente
+validadas, plano de implantação/reversão e autorização expressa.
+**Onze etapas encerradas entre 57; Etapa 12 não encerrada; Etapa 13 não iniciada.**
+
+### Roteiro enxuto de rehearsal da Etapa 12
+
+**Não executado nem autorizado por este roteiro.** Após revisão independente,
+obter autorização específica para ensaio somente em `v3-homologacao`, sem SMTP
+real, sem migrations/rehearsal antigos ou produção. Usar o HEAD publicado da
+Etapa 12, não extrapolar provas das Etapas 09–11. Desacoplar o worker de qualquer
+transporte real, injetando transport/consumer sintéticos exclusivamente no harness;
+não habilitar o job do backend nem apontar tokens para rotas legadas.
+
+1. Preflight: branch/HEAD/worktree, identidade SQL/TLS, ledger de oito registros e
+   checksums das migrations aprovadas, schema/constraints/triggers, baseline de
+   dados/catalogs e sequências sanitizado. Nenhuma escrita se divergente; nenhuma
+   leitura `.env`/exportação de credenciais. Fixtures sintéticas sem colisão,
+   IDs e allowlist exatos, política de rollback/limpeza aprovada antes das escritas.
+2. Duas/três conexões reais e serviço oficial/db.tx: `SELECT pg_backend_pid()` em
+   cada conexão, `pg_stat_activity`/`pg_blocking_pids`, barreiras e testes de claim
+   invisível antes de commit, seleção exclusiva/skip, usuário → desafio → outbox,
+   sem tx aberta durante transporte sintético suspenso. Conferir status/tentativas/
+   relógios/lease id e 180 s; reclaim e reinício com novo UUID, ack velho rejeitado.
+3. Três finalidades, envelope AES-GCM real, hash/AAD/destino/versão persistida;
+   inválido/consumido/expirado/invalidação concorrente e mudanças de versão não
+   enviam. Ack após lease expirado ou troca de posse é rejeitado; se o TTL expirar
+   após aceitação SMTP, ack sob posse válida ainda registra essa aceitação, sem
+   cancelamento retroativo ou sobrescrita de outra posse.
+4. Simular transporte accepted/temporary/permanent/indeterminate/dry-run e crash
+   antes/depois de SMTP/ack. Conferir horários absolutos com precisão, atraso sem
+   rajada, esgotamento de seis claims, nenhum retry além do TTL, falhas reais de
+   UPDATE/constraints e rollback de claim/retry/limpeza. Interrupções por restart
+   consomem tentativas; envelope removido integralmente em `sent`/`failed`.
+5. Shutdown/restart e preservação: sem novo polling após stop, jobs anteriores
+   preservados; baseline de dados/catalog/ledger/checksum, audit/quotas e branch
+   mantidos. Finalizar fixtures por rollback ou limpeza em allowlist previamente
+   autorizada; se perfil-base exigir exceção, autorização explícita e trigger
+   restaurado antes de commit. Zero resíduos; não reinicializar sequências.
+
+Prova física do limite SMTP é atividade **separada**, somente com autorização para
+um servidor SMTP controlado/sintético e ambiente isolado: conexões/DNS/TLS/DATA
+interrompidos, medir sockets/processo encerrados até 120 s, resultado tardio,
+shutdown e falha de kill. Não usar produção nem destinatários reais. Consumidores
+V3 e links corretos exigem etapa de integração/cutover autorizada, sem inferi-los
+pela existência de configuração. Somente depois decidir ativação/fechamento.
 
 ## PENDÊNCIA — evidência de produção
 

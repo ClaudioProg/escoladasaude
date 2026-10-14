@@ -1,5 +1,8 @@
 # Decisões canônicas da V3
 
+Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
+base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
 das Etapas 04/05/06/07/08/09/10/11 e decisões anteriores fornecidas pelo responsável. As seções de
@@ -318,12 +321,14 @@ excluída e perfil inválido preservam seus contratos legados.
 ## DECISÃO CANÔNICA — outbox e rate limit
 
 **DECISÃO CANÔNICA / CONTRATO ALVO — outbox:** dedicada à autenticação.
-Cronogramas completos de tentativas já aprovados:
+Cronogramas completos de tentativas aprovados; a Etapa 12 explicita deslocamentos
+**absolutos a partir de `auth_outbox.criada_em`**, sem reiniciar após falha:
 
-| Finalidade | Cronograma de tentativa imediata e retries |
+| Finalidade | Deslocamentos absolutos da tentativa inicial e retries |
 | --- | --- |
 | Recuperação de senha | Tentativa imediata; retry em 1 minuto; retry em 3 minutos; retry em 7 minutos; retry em 15 minutos; retry em 25 minutos. |
 | Confirmação de e-mail | Tentativa imediata; retry em 1 minuto; retry em 5 minutos; retry em 15 minutos; retry em 1 hora; retry em 3 horas. |
+| Alteração de e-mail | Mesmo cronograma absoluto da confirmação: 0, 1, 5, 15, 60 e 180 minutos. |
 
 - Erro SMTP permanente encerra novas tentativas; após esgotamento, estado final
   igual a `failed`.
@@ -352,7 +357,8 @@ os mesmos limites por conta e IP. A emissão inicial também conta nas quotas.
 **IMPLEMENTAÇÃO ATUAL:** o expand da outbox foi versionado e aprovado na Etapa 10
 abaixo, com aplicação somente em homologação. O núcleo de criptografia/enqueue
 da Etapa 11 está registrado abaixo, com revisão independente e rehearsal aprovados
-em 14/10/2026; integração HTTP e worker continuam pendentes. O núcleo transacional
+em 14/10/2026; integração HTTP e ativação real do worker permanecem pendentes,
+com implementação local da Etapa 12 abaixo. O núcleo transacional
 da Etapa 09 está implementado e versionado, com rehearsal PostgreSQL isolado e revisão independente aprovados
 em 13/10/2026, sem ativação nas rotas. O expand da Etapa 08 foi ensaiado na branch
 descartável `br-super-wave-adut7rdn` (já excluída), aprovado em 09/10/2026;
@@ -618,9 +624,93 @@ migrations 08 e 10. Homologação permanente preservada.
 
 A Etapa 11 não implementa worker SMTP, retries, claim/ack, ativação HTTP,
 integrações públicas ou exactly-once; fencing integral e limpeza operacional
-pendentes. Este fechamento documental/Git não reexecuta testes/SQL/Neon nem
-realiza SMTP, merge ou deploy. **Etapa 12 não iniciada**, demais pendências
+pendentes. O fechamento documental/Git da Etapa 11 não reexecutou testes/SQL/Neon
+nem realizou SMTP, merge ou deploy. O fechamento da Etapa 11 não iniciou a Etapa 12;
+sua implementação posterior está registrada abaixo, com demais pendências
 preservadas. [Evidências e limites](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue--rehearsal-e-revisão-aprovados).
+
+### Etapa 12 — worker e decisões operacionais aprovadas
+
+**DECISÕES CANÔNICAS aprovadas pelo responsável em 14/10/2026**, na autorização
+da Etapa 12. Implementação local sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`,
+para revisão independente e rehearsal; **não é encerramento da Etapa 12**.
+
+| Contrato operacional | Decisão aprovada |
+| --- | --- |
+| Fonte de estado | PostgreSQL compartilhado; claim transacional/exclusivo com `FOR UPDATE SKIP LOCKED`. |
+| Posse | Lease de **180 s**, novo UUID em claim e reclaim; ack exige mensagem, estado `processing`, lease igual e não expirado. |
+| Ciclo | Polling de **30 s**, recuperação de processing interrompido após expiração, inclusive reinício. |
+| Tentativas | **Até seis**, incluindo inicial; cada claim/reclaim consome tentativa mesmo se interrompido. |
+| Recuperação | Offsets absolutos **0, 1, 3, 7, 15, 25 min** desde `criada_em`. |
+| Confirmação/alteração | Offsets absolutos **0, 1, 5, 15, 60, 180 min** desde `criada_em`. |
+| Atraso | No máximo uma tentativa por processamento; pular slots vencidos, observar próximos horários futuros, sem rajadas ou reinício do cronograma. |
+| Validade | Não enviar desafio inválido/expirado nem agendar retry em/apos expiração. |
+| SMTP | Sem transação aberta; duração técnica **até 120 s**, inferior à posse. |
+| Terminais | Permanente encerra imediatamente; esgotamento `failed`; `sent` e `failed` apagam os quatro campos do envelope. |
+| Dry-run/desabilitado | Nenhum envio, claim, consumo, decifragem ou mutação. Dry-run nunca é `sent`. |
+| Ativação | Desabilitado por padrão em todos os ambientes; habilitação explícita, configuração completa e consumidor V3 integrado. |
+
+**IMPLEMENTAÇÃO LOCAL:** `createAuthOutboxWorker` recebe `db`, `cryptoConfig`,
+transport e contrato consumidor explícitos. Descoberta sem locks de até 32 candidatos;
+uma mensagem por processamento, transações distintas por candidato/claim,
+revalidação e ack. Locks usuário → desafio → outbox; claim usa `SKIP LOCKED`,
+revalidação/ack aguardam com `lock_timeout=2s` e statements com limite de 5s.
+Sem advisory de quotas, emissão nova, consumo de desafio ou transação durante SMTP.
+Ack obsoleto retorna `stale`, sem sobrescrever outra posse ou reabrir terminal.
+
+Revalida existência, finalidade, estado aberto, TTL, conta elegível conforme o
+recorte da Etapa 11 e destinatário imutável. **Versões conforme snapshots existentes**:
+`email_version_esperada` para confirmação/alteração; `auth_version_esperada` para
+recuperação. O schema aprovado não persiste ambos os snapshots em cada desafio;
+o worker não inventa o snapshot ausente nem promete comparar duas versões
+históricas por finalidade. Criptografia/AAD reconstruída de IDs/finalidade/destino;
+hash do token confrontado com o desafio. Buffers próprios temporários zerados;
+strings/copias IPC/heap não possuem promessa de apagamento completo.
+
+Próximo retry usa primeiro slot futuro com índice compatível com tentativas já
+consumidas, preservando microssegundos; slots perdidos podem reduzir o número
+real de envios abaixo de seis. `SMTP_TRANSIENT` para 4xx; `SMTP_PERMANENT` para 5xx;
+resultado indeterminado usa categoria existente `INTERNAL_FAILURE` (sem novo SQL).
+`CHALLENGE_INVALID`, `CRYPTO_FAILURE`, `RETRY_EXHAUSTED` e `LEASE_EXPIRED` controlados,
+sem respostas SMTP, conteúdo, token, hash, chaves, destinatário ou URL nos logs.
+
+Factory institucional exclusiva `mailer.createAuthEmailSender`, mantendo
+`sendEmail` e transporter dos demais módulos. Cada envio usa processo próprio sem
+stdout/stderr, sem pool, TLS verificado e acesso a arquivos/URLs desativado; timeouts
+DNS/conexão/greeting/socket de 10/20/10/30 s, com término `SIGKILL` aos **115 s** e
+5 s de margem. Resultado somente após saída efetiva; nenhuma corrida de promises
+é apresentada como cancelamento. Falha de kill fecha novos envios e não confirma
+sucesso por presunção; transporte/prazo físico devem ser comprovados antes da
+ativação real. `sent` significa aceitação pelo SMTP, sem garantia de caixa/leitura.
+Perda de conexão, crash após aceitação e perda de ack podem duplicar entrega
+externa; **sem exactly-once**. Invalidação após liberar locks pode concorrer com
+início do transporte; mensagens já entregues ao SMTP não podem ser canceladas
+retroativamente. Revalidar antes do envio reduz a janela, sem suprimi-la.
+
+**ATIVAÇÃO REAL BLOQUEADA:** o job do backend mantém consumidor V3 `null`.
+Somente `/api/auth/redefinir-senha` legado consome JWT `pwd-reset`; consumidores
+HTTP dos tokens opacos V3 não existem neste HEAD. Nenhum flag de ambiente abre
+esse gate, nenhum link V3 é enviado para JWT legado. A integração futura deve
+prover contrato consumidor com builder revisado para as três finalidades, além
+das chaves AES externas, configuração SMTP institucional e flags explícitos.
+`AUTH_OUTBOX_WORKER_ENABLED=true` sozinho não faz claim. `AUTH_OUTBOX_WORKER_DRY_RUN=true`
+retorna dry-run sem efeitos; job desabilitado não cria worker/transporte.
+Keyring externo por `AUTH_OUTBOX_CRYPTO_ACTIVE_KEY_ID` e
+`AUTH_OUTBOX_CRYPTO_KEYS_JSON` (keyId/secret base64 32 bytes), lido somente após
+os gates; não usar JWT_SECRET ou chave HMAC. `EMAIL_ENABLED=true`, dry-run SMTP
+desativado e TLS seguro são adicionais, não substituem o consumidor V3.
+
+Start/stop no backend preserva jobs de eventos/salas, evita polling sobreposto,
+cancela transporte ativo e aguarda processamento antes de fechar DB; prazo de
+shutdown existente permanece. Reinício cria instância nova; leases duráveis
+interrompidos continuam recuperáveis. Histórico/identidade/auditoria preservados,
+sem exclusão automática de registros, limpeza de quotas de 48 h ou nova retenção.
+
+**118/118 novos, 435/435 focados, 1.111/1.111 completos (uma execução), 9/9 JS**.
+Simulações explicitamente separadas de PostgreSQL/SMTP reais. D1–D8, demais decisões
+e uma plataforma pública no endereço atual preservadas; sem alterar frontend,
+rotas públicas, migrations, Vercel ou produção. **Etapa 12 não encerrada; Etapa 13
+não iniciada**. [Evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes); [rehearsal futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
 
 ## DECISÃO CANÔNICA — auditoria
 

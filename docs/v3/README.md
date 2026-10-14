@@ -1,5 +1,8 @@
 # Plataforma Escola da Saúde — V3
 
+Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
+base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
 Atualização documental e fechamento da Etapa 11: **14/10/2026**.
@@ -132,15 +135,54 @@ públicas. Ver [decisão de implantação](decisoes-canonicas.md#decisão-canôn
 
 D1–D8 e demais pendências preservadas. A Etapa 11 não implementa worker SMTP,
 retries, claim/ack, ativação HTTP, integrações públicas ou exactly-once; limpeza
-operacional e fencing integral permanecem fora do núcleo. **Etapa 12 não iniciada**.
-Este fechamento altera somente os seis documentos autorizados; não repete testes
-ou operações PostgreSQL/Neon, nem executa SMTP, deploy ou merge.
+operacional e fencing integral permanecem fora do núcleo da Etapa 11. No seu
+fechamento, a Etapa 12 ainda não havia sido iniciada; implementação atual abaixo.
+O fechamento documental/Git da Etapa 11 alterou somente os seis documentos
+autorizados, sem repetir testes ou operações PostgreSQL/Neon, SMTP, deploy ou merge.
 
 Ao atualizar um documento, registrar HEAD/data, origem da decisão ou evidência,
 ambiente, limites da comprovação e pendências relacionadas. Alterar o status
 somente com a evidência correspondente. Não modificar migration aplicada para
 ajustar a documentação. Não incluir credenciais, endereços de conexão ou dados
 pessoais nos documentos.
+
+## Etapa 12 — worker local, ativação real bloqueada
+
+Worker dedicado à autenticação, implementado para revisão independente:
+[authOutboxWorker](../../backend/src/services/authOutboxWorker.js),
+[job](../../backend/src/jobs/authOutboxJob.js) e adaptador SMTP exclusivo,
+com start/shutdown no backend e configuração institucional do mailer preservada.
+Claim transacional com `FOR UPDATE SKIP LOCKED`, locks usuário → desafio → outbox,
+UUID novo por lease/reclaim, **180 segundos de posse**, polling **30 segundos**,
+ack com fencing e relógio PostgreSQL com microssegundos. SMTP fora da transação.
+
+Seis tentativas máximas, incluindo claims interrompidos. Horários absolutos desde
+`criada_em`: recuperação **0/1/3/7/15/25 min**; confirmação/alteração
+**0/1/5/15/60/180 min**. Slots vencidos são pulados, sem rajadas; somente horário
+futuro anterior à expiração. Terminais `sent`/`failed` removem todo o envelope,
+preservam identidade/metadados/auditoria, sem excluir históricos ou limpar quotas.
+
+**Desabilitado por padrão em todos os ambientes**. Desabilitado/dry-run não
+consulta banco, faz claim, consome tentativa, decifra ou inicia SMTP. O backend
+mantém o consumidor V3 ausente como gate fechado: **envio real bloqueado antes de
+claim**, mesmo com flag true. `/api/auth/redefinir-senha` ainda espera JWT `pwd-reset`,
+incompatível com token opaco V3. Não foi criado link para rota legada nem alterada
+rota pública/frontend. Integração futura exige consumidor V3 e configuração completa.
+
+O adaptador usa subprocesso SMTP isolado, encerrado com `SIGKILL` aos 115 s,
+com 5 s de margem no limite técnico de **120 s**; aguarda saída efetiva, não usa
+`Promise.race` como cancelamento. Resultado aceito pelo transporte pode virar
+`sent`; dry-run nunca vira `sent`. Prazo físico/transporte real ainda exige prova.
+At-least-once controlado, sem exactly-once; aceitação não prova entrega/leitura.
+
+**118/118 testes novos, 435/435 focados, 1.111/1.111 backend completo** (uma execução),
+**9/9 sintaxe JS** aprovados. Modelos transacionais/processos SMTP simulados,
+criptografia real sintética; PostgreSQL/SMTP reais não ensaiados nesta etapa.
+**Onze etapas encerradas entre 57**; Etapa 12 implementada, não encerrada;
+**Etapa 13 não iniciada**. D1–D8, migrations, jobs de eventos/salas e decisão de
+uma plataforma pública no endereço atual preservados. Sem Neon, produção, deploy,
+merge ou configuração Vercel. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas),
+[evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes) e [rehearsal futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
 
 ## Documentação histórica e conflitos
 

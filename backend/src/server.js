@@ -93,6 +93,9 @@ const {
   pararConfirmacaoUsoSalaJob,
 } = require("./jobs/confirmacaoUsoSalaJob");
 
+const { createAuthOutboxJob } = require("./jobs/authOutboxJob");
+const authOutboxJob = createAuthOutboxJob({ db });
+
 /* ─────────────────────────────────────────────────────────────
    Config
 ────────────────────────────────────────────────────────────── */
@@ -791,6 +794,7 @@ const server = app.listen(PORT, () => {
 
   iniciarLembreteEventoJob();
   iniciarConfirmacaoUsoSalaJob();
+  authOutboxJob.start();
 });
 
 async function shutdown(signal) {
@@ -798,11 +802,13 @@ async function shutdown(signal) {
 
   pararLembreteEventoJob();
   pararConfirmacaoUsoSalaJob();
+  const authOutboxStopped = authOutboxJob.stop();
 
   server.close(async () => {
     console.log("HTTP fechado.");
 
     try {
+      await authOutboxStopped;
       if (db?.shutdown) {
         await db.shutdown();
       }

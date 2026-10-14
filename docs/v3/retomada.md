@@ -1,5 +1,8 @@
 # Retomada operacional
 
+Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
+base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+
 Projeto: **Plataforma Escola da Saúde — V3**.
 
 Branch: `revisao-premium-bloco-1-auth`.
@@ -11,7 +14,8 @@ Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 
 Última etapa concluída: **11 — criptografia e enqueue transacional**, com revisão
 independente aprovada pelo responsável em **14/10/2026** e rehearsal PostgreSQL
-consolidado aprovado. Etapas **01–11 encerradas**; **12 não iniciada**.
+consolidado aprovado. Etapas **01–11 encerradas**; **12 implementada localmente
+para revisão/rehearsal, não encerrada**; **13 não iniciada**.
 Implementação aprovada em `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 
 **Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
@@ -145,10 +149,43 @@ D1–D8 e demais pendências preservadas, inclusive D1/D4 e integração HTTP/au
 O núcleo não emite para cadastro pendente ou recuperação não confirmada e não
 implementa reativação. A Etapa 11 não implementa worker SMTP, retries, claim/ack,
 ativação HTTP, integrações públicas ou exactly-once; limpeza operacional e
-fencing integral permanecem pendentes. **Etapa 12 não iniciada**. Este fechamento
+fencing integral permanecem pendentes. **Etapa 12 não iniciada naquele fechamento**. Este fechamento
 é somente documental/Git, sem SQL/Neon, testes, SMTP, deploy ou merge. Próxima
 etapa exige autorização própria; não há implantação automática do Bloco 1.
 Ver [contratos](decisoes-canonicas.md#etapa-11--criptografia-e-enqueue-aprovados-sem-ativação-pública).
+
+Etapa 12 — **implementada localmente para revisão**, não encerrada:
+worker transacional, job e adaptador SMTP dedicado; nove JS criados/alterados
+incluindo três testes. **118/118 novos, 435/435 focados, 1.111/1.111 completos**
+(uma execução), sintaxe **9/9**. Oito erros PostgreSQL do rehearsal da Etapa 11
+não são evidência da Etapa 12; nenhum PostgreSQL/SMTP real executado agora.
+
+Claim com `SKIP LOCKED`, usuário → desafio → outbox, lease **180 s** com UUID novo,
+polling **30 s**, fencing no ack. Tentativas incrementadas no claim/reclaim,
+máximo seis; horários absolutos por finalidade, sem rajadas e com TTL. Revalidação
+antes de SMTP; criptografia/AAD e hash autenticados. Terminais removem envelope,
+sem apagar histórico/auditoria, sem mudar limpeza de quotas. SMTP em processo
+isolado com kill aos 115 s, saída observada e limite técnico 120 s, ainda sem prova
+física do transporte. Shutdown cancela processo, aguarda execução e preserva jobs.
+
+**Não habilitar envio real:** consumidor V3 ausente bloqueia antes de claim,
+mesmo com flag true. Nenhum link para JWT legado. Desabilitado/dry-run não toca
+DB, tentativas, envelope ou SMTP; consumidores V3/configuração completa são
+pré-condições futuras. Versão persistida varia por finalidade conforme o schema;
+não presumir snapshot duplo ausente. At-least-once sem exactly-once; aceitação
+SMTP não prova entrega e perda de ack pode duplicar. Invalidação concorrente não
+cancela retroativamente envio iniciado. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas).
+
+Próxima ação: revisão independente; depois, somente rehearsal autorizado em
+`v3-homologacao`, com fixtures estritamente sintéticas, preflight e política de
+rollback/limpeza explicitamente aprovados. Não executar agora nem repetir 08–11.
+Ver [roteiro enxuto](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12). Consumidor/links/cutover e validação do transporte
+real são dependências separadas; a publicação para revisão não as ativa.
+**Onze etapas encerradas entre 57, Etapa 12 não encerrada e Etapa 13 não iniciada**.
+Uma plataforma pública no endereço atual, produção operacional durante a
+modernização por blocos, homologação separada; substituição da autenticação
+somente com integrações validadas, plano de implantação/reversão e autorização
+expressa. D1–D8 e demais pendências preservadas.
 
 Estado funcional relevante:
 

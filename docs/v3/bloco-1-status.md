@@ -1,5 +1,8 @@
 # Bloco 1 — estado real
 
+Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
+base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+
 Atualização documental: 2026-10-14. Branch: `revisao-premium-bloco-1-auth`.
 HEAD da implementação da Etapa 11, versionado e publicado na branch:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
@@ -248,7 +251,8 @@ e a conferência independente no Neon. Fechamento atual exclusivamente documenta
   e Vercel preservados. O núcleo não implementa worker SMTP, retries, claim/ack,
   ativação HTTP, integrações públicas ou exactly-once; limpeza operacional e
   fencing integral pendentes. Sem SQL/Neon, testes, SMTP, merge ou deploy neste
-  fechamento. **Etapa 12 não iniciada**; D1–D8 e demais pendências intactos.
+  fechamento da Etapa 11, que não iniciou a Etapa 12. D1–D8 e demais pendências
+  intactos; implementação atual da Etapa 12 registrada abaixo.
   [Evidências e limites](testes-e-evidencias.md#etapa-11--criptografia-e-enqueue--rehearsal-e-revisão-aprovados).
 
 Implantação aprovada: **uma única plataforma pública no endereço atual**, com
@@ -257,6 +261,40 @@ e produção separadas; substituir a autenticação somente após validação in
 das integrações essenciais, plano de implantação/reversão e autorização expressa.
 O fechamento do Bloco 1 não autoriza implantação automática ou duas plataformas
 públicas. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
+
+## ETAPA 12 — WORKER LOCAL / REVISÃO E REHEARSAL PENDENTES
+
+Implementação em **14/10/2026**, sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`.
+Não encerra a etapa nem inicia a Etapa 13. Decisões operacionais aprovadas pelo
+responsável na solicitação: lease 180 s, polling 30 s, limite SMTP 120 s, seis
+horários absolutos por finalidade e remoção integral do envelope terminal.
+
+- Worker com PostgreSQL compartilhado, claim exclusivo e `SKIP LOCKED`; locks
+  usuário → desafio → outbox, sem cobrar novas quotas em retries. Uma mensagem
+  por processamento, até 32 candidatos sem locks na descoberta. UUID novo em
+  toda posse/reclaim; tentativas incrementadas no claim, inclusive interrompidos.
+- Revalidação do desafio/conta/destinatário e versão persistida por finalidade
+  antes de enviar. Crypto/AAD e hash do token conferidos. Ack compara estado,
+  UUID e validade do lease no próprio UPDATE; obsoleto não altera estado.
+- SMTP fora da transação, subprocesso com timeouts por fase e kill aos 115 s;
+  confirmação somente após saída. Falha de término bloqueia novos envios, sem
+  confirmação presumida. `sent` significa aceitação SMTP, não entrega/leitura;
+  incerteza/perda de ack pode ocasionar duplicidade externa, sem exactly-once.
+- Retry absoluto, sem rajadas e sem ultrapassar TTL. Permanente/esgotamento
+  terminam `failed`; `sent` e `failed` apagam ciphertext/nonce/tag/key_id. Histórico,
+  identidades e auditorias retidos; limpeza de quotas de 48 h inalterada.
+- Job no lifecycle do backend, **desabilitado por padrão**; sem efeitos quando
+  desabilitado/dry-run. **Consumidor V3 ausente: ativação real bloqueada antes
+  de claim**, sem confiar em flag de prontidão ou apontar tokens para JWT legado.
+- **118/118 novos, 435/435 focados, 1.111/1.111 completos** (uma execução), **9/9 JS**.
+  Simulações de banco/SMTP e criptografia sintética real, sem prova PostgreSQL/SMTP
+  reais. [Evidências e roteiro](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes).
+
+Migrations, D1–D8, decisões anteriores, rotas públicas/frontend, jobs existentes,
+quotas e Vercel preservados. Uma plataforma pública no endereço atual, modernizada
+por blocos, com produção operacional e separada da homologação. Integrações,
+plano de implantação/reversão e autorização expressa continuam gates do cutover.
+**Etapa 12 não encerrada; Etapa 13 não iniciada; onze concluídas entre 57.**
 
 ## PARCIAL
 
@@ -302,7 +340,8 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Worker da Etapa 12, não iniciado; integração pública dos núcleos aprovados
+- Revisão independente e rehearsal da Etapa 12, com ativação real bloqueada;
+  integração pública dos núcleos aprovados
   de criptografia/enqueue e quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.

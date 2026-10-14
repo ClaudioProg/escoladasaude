@@ -1,5 +1,8 @@
 # Migrations V3
 
+Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
+base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+
 Atualização documental: **14/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
 **FATO DO REPOSITÓRIO:** inventário V3 preservado; a Etapa 09 não cria migration.
@@ -189,7 +192,7 @@ original é distinto das contagens herdadas históricas do rehearsal da Etapa 10
 Replay exige vínculo íntegro quota/desafio/mensagem; expurgo independente futuro
 não é presumido seguro nem implementado. Colisões detectáveis de nonce/hash
 falham fechado; nonce não promete unicidade histórica após remoção do envelope.
-**D1–D8 e demais pendências preservadas; Etapa 12 não iniciada**. A Etapa 11 não
+**D1–D8 e demais pendências preservadas; Etapa 12 não iniciada naquele fechamento**. A Etapa 11 não
 implementa worker SMTP, retries, claim/ack, ativação HTTP, integrações públicas ou
 exactly-once; limpeza operacional e fencing integral pendentes. Não repetir testes
 ou operações PostgreSQL/Neon, executar SQL/migrations, SMTP, deploy ou merge
@@ -201,6 +204,40 @@ a transição e homologação separada. Substituição da autenticação exige v
 integral das integrações essenciais, plano de implantação/reversão e autorização
 expressa; não presumir duas plataformas públicas ou implantação automática após
 o Bloco 1. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
+
+## Etapa 12 — protocolo local sobre o schema aprovado
+
+Implementação sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`, **14/10/2026**, para revisão
+independente/rehearsal, não encerrada. **Nenhuma migration nova ou antiga alterada**,
+runner/checksums/ledger preservados; nenhum banco consultado. Usa exclusivamente
+`auth_outbox`, desafios e usuários dos expands aprovados; zero schema adicional.
+
+Transições respeitam as constraints existentes: claim/reclaim `processing` com
+incremento de tentativas, `ultima_tentativa_em = lease_adquirida_em`, novo UUID,
+lease 180 s, sem próximo agendamento/finalização; retry `pending` limpa lease,
+agendamento absoluto futuro >= última tentativa; terminais `sent`/`failed`
+finalizam, limpam lease/agendamento e os quatro campos do envelope, sem reabrir
+ou alterar identidade/snapshot/auditoria. `sent` limpa erro; `failed` tem código
+controlado existente. Não excluir histórico nem alterar limpeza de quotas.
+
+Locks usuário → desafio → outbox; `FOR UPDATE SKIP LOCKED` no claim, ack protegido
+por lease/estado/validade no UPDATE. Relógio PostgreSQL com microssegundos; sem
+transação durante SMTP. Reclaim após interrupção também consome tentativa;
+até seis tentativas, offsets absolutos de recuperação 0/1/3/7/15/25 e
+confirmação/alteração 0/1/5/15/60/180 min, sem rajadas nem retries além do TTL.
+Snapshots de versão são os existentes por finalidade, sem inventar o ausente.
+
+**118/118 novos, 435/435 focados, 1.111/1.111 completos** (uma execução), **9/9 JS**.
+Modelo transacional simulado; constraints/triggers/tipos/locks reais ainda exigem
+rehearsal na `v3-homologacao` após revisão e autorização. Nenhum SQL/Neon nesta
+etapa. [Roteiro futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
+
+Ativação bloqueada pelo consumidor V3 ausente; job desabilitado por padrão,
+dry-run sem efeitos, sem links para JWT legado. SMTP isolado limitado tecnicamente
+a 120 s, sem prova física ainda. Sem exactly-once, exclusão de históricos, deploy,
+produção, alteração Vercel ou Etapa 13. **Etapa 12 não encerrada**, D1–D8 preservadas.
+Uma plataforma pública no endereço atual, modernização por blocos, produção
+separada da homologação e operacional durante a transição. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas).
 
 ## Estrutura expand de e-mail/recuperação
 
