@@ -214,3 +214,8 @@ test("SQL uses skip for claim, waits in same lock order for ack, always fenced",
  assert.ok(reads.slice(3).every(c=>c.sql.includes("FOR UPDATE")&&!c.sql.includes("SKIP LOCKED")));
  const ack=f.calls.find(c=>c.tag==="settle");assert.match(ack.sql,/lease_id IS NOT DISTINCT FROM/);assert.match(ack.sql,/lease_expira_em > clock_timestamp/);
 });
+
+for(const value of ["TRUE","true","sim","FALSE","false","0",0,1,null,{},[]])test("programmatic ambiguous dryRun cannot touch outbox / "+String(value),async()=>{
+ const f=fixture();const before=clone(f.row);assert.equal((await f.worker({dryRun:value}).runOnce()).status,"blocked-config");
+ assert.deepEqual(f.row,before);assert.equal(f.calls.length,0);assert.equal(f.sent.length,0);
+});

@@ -706,11 +706,40 @@ shutdown existente permanece. Reinício cria instância nova; leases duráveis
 interrompidos continuam recuperáveis. Histórico/identidade/auditoria preservados,
 sem exclusão automática de registros, limpeza de quotas de 48 h ou nova retenção.
 
-**118/118 novos, 435/435 focados, 1.111/1.111 completos (uma execução), 9/9 JS**.
+Validação inicial em `bf6155bccba4657ab7350692ecc2273945b6add4`: **118/118 novos, 435/435 focados, 1.111/1.111 completos (uma execução), 9/9 JS**.
 Simulações explicitamente separadas de PostgreSQL/SMTP reais. D1–D8, demais decisões
 e uma plataforma pública no endereço atual preservadas; sem alterar frontend,
 rotas públicas, migrations, Vercel ou produção. **Etapa 12 não encerrada; Etapa 13
 não iniciada**. [Evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes); [rehearsal futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
+
+#### Ajuste pontual — flags booleanas e dry-run fail-closed
+
+Correção autorizada pelo responsável após revisão independente de
+`bf6155bccba4657ab7350692ecc2273945b6add4`, em **14/10/2026**, restrita ao caminho
+V3. `authOutboxFlags.js` fornece interpretação compartilhada para `EMAIL_ENABLED`,
+`EMAIL_DRY_RUN`, `AUTH_OUTBOX_WORKER_ENABLED` e `AUTH_OUTBOX_WORKER_DRY_RUN`.
+
+Reconhece booleanos reais, números 0/1 e strings com trim/case-insensitive:
+verdadeiro `true`, `1`, `sim`, `s`, `yes`, `y`, `on`; falso `false`, `0`, `nao`,
+`não`, `n`, `no`, `off`. Valores desconhecidos, vazios, nulos, objetos, arrays,
+números diferentes de 0/1 e combinações ambíguas bloqueiam a configuração V3.
+**ENABLED ausente não habilita; DRY_RUN ausente é ligado por segurança**. Para
+processar, ambos ENABLED devem ser reconhecidos como verdadeiros e ambos DRY_RUN
+explicitamente reconhecidos como falsos, além dos gates de consumidor/configuração.
+
+Job e adaptador avaliam as quatro flags antes de inicializar/processar; polling
+revalida o gate, e readiness/send do adaptador reconsultam as flags. Dry-run e
+configurações inválidas bloqueiam claim, consumo de tentativas, decifragem,
+alterações na outbox e início do SMTP. A API interna do worker aceita `dryRun` booleano, rejeitando valores
+programáticos ambíguos. Flags não substituem o consumidor V3 ausente, que continua
+bloqueando a ativação. Não se presume cancelamento retroativo de operação já iniciada.
+
+`sendEmail()` e `normalizeBool` institucionais permanecem inalterados, incluindo
+seus aliases/defaults; a política estrita é exclusiva do caminho V3. Não alterados
+claims/leases/retries/SQL, migrations, contratos 08–11, rotas ou frontend.
+Correção: **534/534 focados, 1.500/1.500 backend completo (uma execução), 7/7 JS**;
+sem SQL/Neon/SMTP real/rehearsal/produção. **Etapa 12 aberta, Etapa 13 não iniciada**.
+[Evidências da correção](testes-e-evidencias.md#correção-pontual--flags-de-dry-run-da-etapa-12).
 
 ## DECISÃO CANÔNICA — auditoria
 

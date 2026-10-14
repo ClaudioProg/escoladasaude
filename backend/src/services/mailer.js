@@ -511,7 +511,7 @@ module.exports = {
   // Adaptador dedicado: o contrato e o transporter dos demais modulos nao mudam.
   createAuthEmailSender: () => require("./authSmtpSender").createAuthSmtpSender({
     getConfig: getEmailConfig,
-    isEnabled: () => process.env.EMAIL_ENABLED === "true" &&
-      process.env.EMAIL_DRY_RUN !== "true" && process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== "false",
+    isEnabled: () => require("./authOutboxFlags").authOutboxMode(process.env) === "ready" &&
+      process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== "false",
   }),
 };

@@ -4,19 +4,20 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
 const {createAuthOutboxJob,cryptoConfigFromEnv,POLL_MS}=require("./authOutboxJob");
-function fixture(env={AUTH_OUTBOX_WORKER_ENABLED:"true"},extra={}){
+const ENABLED_ENV={AUTH_OUTBOX_WORKER_ENABLED:"true",AUTH_OUTBOX_WORKER_DRY_RUN:"false",EMAIL_ENABLED:"true",EMAIL_DRY_RUN:"false"};
+function fixture(env={...ENABLED_ENV},extra={}){
  const calls=[],logs=[];let tick,run=async()=>calls.push("run");
  const worker={readiness:()=>"ready",runOnce:()=>run(),stop:async()=>calls.push("stop")};
  const job=createAuthOutboxJob({env,consumer:{ready:true,buildMail:()=>{}},createWorker:()=>{calls.push("factory");return worker;},log:x=>logs.push(x),
  timers:{setInterval(fn,ms){assert.equal(ms,30000);tick=fn;return {unref(){calls.push("unref");}};},clearInterval(){calls.push("clear");}},...extra});
- return {job,calls,logs,worker,tick:()=>tick?.(),setRun:fn=>run=fn};
+ return {job,calls,logs,worker,env,tick:()=>tick?.(),setRun:fn=>run=fn};
 }
-for(const flag of [undefined,"",false,"TRUE","1","false"])test("disabled by default and exact explicit flag / "+String(flag),async()=>{
- const f=fixture({AUTH_OUTBOX_WORKER_ENABLED:flag});assert.equal(f.job.start().status,"disabled");await f.job.stop();assert.deepEqual(f.calls,[]);
+for(const flag of [undefined,false,"false","0","NAO","não","No","OFF",0])test("disabled by default or recognized false / "+String(flag),async()=>{
+ const f=fixture({...ENABLED_ENV,AUTH_OUTBOX_WORKER_ENABLED:flag});assert.equal(f.job.start().status,"disabled");await f.job.stop();assert.deepEqual(f.calls,[]);
 });
-test("dry-run creates no worker, claims, crypto or SMTP",async()=>{const f=fixture({AUTH_OUTBOX_WORKER_ENABLED:"true",AUTH_OUTBOX_WORKER_DRY_RUN:"true"});assert.equal(f.job.start().status,"dry-run");await f.job.stop();assert.deepEqual(f.calls,[]);});
+test("dry-run creates no worker, claims, crypto or SMTP",async()=>{const f=fixture({...ENABLED_ENV,AUTH_OUTBOX_WORKER_DRY_RUN:"true"});assert.equal(f.job.start().status,"dry-run");await f.job.stop();assert.deepEqual(f.calls,[]);});
 test("current backend cannot bypass missing V3 consumers via environment",async()=>{
- const f=fixture({AUTH_OUTBOX_WORKER_ENABLED:"true",AUTH_V3_TOKENS_READY:"true"},{consumer:null});assert.equal(f.job.start().status,"blocked-consumer");await f.job.stop();assert.deepEqual(f.calls,[]);assert.deepEqual(f.logs,["AUTH_OUTBOX_V3_CONSUMER_UNAVAILABLE"]);
+ const f=fixture({...ENABLED_ENV,AUTH_V3_TOKENS_READY:"true"},{consumer:null});assert.equal(f.job.start().status,"blocked-consumer");await f.job.stop();assert.deepEqual(f.calls,[]);assert.deepEqual(f.logs,["AUTH_OUTBOX_V3_CONSUMER_UNAVAILABLE"]);
 });
 test("polling, duplicate start, stop and fresh restart",async()=>{
  const f=fixture();assert.equal(POLL_MS,30000);assert.equal(f.job.start().status,"running");assert.equal(f.job.start().status,"running");await f.tick();
@@ -46,4 +47,41 @@ test("existing event and room jobs retained; HTTP shutdown awaits auth job befor
  const source=fs.readFileSync(path.join(__dirname,"../server.js"),"utf8");
  for(const name of ["iniciarLembreteEventoJob","iniciarConfirmacaoUsoSalaJob","pararLembreteEventoJob","pararConfirmacaoUsoSalaJob"])assert.ok(source.includes(name+"();"));
  assert.ok(source.indexOf("await authOutboxStopped;")<source.indexOf("await db.shutdown();"));
+});
+
+const TRUE_FLAGS=[true,1,"true","TRUE","True","1","sim","SIM","s","S","yes","YES","y","Y","on","ON"," true "];
+const FALSE_FLAGS=[false,0,"false","FALSE","False","0","nao","NAO","não","NÃO","n","N","no","NO","off","OFF"," false "];
+const INVALID_FLAGS=[""," ",null,"invalid","true,false","yes/no","1.0","00",2,-1,NaN,Infinity,{},[],new Boolean(false)];
+for(const name of ["AUTH_OUTBOX_WORKER_DRY_RUN","EMAIL_DRY_RUN"]) {
+ for(const value of TRUE_FLAGS)test("dry-run blocks factory/poll/outbox / "+name+" / "+String(value),async()=>{
+  const f=fixture({...ENABLED_ENV,[name]:value});assert.equal(f.job.start().status,"dry-run");assert.equal(f.tick(),undefined);
+  await f.job.stop();assert.deepEqual(f.calls,[]);assert.deepEqual(f.logs,[]);
+ });
+ for(const value of FALSE_FLAGS)test("recognized explicit false dry-run / "+name+" / "+String(value),async()=>{
+  const f=fixture({...ENABLED_ENV,[name]:value});assert.equal(f.job.start().status,"running");await f.tick();await f.job.stop();assert.ok(f.calls.includes("run"));
+ });
+}
+for(const name of ["AUTH_OUTBOX_WORKER_ENABLED","EMAIL_ENABLED"]) {
+ for(const value of TRUE_FLAGS)test("recognized enable flag still needs consumer / "+name+" / "+String(value),async()=>{
+  const f=fixture({...ENABLED_ENV,[name]:value},{consumer:null});assert.equal(f.job.start().status,"blocked-consumer");await f.job.stop();assert.deepEqual(f.calls,[]);
+ });
+ for(const value of FALSE_FLAGS)test("recognized false cannot start / "+name+" / "+String(value),async()=>{
+  const f=fixture({...ENABLED_ENV,[name]:value});assert.equal(f.job.start().status,"disabled");await f.job.stop();assert.deepEqual(f.calls,[]);
+ });
+}
+for(const name of Object.keys(ENABLED_ENV)) {
+ for(const value of INVALID_FLAGS)test("invalid flag blocks all effects / "+name+" / "+String(value),async()=>{
+  const f=fixture({...ENABLED_ENV,[name]:value});assert.equal(f.job.start().status,"blocked-config");await f.job.stop();assert.deepEqual(f.calls,[]);
+ });
+ test("absent flag stays safe / "+name,async()=>{
+  const env={...ENABLED_ENV};delete env[name];const f=fixture(env);
+  assert.equal(f.job.start().status,name.endsWith("DRY_RUN")?"dry-run":"disabled");await f.job.stop();assert.deepEqual(f.calls,[]);
+ });
+}
+test("empty configuration never initializes worker",async()=>{const f=fixture({});assert.equal(f.job.start().status,"disabled");await f.job.stop();assert.deepEqual(f.calls,[]);});
+test("poll rechecks dry-run and invalid flags before invoking worker",async()=>{
+ const f=fixture();f.job.start();await f.tick();const count=f.calls.filter(x=>x==="run").length;
+ f.env.EMAIL_DRY_RUN="SIM";assert.equal(f.tick(),null);assert.equal(f.calls.filter(x=>x==="run").length,count);
+ f.env.EMAIL_DRY_RUN="false";f.env.AUTH_OUTBOX_WORKER_DRY_RUN="invalid";assert.equal(f.tick(),null);
+ f.env.AUTH_OUTBOX_WORKER_DRY_RUN="OFF";await f.tick();assert.equal(f.calls.filter(x=>x==="run").length,count+1);await f.job.stop();
 });

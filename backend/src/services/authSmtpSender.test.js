@@ -14,7 +14,7 @@ function fixture({enabled=true,config=CONFIG,spawnFail=false}={}){
  child.kill=signal=>{calls.push(["kill",signal]);return true;};
  wrapper(name=>name==="node:child_process"?{fork(file,args,opts){calls.push(["fork",file,args,opts]);if(spawnFail)throw new Error("SECRET");children.push(child);return child;}}:require(name),
  mod,mod.exports,__dirname,(fn,ms)=>{timers.push({fn,ms});return 1;},()=>calls.push(["clear"]));
- const transport=mod.exports.createAuthSmtpSender({getConfig:()=>config,isEnabled:()=>enabled});
+ const transport=mod.exports.createAuthSmtpSender({getConfig:typeof config==="function"?config:()=>config,isEnabled:typeof enabled==="function"?enabled:()=>enabled});
  return {transport,child,calls,timers,module:mod.exports};
 }
 for(const option of [{enabled:false},{config:{}},{config:{...CONFIG,port:0}},{config:{...CONFIG,fromAddr:"multi@example.invalid,second@example.invalid"}}])test("inactive or invalid SMTP config causes zero spawn",async()=>{
@@ -77,4 +77,50 @@ test("isolated SMTP transport enforces TLS, timeouts and no logs/file/URL loadin
  assert.equal(opts.pool,false);assert.equal(opts.logger,false);assert.equal(opts.debug,false);assert.equal(opts.tls.rejectUnauthorized,true);
  assert.equal(opts.disableFileAccess,true);assert.equal(opts.disableUrlAccess,true);
  assert.equal(opts.dnsTimeout,10000);assert.equal(opts.connectionTimeout,20000);assert.equal(opts.greetingTimeout,10000);assert.equal(opts.socketTimeout,30000);
+});
+
+const AUTH_ENV={AUTH_OUTBOX_WORKER_ENABLED:"true",AUTH_OUTBOX_WORKER_DRY_RUN:"false",EMAIL_ENABLED:"true",EMAIL_DRY_RUN:"false"};
+function institutionalFixture(flags={}) {
+ const env={NODE_ENV:"production",EMAIL_SMTP_HOST:CONFIG.host,EMAIL_SMTP_PORT:"465",EMAIL_SMTP_SECURE:"true",EMAIL_SMTP_USER:CONFIG.smtpUser,
+  EMAIL_SMTP_PASS:CONFIG.smtpPass,EMAIL_FROM_ADDR:CONFIG.fromAddr,EMAIL_FROM_NAME:CONFIG.fromName,...AUTH_ENV,...flags};
+ const module={exports:{}},legacyCalls=[];let smtp;
+ const mailerSource=fs.readFileSync(path.join(__dirname,"mailer.js"),"utf8");
+ vm.runInThisContext("(function(require,module,exports,process,console){"+mailerSource+"\n})")(
+  name=>name==="nodemailer"?{createTransport:()=>{legacyCalls.push("transport");return {sendMail:async mail=>{legacyCalls.push(mail);return {accepted:[mail.to],rejected:[]};}};}}:
+   name==="./authSmtpSender"?{createAuthSmtpSender:options=>{smtp=fixture({enabled:options.isEnabled,config:options.getConfig});return smtp.transport;}}:require(name),
+  module,module.exports,{env},{info(){},log(){},warn(){},error(){}});
+ return {api:module.exports,env,legacyCalls,smtp:()=>smtp};
+}
+const TRUE_REPS=[true,1,"true","TRUE","True","1","sim","SIM","s","yes","YES","y","on","ON"," On "];
+const FALSE_REPS=[false,0,"false","FALSE","0","nao","NAO","não","NÃO","n","no","NO","off","OFF"," off "];
+const INVALID_REPS=[undefined,""," ",null,"invalid","true,false","1.0",2,-1,NaN,Infinity,{},[]];
+for(const name of ["EMAIL_DRY_RUN","AUTH_OUTBOX_WORKER_DRY_RUN"])for(const value of TRUE_REPS)test("institutional auth adapter cannot spawn on dry-run / "+name+" / "+String(value),async()=>{
+ const f=institutionalFixture({[name]:value}),sender=f.api.createAuthEmailSender();assert.equal(sender.ready(),false);
+ assert.equal((await sender.send(MAIL)).kind,"dry-run");assert.deepEqual(f.smtp().calls,[]);assert.deepEqual(f.legacyCalls,[]);
+});
+for(const name of Object.keys(AUTH_ENV))for(const value of INVALID_REPS)test("institutional auth adapter blocks absent/ambiguous flag / "+name+" / "+String(value),async()=>{
+ const f=institutionalFixture({[name]:value}),sender=f.api.createAuthEmailSender();assert.equal(sender.ready(),false);
+ assert.equal((await sender.send(MAIL)).kind,"dry-run");assert.deepEqual(f.smtp().calls,[]);
+});
+for(const value of TRUE_REPS)test("all recognized enables with explicit dry-run false can use simulated adapter / "+String(value),async()=>{
+ const f=institutionalFixture({EMAIL_ENABLED:value,AUTH_OUTBOX_WORKER_ENABLED:value}),sender=f.api.createAuthEmailSender();assert.equal(sender.ready(),true);
+ const result=sender.send(MAIL);f.smtp().child.emit("message",{kind:"accepted"});f.smtp().child.emit("exit",0);assert.equal((await result).kind,"accepted");
+});
+for(const value of FALSE_REPS)test("recognized false dry-run permits explicitly enabled simulated adapter / "+String(value),async()=>{
+ const f=institutionalFixture({EMAIL_DRY_RUN:value,AUTH_OUTBOX_WORKER_DRY_RUN:value}),sender=f.api.createAuthEmailSender();assert.equal(sender.ready(),true);
+ const result=sender.send(MAIL);f.smtp().child.emit("exit",0);await result;
+});
+for(const name of ["EMAIL_ENABLED","AUTH_OUTBOX_WORKER_ENABLED"])for(const value of FALSE_REPS)test("false enable cannot spawn / "+name+" / "+String(value),async()=>{
+ const f=institutionalFixture({[name]:value}),sender=f.api.createAuthEmailSender();assert.equal((await sender.send(MAIL)).kind,"dry-run");assert.deepEqual(f.smtp().calls,[]);
+});
+test("adapter rechecks dry-run configured after readiness",async()=>{
+ const f=institutionalFixture(),sender=f.api.createAuthEmailSender();assert.equal(sender.ready(),true);f.env.EMAIL_DRY_RUN="YES";
+ assert.equal((await sender.send(MAIL)).kind,"dry-run");assert.deepEqual(f.smtp().calls,[]);
+});
+for(const value of TRUE_REPS)test("legacy sendEmail still honors recognized dry-run / "+String(value),async()=>{
+ const f=institutionalFixture({EMAIL_DRY_RUN:value});const info=await f.api.sendEmail(MAIL);assert.equal(info.dryRun,true);assert.deepEqual(f.legacyCalls,[]);
+});
+for(const value of TRUE_REPS)test("legacy sendEmail recognized enable unaffected by V3 flags/defaults / "+String(value),async()=>{
+ const f=institutionalFixture({EMAIL_ENABLED:value,EMAIL_DRY_RUN:undefined,AUTH_OUTBOX_WORKER_ENABLED:"invalid",AUTH_OUTBOX_WORKER_DRY_RUN:"SIM"});
+ const info=await f.api.sendEmail(MAIL);assert.deepEqual(info.accepted,[MAIL.to]);assert.equal(f.legacyCalls.length,2);
 });

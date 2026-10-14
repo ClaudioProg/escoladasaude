@@ -46,13 +46,14 @@ const CANDIDATES = `/* worker:candidates */ SELECT o.id, COALESCE(c.usuario_id, 
 function createAuthOutboxWorker(options = {}) {
   const { db, cryptoConfig, transport, consumer, enabled = false, dryRun = false } = options;
   let stopping = false, cipher;
-  const available = () => !stopping && enabled === true && dryRun !== true && consumer?.ready === true &&
+  const available = () => !stopping && enabled === true && dryRun === false && consumer?.ready === true &&
     typeof consumer.buildMail === "function" && typeof db?.tx === "function" &&
     transport?.maxDurationMs === 120000 && typeof transport.send === "function" && typeof transport.cancel === "function" &&
     typeof transport.ready === "function" && transport.ready() === true;
   function readiness() {
     if (stopping || enabled !== true) return "disabled";
     if (dryRun === true) return "dry-run";
+    if (dryRun !== false) return "blocked-config";
     // Nao basta um flag de ambiente: exige um contrato de consumo integrado.
     if (consumer?.ready !== true || typeof consumer.buildMail !== "function") return "blocked-consumer";
     try {

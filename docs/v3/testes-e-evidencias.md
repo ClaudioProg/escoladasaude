@@ -1116,6 +1116,49 @@ separada da homologação. Cutover só com integrações essenciais integralment
 validadas, plano de implantação/reversão e autorização expressa.
 **Onze etapas encerradas entre 57; Etapa 12 não encerrada; Etapa 13 não iniciada.**
 
+### Correção pontual — flags de dry-run da Etapa 12
+
+**14/10/2026**, base `bf6155bccba4657ab7350692ecc2273945b6add4` na mesma branch,
+HEAD/worktree conferidos. A revisão independente identificou comparações exatas
+com `"true"` que divergiam dos aliases do mailer institucional. Correção autorizada,
+sem fechar a Etapa 12 nem iniciar a Etapa 13.
+
+Criado `authOutboxFlags.js`; ajustes localizados em `authOutboxJob.js`,
+`authOutboxWorker.js` e somente na autorização de `mailer.createAuthEmailSender`.
+Ampliados os três testes dedicados de job/worker/adaptador. `sendEmail`, seu
+normalizador e todo o mailer antes da factory V3 preservados byte a byte.
+Atualizados pontualmente decisões canônicas, evidências e retomada.
+
+- **534/534 focados**, nos três testes dedicados e `safeAuthLogging`, zero falhas,
+  skips/cancelados/todo; matriz de aliases, caixa/trim, booleanos/números, ausência,
+  inválidos/ambíguos em cada uma das quatro flags, outbox sem efeitos, consumidor
+  ausente bloqueado, polling/readiness revalidados e mailer institucional simulado.
+- **1.500/1.500 backend completo**, **uma única execução após estabilização**;
+  nenhum código alterado depois dessa execução. Resultado anterior 1.111/1.111
+  permanece histórico da implementação inicial, não validação corrente da correção.
+- **7/7 sintaxe JS**. As 389 verificações adicionais estão incluídas nos totais;
+  não somar as rodadas nem confundir testes locais com PostgreSQL/SMTP reais.
+
+Parser V3 compartilhado: ENABLED ausente fica desligado; DRY_RUN ausente fica
+ligado até falso explícito. Strings reconhecidas são case-insensitive com trim,
+compatíveis com aliases institucionais; valor inválido bloqueia antes de claim
+ou SMTP. As duas habilitações e os dois dry-runs compõem o gate, sem ignorar
+flags de uma camada. Dry-run jamais vira `sent`, inicia transporte ou altera a
+outbox. Configuração plena continua insuficiente sem consumidor V3.
+
+Artefatos separados e anteriores preservados:
+`C:/tmp/escola-v3-etapa12-dry-run-20261014-bf6155bc/`, com `focused.log`, `full.log`
+e `guard-*.json`. DATABASE_URL dummy só nos processos; Pool/Client, TCP/TLS, SMTP
+e leitura `.env` bloqueados. **Zero tentativas PostgreSQL, rede ou SMTP reais**;
+uma tentativa `.env` bloqueada na suíte completa, sem conteúdo lido. Transporte
+SMTP e processos de envio substituídos por mocks; nenhum rehearsal executado.
+
+Migrations/contratos 08–11, SQL do worker, rotas/frontend, jobs anteriores e
+produção preservados. **Etapa 12 continua aberta para rehearsal PostgreSQL e
+validação física do transporte**, com consumidor V3 ausente e ativação bloqueada;
+**Etapa 13 não iniciada**. Publicação da correção não autoriza implantação.
+[Contrato das flags](decisoes-canonicas.md#ajuste-pontual--flags-booleanas-e-dry-run-fail-closed).
+
 ### Roteiro enxuto de rehearsal da Etapa 12
 
 **Não executado nem autorizado por este roteiro.** Após revisão independente,

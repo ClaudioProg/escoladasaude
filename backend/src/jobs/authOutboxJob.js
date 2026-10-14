@@ -1,6 +1,7 @@
 "use strict";
 
 const { createAuthOutboxWorker } = require("../services/authOutboxWorker");
+const { authOutboxMode } = require("../services/authOutboxFlags");
 const POLL_MS = 30000;
 // Nenhum consumidor de token opaco V3 esta integrado no HEAD desta etapa.
 // Este gate nao pode ser substituido por AUTH_*_READY ou por uma URL legada.
@@ -19,7 +20,7 @@ function createAuthOutboxJob({ db, env = process.env, consumer = V3_CONSUMER, cr
   const factory = createWorker || (() => createAuthOutboxWorker({ db, enabled: true, consumer,
     cryptoConfig: cryptoConfigFromEnv(env), transport: require("../services/mailer").createAuthEmailSender() }));
   function tick() {
-    if (!worker || running || stopping) return running;
+    if (!worker || running || stopping || authOutboxMode(env) !== "ready") return running;
     const current = worker;
     running = Promise.resolve().then(() => current.runOnce()).catch(() => {
       log("AUTH_OUTBOX_WORKER_FAILURE");
@@ -28,8 +29,8 @@ function createAuthOutboxJob({ db, env = process.env, consumer = V3_CONSUMER, cr
   }
   function start() {
     if (timer !== null || stopping) return { status: stopping ? "stopping" : "running" };
-    if (env.AUTH_OUTBOX_WORKER_ENABLED !== "true") return { status: "disabled" };
-    if (env.AUTH_OUTBOX_WORKER_DRY_RUN === "true") return { status: "dry-run" };
+    const mode = authOutboxMode(env);
+    if (mode !== "ready") return { status: mode };
     if (consumer?.ready !== true || typeof consumer.buildMail !== "function") {
       log("AUTH_OUTBOX_V3_CONSUMER_UNAVAILABLE"); return { status: "blocked-consumer" };
     }

@@ -176,6 +176,17 @@ não presumir snapshot duplo ausente. At-least-once sem exactly-once; aceitaçã
 SMTP não prova entrega e perda de ack pode duplicar. Invalidação concorrente não
 cancela retroativamente envio iniciado. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas).
 
+Correção pontual de **14/10/2026**, sobre
+`bf6155bccba4657ab7350692ecc2273945b6add4`: interpretação compartilhada e
+fail-closed das quatro flags de e-mail/worker. ENABLED ausente desabilita;
+DRY_RUN ausente liga dry-run; processar exige dois ENABLED verdadeiros e dois
+DRY_RUN explicitamente falsos, com aliases/caixa/trim reconhecidos. Inválidos/
+ambíguos bloqueiam antes de efeitos; `sendEmail()` institucional preservado.
+**534/534 focados, 1.500/1.500 completos (uma execução), 7/7 JS** aprovados;
+contagens anteriores acima são históricas. Sem SQL/Neon/SMTP real/rehearsal.
+Consumidor V3 ausente continua bloqueando; **Etapa 12 aberta e Etapa 13 não iniciada**.
+[Evidências da correção](testes-e-evidencias.md#correção-pontual--flags-de-dry-run-da-etapa-12).
+
 Próxima ação: revisão independente; depois, somente rehearsal autorizado em
 `v3-homologacao`, com fixtures estritamente sintéticas, preflight e política de
 rollback/limpeza explicitamente aprovados. Não executar agora nem repetir 08–11.
