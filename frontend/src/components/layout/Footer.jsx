@@ -259,22 +259,6 @@ export default function Footer() {
                     </a>
                   </p>
 
-                  <p className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 shrink-0" aria-hidden="true" />
-
-                    <a
-                      href="https://wa.me/5513996182615"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={classNames(
-                        "rounded-lg transition hover:text-slate-950 hover:underline focus-visible:outline-none focus-visible:ring-2 dark:hover:text-white",
-                        campanha.foco,
-                      )}
-                    >
-                      WhatsApp: (13) 99618-2615
-                    </a>
-                  </p>
-
                   <p className="flex items-start gap-2">
                     <Mail
                       className="mt-0.5 h-4 w-4 shrink-0"
