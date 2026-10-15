@@ -1,9 +1,13 @@
 # Migrations V3
 
-Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
-base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
+**15/10/2026**, após revisão independente de
+`db095b6f325c41f093c79b271670785e94eff848`.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
 
-Atualização documental: **14/10/2026**. HEAD da implementação da Etapa 11:
+Atualização documental: **15/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
 **FATO DO REPOSITÓRIO:** inventário V3 preservado; a Etapa 09 não cria migration.
 Migration 08 com rehearsal e revisão independente aprovados, aplicação histórica
@@ -207,9 +211,10 @@ o Bloco 1. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implan
 
 ## Etapa 12 — protocolo local sobre o schema aprovado
 
-Implementação sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`, **14/10/2026**, para revisão
-independente/rehearsal, não encerrada. **Nenhuma migration nova ou antiga alterada**,
-runner/checksums/ledger preservados; nenhum banco consultado. Usa exclusivamente
+Implementação inicial sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`, **14/10/2026**;
+Etapa 12 encerrada documentalmente em **15/10/2026**, após revisão independente
+aprovada de `db095b6f325c41f093c79b271670785e94eff848`. **Nenhuma migration nova ou antiga alterada**,
+runner/checksums/ledger preservados; nenhum banco consultado neste fechamento documental. Usa exclusivamente
 `auth_outbox`, desafios e usuários dos expands aprovados; zero schema adicional.
 
 Transições respeitam as constraints existentes: claim/reclaim `processing` com
@@ -227,15 +232,26 @@ até seis tentativas, offsets absolutos de recuperação 0/1/3/7/15/25 e
 confirmação/alteração 0/1/5/15/60/180 min, sem rajadas nem retries além do TTL.
 Snapshots de versão são os existentes por finalidade, sem inventar o ausente.
 
-**118/118 novos, 435/435 focados, 1.111/1.111 completos** (uma execução), **9/9 JS**.
-Modelo transacional simulado; constraints/triggers/tipos/locks reais ainda exigem
-rehearsal na `v3-homologacao` após revisão e autorização. Nenhum SQL/Neon nesta
-etapa. [Roteiro futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
+Validação inicial histórica: **118/118 novos, 435/435 focados, 1.111/1.111 completos**
+(uma execução), **9/9 JS**, com modelo transacional simulado. Posteriormente,
+rehearsal PostgreSQL aprovado em `v3-homologacao`: **44/44 provas únicas**,
+três falhas históricas do instrumento corrigidas e preservadas, zero resíduos
+sintéticos no Neon, trigger restaurado antes do commit da limpeza autorizada,
+ledger e dados herdados preservados. Nenhum SQL/Neon ou ensaio reexecutado neste
+fechamento. Implementação `bf6155bccba4657ab7350692ecc2273945b6add4`, flags/dry-run
+`40ab140fa23f4cf879ac00d867b0def3ef5deff5`, cancelamento/IPC
+`db095b6f325c41f093c79b271670785e94eff848`. Testes atuais: **1.529/1.529 backend**,
+**670/670 focados**, **29/29 regressões novas**, **4/4 subprocessos Node reais**.
+[Evidências aprovadas](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
 
 Ativação bloqueada pelo consumidor V3 ausente; job desabilitado por padrão,
 dry-run sem efeitos, sem links para JWT legado. SMTP isolado limitado tecnicamente
-a 120 s, sem prova física ainda. Sem exactly-once, exclusão de históricos, deploy,
-produção, alteração Vercel ou Etapa 13. **Etapa 12 não encerrada**, D1–D8 preservadas.
+a 120 s; prova física aprovada com **52 verificações**, kill em **115,072 s** e
+resolução em **115,078 s**. TLS positivo pelo adaptador ainda exige comprovação
+física antes da futura ativação SMTP real, sem reabrir automaticamente toda a
+Etapa 12. Sem exactly-once, exclusão de históricos, deploy ou produção;
+configurações de implantação e D1–D8 preservadas.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
 Uma plataforma pública no endereço atual, modernização por blocos, produção
 separada da homologação e operacional durante a transição. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas).
 

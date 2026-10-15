@@ -1,7 +1,11 @@
 # Plataforma Escola da Saúde — V3
 
-Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
-base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
+**15/10/2026**, após revisão independente de
+`db095b6f325c41f093c79b271670785e94eff848`.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
@@ -91,12 +95,15 @@ estrutural à seleção concorrente comprovados. Homologação permanente preser
 
 No fechamento da Etapa 10, criptografia operacional/enqueue e as Etapas 11/12
 estavam pendentes. A Etapa 11 foi aprovada posteriormente, conforme seção abaixo.
-Worker, SMTP, fencing integral, exactly-once, limpeza operacional e implantação
-em produção continuam pendentes. O fechamento da Etapa 10 documental/Git não
+Naquele fechamento, worker, SMTP e fencing integral ainda estavam pendentes;
+o escopo da Etapa 12 foi aprovado posteriormente, conforme seção abaixo.
+Exactly-once não é garantido; limpeza operacional e produção permanecem fora do
+fechamento. O fechamento da Etapa 10 documental/Git não
 repete testes/rehearsal nem executa SQL ou operações Neon. Ver
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação).
 
-**Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
@@ -148,7 +155,7 @@ pessoais nos documentos.
 
 ## Etapa 12 — worker local, ativação real bloqueada
 
-Worker dedicado à autenticação, implementado para revisão independente:
+Worker dedicado à autenticação, aprovado após revisão independente:
 [authOutboxWorker](../../backend/src/services/authOutboxWorker.js),
 [job](../../backend/src/jobs/authOutboxJob.js) e adaptador SMTP exclusivo,
 com start/shutdown no backend e configuração institucional do mailer preservada.
@@ -172,17 +179,26 @@ rota pública/frontend. Integração futura exige consumidor V3 e configuração
 O adaptador usa subprocesso SMTP isolado, encerrado com `SIGKILL` aos 115 s,
 com 5 s de margem no limite técnico de **120 s**; aguarda saída efetiva, não usa
 `Promise.race` como cancelamento. Resultado aceito pelo transporte pode virar
-`sent`; dry-run nunca vira `sent`. Prazo físico/transporte real ainda exige prova.
+`sent`; dry-run nunca vira `sent`. Prova física aprovada: 52 verificações,
+kill em 115,072 s e resolução em 115,078 s, dentro de 120 s. TLS positivo pelo
+adaptador ainda requer prova física antes da futura ativação SMTP real;
+essa prova não reabre automaticamente toda a Etapa 12.
 At-least-once controlado, sem exactly-once; aceitação não prova entrega/leitura.
 
-**118/118 testes novos, 435/435 focados, 1.111/1.111 backend completo** (uma execução),
+Validação inicial histórica: **118/118 testes novos, 435/435 focados, 1.111/1.111 backend completo** (uma execução),
 **9/9 sintaxe JS** aprovados. Modelos transacionais/processos SMTP simulados,
-criptografia real sintética; PostgreSQL/SMTP reais não ensaiados nesta etapa.
-**Onze etapas encerradas entre 57**; Etapa 12 implementada, não encerrada;
-**Etapa 13 não iniciada**. D1–D8, migrations, jobs de eventos/salas e decisão de
-uma plataforma pública no endereço atual preservados. Sem Neon, produção, deploy,
-merge ou configuração Vercel. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas),
-[evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes) e [rehearsal futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
+criptografia real sintética; naquela rodada PostgreSQL/SMTP reais não foram ensaiados.
+Fechamento aprovado: implementação `bf6155bccba4657ab7350692ecc2273945b6add4`,
+flags/dry-run `40ab140fa23f4cf879ac00d867b0def3ef5deff5` e cancelamento/IPC
+`db095b6f325c41f093c79b271670785e94eff848`. Validação atual: **1.529/1.529 backend**,
+**670/670 focados**, **29/29 regressões novas**, **4/4 subprocessos Node reais**;
+rehearsal PostgreSQL **44/44 provas únicas**, três falhas históricas do instrumento
+corrigidas e preservadas; zero resíduos sintéticos, trigger restaurado,
+ledger e dados herdados preservados.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.** D1–D8, migrations,
+jobs de eventos/salas e decisão da única plataforma pública no endereço atual
+preservados. Sem implantação em produção, merge ou configuração Vercel neste fechamento. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas),
+[evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes) e [fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
 
 ## Documentação histórica e conflitos
 

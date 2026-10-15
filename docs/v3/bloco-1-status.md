@@ -1,16 +1,11 @@
 # Bloco 1 — estado real
 
-Atualização da Etapa 12: **15/10/2026**, correção pontual de cancelamento/IPC
-sobre `40ab140fa23f4cf879ac00d867b0def3ef5deff5`. **Etapa 12 aberta até revisão
-independente deste patch; Etapa 13 não iniciada**.
-
-A validação física SMTP anterior foi aprovada na revisão independente informada
-pelo responsável: **52 verificações**, encerramento real em **115,078 s**. Esse
-ensaio não foi repetido. O patch invalida IPC após cancelamento e saída anormal,
-preserva aceitação normal e retry at-least-once: **670/670 focados**,
-**1.529/1.529 completos (uma execução)** e **4/4 subprocessos Node reais sem SMTP**.
-[Evidências da correção](testes-e-evidencias.md#correção-final-da-etapa-12--cancelamento-e-ipc).
-Os registros anteriores abaixo são históricos; aprovação física não encerra a etapa.
+Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
+**15/10/2026**, após revisão independente de
+`db095b6f325c41f093c79b271670785e94eff848`.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
 
 Atualização documental: 2026-10-15. Branch: `revisao-premium-bloco-1-auth`.
 HEAD da implementação da Etapa 11, versionado e publicado na branch:
@@ -197,11 +192,14 @@ fechamento exclusivamente documental/Git, sem backfill ou alteração do legado.
   permanente preservada. [Evidências e limites](testes-e-evidencias.md#etapa-10--outbox-expand--rehearsal-e-revisão-aprovados).
 - No fechamento da Etapa 10, criptografia operacional/enqueue e Etapas 11/12
   estavam pendentes. A Etapa 11 foi aprovada posteriormente, conforme seção abaixo.
-  Worker, SMTP, fencing integral, exactly-once, limpeza operacional e implantação
-  em produção continuam pendentes. D1–D8 e Etapas 01–09 preservados.
+  Naquele fechamento, worker, SMTP e fencing integral ainda estavam pendentes;
+  o escopo da Etapa 12 foi aprovado posteriormente, conforme seção abaixo.
+  Exactly-once não é garantido; limpeza operacional e produção permanecem
+  pendentes. D1–D8 e Etapas 01–09 preservados.
 - Este fechamento não executa SQL, operações Neon, SMTP, deploy, merge ou testes.
 
-**Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
@@ -271,10 +269,13 @@ das integrações essenciais, plano de implantação/reversão e autorização e
 O fechamento do Bloco 1 não autoriza implantação automática ou duas plataformas
 públicas. [Decisão canônica](decisoes-canonicas.md#decisão-canônica--implantação-progressiva-na-plataforma-pública-atual).
 
-## ETAPA 12 — WORKER LOCAL / REVISÃO E REHEARSAL PENDENTES
+## ETAPA 12 — WORKER E RETRIES / ENCERRADA
 
-Implementação em **14/10/2026**, sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`.
-Não encerra a etapa nem inicia a Etapa 13. Decisões operacionais aprovadas pelo
+Implementação inicial `bf6155bccba4657ab7350692ecc2273945b6add4`; correção de flags/dry-run
+`40ab140fa23f4cf879ac00d867b0def3ef5deff5`; correção final de cancelamento/IPC
+`db095b6f325c41f093c79b271670785e94eff848`, aprovada pela revisão independente.
+**Etapa 12 encerrada em 15/10/2026**, sem defeitos materiais remanescentes
+identificados no escopo. Decisões operacionais aprovadas pelo
 responsável na solicitação: lease 180 s, polling 30 s, limite SMTP 120 s, seis
 horários absolutos por finalidade e remoção integral do envelope terminal.
 
@@ -295,15 +296,23 @@ horários absolutos por finalidade e remoção integral do envelope terminal.
 - Job no lifecycle do backend, **desabilitado por padrão**; sem efeitos quando
   desabilitado/dry-run. **Consumidor V3 ausente: ativação real bloqueada antes
   de claim**, sem confiar em flag de prontidão ou apontar tokens para JWT legado.
-- **118/118 novos, 435/435 focados, 1.111/1.111 completos** (uma execução), **9/9 JS**.
+- Validação inicial histórica: **118/118 novos, 435/435 focados, 1.111/1.111 completos** (uma execução), **9/9 JS**.
   Simulações de banco/SMTP e criptografia sintética real, sem prova PostgreSQL/SMTP
-  reais. [Evidências e roteiro](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes).
+  reais naquela rodada. [Evidências e roteiro](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes).
 
 Migrations, D1–D8, decisões anteriores, rotas públicas/frontend, jobs existentes,
 quotas e Vercel preservados. Uma plataforma pública no endereço atual, modernizada
 por blocos, com produção operacional e separada da homologação. Integrações,
 plano de implantação/reversão e autorização expressa continuam gates do cutover.
-**Etapa 12 não encerrada; Etapa 13 não iniciada; onze concluídas entre 57.**
+Fechamento aprovado: **1.529/1.529 backend**, **670/670 focados**, **29/29 regressões**,
+**4/4 subprocessos Node reais**; PostgreSQL **44/44 provas únicas**, com três falhas
+históricas do instrumento corrigidas/preservadas. Zero resíduos sintéticos no Neon,
+trigger restaurado, ledger e dados herdados preservados. SMTP físico: **52 verificações**,
+kill em **115,072 s**, resolução em **115,078 s**, dentro de **120 s**.
+TLS positivo pelo adaptador ainda exige prova física antes da futura ativação
+SMTP real, sem reabrir automaticamente toda a Etapa 12.
+[Fechamento e rastreabilidade](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
 
 ## PARCIAL
 
@@ -349,14 +358,16 @@ deduzida da presença desses arquivos na branch.
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.
 - Implementar confirmação institucional e recuperação com consumo único.
-- Revisão independente e rehearsal da Etapa 12, com ativação real bloqueada;
-  integração pública dos núcleos aprovados
+- Comprovar fisicamente TLS positivo pelo adaptador antes da futura ativação SMTP
+  real, sem reabertura automática de toda a Etapa 12; integrar consumidores HTTP
+  dos tokens V3 e manter envio real bloqueado até os gates de ativação.
+- Integração pública dos núcleos aprovados
   de criptografia/enqueue e quotas PostgreSQL,
   retenção/limpeza e integração crítica.
 - Fechar D1–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–11 estão concluídas e versionadas na branch; as Etapas 10 e 11 têm
+Etapas 01–12 estão concluídas e versionadas na branch; as Etapas 10, 11 e 12 têm
 rehearsal e revisão aprovados. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).

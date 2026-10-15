@@ -1,11 +1,15 @@
 # Decisões canônicas da V3
 
-Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
-base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
+**15/10/2026**, após revisão independente de
+`db095b6f325c41f093c79b271670785e94eff848`.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
-das Etapas 04/05/06/07/08/09/10/11 e decisões anteriores fornecidas pelo responsável. As seções de
+das Etapas 04/05/06/07/08/09/10/11/12 e decisões anteriores fornecidas pelo responsável. As seções de
 decisão descrevem o contrato alvo; consultar o [status](bloco-1-status.md) para
 saber o que está implementado. Recomendações não têm autoridade de decisão.
 Atualização da Etapa 11: **14/10/2026**, código em
@@ -633,7 +637,9 @@ preservadas. [Evidências e limites](testes-e-evidencias.md#etapa-11--criptograf
 
 **DECISÕES CANÔNICAS aprovadas pelo responsável em 14/10/2026**, na autorização
 da Etapa 12. Implementação local sobre `93ede97275139dcb9285e4326f0dd8f69fd94022`,
-para revisão independente e rehearsal; **não é encerramento da Etapa 12**.
+inicialmente para revisão independente e rehearsal. **Etapa 12 encerrada em
+15/10/2026**, após aprovação independente de
+`db095b6f325c41f093c79b271670785e94eff848`; os contratos abaixo permanecem válidos.
 
 | Contrato operacional | Decisão aprovada |
 | --- | --- |
@@ -680,8 +686,10 @@ stdout/stderr, sem pool, TLS verificado e acesso a arquivos/URLs desativado; tim
 DNS/conexão/greeting/socket de 10/20/10/30 s, com término `SIGKILL` aos **115 s** e
 5 s de margem. Resultado somente após saída efetiva; nenhuma corrida de promises
 é apresentada como cancelamento. Falha de kill fecha novos envios e não confirma
-sucesso por presunção; transporte/prazo físico devem ser comprovados antes da
-ativação real. `sent` significa aceitação pelo SMTP, sem garantia de caixa/leitura.
+sucesso por presunção. Prazo físico aprovado: kill em 115,072 s e resolução em
+115,078 s, dentro de 120 s, em 52 verificações consolidadas. TLS positivo pelo
+adaptador ainda não comprovado fisicamente: sua prova deve anteceder a futura
+ativação SMTP real, sem reabrir automaticamente toda a Etapa 12. `sent` significa aceitação pelo SMTP, sem garantia de caixa/leitura.
 Perda de conexão, crash após aceitação e perda de ack podem duplicar entrega
 externa; **sem exactly-once**. Invalidação após liberar locks pode concorrer com
 início do transporte; mensagens já entregues ao SMTP não podem ser canceladas
@@ -709,8 +717,8 @@ sem exclusão automática de registros, limpeza de quotas de 48 h ou nova reten�
 Validação inicial em `bf6155bccba4657ab7350692ecc2273945b6add4`: **118/118 novos, 435/435 focados, 1.111/1.111 completos (uma execução), 9/9 JS**.
 Simulações explicitamente separadas de PostgreSQL/SMTP reais. D1–D8, demais decisões
 e uma plataforma pública no endereço atual preservadas; sem alterar frontend,
-rotas públicas, migrations, Vercel ou produção. **Etapa 12 não encerrada; Etapa 13
-não iniciada**. [Evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes); [rehearsal futuro](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12).
+rotas públicas, migrations, Vercel ou produção. Esses resultados são históricos;
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.** [Evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes); [fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
 
 #### Ajuste pontual — flags booleanas e dry-run fail-closed
 
@@ -738,8 +746,32 @@ bloqueando a ativação. Não se presume cancelamento retroativo de operação j
 seus aliases/defaults; a política estrita é exclusiva do caminho V3. Não alterados
 claims/leases/retries/SQL, migrations, contratos 08–11, rotas ou frontend.
 Correção: **534/534 focados, 1.500/1.500 backend completo (uma execução), 7/7 JS**;
-sem SQL/Neon/SMTP real/rehearsal/produção. **Etapa 12 aberta, Etapa 13 não iniciada**.
+sem SQL/Neon/SMTP real/rehearsal/produção naquela correção. A etapa permaneceu
+aberta naquele registro histórico; fechamento posterior aprovado abaixo.
 [Evidências da correção](testes-e-evidencias.md#correção-pontual--flags-de-dry-run-da-etapa-12).
+
+#### Fechamento aprovado — cancelamento/IPC e ativação futura
+
+Implementação inicial `bf6155bccba4657ab7350692ecc2273945b6add4`, flags/dry-run
+`40ab140fa23f4cf879ac00d867b0def3ef5deff5`, correção final
+`db095b6f325c41f093c79b271670785e94eff848`, aprovada por revisão independente,
+sem defeitos materiais remanescentes identificados no escopo.
+Cancelamento manual/automático invalida o resultado antes de kill e impede que
+IPC pendente confirme envio. Saída anormal/erro resulta em `indeterminate`;
+`accepted` exige saída zero, sem sinal ou cancelamento, após encerramento efetivo.
+Worker preserva retry at-least-once; aceitação SMTP seguida de perda de confirmação
+pode duplicar entrega externa, sem exactly-once.
+
+Validação atual: **1.529/1.529 backend**, **670/670 focados**, **29/29 regressões novas**,
+**4/4 subprocessos Node reais**. PostgreSQL: **44/44 provas únicas** aprovadas,
+com três falhas históricas do instrumento corrigidas/preservadas, zero resíduos
+sintéticos, trigger restaurado, ledger e dados herdados preservados.
+Consumidores HTTP dos tokens V3 não integrados; worker operacional desabilitado
+por padrão, envio real bloqueado e nenhuma implantação em produção. TLS positivo
+pelo adaptador é gate da futura ativação, sem reabertura automática da etapa.
+D1–D8, demais pendências e modernização progressiva da única plataforma pública
+no endereço atual preservados. **Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e rastreabilidade](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
 
 ## DECISÃO CANÔNICA — auditoria
 

@@ -1,10 +1,11 @@
 # Testes e evidências de fechamento
 
-Atualização da Etapa 12: **15/10/2026**, correção de cancelamento/IPC
-sobre `40ab140fa23f4cf879ac00d867b0def3ef5deff5`. **Etapa 12 aberta até revisão
-independente do patch; Etapa 13 não iniciada**.
-Ver [evidências atuais](#correção-final-da-etapa-12--cancelamento-e-ipc); contagens
-e pendências de validação física anteriores são históricas.
+Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
+**15/10/2026**, após revisão independente de
+`db095b6f325c41f093c79b271670785e94eff848`.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e limites do fechamento](#fechamento-aprovado-da-etapa-12).
+Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1008,7 +1009,95 @@ reexecução de testes/SQL/Neon/PostgreSQL, SMTP, deploy, merge ou início da Et
 A implementação posterior da Etapa 12 está registrada abaixo; aprovação e
 publicação Git não equivalem a implantação.
 
+## Fechamento aprovado da Etapa 12
+
+**15/10/2026 — Etapa 12, Worker de envio e retries, encerrada documentalmente**, por
+instrução expressa do responsável, após revisão independente aprovada do commit
+`db095b6f325c41f093c79b271670785e94eff848`, sem defeitos materiais remanescentes
+identificados no escopo. **Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+
+### Histórico Git aprovado
+
+| Marco | Commit |
+| --- | --- |
+| Implementação inicial | `bf6155bccba4657ab7350692ecc2273945b6add4` |
+| Correção das flags/dry-run | `40ab140fa23f4cf879ac00d867b0def3ef5deff5` |
+| Correção final de cancelamento/IPC | `db095b6f325c41f093c79b271670785e94eff848` |
+
+A correção final torna IPC provisório até a saída normal do processo: cancelamento
+manual/automático, erro ou saída anormal não confirmam envio por presunção;
+`accepted` permanece válido com saída zero, sem sinal e sem cancelamento.
+Revisão independente final aprovada conforme instrução do responsável neste
+fechamento. Os registros anteriores abaixo preservam o estado anterior à aprovação.
+
+### Provas consolidadas e rastreabilidade
+
+| Evidência aprovada | Resultado e origem |
+| --- | --- |
+| Backend completo atual | **1.529/1.529**, uma execução após estabilização do patch |
+| Focados atuais | **670/670** |
+| Regressões novas | **29/29**, incluídas nos focados; 22 falhavam antes do patch |
+| Subprocessos Node reais com IPC sintético, sem SMTP | **4/4**, distintos das provas físicas SMTP |
+| Rehearsal PostgreSQL | **44/44 provas únicas**, com três falhas históricas do instrumento corrigidas e preservadas |
+| Transporte SMTP físico controlado | **52 verificações aprovadas**, kill em **115,072 s** e resolução em **115,078 s**, dentro de **120 s** |
+
+Rehearsal PostgreSQL em `v3-homologacao`, sobre
+`40ab140fa23f4cf879ac00d867b0def3ef5deff5`, aprovado pelo responsável.
+As 44 provas únicas correspondem a **47 tentativas concluídas históricas**:
+44 aprovadas e três falhas do instrumento nas três finalidades, código `42883`,
+corrigidas no harness e preservadas nos artefatos originais. Duas provas aprovadas
+foram reutilizadas e 42 tentativas corrigidas completaram a rodada; não somar
+reexecuções como provas únicas. **13 erros PostgreSQL esperados**; três inesperados
+históricos do instrumento e zero inesperados na execução corrigida. **11 controles
+de preflight** e **cinco controles da rodada** têm contagens separadas.
+
+Limpeza transacional autorizada concluída: **zero resíduos sintéticos no Neon**,
+trigger de proteção do perfil-base restaurado antes do commit, ledger e dados
+herdados preservados. Não houve nova consulta ao Neon ou limpeza neste fechamento.
+Rastreabilidade local: `C:/tmp/escola-v3-etapa12-20261014-40ab140f/`,
+`RELATORIO.txt`, `resumo.json`, `rehearsal.json`, `rehearsal-resumed.cjs`,
+`attempt1-rehearsal.json`, `attempt1-unexpected-postgres-errors.json`,
+`final-audit.json` e `manifest-sha256.json`. Artefatos e falhas históricas preservados;
+o status pendente nesses relatórios é anterior à aprovação independente atual.
+
+SMTP físico: **52 verificações consolidadas**, com **47 do adaptador real**,
+três controles TLS auxiliares e dois de escopo/Git. Encerramento por `SIGKILL`
+em 115,072 s, resolução após saída em 115,078 s, sem resíduos de processos/sockets
+na conferência final. A prova de resposta tardia do servidor não comprovava IPC
+`accepted` já enfileirado; essa lacuna foi tratada pelo patch final aprovado.
+Fontes: `C:/tmp/escola-v3-etapa12-smtp-local-20261014-40ab140f/`,
+`RELATORIO.txt`, `evidencia.json` e `verificacao-final.json`.
+TLS negativo foi comprovado; o controle TLS positivo auxiliar não prova o caminho
+positivo pelo adaptador SMTP. Os logs de testes e a prova Node do patch permanecem
+em `C:/tmp/escola-v3-etapa12-ipc-20261015-40ab140f/`, conforme seção da correção final.
+
+### Limites preservados e ativação futura
+
+- Consumidores HTTP dos tokens V3 ainda não integrados; worker operacional
+  **desabilitado por padrão** e envio real bloqueado.
+- **TLS positivo pelo adaptador SMTP ainda não comprovado fisicamente**.
+  Sua prova deverá anteceder a futura ativação de SMTP real, sem reabrir
+  automaticamente toda a Etapa 12.
+- Política at-least-once, **sem exactly-once**: duplicação externa continua possível
+  após aceitação SMTP e perda de confirmação; aceitação não garante caixa/leitura.
+- Nenhuma implantação em produção. D1–D8 e demais pendências preservadas.
+- **Etapa 13 não iniciada**; nenhuma nova atividade de implementação ou ensaio
+  autorizada por este fechamento.
+
+Decisão canônica preservada: modernização progressiva por blocos da **única
+plataforma pública no endereço atual**, com produção operacional durante a transição
+e homologação separada. Integrações essenciais, plano de implantação/reversão
+e autorização expressa continuam necessários ao cutover.
+
+Fechamento **exclusivamente documental/Git**, sem alterar código, testes,
+migrations, banco, rotas, frontend ou configurações de implantação; sem reexecutar
+suítes, PostgreSQL, SMTP ou ensaios anteriores. Revisão de links e
+`git diff --check` são as validações deste fechamento. Sem merge ou deploy.
+
 ## ETAPA 12 — WORKER LOCAL / REVISÃO E REHEARSAL PENDENTES
+
+Registro histórico da implementação inicial, anterior aos ensaios e à revisão
+final; status de abertura abaixo superado pelo fechamento aprovado acima.
 
 Data: **14/10/2026**. Branch `revisao-premium-bloco-1-auth`, base de implementação
 `93ede97275139dcb9285e4326f0dd8f69fd94022`, confirmada com worktree limpo no
@@ -1165,8 +1254,9 @@ validação física do transporte**, com consumidor V3 ausente e ativação bloq
 ### Correção final da Etapa 12 — cancelamento e IPC
 
 **15/10/2026**, base `40ab140fa23f4cf879ac00d867b0def3ef5deff5`, branch
-`revisao-premium-bloco-1-auth`. **Etapa 12 aberta até revisão independente do
-patch; Etapa 13 não iniciada**.
+`revisao-premium-bloco-1-auth`. **Estado anterior à revisão final: Etapa 12 aberta; Etapa 13 não iniciada**.
+A revisão independente deste patch foi aprovada posteriormente; ver o
+[fechamento aprovado](#fechamento-aprovado-da-etapa-12).
 
 A revisão independente informada pelo responsável aprovou o ensaio físico SMTP
 anterior: **52 verificações consolidadas**, encerramento real em **115,078 s**.
@@ -1225,12 +1315,12 @@ não equivale à aprovação deste patch nem autoriza ativação/deploy.
 
 ### Roteiro enxuto de rehearsal da Etapa 12
 
-**Não executado nem autorizado por este roteiro.** Após revisão independente,
-obter autorização específica para ensaio somente em `v3-homologacao`, sem SMTP
-real, sem migrations/rehearsal antigos ou produção. Usar o HEAD publicado da
-Etapa 12, não extrapolar provas das Etapas 09–11. Desacoplar o worker de qualquer
-transporte real, injetando transport/consumer sintéticos exclusivamente no harness;
-não habilitar o job do backend nem apontar tokens para rotas legadas.
+**Roteiro histórico, anterior à execução aprovada das 44 provas.** Sua redação
+não autorizou ensaio por si só. Preservado para rastreabilidade; não repetir
+por causa deste fechamento. Qualquer novo ensaio exige autorização específica,
+preflight e política de fixtures/limpeza, sem produção ou repetição de 08–11.
+O ensaio aprovado usou consumidor/transporte sintéticos sem habilitar o job
+operacional nem apontar tokens opacos para rotas JWT legadas.
 
 1. Preflight: branch/HEAD/worktree, identidade SQL/TLS, ledger de oito registros e
    checksums das migrations aprovadas, schema/constraints/triggers, baseline de
@@ -1258,12 +1348,16 @@ não habilitar o job do backend nem apontar tokens para rotas legadas.
    autorizada; se perfil-base exigir exceção, autorização explícita e trigger
    restaurado antes de commit. Zero resíduos; não reinicializar sequências.
 
-Prova física do limite SMTP é atividade **separada**, somente com autorização para
+A prova física separada do limite SMTP foi executada e aprovada posteriormente,
+conforme fechamento acima; não repetir neste fechamento. O roteiro original
+previa autorização específica para
 um servidor SMTP controlado/sintético e ambiente isolado: conexões/DNS/TLS/DATA
 interrompidos, medir sockets/processo encerrados até 120 s, resultado tardio,
 shutdown e falha de kill. Não usar produção nem destinatários reais. Consumidores
 V3 e links corretos exigem etapa de integração/cutover autorizada, sem inferi-los
-pela existência de configuração. Somente depois decidir ativação/fechamento.
+pela existência de configuração. A etapa está encerrada; TLS positivo pelo
+adaptador deve ser comprovado antes da futura ativação SMTP real, sem reabrir
+automaticamente toda a Etapa 12.
 
 ## PENDÊNCIA — evidência de produção
 

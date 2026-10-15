@@ -1,18 +1,11 @@
 # Retomada operacional
 
-Atualização da Etapa 12: **15/10/2026**, correção pontual de cancelamento/IPC
-sobre `40ab140fa23f4cf879ac00d867b0def3ef5deff5`. **Etapa 12 aberta até revisão
-independente deste patch; Etapa 13 não iniciada**.
-
-Validação física SMTP anterior aprovada, conforme revisão independente informada
-pelo responsável: **52 verificações**, encerramento em **115,078 s**; não repetida.
-Patch: cancelamento manual/automático invalida o resultado e bloqueia IPC tardio;
-saída anormal não confirma envio; saída zero sem sinal e sem cancelamento preserva
-`accepted`. Worker mantém retry at-least-once, sem exactly-once. Validação atual:
-**670/670 focados**, **1.529/1.529 completos (uma execução)** e **4/4 provas com Node
-real/IPC sintético sem SMTP**. Próxima ação: revisão independente deste patch.
-[Evidências](testes-e-evidencias.md#correção-final-da-etapa-12--cancelamento-e-ipc).
-Os registros anteriores abaixo são históricos e não autorizam nova operação externa.
+Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
+**15/10/2026**, após revisão independente de
+`db095b6f325c41f093c79b271670785e94eff848`.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
 
 Projeto: **Plataforma Escola da Saúde — V3**.
 
@@ -23,13 +16,13 @@ HEAD da implementação da Etapa 11, versionado/publicado na branch:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 
-Última etapa concluída: **11 — criptografia e enqueue transacional**, com revisão
-independente aprovada pelo responsável em **14/10/2026** e rehearsal PostgreSQL
-consolidado aprovado. Etapas **01–11 encerradas**; **12 implementada localmente
-para revisão/rehearsal, não encerrada**; **13 não iniciada**.
-Implementação aprovada em `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
+Última etapa concluída: **12 — Worker de envio e retries**, encerrada por
+instrução do responsável em **15/10/2026**, após revisão independente aprovada de
+`db095b6f325c41f093c79b271670785e94eff848`, sem defeitos materiais remanescentes
+identificados no escopo. Etapas **01–12 encerradas**; **13 não iniciada**.
 
-**Onze etapas concluídas entre 57 microetapas previstas** do roteiro técnico.
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
 
@@ -165,7 +158,7 @@ fencing integral permanecem pendentes. **Etapa 12 não iniciada naquele fechamen
 etapa exige autorização própria; não há implantação automática do Bloco 1.
 Ver [contratos](decisoes-canonicas.md#etapa-11--criptografia-e-enqueue-aprovados-sem-ativação-pública).
 
-Etapa 12 — **implementada localmente para revisão**, não encerrada:
+Registro histórico da implementação inicial da Etapa 12, anterior ao fechamento:
 worker transacional, job e adaptador SMTP dedicado; nove JS criados/alterados
 incluindo três testes. **118/118 novos, 435/435 focados, 1.111/1.111 completos**
 (uma execução), sintaxe **9/9**. Oito erros PostgreSQL do rehearsal da Etapa 11
@@ -177,7 +170,7 @@ máximo seis; horários absolutos por finalidade, sem rajadas e com TTL. Revalid
 antes de SMTP; criptografia/AAD e hash autenticados. Terminais removem envelope,
 sem apagar histórico/auditoria, sem mudar limpeza de quotas. SMTP em processo
 isolado com kill aos 115 s, saída observada e limite técnico 120 s, ainda sem prova
-física do transporte. Shutdown cancela processo, aguarda execução e preserva jobs.
+física do transporte naquela rodada. Shutdown cancela processo, aguarda execução e preserva jobs.
 
 **Não habilitar envio real:** consumidor V3 ausente bloqueia antes de claim,
 mesmo com flag true. Nenhum link para JWT legado. Desabilitado/dry-run não toca
@@ -195,13 +188,26 @@ DRY_RUN explicitamente falsos, com aliases/caixa/trim reconhecidos. Inválidos/
 ambíguos bloqueiam antes de efeitos; `sendEmail()` institucional preservado.
 **534/534 focados, 1.500/1.500 completos (uma execução), 7/7 JS** aprovados;
 contagens anteriores acima são históricas. Sem SQL/Neon/SMTP real/rehearsal.
-Consumidor V3 ausente continua bloqueando; **Etapa 12 aberta e Etapa 13 não iniciada**.
+Naquela correção a Etapa 12 permanecia aberta; consumidor V3 ausente continua
+bloqueando ativação. Fechamento aprovado registrado abaixo.
 [Evidências da correção](testes-e-evidencias.md#correção-pontual--flags-de-dry-run-da-etapa-12).
 
-Próxima ação: revisão independente do patch de cancelamento/IPC.
-Demais gates de consumidor, links e cutover permanecem separados; nenhuma nova
-operação PostgreSQL/SMTP ou ativação/deploy foi autorizada neste patch.
-**Onze etapas encerradas entre 57, Etapa 12 não encerrada e Etapa 13 não iniciada**.
+Fechamento aprovado em 15/10/2026: implementação
+`bf6155bccba4657ab7350692ecc2273945b6add4`, flags/dry-run
+`40ab140fa23f4cf879ac00d867b0def3ef5deff5`, cancelamento/IPC
+`db095b6f325c41f093c79b271670785e94eff848`. **1.529/1.529 backend**, **670/670 focados**,
+**29/29 regressões novas**, **4/4 subprocessos Node reais**; PostgreSQL **44/44 provas
+únicas**, três falhas históricas do instrumento corrigidas/preservadas. Zero resíduos
+sintéticos, trigger restaurado, ledger/dados herdados preservados. SMTP físico:
+**52 verificações**, kill em **115,072 s**, resolução em **115,078 s**, limite **120 s**.
+TLS positivo pelo adaptador ainda não comprovado fisicamente: comprovar antes da
+futura ativação SMTP real, sem reabrir automaticamente toda a Etapa 12.
+Nenhum ensaio foi repetido neste fechamento. Consumidores HTTP V3 não integrados,
+worker desabilitado por padrão e envio real bloqueado; sem exactly-once,
+sem implantação em produção. D1–D8 e demais pendências preservados.
+Próxima atividade exige autorização própria; este fechamento não inicia a Etapa 13.
+[Evidências aprovadas](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
+**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
 Uma plataforma pública no endereço atual, produção operacional durante a
 modernização por blocos, homologação separada; substituição da autenticação
 somente com integrações validadas, plano de implantação/reversão e autorização
