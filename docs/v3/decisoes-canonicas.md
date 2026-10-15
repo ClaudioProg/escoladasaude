@@ -1,14 +1,21 @@
 # Decisões canônicas da V3
 
-Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
-`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
-normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
-**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
-Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
-parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
-Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
-[Evidências e avaliação das pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
-Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
+**Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
+por instrução do responsável após aprovação integral da revisão independente do
+rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+Implementação: `b63db7be5b879ee4b9b23acffeee68ce0d34faad`; correção do touch:
+`ae7d0b15479f3795ec6d57f52bf0631643e4c4ee`. Validação final aprovada:
+**1.701/1.701 backend, 293/293 focados, 20/20 dedicados**; rehearsal **63/63 provas
+funcionais únicas** (55 históricas + oito complementares), com 11 cenários de espera
+PostgreSQL real na rodada complementar. D2: **30 min de inatividade / 120 min
+absolutos**; touch normal limitado a uma escrita por intervalo de **60 s**, zero
+quando não devido. Migration aplicada uma vez em `v3-homologacao`, ledger 9,
+checksum preservado. Barreira **desabilitada operacionalmente por padrão**.
+D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regularização,
+revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
+documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
+[Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
+Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
@@ -846,13 +853,20 @@ Nenhuma liberação genérica de `/api/auth/*` ou `/api/perfil`.
 O diagnóstico legado `forcarAtualizacaoCadastro` permanece separado e não é
 autorizador; seu comportamento permissivo em falha não altera a decisão D2.
 
-**Núcleo implementado para revisão; ativação operacional não autorizada.**
-Migration D2 aplicada na homologação, rehearsal parcial aprovado: 55 provas
-concluídas e oito pendências. Nenhuma nova aplicação neste patch. D1 e D3–D8 preservadas.
+**Núcleo concluído com revisão independente e rehearsal aprovados; ativação
+operacional não autorizada.** Migration D2 aplicada uma única vez na homologação,
+ledger com nove registros e checksum preservado. Rehearsal **63/63 provas funcionais
+únicas**: 55 históricas em `b63db7be` e oito complementares em `ae7d0b15`, com
+11 cenários de espera PostgreSQL real. Dois erros `55P03` esperados e zero
+inesperados na rodada complementar. D2 aprovada; D1 e D3–D8 continuam pendentes.
+Ativação futura depende das integrações e fluxos de regularização, revisão,
+políticas, MFA, CSRF e migração dos consumidores.
 O touch normal compartilha IDLE_MS/TOUCH_MS canônicos: escrita só após 60 s,
 validade independente da escrita. D2 continua renovado por sua própria política;
 locks e rollback conjunto preservados.
-Etapas 01–12 concluídas de 57; **Etapa 13 aberta**, **Etapa 14 não iniciada**.
+**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+Fechamento documental sem alteração de flags, produção, cutover ou deploy.
+[Fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
 [Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
 
 ## PENDÊNCIAS — sem decisão nesta etapa

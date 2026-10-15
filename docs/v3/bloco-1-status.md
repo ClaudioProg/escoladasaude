@@ -1,14 +1,21 @@
 # Bloco 1 — estado real
 
-Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
-`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
-normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
-**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
-Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
-parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
-Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
-[Evidências e avaliação das pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
-Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
+**Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
+por instrução do responsável após aprovação integral da revisão independente do
+rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+Implementação: `b63db7be5b879ee4b9b23acffeee68ce0d34faad`; correção do touch:
+`ae7d0b15479f3795ec6d57f52bf0631643e4c4ee`. Validação final aprovada:
+**1.701/1.701 backend, 293/293 focados, 20/20 dedicados**; rehearsal **63/63 provas
+funcionais únicas** (55 históricas + oito complementares), com 11 cenários de espera
+PostgreSQL real na rodada complementar. D2: **30 min de inatividade / 120 min
+absolutos**; touch normal limitado a uma escrita por intervalo de **60 s**, zero
+quando não devido. Migration aplicada uma vez em `v3-homologacao`, ledger 9,
+checksum preservado. Barreira **desabilitada operacionalmente por padrão**.
+D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regularização,
+revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
+documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
+[Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
+Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
 
 Atualização documental: 2026-10-15. Branch: `revisao-premium-bloco-1-auth`.
 HEAD da implementação da Etapa 11, versionado e publicado na branch:
@@ -201,7 +208,7 @@ fechamento exclusivamente documental/Git, sem backfill ou alteração do legado.
   pendentes. D1–D8 e Etapas 01–09 preservados.
 - Este fechamento não executa SQL, operações Neon, SMTP, deploy, merge ou testes.
 
-**Etapas 01–12 concluídas de 57. Etapa 13 aberta; Etapa 14 não iniciada.**
+**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
 Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
@@ -346,16 +353,26 @@ Revisão, políticas e MFA sem prova persistida continuam não comprovados;
 mesmo conta com campos preenchidos não ganha acesso normal por ausência dessa prova.
 
 Validação inicial histórica: **152 testes novos**, incluídos nos **347/347 focados**; sintaxe **13/13 JS**.
-Única execução completa: **1.678/1.679**, falha de inventário do teste do runner
+Naquela rodada, única execução completa: **1.678/1.679**, falha de inventário do teste do runner
 pela migration nova. Lista esperada corrigida e o teste afetado aprovado **1/1**;
-suíte completa não repetida, sem alegar execução completa verde do patch final.
+suíte completa não repetida naquela rodada, sem comprovar o HEAD final então.
+As validações posteriores aprovadas estão registradas abaixo e no fechamento.
 Na implementação inicial o rehearsal ainda não havia sido executado.
-Estado atual: D2 aplicada, 55 provas PostgreSQL aprovadas, oito pendências;
-ajuste de touch com **20/20 dedicados, 293/293 focados, 1.701/1.701 completos**
-(uma execução), sem nova operação PostgreSQL. Ver evidências do ajuste no topo.
-**Etapa 13 aberta**, aguardando revisão independente e rehearsal; **Etapa 14 não iniciada**.
-D1 e D3–D8 permanecem independentes. MFA/CSRF, jornadas 29/30 e migração por
-domínios 42/43 exigem integrações futuras, sem frontend nesta etapa.
+Estado atual: **Etapa 13 encerrada**, após revisão independente integralmente
+aprovada. **63/63 provas funcionais únicas**: 55 históricas em `b63db7be` e oito
+complementares em `ae7d0b15`; 11 cenários de espera PostgreSQL real comprovados.
+Validação local final: **20/20 dedicados, 293/293 focados, 1.701/1.701 completos**
+(uma execução). Sem repetição de testes/ensaios neste fechamento documental.
+Migration aplicada uma vez em homologação, ledger 9 e checksum preservados;
+zero resíduos sintéticos, triggers D2 e perfil-base habilitados. Conferência
+independente: **89 tabelas originais, 54.394 registros, zero divergências**.
+**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+D2 aprovada; D1 e D3–D8 continuam pendentes. Ativação futura depende das
+integrações e fluxos de regularização, revisão, políticas, MFA, CSRF e migração
+dos consumidores; a barreira permanece desabilitada operacionalmente por padrão.
+[Fechamento e rastreabilidade](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
+Jornadas 29/30 e migração por domínios 42/43 exigem integrações futuras, sem
+frontend nesta etapa.
 Uma única plataforma pública no endereço atual, modernização progressiva,
 homologação separada e nenhuma ativação operacional/produção.
 [Contratos D2](decisoes-canonicas.md#decisão-canônica-aprovada--d2-contexto-restrito)
@@ -411,11 +428,12 @@ deduzida da presença desses arquivos na branch.
 - Integração pública dos núcleos aprovados
   de criptografia/enqueue e quotas PostgreSQL,
   retenção/limpeza e integração crítica.
-- Revisão independente e rehearsal PostgreSQL da Etapa 13; D2 aprovada.
+- Integrar os fluxos e consumidores necessários à futura ativação da barreira;
+  Etapa 13 tecnicamente encerrada, D2 aprovada e flag operacional desabilitada.
 - Fechar D1 e D3–D8; implementar MFA/CSRF/regularização e permissões conforme aprovação.
 - Preparar o cutover bridge → strict conforme D8, com preflight de produção.
 
-Etapas 01–12 estão concluídas e versionadas na branch; as Etapas 10, 11 e 12 têm
+Etapas 01–13 estão concluídas e versionadas na branch; as Etapas 10–13 têm
 rehearsal e revisão aprovados. Nenhum desses estados comprova produção.
 Ver [migrations](migrations.md), [evidências](testes-e-evidencias.md)
 e [retomada](retomada.md).

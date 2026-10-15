@@ -1,14 +1,21 @@
 # Testes e evidências de fechamento
 
-Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
-`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
-normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
-**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
-Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
-parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
-Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
-[Evidências e avaliação das pendências](#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
-Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
+**Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
+por instrução do responsável após aprovação integral da revisão independente do
+rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+Implementação: `b63db7be5b879ee4b9b23acffeee68ce0d34faad`; correção do touch:
+`ae7d0b15479f3795ec6d57f52bf0631643e4c4ee`. Validação final aprovada:
+**1.701/1.701 backend, 293/293 focados, 20/20 dedicados**; rehearsal **63/63 provas
+funcionais únicas** (55 históricas + oito complementares), com 11 cenários de espera
+PostgreSQL real na rodada complementar. D2: **30 min de inatividade / 120 min
+absolutos**; touch normal limitado a uma escrita por intervalo de **60 s**, zero
+quando não devido. Migration aplicada uma vez em `v3-homologacao`, ledger 9,
+checksum preservado. Barreira **desabilitada operacionalmente por padrão**.
+D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regularização,
+revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
+documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
+[Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
+Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1016,11 +1023,114 @@ publicação Git não equivalem a implantação.
 
 **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`, branch
 `revisao-premium-bloco-1-auth`, HEAD/worktree conferidos antes de alterações.
-Escopo e D2 aprovados pela instrução do responsável. Etapas 01–12 continuam
-concluídas de 57; **Etapa 13 implementada para revisão, aberta até revisão
-independente e rehearsal PostgreSQL; Etapa 14 não iniciada**.
+Registro histórico da implementação: escopo e D2 aprovados pela instrução do
+responsável. Naquele momento, Etapas 01–12 concluídas de 57 e **Etapa 13 aberta
+até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada**.
+O fechamento aprovado abaixo atualiza o estado, preservando as rodadas anteriores.
+
+### Fechamento aprovado da Etapa 13
+
+**15/10/2026 — Etapa 13, Contexto restrito e barreira de acesso, encerrada
+documentalmente**, por instrução expressa do responsável após aprovação integral
+da revisão independente do rehearsal complementar. **Etapas 01–13 concluídas de
+57. Etapa 14 não iniciada.** Aprovação e conferência independente informadas pelo
+responsável; neste fechamento foram consultados somente os artefatos locais,
+sem repetir suítes, SQL ou ensaios PostgreSQL.
+
+| Marco aprovado | Referência / resultado |
+| --- | --- |
+| Implementação inicial | `b63db7be5b879ee4b9b23acffeee68ce0d34faad` |
+| Correção do intervalo de touch | `ae7d0b15479f3795ec6d57f52bf0631643e4c4ee` |
+| Backend completo final | **1.701/1.701**, uma execução após estabilização |
+| Focados finais / dedicados da correção | **293/293 / 20/20** |
+| Rehearsal funcional consolidado | **63/63 provas únicas aprovadas**: 55 históricas no primeiro HEAD + oito complementares no segundo |
+| Esperas reais na rodada complementar | **11 cenários**, com `wait_event_type=Lock` e bloqueador esperado em `pg_blocking_pids` |
+| Erros PostgreSQL na rodada complementar | **Dois `55P03` esperados; zero inesperados** |
+| Migration D2 | Aplicada **uma única vez** em `v3-homologacao`; ledger com **nove registros**, D2 em ID 9; checksum preservado |
+| Preservação | **Zero resíduos sintéticos**; triggers D2 e perfil-base habilitados |
+| Conferência independente | **89 tabelas originais, 54.394 registros, zero divergências** |
+
+D2 mantém **30 minutos de inatividade e 120 minutos absolutos** desde a
+autenticação, sem extensão por manter conectado. A sessão normal permite **no
+máximo uma escrita de touch por intervalo de 60 segundos**, zero quando não
+devida; `valid=true, written=false` continua permitindo a operação e a renovação
+própria D2. Na janela física instrumentada de **60.004,340 ms**, quatro acessos
+produziram uma escrita normal e quatro renovações D2; no par concorrente adicional
+sem touch devido, duas renovações D2 e zero escritas normais. A prova inspecionou
+os retornos reais do CTE e `xmin`, `ctid` e timestamps separadamente, sem inferir
+escrita do resultado `permitted`.
+
+| Prova complementar | Resultado físico aprovado |
+| --- | --- |
+| 56 | Lock real na sessão, retomada após rollback e subcenário de timeout `55P03`, sem touch parcial. |
+| 57 | Lock real no contexto sem touch normal devido; renovação D2 e sessão fisicamente inalterada. |
+| 58 | Acessos concorrentes serializados; absoluto D2 fixo, uma escrita na janela real de 60 s e zero no par sem touch devido. |
+| 59 | Revogação em rollback; consulta aguardou sessão e retomou válida sem touch devido. |
+| 60 | Alteração crítica e invalidação D2 revertidas juntas; consulta aguardou usuário e outra conta preservada. |
+| 61 | `55P03` real no contexto; rollback completo, sessão/contexto sem renovação parcial e executor sem transação aberta. |
+| 62 | Revogação confirmada nega consulta com e sem touch devido, sem escrita parcial. |
+| 63 | Writer legado com commit invalida D2 sem incrementar versões; consulta nega, não recria contexto e preserva outra conta. |
+
+Os 11 cenários de espera são subcenários instrumentados das **oito provas
+complementares**, não 11 novas provas funcionais. Preflight, amostras, auditoria,
+limpeza e repetição de observações não aumentam a contagem 63. As 55 aprovações
+históricas não foram repetidas nem atribuídas ao segundo HEAD. Os dois erros
+`55P03` pertencem somente à rodada complementar; os erros esperados da rodada
+histórica permanecem no registro original.
+
+A ocorrência **`HARNESS_WAIT` da primeira rodada permanece como falha histórica
+de comprovação da prova 56, com causa retrospectiva não determinada**. A prova
+física válida posterior superou a pendência e completou o consolidado 63/63;
+não apaga a tentativa anterior, não a transforma em aprovação e não demonstra
+que o patch de touch causou ou corrigiu aquela falha de observação. O instrumento
+complementar preservou amostras positivas/negativas e PIDs de `pg_backend_pid()`,
+com observador independente e barreira antes da consulta. Oito provas aprovadas
+na primeira tentativa complementar, sem falha ou retomada do novo instrumento.
+
+Limites da evidência física: timestamps de elegibilidade das fixtures foram
+preparados sinteticamente no PostgreSQL (70 s para devido, 5 s para não devido),
+separados das escritas do serviço. O serviço oficial usou SQL intacto,
+`clock_timestamp()` real e locks reais; a janela da prova 58 aguardou pelo menos
+60 s fisicamente, sem alterar relógio do servidor. Durações de espera observadas
+são limites inferiores entre amostras positivas, não tempos exatos de servidor.
+Fingerprints MD5 de linhas são controle operacional de preservação; o manifesto
+SHA-256 registra a consistência dos artefatos, sem pretensão de assinatura adversarial.
+
+A rodada complementar não aplicou nem reaplicou migration. SHA-256 D2 preservado:
+`ba9ba77c2c7ac581415bc89ee2b2281a51ec0b12ac74f2854753b104645b29b7`.
+A auditoria final do rehearsal registrou igualdade integral das 92 tabelas públicas
+com seu baseline, nove registros do ledger intactos e 77 sequências sem avanço
+ou reinicialização; isso complementa a conferência independente das **89 tabelas
+originais / 54.394 registros**, sem confundir os dois universos. Triggers D2 e
+perfil-base habilitados; a suspensão pontual do perfil-base na limpeza autorizada
+foi revertida e verificada **antes do COMMIT**. Git, serviços oficiais, migration,
+dados herdados e produção preservados na rodada complementar.
+
+Artefatos complementares preservados em
+`C:/tmp/escola-v3-etapa13-concorrencia-20261015-ae7d0b15/`:
+`RELATORIO.txt`, `resumo.json`, `preflight.json`, `proofs.json`, `attempts.json`,
+`*-samples.json`, `wait-summary.json`, `physical-touch-window.json`,
+`touch-results.json`, `postgres-errors.json`, `transaction-states.json`,
+`baseline.json`, `final-snapshot.json`, `cleanup.json`, `final-audit.json`,
+`source-hashes-initial.json` e `manifest-sha256.json`. Fontes e arquivos da primeira
+rodada permanecem no histórico abaixo. O relatório complementar ainda dizia
+"aberta até revisão independente e fechamento documental": era o estado na
+emissão; a aprovação expressa do responsável encerra agora a etapa, sem alterar
+o relatório original.
+
+**Limitações preservadas:** a barreira continua **desabilitada operacionalmente
+por padrão**. Ativação futura depende das integrações e fluxos de regularização,
+revisão, políticas, MFA, CSRF e migração dos consumidores. **D2 permanece aprovada;
+D1 e D3–D8 continuam pendentes**. Conclusão técnica não autoriza ativação de flags,
+produção, cutover, merge, deploy ou início da Etapa 14. Consumidores HTTP dos
+tokens V3, worker/envio real e prova positiva TLS do adaptador SMTP mantêm seus
+gates anteriores; sem promessa de exactly-once. Uma única plataforma pública no
+endereço atual, com modernização progressiva e homologação separada.
 
 ### Ajuste pontual da Etapa 13 — intervalo de touch da sessão
+
+Registro histórico anterior ao rehearsal complementar e ao fechamento acima;
+as referências a oito pendências/etapa aberta descrevem aquele momento.
 
 **15/10/2026**, base `b63db7be5b879ee4b9b23acffeee68ce0d34faad`, branch
 `revisao-premium-bloco-1-auth`, HEAD e worktree limpo conferidos antes do patch.
@@ -1249,7 +1359,7 @@ independente e rehearsal PostgreSQL.**
 ## Fechamento aprovado da Etapa 12
 
 Registro histórico do fechamento da Etapa 12, anterior à implementação da
-Etapa 13 descrita acima; não altera o status atual de abertura da Etapa 13.
+Etapa 13 descrita acima; não altera o fechamento atual da Etapa 13.
 
 **15/10/2026 — Etapa 12, Worker de envio e retries, encerrada documentalmente**, por
 instrução expressa do responsável, após revisão independente aprovada do commit
