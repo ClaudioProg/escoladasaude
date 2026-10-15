@@ -1,13 +1,24 @@
 # Retomada operacional
 
-Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
-base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+Atualização da Etapa 12: **15/10/2026**, correção pontual de cancelamento/IPC
+sobre `40ab140fa23f4cf879ac00d867b0def3ef5deff5`. **Etapa 12 aberta até revisão
+independente deste patch; Etapa 13 não iniciada**.
+
+Validação física SMTP anterior aprovada, conforme revisão independente informada
+pelo responsável: **52 verificações**, encerramento em **115,078 s**; não repetida.
+Patch: cancelamento manual/automático invalida o resultado e bloqueia IPC tardio;
+saída anormal não confirma envio; saída zero sem sinal e sem cancelamento preserva
+`accepted`. Worker mantém retry at-least-once, sem exactly-once. Validação atual:
+**670/670 focados**, **1.529/1.529 completos (uma execução)** e **4/4 provas com Node
+real/IPC sintético sem SMTP**. Próxima ação: revisão independente deste patch.
+[Evidências](testes-e-evidencias.md#correção-final-da-etapa-12--cancelamento-e-ipc).
+Os registros anteriores abaixo são históricos e não autorizam nova operação externa.
 
 Projeto: **Plataforma Escola da Saúde — V3**.
 
 Branch: `revisao-premium-bloco-1-auth`.
 
-Atualização documental: 2026-10-14.
+Atualização documental: 2026-10-15.
 HEAD da implementação da Etapa 11, versionado/publicado na branch:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
@@ -187,11 +198,9 @@ contagens anteriores acima são históricas. Sem SQL/Neon/SMTP real/rehearsal.
 Consumidor V3 ausente continua bloqueando; **Etapa 12 aberta e Etapa 13 não iniciada**.
 [Evidências da correção](testes-e-evidencias.md#correção-pontual--flags-de-dry-run-da-etapa-12).
 
-Próxima ação: revisão independente; depois, somente rehearsal autorizado em
-`v3-homologacao`, com fixtures estritamente sintéticas, preflight e política de
-rollback/limpeza explicitamente aprovados. Não executar agora nem repetir 08–11.
-Ver [roteiro enxuto](testes-e-evidencias.md#roteiro-enxuto-de-rehearsal-da-etapa-12). Consumidor/links/cutover e validação do transporte
-real são dependências separadas; a publicação para revisão não as ativa.
+Próxima ação: revisão independente do patch de cancelamento/IPC.
+Demais gates de consumidor, links e cutover permanecem separados; nenhuma nova
+operação PostgreSQL/SMTP ou ativação/deploy foi autorizada neste patch.
 **Onze etapas encerradas entre 57, Etapa 12 não encerrada e Etapa 13 não iniciada**.
 Uma plataforma pública no endereço atual, produção operacional durante a
 modernização por blocos, homologação separada; substituição da autenticação

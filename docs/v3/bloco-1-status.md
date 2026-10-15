@@ -1,9 +1,18 @@
 # Bloco 1 — estado real
 
-Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
-base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+Atualização da Etapa 12: **15/10/2026**, correção pontual de cancelamento/IPC
+sobre `40ab140fa23f4cf879ac00d867b0def3ef5deff5`. **Etapa 12 aberta até revisão
+independente deste patch; Etapa 13 não iniciada**.
 
-Atualização documental: 2026-10-14. Branch: `revisao-premium-bloco-1-auth`.
+A validação física SMTP anterior foi aprovada na revisão independente informada
+pelo responsável: **52 verificações**, encerramento real em **115,078 s**. Esse
+ensaio não foi repetido. O patch invalida IPC após cancelamento e saída anormal,
+preserva aceitação normal e retry at-least-once: **670/670 focados**,
+**1.529/1.529 completos (uma execução)** e **4/4 subprocessos Node reais sem SMTP**.
+[Evidências da correção](testes-e-evidencias.md#correção-final-da-etapa-12--cancelamento-e-ipc).
+Os registros anteriores abaixo são históricos; aprovação física não encerra a etapa.
+
+Atualização documental: 2026-10-15. Branch: `revisao-premium-bloco-1-auth`.
 HEAD da implementação da Etapa 11, versionado e publicado na branch:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`.
 Revisão independente aprovada em 14/10/2026, com rehearsal PostgreSQL isolado aprovado.

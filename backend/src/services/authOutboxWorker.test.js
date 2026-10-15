@@ -219,3 +219,43 @@ for(const value of ["TRUE","true","sim","FALSE","false","0",0,1,null,{},[]])test
  const f=fixture();const before=clone(f.row);assert.equal((await f.worker({dryRun:value}).runOnce()).status,"blocked-config");
  assert.deepEqual(f.row,before);assert.equal(f.calls.length,0);assert.equal(f.sent.length,0);
 });
+
+// Real sender + worker, with only fork/timers and database replaced by models.
+for(const scenario of ["manual before","manual after","timeout before","timeout after","abnormal","signal","error","normal"])
+test("sender IPC reaches worker with at-least-once settlement / "+scenario,async()=>{
+ const fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
+ const {EventEmitter}=require("node:events");
+ const f=fixture(),entered=deferred(),child=new EventEmitter(),timers=[],outcomes=[];
+ const mod={exports:{}};
+ child.pid=42;child.send=(_value,done)=>done();child.kill=()=>true;
+ const source=fs.readFileSync(path.join(__dirname,"authSmtpSender.js"),"utf8");
+ vm.runInThisContext("(function(require,module,exports,__dirname,setTimeout,clearTimeout){"+source+"\n})")(
+  name=>name==="node:child_process"?{fork:()=>child}:require(name),mod,mod.exports,__dirname,
+  fn=>{timers.push(fn);return 1;},()=>{});
+ const sender=mod.exports.createAuthSmtpSender({isEnabled:()=>true,getConfig:()=>({host:"smtp.example.invalid",port:465,
+  secure:true,smtpUser:"synthetic",smtpPass:"SYNTHETIC_SECRET",fromAddr:"from@example.invalid"})});
+ const transport={...sender,async send(mail){
+  assert.equal(f.active,0);const pending=sender.send(mail);entered.resolve();
+  const outcome=await pending;outcomes.push(outcome);return outcome;
+ }};
+ const worker=f.worker({transport}),pending=worker.runOnce();await entered.promise;
+ if(!scenario.endsWith("after"))child.emit("message",{kind:"accepted"});
+ let stop;
+ if(scenario.startsWith("manual"))stop=worker.stop();
+ if(scenario.startsWith("timeout"))timers[0]();
+ if(scenario==="error")child.emit("error",new Error("SYNTHETIC_SECRET"));
+ if(scenario.endsWith("after"))child.emit("message",{kind:"accepted"});
+ child.emit("exit",scenario==="abnormal"?1:scenario==="normal"||scenario==="error"?0:null,
+  scenario==="normal"||scenario==="error"||scenario==="abnormal"?null:"SIGKILL");
+ await stop;
+ assert.deepEqual(await pending,{status:scenario==="normal"?"sent":"pending"});
+ assert.deepEqual(outcomes,[{kind:scenario==="normal"?"accepted":"indeterminate",smtpStatus:null}]);
+ assert.equal(f.row.tentativas,1);
+ if(scenario!=="normal"){
+  assert.equal(f.row.ultimo_erro_codigo,"INTERNAL_FAILURE");assert.equal(f.row.ultimo_erro_smtp_status,null);
+  assert.ok(Buffer.isBuffer(f.row.conteudo_cifrado));assert.equal(f.row.finalizada_em,null);
+  assert.equal(f.row.proxima_tentativa_em,stamp(micros(NOW)+60000000n));
+  // Another attempt may duplicate a message already accepted by SMTP.
+  f.advance(60);assert.equal((await f.worker().runOnce()).status,"sent");assert.equal(f.row.tentativas,2);
+ }
+});

@@ -1,9 +1,12 @@
 # Testes e evidências de fechamento
 
-Atualização da Etapa 12: **14/10/2026**, implementação local para revisão,
-base `93ede97275139dcb9285e4326f0dd8f69fd94022`. **Etapa 12 não encerrada**.
+Atualização da Etapa 12: **15/10/2026**, correção de cancelamento/IPC
+sobre `40ab140fa23f4cf879ac00d867b0def3ef5deff5`. **Etapa 12 aberta até revisão
+independente do patch; Etapa 13 não iniciada**.
+Ver [evidências atuais](#correção-final-da-etapa-12--cancelamento-e-ipc); contagens
+e pendências de validação física anteriores são históricas.
 
-Atualização documental: 2026-10-14. Branch `revisao-premium-bloco-1-auth`.
+Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
 versionado e publicado na branch. Revisão independente aprovada em **14/10/2026**
 após análise do código, relatório do rehearsal e verificações independentes no
@@ -1158,6 +1161,67 @@ produção preservados. **Etapa 12 continua aberta para rehearsal PostgreSQL e
 validação física do transporte**, com consumidor V3 ausente e ativação bloqueada;
 **Etapa 13 não iniciada**. Publicação da correção não autoriza implantação.
 [Contrato das flags](decisoes-canonicas.md#ajuste-pontual--flags-booleanas-e-dry-run-fail-closed).
+
+### Correção final da Etapa 12 — cancelamento e IPC
+
+**15/10/2026**, base `40ab140fa23f4cf879ac00d867b0def3ef5deff5`, branch
+`revisao-premium-bloco-1-auth`. **Etapa 12 aberta até revisão independente do
+patch; Etapa 13 não iniciada**.
+
+A revisão independente informada pelo responsável aprovou o ensaio físico SMTP
+anterior: **52 verificações consolidadas**, encerramento real em **115,078 s**.
+O relatório e a verificação final em
+`C:/tmp/escola-v3-etapa12-smtp-local-20261014-40ab140f/` foram consultados somente
+para leitura. Não foi repetido o ensaio físico nem acessado SMTP neste patch.
+
+Defeito confirmado antes da alteração: **22 falhas entre 29 regressões novas**,
+incluindo `accepted` antes/depois de cancelamento manual ou automático,
+saída anormal/sinal e IPC posterior a erro de subprocesso. O resultado IPC era
+preservado quando `kill()` retornava true e podia ser sobrescrito por IPC tardio;
+`exit` ignorava código e sinal.
+
+Correção mínima em `authSmtpSender.js`: marcar cancelamento e zerar o resultado
+antes de `SIGKILL`; ignorar IPC após cancelamento ou finalização; invalidar o
+resultado em `exit` se código diferente de zero ou houver sinal. Continuar
+aguardando encerramento efetivo. `accepted` só prevalece com saída zero,
+sem sinal/cancelamento. Erro de subprocesso/envio IPC e falha de kill não podem
+ser revertidos por `accepted` posterior. Contrato externo, subprocesso isolado,
+limite de 120 s, kill aos 115 s e timeouts de conexão/TLS não foram alterados.
+
+| Validação após correção | Resultado |
+| --- | --- |
+| Regressões novas | **29/29**, incluídas nos focados |
+| Focados: sender, worker, job, crypto e enqueue | **670/670** |
+| Suíte completa do backend | **1.529/1.529**, executada uma vez após estabilização |
+| Node real com IPC sintético, sem SMTP | **4/4**: normal, cancelamento, timer, saída 1 |
+
+O teste integrado usa sender/worker reais com fork/timers e banco modelados.
+Confere que o worker recebe `indeterminate`, mantém envelope, registra
+`INTERNAL_FAILURE`, agenda o próximo slot absoluto e consome uma segunda
+tentativa após restart. Aceitação normal segue para `sent`.
+Política **at-least-once** preservada: o retry pode duplicar mensagem aceita
+pelo servidor antes de cancelamento/perda de confirmação; não há exactly-once
+nem garantia de entrega na caixa/leitura.
+
+A prova Node real fica fora do repositório; quatro filhos terminaram, com
+resultados observados somente após `exit`: normal (código 0) → `accepted`,
+cancelamento manual/timer (`SIGKILL`) e saída 1 → `indeterminate`.
+Duração de cada cenário inferior a 0,4 s. O cenário de timer aciona seu callback
+capturado, sem modificar os valores de produção nem repetir os 115 s.
+As ordens de IPC após cancelamento são regressões determinísticas modeladas;
+a prova Node confirma IPC antes do cancelamento e encerramento real.
+
+Logs e harnesses em `C:/tmp/escola-v3-etapa12-ipc-20261015-40ab140f/`:
+`regression-before.log`, `focused.log`, `full.log`, `guard-*.json`,
+`ipc-proof.cjs`, `ipc-child.cjs` e `ipc-proof.json`.
+DATABASE_URL dummy apenas nos processos. Guardas de Pool/Client, TCP/TLS,
+SMTP e leitura de `.env`: **zero tentativas PostgreSQL/rede/SMTP**;
+**uma tentativa de leitura de .env bloqueada**, sem conteúdo lido.
+Nenhum processo da prova Node permaneceu ativo na conferência posterior.
+
+Sem Neon, SMTP externo, produção, migrations, frontend, rotas públicas,
+mudanças de contratos 08–11 ou início da Etapa 13. A revisão física anterior
+não equivale à aprovação deste patch nem autoriza ativação/deploy.
 
 ### Roteiro enxuto de rehearsal da Etapa 12
 

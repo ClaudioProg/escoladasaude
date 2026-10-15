@@ -30,7 +30,7 @@ function createAuthSmtpSender({ getConfig, isEnabled }) {
       return { kind: "indeterminate" };
     }
     return new Promise(resolve => {
-      let child, timer, outcome = controlled(null), finished = false;
+      let child, timer, outcome = controlled(null), finished = false, cancelled = false;
       // Nao compartilhar credenciais de banco/JWT/crypto nem NODE_OPTIONS com o subprocesso SMTP.
       const childEnv = Object.fromEntries(["PATH", "SystemRoot", "WINDIR", "TEMP", "TMP"].filter(k => process.env[k]).map(k => [k, process.env[k]]));
       const finish = () => {
@@ -40,6 +40,8 @@ function createAuthSmtpSender({ getConfig, isEnabled }) {
       const operation = { done: null, cancel: () => {
         // SIGKILL encerra o processo e seus sockets; nao e apenas Promise.race.
         if (!finished && child) {
+          // Invalidar antes do kill: IPC pendente nao pode confirmar envio cancelado.
+          cancelled = true; outcome = controlled(null);
           try {
             if (child.kill("SIGKILL") !== true) { closed = true; outcome = controlled(null); }
           } catch { closed = true; outcome = controlled(null); }
@@ -52,12 +54,15 @@ function createAuthSmtpSender({ getConfig, isEnabled }) {
           execArgv: [], env: childEnv, windowsHide: true, stdio: ["ignore", "ignore", "ignore", "ipc"],
         });
         active.add(operation);
-        child.on("message", value => { outcome = controlled(value); });
+        child.on("message", value => { if (!finished && !cancelled) outcome = controlled(value); });
         child.once("error", () => { outcome = controlled(null); operation.cancel();
           // Erro de spawn nao possui processo a encerrar.
           if (!child.pid) { finish(); operation.exited(); }
         });
-        child.once("exit", () => { finish(); operation.exited(); });
+        child.once("exit", (code, signal) => {
+          if (code !== 0 || signal) outcome = controlled(null);
+          finish(); operation.exited();
+        });
         timer = setTimeout(operation.cancel, TERMINATE_AT_MS);
         child.send({ config, payload }, error => { if (error) { outcome = controlled(null); operation.cancel(); } });
       } catch {

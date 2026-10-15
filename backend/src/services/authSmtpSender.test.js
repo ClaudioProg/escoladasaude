@@ -124,3 +124,49 @@ for(const value of TRUE_REPS)test("legacy sendEmail recognized enable unaffected
  const f=institutionalFixture({EMAIL_ENABLED:value,EMAIL_DRY_RUN:undefined,AUTH_OUTBOX_WORKER_ENABLED:"invalid",AUTH_OUTBOX_WORKER_DRY_RUN:"SIM"});
  const info=await f.api.sendEmail(MAIL);assert.deepEqual(info.accepted,[MAIL.to]);assert.equal(f.legacyCalls.length,2);
 });
+
+// Regressions: IPC is provisional until a clean, uncancelled process exit.
+for (const route of ["manual", "timeout"]) for (const order of ["before", "after"])
+for (const [code, signal] of [[null, "SIGKILL"], [0, null]])
+test(`cancel invalidates accepted IPC / ${route} / ${order} / ${signal || "clean exit"}`, async () => {
+ const f=fixture();let resolved=false,stopped=false;
+ const pending=f.transport.send(MAIL).then(value=>{resolved=true;return value;});
+ if(order==="before") f.child.emit("message",{kind:"accepted"});
+ const stop=route==="manual" ? f.transport.cancel().then(()=>{stopped=true;}) : (f.timers[0].fn(),Promise.resolve());
+ if(order==="after") f.child.emit("message",{kind:"accepted"});
+ await Promise.resolve();assert.equal(resolved,false);if(route==="manual")assert.equal(stopped,false);
+ assert.ok(f.calls.some(call=>call[0]==="kill"&&call[1]==="SIGKILL"));
+ f.child.emit("exit",code,signal);await stop;
+ assert.deepEqual(await pending,{kind:"indeterminate",smtpStatus:null});
+});
+for(const [code,signal] of [[1,null],[null,"SIGKILL"],[null,"SIGTERM"],[null,null]])
+test(`abnormal exit invalidates accepted IPC / ${code} / ${signal}`,async()=>{
+ const f=fixture();const pending=f.transport.send(MAIL);
+ f.child.emit("message",{kind:"accepted"});f.child.emit("exit",code,signal);
+ assert.deepEqual(await pending,{kind:"indeterminate",smtpStatus:null});
+});
+for(const fault of ["child error","IPC send error","kill false","kill throws"])
+for(const order of ["before","after"])
+test(`subprocess failure cannot be overwritten by accepted / ${fault} / ${order}`,async()=>{
+ const f=fixture();let callback;
+ if(fault==="IPC send error") f.child.send=(_value,done)=>{callback=done;};
+ const pending=f.transport.send(MAIL);
+ if(order==="before")f.child.emit("message",{kind:"accepted"});
+ let stop;
+ if(fault==="child error")f.child.emit("error",new Error("SYNTHETIC_SECRET"));
+ else if(fault==="IPC send error")callback(new Error("SYNTHETIC_SECRET"));
+ else {
+  f.child.kill=()=>{if(fault==="kill throws")throw new Error("SYNTHETIC_SECRET");return false;};
+  stop=f.transport.cancel();assert.equal(f.transport.ready(),false);
+ }
+ if(order==="after")f.child.emit("message",{kind:"accepted"});
+ f.child.emit("exit",0,null);await stop;
+ assert.deepEqual(await pending,{kind:"indeterminate",smtpStatus:null});
+});
+test("clean accepted exit remains final after later shutdown and IPC",async()=>{
+ const f=fixture();const pending=f.transport.send(MAIL);
+ f.child.emit("message",{kind:"accepted"});f.child.emit("exit",0,null);
+ await f.transport.cancel();f.child.emit("message",{kind:"indeterminate"});
+ assert.deepEqual(await pending,{kind:"accepted",smtpStatus:null});
+ assert.equal(f.calls.some(call=>call[0]==="kill"),false);
+});
