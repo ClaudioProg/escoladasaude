@@ -1,13 +1,14 @@
 # Testes e evidências de fechamento
 
-Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
-revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
-**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
-Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
-Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
-ativação operacional/produção não autorizada.
-[Evidências e limites](#etapa-13--contexto-restrito-e-barreira-de-acesso).
-Os registros anteriores mantêm os estados históricos das Etapas 01–12.
+Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
+`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
+normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
+**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
+Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
+parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
+Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
+[Evidências e avaliação das pendências](#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
+Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1019,7 +1020,116 @@ Escopo e D2 aprovados pela instrução do responsável. Etapas 01–12 continuam
 concluídas de 57; **Etapa 13 implementada para revisão, aberta até revisão
 independente e rehearsal PostgreSQL; Etapa 14 não iniciada**.
 
+### Ajuste pontual da Etapa 13 — intervalo de touch da sessão
+
+**15/10/2026**, base `b63db7be5b879ee4b9b23acffeee68ce0d34faad`, branch
+`revisao-premium-bloco-1-auth`, HEAD e worktree limpo conferidos antes do patch.
+
+Desvio reproduzido antes da correção: a operação D2 permitida executava UPDATE
+dos timestamps normais em cada chamada, mesmo antes de 60 s. **Cinco falhas
+entre 19 cenários** no serviço original. A primeira instrumentação tinha dois
+falsos positivos adicionais porque o modelo não limitava a expiração normal pelo
+absoluto; foi corrigida antes de alterar produção, com os logs preservados.
+
+Correção restrita à consulta `restricted:touch-session`:
+CTEs `locked`/`touched` distinguem **validade** de **escrita**. A sessão é
+revalidada por existência, revogação, expiração estrita, limite absoluto e ordem
+temporal; UPDATE ocorre apenas quando `ultimo_uso_em <= instante - TOUCH_MS`.
+Resultado `valid=true, written=false` permite a operação D2 sem tocar os timestamps
+normais. `IDLE_MS` e `TOUCH_MS` vêm do serviço canônico, que permanece inalterado.
+O relógio usado é o timestamp PostgreSQL com microssegundos da renovação D2.
+
+A consulta inicial já adquire locks usuário → sessão → contexto. O FOR UPDATE
+final incide sobre a mesma sessão já bloqueada; não adquire outra sessão nem
+inverte a ordem de aquisição. Mesma transação, mesmo executor raw; falha da
+consulta ou commit reverte conjuntamente a renovação D2 e o touch normal.
+A renovação do próprio D2 continua em cada operação permitida, com seu absoluto
+fixo de 120 min e idle de 30 min. Contratos 01–12, flags, allowlist e API mantidos.
+
+| Validação local do patch | Resultado |
+| --- | --- |
+| Testes dedicados novos | **20/20**, incluídos nos focados |
+| Focados afetados | **293/293** |
+| Suíte oficial completa `npm.cmd test` | **1.701/1.701**, uma única execução após estabilização |
+| Falhas / skips / cancelamentos na suíte completa | **0 / 0 / 0** |
+| Sintaxe JS do patch | **3/3** |
+
+Cobertura: chamadas consecutivas, -1 us/exato/+1 us em 60 s, próximo intervalo
+após escrita, concorrência modelada com só uma escrita de sessão, validade sem
+touch devido, expiração/revogação/absoluto, revalidação final mesmo sem escrita,
+cap pelo absoluto normal, falha de consulta e rollback de commit. O modelo conta
+escritas confirmadas, não apenas chamadas SQL; a SQL tem asserção do predicado de
+intervalo. Testes locais não comprovam locks/concorrência física PostgreSQL.
+
+Artefatos do patch: `C:/tmp/escola-v3-etapa13-touch-20261015-b63db7be-5cd9a985/`,
+`regression-before-initial.log`, `regression-before.log`, `focused.log`,
+`focused-final.log`, `full.log`, `full-exit-code.txt` e `guard-*.json`.
+DATABASE_URL dummy somente nos processos; guardas de Pool/Client, TCP/TLS, SMTP e
+.env. Zero tentativas PostgreSQL/rede/SMTP; uma tentativa de leitura .env bloqueada,
+sem conteúdo lido. Nenhum acesso Neon, nova fixture PostgreSQL ou ensaio executado.
+
+#### Histórico aprovado anterior ao patch
+
+A validação local final do próprio HEAD `b63db7be5b879ee4b9b23acffeee68ce0d34faad`
+foi **1.681/1.681**, uma execução oficial, antes do rehearsal parcial. Artefatos:
+`C:/tmp/escola-v3-etapa13-final-local-20261015-b63db7be-5ffda578/`,
+`full.log` e `final-verification.json`. Complementa o registro histórico da
+implementação, cuja primeira suíte completa tinha falhado no inventário.
+
+Revisão independente do rehearsal parcial aprovada pelo responsável quanto à
+aplicação D2, preservação e **55 provas funcionais já concluídas**. No HEAD
+`b63db7be5b879ee4b9b23acffeee68ce0d34faad`: **63 planejadas, 56 executadas,
+55 aprovadas, uma falha de comprovação HARNESS_WAIT e sete não executadas**.
+São oito pendências, não oito provas aprovadas. A falha de observação da sessão
+não demonstrou ausência de lock nem defeito do serviço; sua causa continua
+indeterminada e não é atribuída automaticamente ao touch antecipado.
+
+Migration D2 aplicada uma única vez em `v3-homologacao`, ledger **9**, com DDL/ledger
+atômicos conforme os artefatos aprovados. SHA-256 aplicado e preservado:
+`ba9ba77c2c7ac581415bc89ee2b2281a51ec0b12ac74f2854753b104645b29b7`.
+Arquivo atual byte a byte igual ao HEAD-base. Dados/objetos herdados preservados,
+zero resíduos sintéticos e trigger de proteção do perfil-base restaurado antes
+do commit da limpeza. A única limpeza autorizada foi consumida naquele ensaio.
+
+Fontes preservadas, consultadas somente como arquivos locais:
+`C:/tmp/escola-v3-etapa13-20261015-b63db7be/`, `RELATORIO.txt`, `resumo.json`,
+`proofs.json`, `concurrency.json`, `rehearsal-failure.json`,
+`migration-result.json`, `cleanup.json`, `final-audit.json` e
+`manifest-sha256.json`. Simulações temporais daquele rehearsal usaram timestamps
+sintéticos sobre PostgreSQL real, sem alterar relógio do servidor; o relatório
+preserva esse limite. **Nenhuma das 55 provas foi repetida neste patch**, nem
+tratada como nova prova física do HEAD corrigido.
+
+#### Efeito sobre as oito provas PostgreSQL pendentes
+
+| Prova histórica | Avaliação para retomada futura autorizada |
+| --- | --- |
+| 56 — lock real na sessão (HARNESS_WAIT) | Continua inconclusiva. A aquisição inicial e o FOR UPDATE permanecem; corrigir a observação com PIDs SQL/barreira, sem inferir que o patch resolveu o harness. |
+| 57 — lock real no contexto | Não executada. Renovação D2 e lock do contexto preservados; comprovar bloqueio real, inclusive quando não cabe touch normal. |
+| 58 — acessos simultâneos | Conferir serialização, absoluto D2 fixo e, agora, uma única escrita normal por intervalo de 60 s; validade sem escrita não é falha. |
+| 59 — revogação em rollback | Locks mantidos; após rollback a sessão válida deve permitir D2, com ou sem touch devido. |
+| 60 — alteração crítica em rollback | Contexto restaurado pelo rollback e renovação D2 mantida; não exigir escrita normal antes de 60 s. |
+| 61 — timeout real 55P03 | Exige comprovação física; lock continua obrigatório mesmo sem UPDATE devido. Verificar rollback conjunto. |
+| 62 — consulta versus revogação com commit | Após revogação confirmada, negação obrigatória em ambos os caminhos de touch; validade não pode ser presumida por não haver escrita. |
+| 63 — alteração crítica legada com commit | Trigger/schema não alterados; contexto invalidado continua impedindo reutilização, independentemente do intervalo normal. |
+
+O harness futuro deve reconhecer o retorno `valid/written` de
+`restricted:touch-session` e inspecionar timestamps/escritas, sem usar rowCount da
+SELECT como prova de touch. Manter PIDs de `pg_backend_pid()`, observador independente
+e relógio controlado identificado. Nenhuma dessas oito provas foi concluída pelos
+testes modelados. Não repetir as 55 aprovadas nem reaplicar migration.
+Retomada com novas fixtures e limpeza exige autorização específica própria;
+a autorização deste patch não concede isso.
+
+**Etapa 13 permanece aberta**, com revisão independente do patch e oito provas
+PostgreSQL pendentes. Sem Neon, produção, SMTP, deploy ou Etapa 14. Uma única
+plataforma pública no endereço atual, modernização progressiva, homologação
+separada, D1 e D3–D8 preservadas. Worker/barreira não ativados operacionalmente.
+
 ### Arquivos e arquitetura
+
+Registro histórico da implementação inicial; resultados e estado posteriores
+registrados no ajuste acima.
 
 - Novos: serviço `authRestrictedContextService.js`, middleware
   `authRestrictedMiddleware.js`, rota `authRestrictedRoute.js`, migration

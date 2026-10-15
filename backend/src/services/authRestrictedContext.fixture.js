@@ -13,12 +13,12 @@ function fixture() {
   const start = micros(START);
   let clock = start, serial = Promise.resolve();
   const calls = [];
-  const f = { calls, fail: null, onQuery: null, profiles: ["usuario"], token: TOKEN,
+  const f = { calls, sessionWrites: 0, fail: null, onQuery: null, profiles: ["usuario"], token: TOKEN,
     state: {
       user: { id: 7, auth_version: 1, deleted_at: null, email_confirmado_em: null,
         cadastro_pendente_expira_em: null, cargo_id: 1, unidade_id: 2, data_nascimento: "1990-01-01",
         escolaridade_id: 3, deficiencia_id: 4 },
-      session: { id: SID, usuario_id: 7, criada_em: START, revogada_em: null,
+      session: { id: SID, usuario_id: 7, criada_em: START, ultimo_uso_em: START, revogada_em: null,
         expira_em: stamp(start + 21600000000n), limite_absoluto_em: null },
       context: { auth_version_esperada: 1, iniciada_em: START, ultimo_uso_em: START,
         expira_em: stamp(start + 1800000000n), limite_absoluto_em: stamp(start + 7200000000n) },
@@ -32,11 +32,12 @@ function fixture() {
     serial = new Promise(resolve => { unlock = resolve; });
     await before;
     const staged = structuredClone(f.state);
+    let sessionWrites = 0;
     const order = [];
     const raw = { async query(sql, params = []) {
       const tag = sql.match(/restricted:([\w-]+)/)?.[1] ?? sql;
       calls.push({ tag, sql, params });
-      if (f.onQuery) await f.onQuery(tag, params);
+      if (f.onQuery) await f.onQuery(tag, params, staged);
       if (tag === f.fail) throw new Error("SECRET token=synthetic cpf=11111111111 email=synthetic@example.invalid");
       const out = (rows = []) => ({ rows: structuredClone(rows), rowCount: rows.length });
       if (sql.startsWith("SET ")) return out();
@@ -61,17 +62,28 @@ function fixture() {
       }
       if (tag === "touch-session") {
         const s = staged.session, use = micros(params[1]);
-        if (micros(s.expira_em) <= use || s.revogada_em !== null) return out();
-        s.ultimo_uso_em = params[1];
-        s.expira_em = stamp(use + 1800000000n);
-        return out([{ id: s.id }]);
+        const valid = micros(s.expira_em) > use && s.revogada_em === null &&
+          (s.limite_absoluto_em === null || micros(s.limite_absoluto_em) > use) &&
+          micros(s.ultimo_uso_em) <= use;
+        const throttled = sql.includes("AS valid");
+        const due = !throttled || use - micros(s.ultimo_uso_em) >= BigInt(params[3]) * 1000n;
+        if (valid && due) {
+          sessionWrites++;
+          s.ultimo_uso_em = params[1];
+          const candidate = use + BigInt(throttled ? params[2] : 1800000) * 1000n;
+          s.expira_em = stamp(s.limite_absoluto_em !== null && micros(s.limite_absoluto_em) < candidate ?
+            micros(s.limite_absoluto_em) : candidate);
+        }
+        return throttled ? out([{ valid, written: valid && due }]) : out(valid ? [{ id: s.id }] : []);
       }
       if (tag === "revoke") { staged.session.revogada_em = stamp(clock); return out([{ id: staged.session.id }]); }
       throw new Error("UNMODELLED_RESTRICTED_QUERY");
     } };
     try {
       const result = await action({ raw, client: raw, query: () => assert.fail("facade cannot receive sensitive hash") });
+      if (f.fail === "commit") throw new Error("SECRET_COMMIT_FIXTURE");
       f.state = staged;
+      f.sessionWrites += sessionWrites;
       return result;
     } finally { unlock(); }
   } };

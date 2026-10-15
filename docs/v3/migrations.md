@@ -1,13 +1,14 @@
 # Migrations V3
 
-Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
-revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
-**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
-Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
-Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
-ativação operacional/produção não autorizada.
-[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
-Os registros anteriores mantêm os estados históricos das Etapas 01–12.
+Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
+`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
+normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
+**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
+Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
+parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
+Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
+[Evidências e avaliação das pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
+Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
 
 Atualização documental: **15/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
@@ -25,9 +26,19 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-10-02-auth-email-recuperacao-senha-expand.sql](../../backend/db/migrations/2026-10-02-auth-email-recuperacao-senha-expand.sql) | Campos em `usuarios`, `auth_email_confirmacao`, `auth_recuperacao_senha`, `auth_senha_historico`. Commit `7e47b5d40e64fbfc1601b8b0001a50bfd24e95e8`. | Fechamento em PostgreSQL 16, clone isolado; preservação, integridade, concorrência, rollback e skip pelo ledger relatados. | Não comprovada por esta baseline. |
 | [2026-10-09-auth-quotas-expand.sql](../../backend/db/migrations/2026-10-09-auth-quotas-expand.sql) | Etapa 08: tabela/eventos e índices de quotas; expand concluído, sem ativação. | 57/57 no ensaio histórico da Etapa 08, branch descartável já excluída; aplicação única em `v3-homologacao` na Etapa 09, ledger id 7, SHA preservado; rehearsal final 129/129 e revisão independente aprovada em 13/10/2026. | Não implantada; rehearsal não comprova produção. |
 | [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
-| [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; preparada no Git. | Não executado; contrato local aprovado, rehearsal PostgreSQL pendente. | Não aplicada; ativação não autorizada. |
+| [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; arquivo/checksum preservados. | Aplicada uma vez em v3-homologacao; ledger 9; 55 provas aprovadas, oito pendências do rehearsal parcial. | Não aplicada em produção; ativação não autorizada. |
 
 ## Etapa 13 — persistência mínima de D2, não aplicada
+
+Título/descrição originais preservados para rastreabilidade. **Situação atual:
+D2 aplicada em homologação**, ledger 9, 55 provas aprovadas e oito pendências.
+SHA-256 aplicado e inalterado:
+`ba9ba77c2c7ac581415bc89ee2b2281a51ec0b12ac74f2854753b104645b29b7`.
+O patch de touch altera apenas serviço/testes/documentos; não altera DDL,
+runner, arquivo SQL ou checksums. Sem SQL/Neon ou fixtures nesta tarefa.
+[Evidências e oito pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
+
+Registro histórico anterior à aplicação D2:
 
 [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql):
 nova tabela `auth_contexto_restrito`, seis colunas, FK/PK por `sessao_id` e cinco

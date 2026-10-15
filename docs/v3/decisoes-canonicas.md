@@ -1,13 +1,14 @@
 # Decisões canônicas da V3
 
-Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
-revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
-**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
-Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
-Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
-ativação operacional/produção não autorizada.
-[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
-Os registros anteriores mantêm os estados históricos das Etapas 01–12.
+Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
+`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
+normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
+**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
+Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
+parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
+Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
+[Evidências e avaliação das pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
+Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
@@ -846,7 +847,11 @@ O diagnóstico legado `forcarAtualizacaoCadastro` permanece separado e não é
 autorizador; seu comportamento permissivo em falha não altera a decisão D2.
 
 **Núcleo implementado para revisão; ativação operacional não autorizada.**
-Migration nova não aplicada nem ensaiada em PostgreSQL. D1 e D3–D8 preservadas.
+Migration D2 aplicada na homologação, rehearsal parcial aprovado: 55 provas
+concluídas e oito pendências. Nenhuma nova aplicação neste patch. D1 e D3–D8 preservadas.
+O touch normal compartilha IDLE_MS/TOUCH_MS canônicos: escrita só após 60 s,
+validade independente da escrita. D2 continua renovado por sua própria política;
+locks e rollback conjunto preservados.
 Etapas 01–12 concluídas de 57; **Etapa 13 aberta**, **Etapa 14 não iniciada**.
 [Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
 

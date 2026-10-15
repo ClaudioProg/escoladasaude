@@ -3,6 +3,7 @@
 const { createHash } = require("node:crypto");
 const { isValidAuthVersion } = require("../auth/authVersion");
 const { validProfiles } = require("../auth/sessionAuthorization");
+const { IDLE_MS, TOUCH_MS } = require("./authSessionService");
 const IDLE_SECONDS = 1800;
 const ABSOLUTE_SECONDS = 7200;
 const STAMP = "'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"'";
@@ -153,15 +154,27 @@ function createRestrictedContextService({ db }) {
         if (!live || live.limite_absoluto_em !== context.limite_absoluto_em ||
             micros(live.ultimo_uso_em) < now || micros(live.expira_em) <= micros(live.ultimo_uso_em) ||
             micros(live.expira_em) > micros(live.limite_absoluto_em)) deny();
-        // Mantem o prazo normal existente (30min/30dias); D2 usa seu proprio limite adicional.
-        const normal = await q(`/* restricted:touch-session */ UPDATE public.auth_sessao SET
-          ultimo_uso_em = $2::timestamptz,
-          expira_em = LEAST($2::timestamptz + interval '30 minutes', COALESCE(limite_absoluto_em, 'infinity'::timestamptz))
-          WHERE id = $1::uuid AND revogada_em IS NULL AND expira_em > $2::timestamptz
-            AND ultimo_uso_em <= $2::timestamptz
+        // Mesma politica canonica: validade independe da escrita de touch estar devida.
+        // A sessao ja esta bloqueada desde user -> session -> context, no mesmo executor.
+        const normal = await q(`/* restricted:touch-session */ WITH locked AS MATERIALIZED (
+          SELECT id, revogada_em, expira_em, limite_absoluto_em, ultimo_uso_em
+            FROM public.auth_sessao WHERE id = $1::uuid FOR UPDATE
+        ), touched AS (
+          UPDATE public.auth_sessao AS s SET ultimo_uso_em = $2::timestamptz,
+            expira_em = LEAST($2::timestamptz + $3::bigint * interval '1 millisecond',
+              COALESCE(locked.limite_absoluto_em, 'infinity'::timestamptz))
+          FROM locked WHERE s.id = locked.id
+            AND locked.revogada_em IS NULL AND locked.expira_em > $2::timestamptz
+            AND (locked.limite_absoluto_em IS NULL OR locked.limite_absoluto_em > $2::timestamptz)
+            AND locked.ultimo_uso_em <= $2::timestamptz - $4::bigint * interval '1 millisecond'
+          RETURNING s.id
+        ) SELECT EXISTS (
+          SELECT 1 FROM locked WHERE revogada_em IS NULL AND expira_em > $2::timestamptz
             AND (limite_absoluto_em IS NULL OR limite_absoluto_em > $2::timestamptz)
-          RETURNING id`, [session.id, live.ultimo_uso_em]);
-        if (normal.rowCount !== 1) deny();
+            AND ultimo_uso_em <= $2::timestamptz
+        ) AS valid, EXISTS (SELECT 1 FROM touched) AS written`,
+        [session.id, live.ultimo_uso_em, IDLE_MS, TOUCH_MS]);
+        if (records(normal)[0]?.valid !== true) deny();
         return { permitted: true, restricted: true, ...state,
           expiresAt: live.expira_em, absoluteExpiresAt: live.limite_absoluto_em };
       });

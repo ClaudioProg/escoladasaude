@@ -1,13 +1,14 @@
 # Plataforma Escola da Saúde — V3
 
-Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
-revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
-**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
-Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
-Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
-ativação operacional/produção não autorizada.
-[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
-Os registros anteriores mantêm os estados históricos das Etapas 01–12.
+Etapa 13 — **ajuste pontual do intervalo de touch**, em **15/10/2026**, sobre
+`b63db7be5b879ee4b9b23acffeee68ce0d34faad`. Renovação D2 preservada; touch da sessão
+normal respeita **60 segundos**, sem negar sessão válida quando a escrita não é devida.
+**1.701/1.701 backend completo (uma execução), 293/293 focados, 20/20 dedicados**.
+Migration D2 já aplicada na homologação, sem alteração neste patch; rehearsal
+parcial com **55 provas aprovadas e oito pendências**. **Etapa 13 aberta;
+Etapa 14 não iniciada**. Ativação operacional continua desabilitada.
+[Evidências e avaliação das pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
+Os registros anteriores preservam os marcos históricos; este ajuste registra o estado atual.
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
@@ -230,11 +231,14 @@ de perfil foi liberado. Endpoints públicos legítimos mantêm seus próprios co
 Revisão, políticas e MFA sem prova persistida continuam não comprovados;
 mesmo conta com campos preenchidos não ganha acesso normal por ausência dessa prova.
 
-**152 testes novos**, incluídos nos **347/347 focados**; sintaxe **13/13 JS**.
+Validação inicial histórica: **152 testes novos**, incluídos nos **347/347 focados**; sintaxe **13/13 JS**.
 Única execução completa: **1.678/1.679**, falha de inventário do teste do runner
 pela migration nova. Lista esperada corrigida e o teste afetado aprovado **1/1**;
 suíte completa não repetida, sem alegar execução completa verde do patch final.
-Rehearsal PostgreSQL da nova migration **não executado**.
+Na implementação inicial o rehearsal ainda não havia sido executado.
+Estado atual: D2 aplicada, 55 provas PostgreSQL aprovadas, oito pendências;
+ajuste de touch com **20/20 dedicados, 293/293 focados, 1.701/1.701 completos**
+(uma execução), sem nova operação PostgreSQL. Ver evidências do ajuste no topo.
 **Etapa 13 aberta**, aguardando revisão independente e rehearsal; **Etapa 14 não iniciada**.
 D1 e D3–D8 permanecem independentes. MFA/CSRF, jornadas 29/30 e migração por
 domínios 42/43 exigem integrações futuras, sem frontend nesta etapa.
