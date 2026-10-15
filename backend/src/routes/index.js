@@ -133,6 +133,7 @@ const loginRoute = require("./loginRoute");
 const perfilRoute = require("./perfilRoute");
 const authPublicRoute = require("./authPublicRoute");
 const authRestrictedRoute = require("./authRestrictedRoute");
+const authReauthenticationRoute = require("./authReauthenticationRoute");
 const authGoogleRoute = require("../auth/authGoogle");
 const contaExclusaoRoute = require("./contaExclusaoRoute");
 
@@ -228,6 +229,7 @@ mount("/lookup", lookupPublicRoute, "lookupPublicRoute");
 mount("/login", loginRoute, "loginRoute");
 mount("/perfil", perfilRoute, "perfilRoute");
 mount("/auth", authRestrictedRoute, "authRestrictedRoute");
+mount("/auth", authReauthenticationRoute, "authReauthenticationRoute");
 mount("/auth", authPublicRoute, "authPublicRoute");
 mount("/auth", authGoogleRoute, "authGoogleRoute");
 mount("/conta/exclusao", contaExclusaoRoute, "contaExclusaoRoute");

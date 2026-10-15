@@ -412,6 +412,7 @@ test("--dir aceita somente a arvore oficial", async () => {
       "db/migrations/2026-10-09-auth-quotas-expand.sql",
       "db/migrations/2026-10-13-auth-outbox-expand.sql",
       "db/migrations/2026-10-15-auth-contexto-restrito-expand.sql",
+      "db/migrations/2026-10-15-auth-reautenticacao-expand.sql",
     ],
   );
 

@@ -1,5 +1,22 @@
 # Testes e evidências de fechamento
 
+**Etapa 14 — Reautenticação local básica implementada para revisão**, em
+**15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
+`revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
+reautenticação local básica**: senha atual, prova opaca de uso único, finalidade
+exata e vínculo a conta/sessão/auth_version, validade absoluta de cinco minutos.
+**120/120 dedicados + 1/1 inventário afetado; 1.821/1.821 backend completo**
+(uma execução), zero falhas/skips/cancelamentos. Migration nova somente preparada
+no Git; **não aplicada**. Testes modelados não comprovam concorrência física.
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
+Flag `AUTH_REAUTH_ENABLED` ausente/`false` mantém interface desabilitada;
+configuração ambígua ou incompleta falha fechada. Nenhuma ativação operacional,
+SQL externo, Neon, frontend, produção, merge ou deploy. D2 e demais contratos
+01–13 preservados; D1, D3, D4, D6–D8 e demais parâmetros D5 pendentes.
+[Implementação, limites e provas PostgreSQL pendentes](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
+
+Registro histórico do fechamento anterior, antes do início autorizado da Etapa 14:
+
 **Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
 por instrução do responsável após aprovação integral da revisão independente do
 rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
@@ -1019,7 +1036,204 @@ reexecução de testes/SQL/Neon/PostgreSQL, SMTP, deploy, merge ou início da Et
 A implementação posterior da Etapa 12 está registrada abaixo; aprovação e
 publicação Git não equivalem a implantação.
 
+## Etapa 14 — reautenticação local básica
+
+**15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
+`revisao-premium-bloco-1-auth`, HEAD esperado e worktree limpo confirmados antes
+da implementação. **D5 parcialmente aprovada somente quanto à reautenticação
+local básica**. Etapas 01–13 concluídas de 57; **Etapa 14 aberta até revisão
+independente e rehearsal PostgreSQL; Etapa 15 não iniciada**.
+
+### Arquivos e persistência da Etapa 14
+
+- [Serviço](../../backend/src/services/authReauthenticationService.js): autenticação
+  server-side sem touch, reserva de tentativa, verificação da senha, emissão e consumo.
+- [HTTP](../../backend/src/auth/authReauthenticationHttp.js) e
+  [rota opt-in](../../backend/src/routes/authReauthenticationRoute.js): cookie,
+  concordância Bearer, barreira D2, CSRF e proteção IP.
+- [Migration nova](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql):
+  `auth_reautenticacao_prova` e `auth_reautenticacao_tentativa`, constraints/FKs
+  imediatas e dois triggers próprios de invalidação. **Somente preparada, não aplicada**.
+  SHA-256 `fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+- [Montagem](../../backend/src/routes/index.js): registro da rota nova.
+  [Inventário do runner](../../backend/scripts/run-migration.identity.test.js):
+  só inclusão do SQL; runner de produção não alterado.
+- [Testes do serviço](../../backend/src/services/authReauthenticationService.test.js),
+  [HTTP](../../backend/src/auth/authReauthenticationHttp.test.js),
+  [DDL/parser](../../backend/src/services/authReauthenticationMigration.test.js),
+  [fixture própria](../../backend/src/services/authReauthentication.fixture.js) e
+  atualização dos seis documentos V3 pertinentes.
+
+Necessidade confirmada por inspeção: sessão/contexto não têm prova de senha recente
+com finalidade e consumo único. Desafios/quotas de e-mail e recuperação têm contratos
+próprios e não foram reaproveitados. Senha, sessões, middlewares oficiais, D2,
+versões, login/Bearer, auditoria, quotas e migrations foram inspecionados;
+serviços existentes e migrations aplicadas permanecem inalterados.
+
+### Emissão, invalidação e consumo da Etapa 14
+
+1. Cookie opaco resolve sessão/conta no servidor. Não aceita identidade/perfil/
+   sessão arbitrários do corpo. Locks usuário → sessão; revalidação após espera,
+   relógio PostgreSQL, sem touch, novo login/JWT/sessão ou renovação de contexto.
+2. Reserva de tentativa por conta, serializada pelo lock do usuário, em transação
+   independente **antes** da verificação. Commit precede senha: erro de senha/hash/
+   criptografia/emissão não desfaz a tentativa. Janela móvel compartilhada por
+   sessões/finalidades da conta, sem reutilizar quotas dos fluxos de e-mail.
+3. Somente `passwordService.verifyPassword` comprova bcrypt/Argon2id atuais;
+   `requiresPasswordChange` nega. Sem rehash, atualização de senha ou histórico.
+4. Após verificar, nova transação bloqueia usuário → sessão e compara conta, hash
+   originalmente verificado, auth_version, email_version e revisão `xmin` do
+   usuário. A revisão rejeita também mudança e restauração do hash legado durante
+   a verificação. Atualização não crítica concorrente da linha pode exigir repetir
+   a reautenticação; não se reaproveita snapshot de credencial anterior.
+5. Segredo de 32 bytes criptográficos aleatórios, base64url; **somente SHA-256**
+   persistido. Prova vinculada a conta/sessão/versão/finalidade. Emissão/expiração
+   no mesmo instante PG: **exatamente cinco minutos absolutos, não renováveis**.
+   Fence final revalida sessão/conta. Auditoria crítica no mesmo executor; erro de
+   INSERT/auditoria/commit da emissão não deixa prova parcial nem retorna segredo.
+6. Consumo somente interno: `consume(executor, { cookieToken, identity?, proof,
+   purpose })`. Cookie real obrigatório; consumidor futuro fixa a finalidade no
+   servidor. Executor exclusivo `db.tx`, raw/client iguais, SAVEPOINT prova
+   transação read committed/read-write. Uma prova por executor; chamar **antes**
+   dos locks específicos da operação sensível.
+7. Locks usuário → sessão → prova vinculada; finalidade/conta/sessão/versão exatas,
+   `consumida_em IS NULL`, criação não futura e **expiração > relógio PG** no UPDATE
+   final. Uso único modelado: só um consumidor vence. Sem BEGIN/COMMIT próprio:
+   operação futura e sua auditoria devem usar a mesma transação. Chamador propaga
+   falhas e faz rollback; COMMIT externo permanece sob responsabilidade dele.
+   Rollback da operação restaura a prova; não há consumo definitivo separado.
+8. Triggers novos removem apenas provas de reautenticação nas mudanças de senha,
+   e-mail, auth_version, email_version, exclusão ou revogação/revinculação da sessão,
+   inclusive writers legados sem incremento. Expiração e absoluto da sessão são
+   revalidados no uso, sem prolongá-los. Alteração/invalidação revertem juntas.
+   Trigger D2 já aplicado permanece intacto.
+
+Registro controlado: **trocar_senha, alterar_email, encerrar_conta, conceder_perfil**.
+Cliente só solicita um desses códigos; operação futura fixa seu próprio código.
+Não é autorização genérica e nenhuma operação sensível foi integrada nesta etapa.
+Resultados `authorizationGranted=false`, `mfaSatisfied=false` e indicação dos perfis
+atuais que exigem MFA não dispensam autorização/perfis/regularização, MFA aplicável
+ou CSRF da operação. Gestor, administrador, diagnostico e cai_administrador
+continuam exigindo MFA; senha não o substitui, nem dispensa MFA habilitado em outros casos.
+
+### HTTP, CSRF e tentativas da Etapa 14
+
+- **GET /api/auth/reautenticacao/csrf**: HMAC por sessão/conta/versão/origem, chave
+  dedicada. **POST /api/auth/reautenticacao**: JSON só `senha`/`finalidade`, cookie
+  válido, Origin ou Referer exato e header `X-Reauth-CSRF`. Origin inválido não tem
+  fallback. Parser local 16 KiB e limite de senha 16 KiB mesmo após parser global.
+- Bearer isolado nega. Quando fornecido, JWT usa o verificador oficial, com
+  identidade/versão concordantes; inválido/conflitante não tem fallback cookie.
+  Cookie duplicado/expirado/revogado nega. Cookie Host oficial em produção.
+- Mesma barreira D2, **sem exceção nova na allowlist**. D2 habilitada bloqueia
+  contas restritas, inclusive perfis elevados, antes da senha; reautenticação
+  não é fluxo de regularização. D2 desabilitada mantém o contrato legado, sem
+  transformar o componente de senha em autorização de operação sensível.
+- Segredo somente na resposta de sucesso no-store; fora de URL/query/logs,
+  histórico, notificação e localStorage. Consumidor futuro poderá mantê-lo em
+  memória. Erros genéricos sem causa/SQL/senha/hash/token; auditoria recebe só
+  usuário, ação e finalidade, sem request cru.
+- `AUTH_REAUTH_ENABLED` ausente/`false` → 404, sem DB/auditoria da rota.
+  Flag ambígua/configuração incompleta → 503. Configuração/store IP criados uma
+  vez no startup; habilitar/alterar exige reinício e autorização futura.
+  Desabilitar é observado a cada requisição, sem recriar store por request.
+- Exigem valores explícitos: `AUTH_REAUTH_ATTEMPT_WINDOW_MS`,
+  `AUTH_REAUTH_MAX_ACCOUNT`, `AUTH_REAUTH_MAX_IP`, inteiros positivos válidos.
+  Nenhuma política numérica de produto foi presumida: defini-la antes de ativar;
+  valores de teste são fixtures e não novos limites canônicos.
+- `AUTH_REAUTH_ALLOWED_ORIGINS`: lista exata sem wildcard/path/duplicidade/vazio.
+  `AUTH_REAUTH_CSRF_SECRET`: 32 bytes base64url canônico, chave dedicada distinta
+  do JWT. Nenhum segredo foi provisionado, persistido em Git ou lido de .env.
+- Proteção por **conta distribuída no PostgreSQL**; proteção **IP por processo**
+  com `express-rate-limit` existente e store separado, após cookie/CSRF e antes
+  da senha. Não comprova limite IP global entre réplicas. Implantação exige revisão
+  da política/store. Sem mudar proxy, infraestrutura ou quotas de e-mail.
+  Retenção/expurgo das novas tabelas dependem de política própria; nenhum job novo.
+- Proteção CSRF proporcional não substitui Etapa 39 nem protege operações futuras
+  automaticamente. Sem TOTP/passkeys/trusted device/recovery MFA nesta etapa.
+
+### Validação local da Etapa 14
+
+| Validação | Resultado |
+| --- | --- |
+| Dedicados novos: serviço, HTTP real em memória e DDL/parser | **120/120** |
+| Inventário do runner afetado, selecionado por nome | **1/1** |
+| Total focado executado | **121/121** |
+| Sintaxe JS | **9/9** |
+| Suíte oficial completa `npm.cmd test` | **1.821/1.821**, **uma execução** após estabilização |
+| Falhas / skips / cancelamentos finais | **0 / 0 / 0** |
+| Alterações pela suíte nos arquivos conferidos | **Zero**, manifesto antes/depois |
+| SQL/migration aplicada/PostgreSQL/SMTP/rede externa | **Não executados** |
+
+Cobertura: bcrypt/Argon2id reais corretos/incorretos, bcrypt 72 bytes exigindo troca,
+hash inválido/erro criptográfico; mudanças concorrentes de senha/versão/exclusão/
+revogação e ABA legado; cinco minutos -1 us/exato/+1 us, reutilização, consumidores
+concorrentes modelados, finalidade/sessão/versão divergentes, sessão revogada/
+expirada/absoluta, rollback operação+consumo, falhas de escrita/auditoria/commit,
+limites por conta/IP, cookie/Bearer, D2/perfis sem bypass, MFA não satisfeito, CSRF,
+flags, JSON e ausência de segredos. Fences finais cobrem expiração entre lock e
+escrita. Parser/modelos/asserções SQL **não provam** constraints/triggers/locks
+físicos. Os testes HTTP novos usam roteadores Express reais sem servidor TCP.
+
+Artefatos: `C:/tmp/escola-v3-etapa14-20261015-88edbf7d/`,
+`dedicated-initial.log`, `dedicated-second.log`, `dedicated-final.log`,
+`runner-focused.log`, `full.log`, `full-exit-code.txt`, `guard.cjs`, `guard-*.json`,
+`manifest-before-full.json`, `preflight-normalization.json`, `local-verification.json`.
+Primeira rodada **106/113**: sete falhas da instrumentação (cinco identidades D2
+não alinhadas, corpo ausente no fallthrough e expectativa indevida de sanitização
+de COMMIT externo). Corrigidas/preservadas; segunda **116/116**, final **120/120**
+após completar cobertura. Warning inicial da biblioteca revelou criação do limiter
+no handler; movida para startup, store único, sem repetir essa falha no final.
+Preflight anterior à suíte parou por comparação de CRLF histórico com bytes LF
+canônicos Git, **antes de iniciar a suíte**. Identidades com filtros Git e checksum
+D2 foram conferidos sem reescrever migrations. DATABASE_URL dummy só nos processos.
+Guardas consolidadas: **zero tentativas PostgreSQL/rede/SMTP; uma leitura .env
+bloqueada**, sem conteúdo lido. Nenhum teste dedicado/rehearsal histórico 01–13
+repetido; a única suíte completa oficial inclui naturalmente os testes históricos.
+
+### Provas PostgreSQL pendentes da Etapa 14
+
+Somente após autorização específica, sem reutilizar autorizações de fixtures/
+limpeza consumidas e sem repetir as 63 provas aprovadas da Etapa 13:
+
+1. Preflight de branch/HEAD, identidade SQL/alvo, TLS, ledger de nove registros,
+   checksums (incluindo D2), baseline de dados/catálogo, allowlist exata e limpeza.
+   Migration via runner oficial, DDL/ledger atômicos e único registro novo; rollback
+   em falha. Nada disso foi executado nesta etapa local.
+2. Constraints reais: hash 32 bytes/PK, FKs imediatas, versões/finalidades,
+   finitude, validade exatamente 300 s e consumo estritamente antes do vencimento.
+   Preparação explícita de -1 us/exato/+1 us sem alterar relógio do servidor.
+3. Emissão/consumo oficiais sem touch/novo JWT/sessão, snapshots físicos antes/depois;
+   relógio PostgreSQL e SQL intactos. Expiração durante espera em lock e no fence final.
+4. Duas conexões consumindo a mesma prova: PIDs `pg_backend_pid()`, barreira,
+   observador, amostras e `pg_blocking_pids`, só um commit. Testar identidade,
+   sessão, finalidade, versão, revogação e expiração divergentes sem consumo parcial.
+5. Consumo+operação sintética+auditoria no mesmo executor, commit e rollback;
+   falhas de UPDATE/auditoria/COMMIT e timeouts reais. Rollback restaura consumo e
+   operação. Commit externo continua responsabilidade do chamador.
+6. Corrida entre reserva/verificação/revalidação: senha/versões/exclusão, ABA
+   legado via xmin, revogação e outra conta preservada. Triggers novos com commit
+   e restauração com rollback; D2 e trigger de perfil-base preservados.
+7. Reservas duráveis de falhas, duas conexões/sessões concorrendo pelo último slot,
+   limite/janela exatos e ordem usuário → sessão → prova, incluindo convivência
+   D2/revogação. Não reutilizar quotas de e-mail ou inferir locks pelo término.
+8. Limpeza única somente na allowlist autorizada, incluindo dependências/FKs/
+   auditoria e restauração de triggers antes do commit, se autorizada suspensão.
+   Zero resíduos, ledger/checksums, catálogo, dados herdados, sequências e Git
+   preservados; nenhuma limpeza ampla ou autorização presumida.
+
+**Etapa 14 aberta** até revisão independente e rehearsal. Migration preparada
+não equivale a aplicada; modelos não equivalem a PostgreSQL real. Nenhuma
+ativação operacional, produção, cutover, deploy, merge ou Etapa 15. D5 parcial
+não fecha outros parâmetros; D1, D3, D4 e D6–D8 pendentes. Integrações futuras de
+operações sensíveis, regularização, MFA, CSRF completo e consumidores continuam
+necessárias. Uma única plataforma pública no endereço atual, modernização
+progressiva e homologação separada preservadas.
+
 ## Etapa 13 — contexto restrito e barreira de acesso
+
+Registro histórico da Etapa 13, encerrada antes do início autorizado da Etapa 14;
+os estados anteriores de Etapa 14 não iniciada referem-se àquele fechamento.
 
 **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`, branch
 `revisao-premium-bloco-1-auth`, HEAD/worktree conferidos antes de alterações.

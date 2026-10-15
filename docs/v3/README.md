@@ -1,5 +1,22 @@
 # Plataforma Escola da Saúde — V3
 
+**Etapa 14 — Reautenticação local básica implementada para revisão**, em
+**15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
+`revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
+reautenticação local básica**: senha atual, prova opaca de uso único, finalidade
+exata e vínculo a conta/sessão/auth_version, validade absoluta de cinco minutos.
+**120/120 dedicados + 1/1 inventário afetado; 1.821/1.821 backend completo**
+(uma execução), zero falhas/skips/cancelamentos. Migration nova somente preparada
+no Git; **não aplicada**. Testes modelados não comprovam concorrência física.
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
+Flag `AUTH_REAUTH_ENABLED` ausente/`false` mantém interface desabilitada;
+configuração ambígua ou incompleta falha fechada. Nenhuma ativação operacional,
+SQL externo, Neon, frontend, produção, merge ou deploy. D2 e demais contratos
+01–13 preservados; D1, D3, D4, D6–D8 e demais parâmetros D5 pendentes.
+[Implementação, limites e provas PostgreSQL pendentes](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
+
+Registro histórico do fechamento anterior, antes do início autorizado da Etapa 14:
+
 **Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
 por instrução do responsável após aprovação integral da revisão independente do
 rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
@@ -112,7 +129,7 @@ fechamento. O fechamento da Etapa 10 documental/Git não
 repete testes/rehearsal nem executa SQL ou operações Neon. Ver
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação).
 
-**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
 Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
@@ -210,6 +227,41 @@ jobs de eventos/salas e decisão da única plataforma pública no endereço atua
 preservados. Sem implantação em produção, merge ou configuração Vercel neste fechamento. [Contratos](decisoes-canonicas.md#etapa-12--worker-e-decisões-operacionais-aprovadas),
 [evidências e limites](testes-e-evidencias.md#etapa-12--worker-local--revisão-e-rehearsal-pendentes) e [fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
 
+## Etapa 14 — reautenticação local básica
+
+**D5 parcialmente aprovada somente quanto à reautenticação local básica**.
+[Serviço dedicado](../../backend/src/services/authReauthenticationService.js),
+[interface HTTP](../../backend/src/auth/authReauthenticationHttp.js),
+[rota opt-in](../../backend/src/routes/authReauthenticationRoute.js) e
+[migration nova](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql).
+Prova de senha atual, sem novo login/JWT/sessão/rehash; 32 bytes aleatórios,
+somente SHA-256 persistido, **cinco minutos absolutos**, uso único, vínculo a conta,
+sessão cookie, auth_version e finalidade controlada. Consumo interno na transação
+da futura operação, sem commit próprio e sem renovar sessão. Locks usuário →
+sessão → prova, relógio PostgreSQL após esperas e fence final. Triggers novos
+invalidam apenas provas de reautenticação em mudanças críticas (inclusive writers
+legados sem incremento) e revogação/revinculação da sessão; D2 permanece intacta.
+
+**GET /api/auth/reautenticacao/csrf** fornece HMAC CSRF por sessão;
+**POST /api/auth/reautenticacao** aceita somente `senha` e `finalidade`.
+Cookie válido obrigatório; Bearer isolado não comprova sessão e Bearer fornecido
+inválido/conflitante não tem fallback. Origin/Referer exatos, chave CSRF separada,
+JSON, header `X-Reauth-CSRF`, respostas no-store. Mesma barreira D2, sem ampliar
+allowlist. Limites exigem configuração explícita antes da ativação, sem novo valor
+operacional presumido. Tentativas por conta reservadas duravelmente em PostgreSQL
+antes da senha, sem reutilizar quotas de e-mail; proteção IP usa a biblioteca
+`express-rate-limit` existente, em memória por processo.
+
+**120/120 dedicados + 1/1 inventário afetado (121/121 focados)**, sintaxe **9/9 JS**,
+**1.821/1.821 backend completo**, uma execução após estabilização e zero falhas/
+skips/cancelamentos. Migration **não aplicada**; concorrência e triggers reais
+pendem de rehearsal autorizado. Operações sensíveis futuras não integradas; senha
+não satisfaz MFA, e proteção CSRF local não substitui a Etapa 39.
+**Etapa 14 aberta** até revisão independente e rehearsal; **Etapa 15 não iniciada**.
+Reautenticação/barreira desabilitadas operacionalmente, produção e infraestrutura
+preservadas. Uma plataforma pública no endereço atual, modernização progressiva.
+[Evidências e provas pendentes](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
+
 ## Etapa 13 — contexto restrito e barreira de acesso
 
 D2 aprovada pelo responsável em **15/10/2026**: contexto restrito com **30 minutos
@@ -252,7 +304,7 @@ Validação local final: **20/20 dedicados, 293/293 focados, 1.701/1.701 complet
 Migration aplicada uma vez em homologação, ledger 9 e checksum preservados;
 zero resíduos sintéticos, triggers D2 e perfil-base habilitados. Conferência
 independente: **89 tabelas originais, 54.394 registros, zero divergências**.
-**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
 D2 aprovada; D1 e D3–D8 continuam pendentes. Ativação futura depende das
 integrações e fluxos de regularização, revisão, políticas, MFA, CSRF e migração
 dos consumidores; a barreira permanece desabilitada operacionalmente por padrão.

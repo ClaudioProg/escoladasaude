@@ -1,5 +1,22 @@
 # Decisões canônicas da V3
 
+**Etapa 14 — Reautenticação local básica implementada para revisão**, em
+**15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
+`revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
+reautenticação local básica**: senha atual, prova opaca de uso único, finalidade
+exata e vínculo a conta/sessão/auth_version, validade absoluta de cinco minutos.
+**120/120 dedicados + 1/1 inventário afetado; 1.821/1.821 backend completo**
+(uma execução), zero falhas/skips/cancelamentos. Migration nova somente preparada
+no Git; **não aplicada**. Testes modelados não comprovam concorrência física.
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
+Flag `AUTH_REAUTH_ENABLED` ausente/`false` mantém interface desabilitada;
+configuração ambígua ou incompleta falha fechada. Nenhuma ativação operacional,
+SQL externo, Neon, frontend, produção, merge ou deploy. D2 e demais contratos
+01–13 preservados; D1, D3, D4, D6–D8 e demais parâmetros D5 pendentes.
+[Implementação, limites e provas PostgreSQL pendentes](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
+
+Registro histórico do fechamento anterior, antes do início autorizado da Etapa 14:
+
 **Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
 por instrução do responsável após aprovação integral da revisão independente do
 rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
@@ -864,10 +881,50 @@ políticas, MFA, CSRF e migração dos consumidores.
 O touch normal compartilha IDLE_MS/TOUCH_MS canônicos: escrita só após 60 s,
 validade independente da escrita. D2 continua renovado por sua própria política;
 locks e rollback conjunto preservados.
-**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
 Fechamento documental sem alteração de flags, produção, cutover ou deploy.
 [Fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
 [Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
+
+## DECISÃO PARCIALMENTE APROVADA — D5 reautenticação local básica
+
+A instrução da Etapa 14 aprova **somente a reautenticação local básica**: senha
+atual, **cinco minutos absolutos não renováveis**, uso único, conta e sessão
+server-side atuais, auth_version vigente e finalidade exata. Somente
+`passwordService.verifyPassword` comprova bcrypt/Argon2id; troca obrigatória nega.
+Sem rehash, nova senha, JWT, sessão ou histórico. Não aprova TOTP, trusted device,
+recovery MFA, RP/passkeys ou demais parâmetros D5. D1, D3, D4 e D6–D8 pendentes;
+D2 aprovada preservada.
+
+Finalidades controladas: `trocar_senha`, `alterar_email`, `encerrar_conta`,
+`conceder_perfil`. Cliente pode solicitar só esses códigos; consumidor futuro deve
+fixar a constante de sua operação, nunca repassar finalidade arbitrária do corpo.
+Nenhuma dessas operações foi integrada ou autorizada pela emissão. Resultado
+`authorizationGranted=false` e `mfaSatisfied=false`; regularização, perfis,
+autorização, MFA aplicável e CSRF da operação exigem verificações próprias.
+MFA permanece obrigatório para gestor, administrador, diagnostico e cai_administrador;
+a senha não o substitui, nem dispensa MFA habilitado para outros casos.
+
+Prova opaca de 32 bytes; apenas SHA-256 no servidor, sem senha nem segredo em
+texto puro. Segredo somente na resposta no-store; fora de URL, query, logs,
+histórico, notificações e localStorage. Futuro consumidor poderá mantê-lo em memória.
+Consumo interno exige cookie atual, finalidade, conta/sessão/versão e tempo PG
+estrito; participa da transação do chamador, sem commit próprio. Rollback da operação
+restaura consumo; falha exige rollback pelo chamador. Sem renovação da sessão/prova.
+
+Política numérica de tentativas não foi fechada como decisão de produto: janela,
+limite por conta e limite por IP exigem configuração explícita antes de habilitar;
+ausência/invalidez bloqueia a interface. Reserva por conta em PostgreSQL precede
+senha e emissão em transação independente, para que falhas continuem contando.
+Proteção IP por processo reutiliza biblioteca existente e não comprova limite IP
+distribuído. Quotas de e-mail não reaproveitadas. Retenção/expurgo exigem política
+futura própria; nenhum job antecipado.
+
+CSRF proporcional: Origin/Referer exatos, HMAC por sessão/versão/origem com chave
+dedicada, JSON/header próprio e no-store. Não substitui Etapa 39 nem protege
+operações futuras automaticamente. Flag desabilitada por padrão; D2 sem nova
+exceção. **Etapa 14 aberta**, migration não aplicada e rehearsal pendente.
+[Contrato e evidências](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
 
 ## PENDÊNCIAS — sem decisão nesta etapa
 
@@ -876,7 +933,7 @@ Fechamento documental sem alteração de flags, produção, cutover ou deploy.
 | D1 | Prova para retomada de cadastro pendente e colisões de CPF/e-mail. |
 | D3 | Primeira vinculação Google, desvinculação e recuperação de conta sem senha local. |
 | D4 | Recuperação/reativação quando e-mail não confirmado e fluxo assistido. |
-| D5 | Parâmetros restantes de MFA: reauth, trusted device, recovery, RP/passkeys etc. |
+| D5 | Parcialmente aprovada somente a reautenticação local básica da Etapa 14; demais parâmetros MFA, trusted device, recovery, RP/passkeys etc. pendentes. |
 | D6 | Matriz explícita de permissões dos dez perfis. |
 | D7 | Efeito definitivo do encerramento após sete dias, retenção e liberação de identificadores. |
 | D8 | Coortes/prazo de ponte e janela operacional de produção. |

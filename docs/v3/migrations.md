@@ -1,5 +1,22 @@
 # Migrations V3
 
+**Etapa 14 — Reautenticação local básica implementada para revisão**, em
+**15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
+`revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
+reautenticação local básica**: senha atual, prova opaca de uso único, finalidade
+exata e vínculo a conta/sessão/auth_version, validade absoluta de cinco minutos.
+**120/120 dedicados + 1/1 inventário afetado; 1.821/1.821 backend completo**
+(uma execução), zero falhas/skips/cancelamentos. Migration nova somente preparada
+no Git; **não aplicada**. Testes modelados não comprovam concorrência física.
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
+Flag `AUTH_REAUTH_ENABLED` ausente/`false` mantém interface desabilitada;
+configuração ambígua ou incompleta falha fechada. Nenhuma ativação operacional,
+SQL externo, Neon, frontend, produção, merge ou deploy. D2 e demais contratos
+01–13 preservados; D1, D3, D4, D6–D8 e demais parâmetros D5 pendentes.
+[Implementação, limites e provas PostgreSQL pendentes](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
+
+Registro histórico do fechamento anterior, antes do início autorizado da Etapa 14:
+
 **Etapa 13 — Contexto restrito e barreira de acesso, encerrada em 15/10/2026**,
 por instrução do responsável após aprovação integral da revisão independente do
 rehearsal complementar. **Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
@@ -34,6 +51,34 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-10-09-auth-quotas-expand.sql](../../backend/db/migrations/2026-10-09-auth-quotas-expand.sql) | Etapa 08: tabela/eventos e índices de quotas; expand concluído, sem ativação. | 57/57 no ensaio histórico da Etapa 08, branch descartável já excluída; aplicação única em `v3-homologacao` na Etapa 09, ledger id 7, SHA preservado; rehearsal final 129/129 e revisão independente aprovada em 13/10/2026. | Não implantada; rehearsal não comprova produção. |
 | [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
 | [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; arquivo/checksum preservados. | Aplicada uma única vez em v3-homologacao; ledger com nove registros e checksum preservado; 63/63 provas funcionais únicas aprovadas (55 históricas + oito complementares), revisão independente aprovada. | Não aplicada em produção; ativação não autorizada. |
+| [2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql) | Etapa 14/D5 parcial: provas descartáveis e reservas de tentativas; dois triggers próprios. | Parser/modelos locais e inventário 1/1; não aplicada, rehearsal pendente. | Não aplicada; flag desabilitada, sem ativação autorizada. |
+
+## Etapa 14 — persistência de reautenticação preparada, não aplicada
+
+[2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql),
+forward-only, transação do runner, sem backfill/ativação ou alterações em migrations
+aplicadas. SHA-256 novo:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+
+- `auth_reautenticacao_prova`: hash opaco como PK, sessão/conta por FKs imediatas
+  RESTRICT, versão, finalidade controlada, emissão/expiração exatamente cinco
+  minutos depois e consumo. Checks de hash, finitude, versão, finalidade e consumo
+  dentro do prazo; índices por sessão e conta.
+- `auth_reautenticacao_tentativa`: UUID, conta e instante; reserva durável antes da
+  senha e índice conta/tempo, sem senha, prova, hash de credencial ou IP em texto
+  puro. Quotas dos fluxos de e-mail não reaproveitadas.
+- Triggers novos removem somente provas de reautenticação em mudanças críticas
+  (incluindo writers legados sem incremento) e revogação/revinculação da sessão.
+  Nenhum trigger D2 alterado, nenhuma limpeza de registros herdados.
+
+Parser oficial validado localmente; inventário afetado aprovado **1/1**.
+**Não aplicada em banco**; nenhum runner de migration contra PostgreSQL nem prova
+física nesta etapa. Ledger homologado permanece no marco de **nove registros**,
+sem presumir décimo registro. Identidades Git antigas e checksum aplicado D2
+`ba9ba77c2c7ac581415bc89ee2b2281a51ec0b12ac74f2854753b104645b29b7` preservados.
+Rehearsal requer autorização/preflight próprios de TLS, HEAD, ledger/checksums,
+baseline, fixtures allowlist e limpeza; sem repetir as 63 provas aprovadas D2.
+[Provas necessárias](testes-e-evidencias.md#provas-postgresql-pendentes-da-etapa-14).
 
 ## Etapa 13 — persistência mínima de D2, não aplicada
 
@@ -52,7 +97,7 @@ runner, arquivo SQL ou checksums; implementação inicial em
 `b63db7be5b879ee4b9b23acffeee68ce0d34faad`. A rodada complementar não reaplicou
 migration. Este fechamento altera exclusivamente documentos, sem SQL/Neon,
 fixtures ou repetição de ensaios. Ativação da barreira e produção não autorizadas.
-**Etapas 01–13 concluídas de 57. Etapa 14 não iniciada.**
+**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
 [Fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13);
 [histórico do ajuste e das antigas pendências](testes-e-evidencias.md#ajuste-pontual-da-etapa-13--intervalo-de-touch-da-sessão).
 
