@@ -105,6 +105,13 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
          VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8,$9,$10,$10)`,
         [id, usuarioId, tokenHash, createdAt, expiresAt, absoluteLimit, Boolean(manterConectado), areaAtiva, userAgent, ip],
       );
+      // Opt-in D2: mesma transacao da nova autenticacao; contratos/prazos normais preservados.
+      const restrictedFlag = process.env.AUTH_RESTRICTED_CONTEXT_ENABLED;
+      if (restrictedFlag !== undefined && restrictedFlag !== "false") {
+        const { enabledValue, initializeRestrictedContext } = require("./authRestrictedContextService");
+        enabledValue(restrictedFlag); // Configuracao ambigua aborta, sem sessao parcial.
+        await initializeRestrictedContext(tx, { sessionId: id, usuarioId, authVersion: expectedAuthVersion });
+      }
       return { id, usuarioId, areaAtiva, criadaEm: createdAt, expiraEm: expiresAt, limiteAbsolutoEm: absoluteLimit, manterConectado: Boolean(manterConectado) };
     });
     return { token, session };

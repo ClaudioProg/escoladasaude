@@ -419,6 +419,16 @@ async function authenticateRequest(req, res) {
    Middlewares
 ────────────────────────────────────────────────────────────── */
 
+// A barreira e adicional ao verificador JWT aprovado; nenhum fallback de identidade.
+async function applyRestrictedBarrier(authResult, req, res, next) {
+  const flag = process.env.AUTH_RESTRICTED_CONTEXT_ENABLED;
+  if (flag === undefined || flag === "false") return next();
+  return require("./authRestrictedMiddleware").enforceRestrictedContext(req, res, next, {
+    id: authResult.user.id,
+    authVersion: resolveTokenAuthVersion(authResult.decoded, getAuthVersionMode()),
+  });
+}
+
 async function authMiddleware(req, res, next) {
   const authResult = await authenticateRequest(req, res);
 
@@ -426,7 +436,7 @@ async function authMiddleware(req, res, next) {
     return authResult.response;
   }
 
-  return next();
+  return applyRestrictedBarrier(authResult, req, res, next);
 }
 
 async function authAdmin(req, res, next) {
@@ -435,6 +445,10 @@ async function authAdmin(req, res, next) {
   if (!authResult.ok) {
     return authResult.response;
   }
+
+  let permitted = false;
+  const barrierResult = await applyRestrictedBarrier(authResult, req, res, () => { permitted = true; });
+  if (!permitted) return barrierResult;
 
   if (!perfilPermitido(req.user.perfil, [PERFIL_ADMINISTRADOR])) {
     console.warn(

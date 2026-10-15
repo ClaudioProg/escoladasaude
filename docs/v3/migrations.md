@@ -1,11 +1,13 @@
 # Migrations V3
 
-Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
-**15/10/2026**, após revisão independente de
-`db095b6f325c41f093c79b271670785e94eff848`.
-**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
-[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
-Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
+Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
+revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
+**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
+Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
+Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
+ativação operacional/produção não autorizada.
+[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
+Os registros anteriores mantêm os estados históricos das Etapas 01–12.
 
 Atualização documental: **15/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
@@ -23,6 +25,45 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-10-02-auth-email-recuperacao-senha-expand.sql](../../backend/db/migrations/2026-10-02-auth-email-recuperacao-senha-expand.sql) | Campos em `usuarios`, `auth_email_confirmacao`, `auth_recuperacao_senha`, `auth_senha_historico`. Commit `7e47b5d40e64fbfc1601b8b0001a50bfd24e95e8`. | Fechamento em PostgreSQL 16, clone isolado; preservação, integridade, concorrência, rollback e skip pelo ledger relatados. | Não comprovada por esta baseline. |
 | [2026-10-09-auth-quotas-expand.sql](../../backend/db/migrations/2026-10-09-auth-quotas-expand.sql) | Etapa 08: tabela/eventos e índices de quotas; expand concluído, sem ativação. | 57/57 no ensaio histórico da Etapa 08, branch descartável já excluída; aplicação única em `v3-homologacao` na Etapa 09, ledger id 7, SHA preservado; rehearsal final 129/129 e revisão independente aprovada em 13/10/2026. | Não implantada; rehearsal não comprova produção. |
 | [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
+| [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; preparada no Git. | Não executado; contrato local aprovado, rehearsal PostgreSQL pendente. | Não aplicada; ativação não autorizada. |
+
+## Etapa 13 — persistência mínima de D2, não aplicada
+
+[2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql):
+nova tabela `auth_contexto_restrito`, seis colunas, FK/PK por `sessao_id` e cinco
+checks (versão, finitude, absoluto de 120 min, ordem do uso e expiração/30 min).
+Identidade/revogação vêm da sessão; sem token, usuário ou progresso duplicado.
+Nenhuma migration anterior/checksum alterado; sem backfill, alteração de
+`auth_sessao`/`auth_usuario_contexto` ou configuração de implantação.
+Função/trigger AFTER UPDATE em `usuarios` invalidam apenas registros D2 quando
+senha, e-mail, auth_version, email_version ou exclusão mudam, inclusive nos
+writers legados sem incremento de versão. Apagam somente os vínculos restritos,
+sem alterar versões, dados herdados ou progresso salvo do usuário.
+
+Inspeção do DDL versionado: `auth_sessao` não persiste a versão autenticada nem um
+limite restrito independente de 120 min; `auth_usuario_contexto` só guarda área.
+Por isso o registro adicional mínimo é necessário. Novo contexto nasce na mesma
+transação da nova sessão, com versão sob lock do usuário. Prazo absoluto deriva de
+`auth_sessao.criada_em`, sem alterar as durações normais de sessão.
+
+Contrato do runner testado localmente por `validateMigrationSql`, constraints
+inspecionadas e testes de serviço com modelo transacional. Inventário estático do
+teste de identidade do runner atualizado para incluir a nova migration; produção
+do runner não alterada. **Nenhum SQL foi executado; rehearsal PostgreSQL pendente.**
+Presença no Git ou aprovação dos testes não comprova aplicação/locks físicos.
+
+Rehearsal posterior, somente após autorização específica: preflight de identidade,
+TLS, HEAD, ledger/checksums e baseline, migration forward-only pelo runner oficial;
+fixtures sintéticas em allowlist e política de rollback/limpeza previamente
+aprovada. Conferir constraints reais, rollback sessão/contexto, criação concorrente,
+locks usuário → sessão → contexto com `pg_backend_pid()`, limites exatos 30/120,
+revogação/alteração de versão versus acesso e reautenticação sem reabrir contexto.
+Validar o trigger em alteração crítica legada sem incremento de versão, rollback
+da alteração junto da invalidação e preservação de outras contas.
+Sem reaproveitar como prova os ensaios 01–12 nem executá-los novamente.
+Não ativar a barreira ou produção. **Etapa 13 aberta; Etapa 14 não iniciada**.
+[Decisão D2](decisoes-canonicas.md#decisão-canônica-aprovada--d2-contexto-restrito)
+e [evidências](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
 
 ## Etapa 08 — expand concluído, rehearsal aprovado
 

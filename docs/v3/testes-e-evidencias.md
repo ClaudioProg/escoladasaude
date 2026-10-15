@@ -1,11 +1,13 @@
 # Testes e evidências de fechamento
 
-Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
-**15/10/2026**, após revisão independente de
-`db095b6f325c41f093c79b271670785e94eff848`.
-**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
-[Evidências e limites do fechamento](#fechamento-aprovado-da-etapa-12).
-Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
+Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
+revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
+**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
+Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
+Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
+ativação operacional/produção não autorizada.
+[Evidências e limites](#etapa-13--contexto-restrito-e-barreira-de-acesso).
+Os registros anteriores mantêm os estados históricos das Etapas 01–12.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1009,7 +1011,135 @@ reexecução de testes/SQL/Neon/PostgreSQL, SMTP, deploy, merge ou início da Et
 A implementação posterior da Etapa 12 está registrada abaixo; aprovação e
 publicação Git não equivalem a implantação.
 
+## Etapa 13 — contexto restrito e barreira de acesso
+
+**15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`, branch
+`revisao-premium-bloco-1-auth`, HEAD/worktree conferidos antes de alterações.
+Escopo e D2 aprovados pela instrução do responsável. Etapas 01–12 continuam
+concluídas de 57; **Etapa 13 implementada para revisão, aberta até revisão
+independente e rehearsal PostgreSQL; Etapa 14 não iniciada**.
+
+### Arquivos e arquitetura
+
+- Novos: serviço `authRestrictedContextService.js`, middleware
+  `authRestrictedMiddleware.js`, rota `authRestrictedRoute.js`, migration
+  `2026-10-15-auth-contexto-restrito-expand.sql`, quatro arquivos de teste dedicados
+  e fixture transacional de apoio.
+- Integração pontual: `authSessionService.js` cria contexto na transação de nova
+  autenticação quando habilitado; `authMiddleware.js` aplica a barreira após JWT
+  oficial, também em authAdmin; `authSessionMiddleware.js` revalida cookie e
+  credenciais combinadas; `routes/index.js` monta a consulta exata.
+- `run-migration.identity.test.js`: somente nova entrada no inventário esperado.
+  Runner de produção, migrations antigas, contratos 06/08–12, loginController,
+  frontend, infraestrutura, Vercel/Render e produção preservados.
+
+D2: 30 min de inatividade e 120 min absolutos fixos, inclusive com
+`manter_conectado=true`. Comparações estritas com relógio PostgreSQL/microssegundos,
+depois dos locks; fence final temporal no UPDATE. Negação não renova o contexto.
+Logout/revogação, exclusão e versão divergente invalidam reutilização.
+Cookie antigo/sem registro D2 exige nova autenticação; não há criação tardia,
+upsert ou renovação do absoluto. Cadastro salvo no usuário é relido após nova
+autenticação; preferência de área nunca é progresso.
+
+Prova de e-mail/cadastro e preenchimento institucional vêm do servidor.
+Revisão/políticas/MFA não implementados continuam não comprovados: nenhuma conta
+é promovida a regularizada por ausência de prova. Uma flag não fabrica essa prova.
+
+Inspeção de `usuarioController.atualizarBasico` encontrou writers legados de
+senha/e-mail sem incremento de auth_version. A migration nova inclui função/trigger
+que remove somente vínculos D2 ao mudar senha, e-mail, auth_version, email_version
+ou exclusão. Preserva os dados/versões e progresso do usuário. O contrato do
+trigger e seu efeito modelado foram validados localmente; execução PostgreSQL
+real pendente, sem apresentar o trigger como aplicado.
+
+### Cobertura efetiva e limites das rotas
+
+Integração central nos dois autenticadores oficiais, sob
+`AUTH_RESTRICTED_CONTEXT_ENABLED`: ausente/`false` preserva operação legada;
+`true` aplica a barreira e valores ambíguos falham fechado.
+Inspeção estática encontrou **33 módulos existentes** importando o autenticador
+Bearer, além da nova rota de contexto. Isso é inventário de imports, não prova
+de execução de cada endpoint. Cookie middleware prepara integração futura por
+domínios 42/43; rotas legadas mantêm exigência Bearer atual, sem fallback global.
+
+Allowlist exata única: **GET /api/auth/contexto-restrito**, consulta do estado e
+progresso comprovável. Cookie válido vinculado à sessão/versão é obrigatório;
+Bearer sozinho não autoriza regularização. Sem autenticação não existe acesso
+restrito autorizado. Credenciais combinadas inválidas/divergentes são rejeitadas.
+Nenhuma exceção por perfil, por `/api/auth/*` ou por todo `/api/perfil`;
+nenhum método de atualização de perfil foi autorizado.
+
+Testes atravessam os roteadores Express reais de **dashboard, agenda, perfil e
+evento**, com controllers, rate limit e banco simulados, autenticador/JWT real.
+Validam negação antes do controller e preservam dois endpoints públicos:
+GET /api/perfil/opcao e GET /api/evento/:id/folder. A consulta nova usa roteador
+real e testa cookie sozinho, Bearer fornecido inválido, ausência de autenticação,
+desabilitado e métodos distintos. Não houve servidor HTTP/TCP ou browser real.
+O diagnóstico legado de cadastro incompleto foi instrumentado como permissivo
+em erro, mas não integra a decisão de autorização do novo fluxo.
+
+### Validação local
+
+| Validação | Resultado |
+| --- | --- |
+| Testes novos dedicados | **152/152**, incluídos nos focados |
+| Focados: núcleo novo + autenticação, sessão e login afetados | **347/347** |
+| Sintaxe JS | **13/13** arquivos criados/alterados |
+| Única execução da suíte completa | **1.678/1.679**, uma falha no inventário estático do teste do runner |
+| Correção da falha de inventário | Lista acrescida da migration nova; teste afetado revalidado **1/1** |
+| PostgreSQL/rehearsal novo | **Não executado**, pendente |
+| Ativação operacional/produção | **Não realizada nem autorizada** |
+
+A única falha da suíte completa esperava seis arquivos no inventário oficial,
+mas a nova migration acrescenta o sétimo. Corrigida somente a lista esperada em
+`run-migration.identity.test.js`; reexecução do teste exato aprovada.
+A suíte completa **não foi repetida** por limite expresso do responsável.
+Essa rodada antecede a correção da lista esperada e o complemento final do
+trigger D2, que acrescentou dois testes aos 150 iniciais; a validação focada
+final inclui **152 novos / 347 focados**, todos aprovados.
+**Não alegar suíte completa verde sobre o patch final.** Não somar rodadas
+históricas ou reexecuções como novas provas.
+
+Cobertura nova: limites exatos e ±1 microssegundo em 30/120 min, atividade sem
+renovação absoluta, manter conectado, revogação/logout, versão, exclusão, dados
+obrigatórios ausentes, campos persistidos e reautenticação, papéis múltiplos,
+cookies e JWTs reais válidos/expirados/divergentes, conflito de identidade,
+allowlist por método/caminho, falha de banco/rollback, erros sanitizados,
+concorrência serializada em **modelo** e fence de expiração entre leitura/escrita.
+Criação de sessão/contexto é testada na mesma transação, com rollback conjunto.
+Modelos e checks de contrato SQL não provam constraints/locks/concorrência física
+do PostgreSQL; isso permanece no rehearsal posterior.
+
+Artefatos fora do repositório:
+`C:/tmp/escola-v3-etapa13-20261015-07499cc9/`, `core-initial.log`,
+`dedicated-initial.log`, `dedicated-second.log`, `focused.log`,
+`focused-final.log`, `full.log`,
+`runner-inventory-fix.log`, `runner-inventory-final.log` e `guard-*.json`. Falhas iniciais dos instrumentos
+(regex abrangente/comentário e helper VM de modo de versão) preservadas; não
+confundidas com resultado final focado. DATABASE_URL dummy somente nos processos;
+guardas de Pool/Client, TCP/TLS, SMTP e leitura .env. **Zero tentativas PostgreSQL,
+rede ou SMTP; uma leitura .env bloqueada**, sem conteúdo lido.
+
+### Dependências e continuidade
+
+Núcleo implementado difere de ativação operacional: **não habilitar globalmente
+antes dos fluxos completos de regularização**, revisão e plano de integração.
+Ainda faltam consumidores V3, fluxos de escrita/revisão/políticas das Etapas
+29/30, MFA/CSRF e migração por domínios 42/43. Google mantém o contrato Bearer
+legado; regularização requer sessão cookie comprovável, sem antecipar D3.
+D1 e D3–D8 continuam pendentes. Uma única plataforma pública no endereço atual,
+modernização progressiva e homologação separada. Sem Neon, produção, deploy,
+merge, mudança Vercel/Render ou início da Etapa 14.
+
+A migration está somente preparada no Git. Rehearsal futuro descrito em
+[migrations](migrations.md#etapa-13--persistência-mínima-de-d2-não-aplicada),
+mediante autorização específica. **Etapa 13 permanece aberta até revisão
+independente e rehearsal PostgreSQL.**
+
 ## Fechamento aprovado da Etapa 12
+
+Registro histórico do fechamento da Etapa 12, anterior à implementação da
+Etapa 13 descrita acima; não altera o status atual de abertura da Etapa 13.
 
 **15/10/2026 — Etapa 12, Worker de envio e retries, encerrada documentalmente**, por
 instrução expressa do responsável, após revisão independente aprovada do commit

@@ -1,11 +1,13 @@
 # Decisões canônicas da V3
 
-Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
-**15/10/2026**, após revisão independente de
-`db095b6f325c41f093c79b271670785e94eff848`.
-**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
-[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
-Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
+Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
+revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
+**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
+Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
+Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
+ativação operacional/produção não autorizada.
+[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
+Os registros anteriores mantêm os estados históricos das Etapas 01–12.
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
@@ -796,12 +798,63 @@ Ciclo: ativa / inativa / encerrada; inatividade superior a 366 dias;
 encerramento reversível com sete dias. Efeito definitivo após esse prazo,
 retenção e liberação de identificadores continuam em D7.
 
+## DECISÃO CANÔNICA APROVADA — D2 contexto restrito
+
+**Aprovada pelo responsável em 15/10/2026**, na instrução da Etapa 13.
+
+| Contrato D2 | Regra aprovada |
+| --- | --- |
+| Inatividade | No máximo **30 minutos**, validade estrita `expira_em > agora`. |
+| Absoluto | **120 minutos** desde a autenticação, fixo, sem renovação automática. |
+| Manter conectado | Não estende o contexto restrito; prazos das sessões normais preservados. |
+| Expiração | Exige nova autenticação; contexto expirado não é recriado por cookie/Bearer. |
+| Vínculo | Identidade de `auth_sessao`, sessão específica e snapshot de `auth_version`. |
+| Invalidação | Logout, revogação, alteração crítica/versão, exclusão ou contexto inválido impedem reutilização. |
+| Progresso | Derivado de evidências persistidas no servidor; nenhuma etapa presumida pela falta de coluna/fluxo. |
+| Privilégios | Nenhum perfil, incluindo gestor/administrador, contorna a barreira. |
+
+Implementação local: `auth_contexto_restrito` guarda FK de sessão, versão esperada,
+início, último uso, expiração e limite absoluto. Identidade/revogação continuam em
+`auth_sessao`; `auth_usuario_contexto.ultima_area_ativa` é preferência de área,
+**não progresso da regularização**. Nenhum token novo ou segunda autoridade de
+identidade. Inserção única na transação da nova autenticação; sem backfill, upsert
+ou renovação do início/absoluto. O trigger novo de D2 remove somente os
+vínculos restritos em alterações de senha/e-mail/versões/exclusão, cobrindo
+writers legados que não incrementam auth_version; não altera versões, contratos
+legados ou o progresso persistido no usuário. Locks usuário → sessão → contexto, relógio
+PostgreSQL após locks, microssegundos e fence temporal no UPDATE; falha faz rollback.
+
+Progresso consultável: confirmação de e-mail, existência de cadastro pendente e
+preenchimento dos cinco campos institucionais já conhecidos. Preenchimento não
+é prova de revisão/validação. Revisão, aceite de políticas e MFA não têm prova
+implementada; continuam não comprovados e impedem declarar acesso normal liberado.
+A política MFA aprovada para os perfis elevados é preservada, sem implementá-la
+antecipadamente ou usar ausência de coluna como dispensa.
+
+Ativação explícita, **desabilitada por padrão** por
+`AUTH_RESTRICTED_CONTEXT_ENABLED` ausente ou `false`; somente `true` habilita,
+ambiguidade nega. Não habilitar globalmente antes dos fluxos completos e revisão
+dos gates. A barreira integra os middlewares oficiais de JWT/Bearer e cookie;
+não remove JWT, não altera bridge/strict da Etapa 06 e não permite fallback de
+Bearer inválido para cookie. Bearer sozinho nega regularização; cookie deve estar
+vinculado ao contexto/conta/versão atuais. Credenciais combinadas devem concordar.
+
+Allowlist exata atual: **GET /api/auth/contexto-restrito**, consulta protegida.
+Métodos/caminhos distintos, incluindo HEAD, sufixos e escritas de perfil, negados.
+Nenhuma liberação genérica de `/api/auth/*` ou `/api/perfil`.
+O diagnóstico legado `forcarAtualizacaoCadastro` permanece separado e não é
+autorizador; seu comportamento permissivo em falha não altera a decisão D2.
+
+**Núcleo implementado para revisão; ativação operacional não autorizada.**
+Migration nova não aplicada nem ensaiada em PostgreSQL. D1 e D3–D8 preservadas.
+Etapas 01–12 concluídas de 57; **Etapa 13 aberta**, **Etapa 14 não iniciada**.
+[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
+
 ## PENDÊNCIAS — sem decisão nesta etapa
 
 | ID | Definição pendente |
 | --- | --- |
 | D1 | Prova para retomada de cadastro pendente e colisões de CPF/e-mail. |
-| D2 | Duração e recuperação do contexto de autenticação restrita. |
 | D3 | Primeira vinculação Google, desvinculação e recuperação de conta sem senha local. |
 | D4 | Recuperação/reativação quando e-mail não confirmado e fluxo assistido. |
 | D5 | Parâmetros restantes de MFA: reauth, trusted device, recovery, RP/passkeys etc. |

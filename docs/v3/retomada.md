@@ -1,11 +1,13 @@
 # Retomada operacional
 
-Fechamento documental da Etapa 12 — **Worker de envio e retries**, aprovado em
-**15/10/2026**, após revisão independente de
-`db095b6f325c41f093c79b271670785e94eff848`.
-**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
-[Evidências e limites do fechamento](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
-Fechamento exclusivamente documental; nenhum ensaio foi reexecutado.
+Etapa 13 — **Contexto restrito e barreira de acesso**, implementação local para
+revisão em **15/10/2026**, base `07499cc96f47e9f1a0bfcb76ca7557c02904dbc5`.
+**D2 é decisão canônica aprovada**. **Etapas 01–12 concluídas de 57;
+Etapa 13 aberta até revisão independente e rehearsal PostgreSQL; Etapa 14 não iniciada.**
+Núcleo integrado sob `AUTH_RESTRICTED_CONTEXT_ENABLED`, **desabilitado por padrão**;
+ativação operacional/produção não autorizada.
+[Evidências e limites](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
+Os registros anteriores mantêm os estados históricos das Etapas 01–12.
 
 Projeto: **Plataforma Escola da Saúde — V3**.
 
@@ -19,9 +21,10 @@ Confirmar HEAD/status ao retomar, incluindo o commit documental posterior.
 Última etapa concluída: **12 — Worker de envio e retries**, encerrada por
 instrução do responsável em **15/10/2026**, após revisão independente aprovada de
 `db095b6f325c41f093c79b271670785e94eff848`, sem defeitos materiais remanescentes
-identificados no escopo. Etapas **01–12 encerradas**; **13 não iniciada**.
+identificados no escopo. Etapas **01–12 encerradas**; **13 implementada para
+revisão, aberta**; **14 não iniciada**.
 
-**Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
+**Etapas 01–12 concluídas de 57. Etapa 13 aberta; Etapa 14 não iniciada.**
 Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
@@ -267,6 +270,47 @@ Aviso 5432: a rede municipal bloqueia PostgreSQL direto. Usar internet pessoal
 somente quando uma etapa realmente exigir conexão e houver autorização para o
 alvo. A documentação não exige acesso a banco.
 
+## Etapa 13 — contexto restrito e barreira de acesso
+
+D2 aprovada pelo responsável em **15/10/2026**: contexto restrito com **30 minutos
+de inatividade e 120 minutos absolutos**, comparações estritas no backend;
+`manter_conectado` não estende D2. Expiração exige nova autenticação, recuperando
+somente progresso comprovável nos registros do servidor. Logout/revogação,
+`auth_version` divergente, exclusão ou contexto inválido impedem reutilização.
+Prazos canônicos das sessões normais permanecem inalterados.
+
+[Serviço dedicado](../../backend/src/services/authRestrictedContextService.js),
+[middleware](../../backend/src/auth/authRestrictedMiddleware.js) e
+[migration forward-only](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql).
+Registro mínimo por sessão, sem duplicar identidade, token ou progresso;
+criado na transação de nova autenticação. Sem backfill de cookies antigos.
+
+Barreira ligada aos middlewares oficiais Bearer/admin e cookie, sob flag explícita
+`AUTH_RESTRICTED_CONTEXT_ENABLED=true`; ausente/`false` preserva operação legada.
+Outros valores falham fechado. A flag não é autorização para ativar agora:
+os fluxos completos ainda não existem. Módulos protegidos não têm bypass por perfil.
+Bearer sozinho não autoriza regularização; cookie validado/vinculado é obrigatório.
+Credenciais combinadas inválidas ou divergentes são rejeitadas, sem fallback permissivo.
+
+Allowlist atual: **somente GET /api/auth/contexto-restrito**, consulta protegida de
+progresso comprovável. Nenhum `/api/auth/*`, domínio inteiro `/api/perfil` ou escrita
+de perfil foi liberado. Endpoints públicos legítimos mantêm seus próprios contratos.
+Revisão, políticas e MFA sem prova persistida continuam não comprovados;
+mesmo conta com campos preenchidos não ganha acesso normal por ausência dessa prova.
+
+**152 testes novos**, incluídos nos **347/347 focados**; sintaxe **13/13 JS**.
+Única execução completa: **1.678/1.679**, falha de inventário do teste do runner
+pela migration nova. Lista esperada corrigida e o teste afetado aprovado **1/1**;
+suíte completa não repetida, sem alegar execução completa verde do patch final.
+Rehearsal PostgreSQL da nova migration **não executado**.
+**Etapa 13 aberta**, aguardando revisão independente e rehearsal; **Etapa 14 não iniciada**.
+D1 e D3–D8 permanecem independentes. MFA/CSRF, jornadas 29/30 e migração por
+domínios 42/43 exigem integrações futuras, sem frontend nesta etapa.
+Uma única plataforma pública no endereço atual, modernização progressiva,
+homologação separada e nenhuma ativação operacional/produção.
+[Contratos D2](decisoes-canonicas.md#decisão-canônica-aprovada--d2-contexto-restrito)
+e [evidências](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de-acesso).
+
 ## Antes de retomar
 
 1. Conferir branch, HEAD e status; parar diante de mudança inesperada.
@@ -279,7 +323,7 @@ alvo. A documentação não exige acesso a banco.
    banco/produção exigem autorização e preflight próprios; preservar a branch
    permanente `v3-homologacao` e as evidências existentes. Não usar a branch
    descartável da Etapa 08 já excluída como origem ou alvo.
-5. Preservar decisões 1A/2A/3A/4A/5B/6A/7A e pendências D1–D8. Requisições já
+5. Preservar decisões 1A/2A/3A/4A/5B/6A/7A e D2 aprovada; D1 e D3–D8 pendentes. Requisições já
    autenticadas antes do commit podem terminar. Não reduzir versões/reativar sessões
    em rollback. Revisão independente e rehearsal da Etapa 07 já aprovados;
    UI/browser e implantação em produção continuam sem validação.

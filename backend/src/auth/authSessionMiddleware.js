@@ -67,6 +67,21 @@ function createAuthSessionMiddleware({ sessionService, isProduction = false } = 
         areaAtiva: identity.areaAtiva,
         sessionId: identity.sessionId,
       };
+      const restrictedFlag = process.env.AUTH_RESTRICTED_CONTEXT_ENABLED;
+      if (restrictedFlag !== undefined && restrictedFlag !== "false") {
+        const restrictedIdentity = { id: identity.id, sessionId: identity.sessionId };
+        if (req.headers?.authorization !== undefined) {
+          const auth = await require("./authMiddleware").authenticateRequest(req, res);
+          if (!auth.ok) return auth.response; // Cookie nao resgata Bearer invalido.
+          if (auth.user.id !== identity.id) return sendUnauthorized(res);
+          const { resolveTokenAuthVersion, getAuthVersionMode } = require("./authVersion");
+          restrictedIdentity.authVersion = resolveTokenAuthVersion(auth.decoded, getAuthVersionMode());
+          // A identidade cookie validada continua sendo o contrato deste middleware.
+          req.user = { id: identity.id, perfis: [...identity.perfis], areaAtiva: identity.areaAtiva, sessionId: identity.sessionId };
+          res.locals.user = req.user;
+        }
+        return require("./authRestrictedMiddleware").enforceRestrictedContext(req, res, next, restrictedIdentity);
+      }
       return next();
     } catch (error) {
       if (error instanceof AuthSessionError || error?.code === "AUTH_SESSION_INVALID") {
