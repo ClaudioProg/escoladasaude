@@ -1,5 +1,31 @@
 # Bloco 1 — estado real
 
+**Etapa 15 — Histórico e mutação atômica de senha implementados localmente para
+revisão**, em **16/10/2026**, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`,
+branch `revisao-premium-bloco-1-auth`. **Etapas 01–14 concluídas de 57.
+Etapa 15 aberta; Etapa 16 não iniciada.**
+
+Serviço interno dedicado, sem endpoint ou writer operacional conectado:
+[authPasswordMutationService](../../backend/src/services/authPasswordMutationService.js).
+Preparação criptográfica fora dos locks prolongados; referência opaca de uso único
+e revalidação da conta/versão/revisão da linha e identidades do histórico sob lock.
+Autorização explícita por dependência interna confiável, nunca pelo `usuarioId`.
+Senha atual + **quatro anteriores conhecidas**; novo Argon2id, rotação do histórico,
+incremento único de `auth_version`, revogação de todas as sessões e auditoria
+crítica no mesmo executor. Nenhum backfill fictício ou global.
+
+**101/101 dedicados, 501/501 focados e 1.922/1.922 backend completo**, uma única
+suíte oficial completa após estabilização, zero falhas/skips/cancelamentos.
+Modelo transacional local não comprova locks, constraints ou triggers PostgreSQL
+reais. Serviço sem integração operacional; writers legados permanecem pendentes.
+Nenhuma migration criada/aplicada, SQL externo, Neon, SMTP, produção, frontend,
+merge, deploy ou ativação. Integrações futuras: Etapas 19 e 38; upgrade bcrypt
+reservado à Etapa 16, não iniciada. Etapas 01–14, D2 e D5 parcial preservadas.
+[API, evidências, histórico das tentativas e limites](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
+
+Registro histórico do fechamento documental da Etapa 14, anterior ao
+desenvolvimento autorizado da Etapa 15:
+
 **Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
 instrução do responsável após aprovação da revisão independente. Implementação:
 `16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
@@ -30,7 +56,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 15 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -67,7 +93,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 15 no início define o estado atual.
 
 Atualização documental: 2026-10-15. Branch: `revisao-premium-bloco-1-auth`.
 HEAD da implementação da Etapa 11, versionado e publicado na branch:
@@ -376,6 +402,56 @@ SMTP real, sem reabrir automaticamente toda a Etapa 12.
 [Fechamento e rastreabilidade](testes-e-evidencias.md#fechamento-aprovado-da-etapa-12).
 **Etapas 01–12 concluídas de 57. Etapa 13 não iniciada.**
 
+## Etapa 15 — histórico e mutação atômica de senha
+
+Implementação local para revisão, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`;
+**Etapa 15 aberta; Etapa 16 não iniciada**. Serviço sem montagem HTTP e sem
+integração dos writers existentes. Senha atual em `usuarios.senha`; até quatro
+hashes anteriores em `auth_senha_historico`, em ordem numérica decrescente do
+`id` das alterações confirmadas. Só arquiva o hash que deixou de ser atual;
+primeira alteração com histórico vazio grava uma entrada, sem inventar anteriores.
+A quinta senha anterior sai da janela; nada prova senhas nunca registradas.
+
+`prepare({ usuarioId, expectedAuthVersion, newPassword })` lê conta e histórico em
+transação curta e executa a política/hash/verificações canônicas fora dos locks.
+Contexto pessoal exclusivamente dos campos atuais do servidor (`nome`, `cpf`,
+`email`, `celular`, `data_nascimento`); cliente não pode fornecer contexto.
+`mutate(preparation[, executor])` revalida os snapshots sob `FOR UPDATE`, incluindo
+`xmin` da conta e de cada entrada histórica, IDs, hashes e versão. Mudança/ABA ou
+divergência exigem nova preparação, sem retry automático. Referência opaca,
+privada à instância e consumida na primeira tentativa; não expõe senha/hash.
+
+Factory exige `authorize` confiável, configurado pelo servidor para a operação
+futura: fase `prepare` apenas verifica autorização, sem consumi-la ou escrever;
+fase `mutate` deve demonstrá-la novamente no executor da mutação. Sem autorizador
+padrão, booleano de cliente ou inferência por ID. A implementação não comprova
+recuperação/troca autenticada por si só, nem consome a reautenticação da Etapa 14.
+
+Após revalidação: troca para Argon2id, incrementa versão uma vez, chama
+`revokeUserSessions(id, "password_changed", null, executor)`, insere o hash
+anterior, mantém só quatro entradas e registra auditoria crítica com ação
+`alterar`, módulo `auth`, entidade `usuarios`, severidade `info` e detalhe fixo.
+Sem senha, hashes, prova, cookie/JWT, request cru ou dados pessoais na auditoria.
+Hash atual/novo e histórico usam o client raw da mesma transação para evitar
+parâmetros sensíveis na fachada de logs. Versão inválida/esgotada falha fechada.
+
+Sem executor, mutação usa `db.tx`; com executor, exige client transacional
+read committed/read-write, usa o mesmo executor e savepoint, sem transação
+independente ou commit próprio. Resultado `staged` só informa efeitos pendentes;
+o chamador deve propagar erros e fazer rollback integral, inclusive se houver
+falha no commit externo. `committed` só retorna após commit da transação própria.
+Triggers D2/reautenticação existentes e a rejeição de JWTs de versão superada
+permanecem nos contratos anteriores; nenhum mecanismo equivalente foi criado.
+
+Validação local: **101/101 dedicados, 501/501 focados, 1.922/1.922 completos**,
+**3/3 sintaxe JS**. Histórico conhecido/rotação, bcrypt/Argon2id, NFKC, 72 bytes,
+dados pessoais, snapshots/ABA, concorrência modelada, revogação e rollback
+cobertos. Rehearsal PostgreSQL ainda não executado; limites e roteiro em
+[evidências](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
+Nenhuma migration/backfill ou integração operacional. `atualizarBasico`,
+`redefinirSenha`, login/Google, cadastro e emissão/consumo de recuperação intactos.
+Etapas 16, 19 e 38 mantêm seus próprios escopos futuros; D5 parcial não é ampliada.
+
 ## Etapa 14 — reautenticação local básica
 
 **D5 parcialmente aprovada somente quanto à reautenticação local básica**.
@@ -417,8 +493,8 @@ preservadas. Uma plataforma pública no endereço atual, modernização progress
 ## Etapa 13 — contexto restrito e barreira de acesso
 
 Registro do fechamento da Etapa 13 em 15/10/2026: ledger e decisões pendentes
-abaixo referem-se àquele marco histórico. O estado atual está no fechamento da
-Etapa 14 no início deste documento.
+abaixo referem-se àquele marco histórico. O estado atual está na implementação da
+Etapa 15 no início deste documento.
 
 D2 aprovada pelo responsável em **15/10/2026**: contexto restrito com **30 minutos
 de inatividade e 120 minutos absolutos**, comparações estritas no backend;
@@ -493,8 +569,9 @@ e [evidências](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de
   de senha/e-mail e operações críticas continuam pendentes.
 - Revogação e auditoria aceitam o mesmo executor; fluxos críticos futuros ainda
   precisam compor sua transação e consumir desafios/histórico/outbox.
-- Confirmação institucional, recuperação V3 e histórico de senhas têm estrutura;
-  não estão demonstrados como serviços operacionais integrados.
+- Confirmação institucional e recuperação V3 têm estrutura; não estão demonstradas
+  como serviços operacionais integrados. Histórico/mutação têm serviço interno na
+  Etapa 15, ainda sem consumidores ou writers operacionais centralizados.
 
 ## LEGADO ATIVO
 
@@ -512,6 +589,8 @@ deduzida da presença desses arquivos na branch.
 - **Etapa 07: fechamento local aprovado em 09/10/2026**, com publicação Git
   restrita à branch V3. UI/browser e implantação em produção exigem etapa própria;
   publicação da branch não comprova produção.
+- Concluir revisão independente e rehearsal autorizado da Etapa 15; serviço
+  interno implementado, histórico conhecido limitado, sem ativação operacional.
 - Integrar writers que incrementam `auth_version`, inclusive senha/e-mail,
   à política/histórico/auditoria/revogação.
 - Implementar upgrade bcrypt → Argon2id persistente e rehash Argon2id.

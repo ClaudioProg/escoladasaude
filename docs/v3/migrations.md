@@ -1,5 +1,31 @@
 # Migrations V3
 
+**Etapa 15 — Histórico e mutação atômica de senha implementados localmente para
+revisão**, em **16/10/2026**, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`,
+branch `revisao-premium-bloco-1-auth`. **Etapas 01–14 concluídas de 57.
+Etapa 15 aberta; Etapa 16 não iniciada.**
+
+Serviço interno dedicado, sem endpoint ou writer operacional conectado:
+[authPasswordMutationService](../../backend/src/services/authPasswordMutationService.js).
+Preparação criptográfica fora dos locks prolongados; referência opaca de uso único
+e revalidação da conta/versão/revisão da linha e identidades do histórico sob lock.
+Autorização explícita por dependência interna confiável, nunca pelo `usuarioId`.
+Senha atual + **quatro anteriores conhecidas**; novo Argon2id, rotação do histórico,
+incremento único de `auth_version`, revogação de todas as sessões e auditoria
+crítica no mesmo executor. Nenhum backfill fictício ou global.
+
+**101/101 dedicados, 501/501 focados e 1.922/1.922 backend completo**, uma única
+suíte oficial completa após estabilização, zero falhas/skips/cancelamentos.
+Modelo transacional local não comprova locks, constraints ou triggers PostgreSQL
+reais. Serviço sem integração operacional; writers legados permanecem pendentes.
+Nenhuma migration criada/aplicada, SQL externo, Neon, SMTP, produção, frontend,
+merge, deploy ou ativação. Integrações futuras: Etapas 19 e 38; upgrade bcrypt
+reservado à Etapa 16, não iniciada. Etapas 01–14, D2 e D5 parcial preservadas.
+[API, evidências, histórico das tentativas e limites](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
+
+Registro histórico do fechamento documental da Etapa 14, anterior ao
+desenvolvimento autorizado da Etapa 15:
+
 **Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
 instrução do responsável após aprovação da revisão independente. Implementação:
 `16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
@@ -30,7 +56,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 15 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -67,7 +93,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 15 no início define o estado atual.
 
 Atualização documental: **16/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
@@ -87,6 +113,30 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
 | [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; arquivo/checksum preservados. | Aplicada uma única vez em v3-homologacao; ledger com nove registros e checksum preservado; 63/63 provas funcionais únicas aprovadas (55 históricas + oito complementares), revisão independente aprovada. | Não aplicada em produção; ativação não autorizada. |
 | [2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql) | Etapa 14/D5 parcial: provas descartáveis e reservas de tentativas; dois triggers próprios. | Aplicada uma única vez em `v3-homologacao`; ledger com **10 registros**, SHA-256 preservado, **71/71 provas funcionais únicas** e revisão independente aprovadas em 16/10/2026. | Não aplicada; flag desabilitada, sem ativação autorizada. |
+
+## Etapa 15 — reutilização do histórico existente, sem migration nova
+
+`auth_senha_historico` já está definida na
+[migration de 02/10/2026](../../backend/db/migrations/2026-10-02-auth-email-recuperacao-senha-expand.sql):
+`id bigint GENERATED ALWAYS AS IDENTITY`, conta por FK imediata RESTRICT,
+`senha_hash` não vazio e `criada_em` finita, índice `(usuario_id, id DESC)`.
+A estrutura existente atende à janela de **quatro anteriores**, sem novo DDL.
+Não houve criação, edição, dry-run externo, aplicação ou consulta SQL nesta etapa.
+
+Serviço novo usa a estrutura existente somente quando futuramente integrado:
+atual em `usuarios.senha`, histórico por ID numérico decrescente de alterações
+confirmadas, hash anterior inserido e excedente da conta removido na mesma
+transação. Histórico ausente não é inventado; estado incompatível (>4 entradas)
+falha fechado. Sem backfill global, reset de sequência ou dados de homologação
+reutilizados como evidência atual. Tabela vazia foi informação prévia do
+responsável, não consulta desta execução.
+
+Ledger/checksums e triggers D2/reautenticação das Etapas 01–14 intactos. O marco
+homologado de **10 registros** pertence ao rehearsal aprovado da Etapa 14; não
+foi reconferido externamente na Etapa 15. Testes locais modelam os efeitos;
+queries, FKs, locks e invalidações físicas exigem rehearsal próprio autorizado.
+**Etapa 15 aberta; Etapa 16 não iniciada.**
+[Implementação, provas locais e limites](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
 
 ## Etapa 14 — persistência de reautenticação preparada, não aplicada
 
@@ -133,8 +183,8 @@ baseline, fixtures allowlist e limpeza; sem repetir as 63 provas aprovadas D2.
 ## Etapa 13 — persistência mínima de D2, não aplicada
 
 Registro do fechamento da Etapa 13 em 15/10/2026: ledger e decisões pendentes
-abaixo referem-se àquele marco histórico. O estado atual está no fechamento da
-Etapa 14 no início deste documento.
+abaixo referem-se àquele marco histórico. O estado atual está na implementação da
+Etapa 15 no início deste documento.
 
 Título/descrição originais preservados para rastreabilidade e manutenção das
 âncoras. **Situação atual: D2 aplicada uma única vez em homologação; Etapa 13

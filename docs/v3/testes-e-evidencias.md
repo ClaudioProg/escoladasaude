@@ -1,5 +1,31 @@
 # Testes e evidências de fechamento
 
+**Etapa 15 — Histórico e mutação atômica de senha implementados localmente para
+revisão**, em **16/10/2026**, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`,
+branch `revisao-premium-bloco-1-auth`. **Etapas 01–14 concluídas de 57.
+Etapa 15 aberta; Etapa 16 não iniciada.**
+
+Serviço interno dedicado, sem endpoint ou writer operacional conectado:
+[authPasswordMutationService](../../backend/src/services/authPasswordMutationService.js).
+Preparação criptográfica fora dos locks prolongados; referência opaca de uso único
+e revalidação da conta/versão/revisão da linha e identidades do histórico sob lock.
+Autorização explícita por dependência interna confiável, nunca pelo `usuarioId`.
+Senha atual + **quatro anteriores conhecidas**; novo Argon2id, rotação do histórico,
+incremento único de `auth_version`, revogação de todas as sessões e auditoria
+crítica no mesmo executor. Nenhum backfill fictício ou global.
+
+**101/101 dedicados, 501/501 focados e 1.922/1.922 backend completo**, uma única
+suíte oficial completa após estabilização, zero falhas/skips/cancelamentos.
+Modelo transacional local não comprova locks, constraints ou triggers PostgreSQL
+reais. Serviço sem integração operacional; writers legados permanecem pendentes.
+Nenhuma migration criada/aplicada, SQL externo, Neon, SMTP, produção, frontend,
+merge, deploy ou ativação. Integrações futuras: Etapas 19 e 38; upgrade bcrypt
+reservado à Etapa 16, não iniciada. Etapas 01–14, D2 e D5 parcial preservadas.
+[API, evidências, histórico das tentativas e limites](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
+
+Registro histórico do fechamento documental da Etapa 14, anterior ao
+desenvolvimento autorizado da Etapa 15:
+
 **Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
 instrução do responsável após aprovação da revisão independente. Implementação:
 `16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
@@ -30,7 +56,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 15 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -67,7 +93,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 15 no início define o estado atual.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1070,6 +1096,160 @@ O fechamento documental/Git da Etapa 11 alterou somente os seis documentos de
 reexecução de testes/SQL/Neon/PostgreSQL, SMTP, deploy, merge ou início da Etapa 12.
 A implementação posterior da Etapa 12 está registrada abaixo; aprovação e
 publicação Git não equivalem a implantação.
+
+## Etapa 15 — histórico e mutação atômica de senha
+
+**16/10/2026**. Desenvolvimento autorizado na branch `revisao-premium-bloco-1-auth`,
+base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`; HEAD, origem Git e worktree limpo
+conferidos no preflight. **Etapas 01–14 concluídas de 57. Etapa 15 aberta;
+Etapa 16 não iniciada.** Implementação local e publicação na branch para revisão;
+não constituem encerramento, rehearsal ou autorização operacional.
+
+### Arquivos e API interna da Etapa 15
+
+- [Serviço central](../../backend/src/services/authPasswordMutationService.js).
+- [Testes dedicados](../../backend/src/services/authPasswordMutationService.test.js).
+- [Modelo transacional dedicado](../../backend/src/services/authPasswordMutation.fixture.js).
+- Os seis documentos V3 pertinentes. Nenhum arquivo preexistente de código,
+  teste, migration, manifest, infraestrutura, frontend ou writer alterado.
+
+Factory `createPasswordMutationService({ db, registrarAuditoria, authorize })`.
+`passwords` pode ser injetado como dependência interna de teste; em uso normal
+é o `passwordService` canônico. `authorize` é obrigatório, confiável e configurado
+pelo servidor para a operação futura; não é callback do cliente nem aceite de
+`authorized=true`. Sem implementação permissiva padrão e sem consumidor montado.
+
+| Método | Contrato interno |
+| --- | --- |
+| `prepare({ usuarioId, expectedAuthVersion, newPassword })` | Entrada exata; snapshot curto bloqueado de conta/histórico, autorização preliminar, crypto fora dos locks, referência opaca sem campos expostos. |
+| `mutate(preparation)` | Autorização/revalidação e todos os efeitos em `db.tx`; retorna `{usuarioId, authVersion, status: "committed"}` após commit. |
+| `mutate(preparation, executor)` | Mesmo executor do chamador, raw/client idênticos, savepoint e modo read committed/read-write; retorna `status: "staged"`, sem commit independente. |
+| `change(args)` | Compõe preparação e mutação com transação própria; não adiciona autorização por ID. |
+| `discard(preparation)` | Descarta a referência sem efeitos no banco. |
+
+Preparação antes de abrir a transação/locks da operação futura. Referência privada
+em WeakMap, vinculada à instância, descartada na primeira tentativa mesmo se falhar;
+não aceita hashes/snapshots/contexto do chamador e não retém plaintext após preparo.
+A fase `prepare` do autorizador deve ser somente verificadora, sem consumir provas
+ou persistir efeitos; a fase `mutate` demonstra a autorização novamente dentro do
+executor guardado. O futuro consumidor deve fornecer a comprovação real da sua
+operação. Esta etapa não implementa esse fluxo nem integra consumo da Etapa 14.
+
+### Política, histórico e concorrência da Etapa 15
+
+A política e os parâmetros Argon2id permanecem nos serviços oficiais:
+`createNewPasswordHash(password, context)`, NFKC, 15–128 code points, até 512 bytes,
+Unicode válido, blocklist, previsibilidade e dados pessoais, sem trim/lowercase.
+Contexto de nome/CPF/e-mail/celular/nascimento vem exclusivamente da linha atual
+do servidor. Todos os campos e a revisão são revalidados antes da escrita.
+
+Senha atual em `usuarios.senha`; **até quatro hashes anteriores** na tabela
+existente `auth_senha_historico`. Verificação de equivalência por
+`verifyPassword`, não por igualdade dos hashes com salts distintos. Para bcrypt,
+compara a apresentação original e a candidata efetiva NFKC que será a nova senha;
+Argon2id normaliza internamente. Autenticação bcrypt com 72 bytes ou prefixo
+equivalente também impede reutilização, mesmo se indicar troca obrigatória.
+Os casos de repetição artificial de x/emoji usam hash policy de fixture apenas
+para isolar a semântica bcrypt; as demais provas de política usam o serviço real.
+
+Só a credencial atual efetivamente substituída é inserida no histórico, junto da
+alteração confirmada. Ordem numérica por `id DESC`, com qualificação `h.id`
+para não ordenar o alias textual; timestamps empatados não decidem a janela.
+Mantém quatro anteriores após a rotação; não inventa histórico, não faz backfill
+global e não ativa o histórico dos writers legados. Mais de quatro entradas,
+hashes malformados ou identidades/revisões inválidas são estado incompatível:
+falha fechada, sem saneamento automático. A conferência anterior de tabela vazia
+foi informada pelo responsável; não houve nova consulta externa nesta etapa.
+
+Snapshot curto sob lock de usuário e linhas conhecidas do histórico; criptografia
+posterior sem transação aberta. Na mutação: lock do usuário, versão válida e
+não esgotada, hash, `xmin` da conta, contexto e identidades/hash/`xmin` das entradas
+históricas exatos. Revalida também após o autorizador. Mudança sem incremento,
+ABA ou disputa do mesmo snapshot negam a segunda mutação e exigem nova preparação.
+UPDATE tem fence de hash/versão/revisão. O modelo confirma um vencedor entre duas
+mutações preparadas sobre o mesmo estado, mas não prova espera/locks PostgreSQL.
+
+Na mesma transação: UPDATE com incremento único de `auth_version`, revogação
+canônica sem exceção para a sessão atual, INSERT do hash anterior, remoção apenas
+do excedente da conta e auditoria crítica pelo serviço oficial. Ação `alterar`,
+módulo `auth`, entidade `usuarios`, severidade `info`, detalhe fixo
+`origem: mutacao_senha_central`, seguindo o contrato aprovado da Etapa 07.
+Nenhuma nova ação ou constraint de auditoria presumida. Falha de auditoria ou
+qualquer efeito intermediário reverte o conjunto; raw queries sensíveis e erros
+de códigos fixos, sem causa bruta, senha/hash ou payload nos resultados/logs.
+
+Com executor externo, savepoint restaura efeitos do serviço em falhas; o chamador
+continua obrigado a propagar falhas e fazer rollback integral. Falha de rollback
+do savepoint é erro transacional e nunca autoriza commit. Commit externo/falha
+de transporte pertencem ao chamador; `staged` não comprova persistência.
+Compatibilidade D2/reautenticação tem modelo de invalidação e inspeção dos DDLs
+intactos; não é execução física dos triggers. Login e middleware versionados
+permanecem nos contratos anteriores, com regressões incluídas nos focados.
+
+### Validação local e instrumentos da Etapa 15
+
+| Validação final | Resultado |
+| --- | --- |
+| Dedicados novos | **101/101** |
+| Focados: dedicados, senha/política, sessão, auditoria, reautenticação, D2, versão, middleware e login | **501/501** |
+| Suíte oficial `npm.cmd test` / `node --test` | **1.922/1.922**, uma única execução após estabilização |
+| Falhas / skips / cancelamentos finais | **0 / 0 / 0** |
+| Sintaxe JS dos três arquivos novos | **3/3** |
+| Manifesto de 399 arquivos antes/depois da suíte completa | **Idêntico** |
+| Tentativas PostgreSQL / rede / SMTP | **0 / 0 / 0** |
+| Leituras sensíveis interceptadas e bloqueadas | **5**, sem conteúdo lido |
+
+Os 101 dedicados estão incluídos nos focados e completos; não somar os totais
+como provas únicas. Bcrypt/Argon2id e política realmente executados. Banco,
+concorrência, commit/rollback e triggers nos dedicados são **modelo transacional**,
+com serialização e estado isolado até commit, sem PostgreSQL real. Testes do
+serviço canônico de auditoria e revogação recebem o mesmo executor modelado,
+sem fallback ao pool global. Queries sensíveis não usam a fachada de logs.
+
+Primeira rodada **91/93**: duas expectativas do instrumento enviavam a versão
+inválida como entrada, causando rejeição `AUTH_PASSWORD_INPUT` antes de alcançar
+o estado inválido modelado. Ajustadas para manter entrada válida e corromper
+somente o estado consultado. Uma tentativa intermediária ainda usou a fixture
+antiga após falha do comando de gravação no Windows e repetiu **91/93**; logs
+preservados, sem contar essas tentativas como novas provas. Rodada estabilizada
+**101/101**, após completar entrada inválida e histórico ABA. Nenhuma alteração
+no serviço foi necessária para corrigir essas expectativas. A suíte completa
+oficial só iniciou depois da estabilização e não foi repetida.
+
+Artefatos fora do Git:
+`C:/tmp/escola-v3-etapa15-20261016-ea5a9430/`, `dedicated.log`,
+`dedicated-final.log`, `dedicated-stable.log`, `focused.log`, `full.log`,
+`*-exit-code.txt`, `full-started.json`, `manifest-before-full.json`,
+`manifest-after-full.json`, `guard.cjs`, `guard-*.json` e `run.py`.
+Ambiente dos processos de teste limitado a variáveis do sistema e configuração
+sintética, com DATABASE_URL dummy. Guardas de Pool/Client, TCP/TLS/DNS/UDP, SMTP e
+arquivos sensíveis (`.env`, `.pgpass`, `.npmrc`, `credentials`); cinco tentativas
+de leitura bloqueadas no conjunto da execução, sem classificar seus conteúdos
+ou afirmar que todas eram do mesmo tipo. Nenhum segredo real foi fornecido.
+Nenhum rehearsal das Etapas 01–14 foi repetido.
+
+### Limites e rehearsal PostgreSQL ainda necessário
+
+**Etapa 15 aberta** até revisão independente e rehearsal autorizado separadamente.
+Nenhuma migration, conexão SQL externa, Neon, produção, SMTP, endpoint, frontend,
+merge, deploy ou ativação operacional. Triggers e migrations aplicados intactos;
+nenhum backfill ou escritor legado conectado. `usuarioController.atualizarBasico`
+e `authUsuarioController.redefinirSenha` continuam pendências de centralização;
+login/Google, cadastro e emissão/consumo de recuperação preservados.
+
+Futura prova PostgreSQL requer autorização e preflight próprios: HEAD/alvo/TLS,
+ledger/checksums, baseline, fixture allowlist e limpeza. Confirmar consultas reais,
+ordenação bigint, FKs/constraints e contenção entre mutações/legados; observação
+por PIDs SQL/bloqueadores; ABA de conta e de histórico; commit e rollback de senha,
+janela, versão, sessões, D2, reautenticação e auditoria; falhas/timeouts reais,
+estouro de versão e preservação das demais contas. Não executar por inferência
+deste roteiro nem reutilizar autorizações antigas de banco/limpeza.
+
+Etapa **16**: upgrade transparente bcrypt; **19**: recuperação consumindo o serviço;
+**38**: troca autenticada, reautenticação forte aplicável e fechamento dos writers
+genéricos. Nenhuma dessas integrações foi antecipada. D1, D3, D4, D6–D8 e demais
+parâmetros D5 continuam pendentes; D2 e D5 local parcial preservadas.
+**Etapas 01–14 concluídas de 57. Etapa 15 aberta; Etapa 16 não iniciada.**
 
 ## Etapa 14 — reautenticação local básica
 
