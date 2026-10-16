@@ -1,5 +1,36 @@
 # Testes e evidências de fechamento
 
+**Etapa 16 — Upgrade seguro de bcrypt e rehash técnico de Argon2id implementados
+localmente para revisão**, em **16/10/2026**, base
+`97adeeb401ea274373e5636f0cee6826845551a6`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–15 concluídas de 57. Etapa 16 aberta; Etapa 17 não iniciada.**
+
+Integração local em `POST /api/login`, com
+[serviço técnico](../../backend/src/services/authLoginHashService.js) e guard
+opcional interno da sessão. Bcrypt autenticado elegível com **menos de 72 bytes
+UTF-8 originais** usa o helper canônico; Argon2id autenticado com `needsRehash=true`
+usa API técnica que revalida a credencial sem impor política de senha nova.
+Atualização, auditoria e uma única sessão confirmam na mesma transação.
+Sem incremento de versão, rotação do histórico ou revogação global por rehash.
+
+**Adiamento seguro** se houver qualquer contexto D2 ou prova de reautenticação
+que seria invalidado: preserva registros e hash, revalida a autenticação e cria
+somente a sessão normal. Triggers intactos, sem bypass. Hash/versão/`xmin`/perfil
+são revalidados sob lock; recuperação de outro upgrade exige auditoria técnica
+confirmada e nova verificação criptográfica fora dos locks, com uma única tentativa.
+Estados internos separados; nenhum status técnico adicionado ao contrato HTTP.
+
+**63/63 dedicados, 591/591 focados e 1.985/1.985 backend completo**; suíte completa
+executada uma única vez após estabilização, **9/9 sintaxe JS** e manifesto de
+402 arquivos idêntico antes/depois. Concorrência e triggers nos testes são modelos,
+não prova física PostgreSQL. Sem migration, alteração de trigger, Neon, SQL externo,
+SMTP, produção, frontend, merge, deploy ou ativação operacional.
+[Contratos, resultados e limites](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
+O estado atual está nesta implementação da Etapa 16; os estados anteriores são históricos.
+
+Registro histórico do fechamento da Etapa 15, anterior ao desenvolvimento
+autorizado da Etapa 16:
+
 **Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
 após parecer favorável da revisão independente de implementação e rehearsal.
 Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
@@ -66,7 +97,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 16 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -103,7 +134,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 16 no início define o estado atual.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1106,6 +1137,170 @@ O fechamento documental/Git da Etapa 11 alterou somente os seis documentos de
 reexecução de testes/SQL/Neon/PostgreSQL, SMTP, deploy, merge ou início da Etapa 12.
 A implementação posterior da Etapa 12 está registrada abaixo; aprovação e
 publicação Git não equivalem a implantação.
+
+## Etapa 16 — upgrade bcrypt e rehash técnico de Argon2id
+
+**16/10/2026**, branch `revisao-premium-bloco-1-auth`, base
+`97adeeb401ea274373e5636f0cee6826845551a6`; HEAD, origem e worktree limpo
+confirmados no preflight. **Etapas 01–15 concluídas de 57. Etapa 16 aberta;
+Etapa 17 não iniciada.** Implementação/publicação para revisão, sem encerramento
+ou autorização operacional. Não houve rehearsal PostgreSQL nesta etapa.
+
+### Arquivos e contratos internos da Etapa 16
+
+- Novo [serviço técnico](../../backend/src/services/authLoginHashService.js),
+  [modelo transacional](../../backend/src/services/authLoginHash.fixture.js) e
+  [63 testes dedicados](../../backend/src/services/authLoginHashService.test.js).
+- Integração em [loginController](../../backend/src/controllers/loginController.js),
+  [passwordService](../../backend/src/services/passwordService.js) e
+  [authSessionService](../../backend/src/services/authSessionService.js).
+- Ajustes de fronteira nos testes de [login](../../backend/src/controllers/loginController.test.js),
+  [API de senha](../../backend/src/services/passwordPolicy.test.js) e
+  [privacidade](../../backend/test/safeAuthLogging.test.js).
+- Somente os seis documentos V3 pertinentes; nenhum writer de troca/reset,
+  frontend, configuração, dependência, migration ou trigger alterado.
+
+`createLoginHashService({db, registrarAuditoria})` usa o passwordService oficial;
+injeção de `passwords` nos testes é interna. `prepare(user, password)` recebe
+snapshot originado da consulta do servidor, autentica novamente e prepara o hash
+fora de transação/locks; não aceita flags do body como autoridade. Retorna guard
+de uso único, sem campos de senha/hash expostos. `recover(user, password)` exige
+proveniência técnica confirmada e cria um novo guard após verificação fresca.
+Nenhum hash direto/sem autenticação foi adicionado à API pública.
+
+`passwordService.rehashAuthenticatedPassword(password, currentHash)` revalida
+Argon2id e `needsRehash=true`, com NFKC e parâmetros canônicos. Nega senha errada,
+bcrypt e Argon2id já atual. `upgradeLegacyPasswordHash` permanece inalterado,
+incluindo rechecagem real, Unicode e fronteira de 72 bytes originais.
+As duas APIs técnicas não aplicam retroativamente política de escolha de senha;
+`createNewPasswordHash` e a política completa de troca real permanecem intactos.
+
+### D2, reautenticação e criação de sessão
+
+Os triggers originais invalidam D2/provas ao mudar senha, e-mail, versões ou
+exclusão, inclusive em writers legados sem incremento. Isso não foi ignorado:
+**qualquer contexto D2 ligado às sessões da conta ou prova da conta adia a escrita**.
+Mesmo registro expirado/consumido é preservado; retenção/limpeza não são inferidas.
+
+O guard de login é passado explicitamente a `createSession`, nunca pelo body.
+O serviço de sessão mantém comportamento e retorno anteriores quando o guard
+não é fornecido (consumidores existentes, inclusive Google). Quando fornecido:
+depois do lock/versão do usuário, o guard usa o raw/client oficial, exige
+read committed/read-write, revalida hash/revisão/perfil e bloqueia todas as sessões
+da conta em ordem de ID antes de decidir ausência de registros afetados.
+FKs imediatas de D2/provas e ordem de writers canônicos foram inspecionadas.
+O modelo serial representa essa espera, sem comprovar locks físicos.
+
+UPDATE condicionado a ID/hash/versão/`xmin`/perfil e conta não excluída; muda
+**somente senha**. Auditoria e INSERT da única sessão usam a mesma transação.
+Não incrementa `auth_version`, insere histórico, consome janela de cinco senhas
+ou revoga globalmente sessões. Limite normal de cinco sessões permanece: uma
+revogação por esse limite pertence à política de login, não ao rehash.
+D2 da nova sessão, se habilitada no processo de teste, nasce depois da atualização;
+nenhuma flag real foi ativada. Os triggers executam normalmente, sem bypass.
+
+Criptografia fora dos locks. A sessão não pode confirmar só por igualdade de
+versão: o guard exige também hash e revisão efetivamente verificados, inclusive
+para Argon2id já atualizado e para rehash adiado. Duas autenticações sobre o mesmo
+snapshot produzem uma escrita técnica e uma recuperação, com uma sessão e um JWT
+publicado por login, sem segunda emissão de JWT.
+
+Recuperação limitada a uma tentativa: revisão mudou, hash é diferente, versão e
+perfil iguais, auditoria crítica confirmada liga revisões, `a.xmin` coincide com
+a revisão atual e a senha autentica esse hash Argon2id atual fora de locks.
+O novo guard verifica novamente a revisão antes de efeitos de sessão.
+Sem proveniência, em ABA, writer legado, reset, exclusão, versão/perfil alterados
+ou segundo conflito, nega com 401 canônico e piso de 250 ms; não sobrescreve senha.
+
+### Estados e auditoria técnica
+
+| Estado interno após commit | Significado |
+| --- | --- |
+| `upgraded_bcrypt` | Esta transação persistiu upgrade bcrypt elegível. |
+| `rehashed_argon2id` | Esta transação persistiu rehash de parâmetros antigos. |
+| `deferred_security_state` | Hash/registro preservados por D2/prova; autenticação revalidada, escrita adiada. |
+| `current` | Hash já canônico, sem UPDATE ou auditoria de rehash. |
+| `concurrent_upgrade` | Outro upgrade confirmado foi comprovado; senha atual revalidada, sem nova escrita. |
+
+Esses estados são metadados internos, sem novo campo no HTTP. Troca obrigatória
+continua 403 e não é resultado de manutenção; falha operacional é erro sanitizado
+e não declara persistência. Resultado só é registrado após a transação de sessão
+retornar do commit. Falha de UPDATE, auditoria, sessão, D2 ou commit desfaz todos
+os efeitos na modelagem. Commit de resultado incerto exige apuração operacional;
+não se presume persistência ou rollback só por erro de transporte.
+
+Auditoria pelo serviço canônico, `critica:true`, ação `alterar`, módulo `auth`,
+entidade `usuarios`, severidade `info`, origem `rehash_tecnico_login`, tipo,
+versão e revisões anterior/nova. Revisões ligam a transição sem registrar senha,
+hash ou fingerprint, cookie/JWT/prova, payload ou dados pessoais desnecessários.
+Depois de um commit confirmado, falha de cookie/resposta mantém o rehash verdadeiro
+e revoga somente a nova sessão pela compensação existente.
+
+### Testes locais e histórico das tentativas da Etapa 16
+
+| Validação final | Resultado |
+| --- | --- |
+| Dedicados: crypto real e login/sessão/auditoria com banco modelado | **63/63** |
+| Focados com senha/política, sessão, mutação 15, D2, reautenticação, JWT/login e privacidade | **591/591** |
+| Suíte oficial completa `npm.cmd test` / `node --test` | **1.985/1.985**, uma única execução após estabilização |
+| Falhas / skips / cancelamentos finais | **0 / 0 / 0** |
+| Sintaxe dos nove JS novos/alterados | **9/9** |
+| Manifesto de 402 arquivos antes/depois da suíte completa | **Idêntico** |
+| Tentativas PostgreSQL / rede / SMTP | **0 / 0 / 0** |
+| Tentativas de leitura sensível bloqueadas | **5**, sem conteúdo lido |
+
+Os conjuntos se sobrepõem; não somar como provas únicas. Bcrypt/Argon2id e NFKC
+reais, sem política de nova senha nos upgrades. Cobertura inclui 71/72/>72 bytes
+e Unicode, senha errada/hash inválido, parâmetros atuais/antigos, adiamento por
+D2/provas presentes antes do preparo ou inseridos após ele, antes do guard, criação D2 após rehash, fila modelada de FKs,
+dois logins bcrypt e dois Argon2id, reset/writer legado/ABA, versão/perfil/exclusão,
+falhas SQL/auditoria/commit/crypto, rollback, privacidade e compensação.
+
+Primeira rodada dedicada **39/59**: 20 falhas decorreram de uma incompatibilidade
+do modelo, que tentava `JSON.parse` em detalhes já entregues como objeto pelo
+serviço canônico de auditoria. Corrigido somente o instrumento: **59/59**.
+Cobertura final de perfil normalizado, guard inválido e concorrência Argon2id:
+**63/63**. Focados iniciais **560/564**: três expectativas ainda omitiam
+`credentialGuard` e uma lista exata de exports não incluía a nova API autenticada.
+Ajustes de fronteira, preservando asserções públicas; privacidade incluída nos
+focados finais **591/591**. Tentativas/logs preservados, sem somar falhas de
+instrumento como defeitos funcionais nem duplicar contagens aprovadas.
+A suíte completa só iniciou após estabilização, não foi repetida; nenhum código
+foi alterado depois dela.
+
+Artefatos locais fora do Git:
+`C:/tmp/escola-v3-etapa16-20261016-97adeeb4/`, `dedicated.log`,
+`dedicated-stable.log`, `dedicated-final.log`, `focused.log`,
+`focused-final.log`, `full.log`, `*-exit-code.txt`, `full-started.json`,
+`manifest-before-full.json`, `manifest-after-full.json`, `guard.cjs`,
+`guard-*.json` e `run.py`. Ambiente dos testes limitado a variáveis do sistema
+e configuração sintética, DATABASE_URL dummy; Pool/Client, TCP/TLS/DNS/UDP, SMTP
+e leitura de arquivos sensíveis bloqueados. Cinco leituras foram interceptadas,
+sem presumir seu conteúdo/tipo. Nenhum rehearsal das Etapas 01–15 foi repetido.
+
+### Limites e rehearsal PostgreSQL ainda necessário
+
+Modelos locais não provam gramática/locks PostgreSQL, FKs físicas, execução real
+dos triggers ou visibilidade de `xmin`/auditoria. O modelo invalida registros
+em todo UPDATE de hash; a preservação vem de **adiar o UPDATE**, não de fingir
+que o trigger não executa. Futura prova exige autorização/preflight próprios,
+alvo/TLS/ledger/checksums, fixtures allowlist e limpeza aprovados.
+
+Conferir fisicamente: usuário → todas as sessões e FKs contra inserção D2/provas
+antes/depois da decisão; concorrência com emissores oficiais, reset e legados;
+proveniência e visibilidade de auditoria/revisões no commit, ABA e leitura após
+espera; rollback de UPDATE/auditoria/sessão/D2, limites e falhas/timeouts reais;
+hash/versão/histórico/sessões anteriores e demais contas preservados. Escrita
+legada posterior ao commit continua pendência de centralização: o guard protege
+a criação da sessão no estado bloqueado, não corrige todos os writers futuros.
+
+Sem nova migration, mudança de trigger, Neon/PostgreSQL externo, SMTP, produção,
+frontend, endpoints novos, merge, deploy ou ativação operacional. A integração
+de código na branch não comprova operação em produção. Políticas da troca real,
+D2 e D5 parcial preservadas; consumidores de recuperação/troca e writers genéricos
+continuam nos escopos futuros, sem antecipar a Etapa 17.
+**Etapa 16 aberta até revisão independente, rehearsal autorizado e fechamento
+documental. Etapa 17 não iniciada.**
 
 ## Etapa 15 — histórico e mutação atômica de senha
 

@@ -46,10 +46,14 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
     return rows(result).map((row) => row.perfil_codigo);
   }
 
-  async function createSession({ usuarioId, expectedAuthVersion, manterConectado = false, userAgent = null, ip = null, areaInicial = null } = {}) {
+  async function createSession({ usuarioId, expectedAuthVersion, manterConectado = false, userAgent = null, ip = null, areaInicial = null, credentialGuard = null } = {}) {
     if (!isValidAuthVersion(expectedAuthVersion)) {
       throw new AuthSessionError("AUTH_SESSION_EXPECTED_AUTH_VERSION_INVALID");
     }
+    if (credentialGuard !== null && typeof credentialGuard !== "function") {
+      throw new AuthSessionError("AUTH_SESSION_CREDENTIAL_GUARD_INVALID");
+    }
+    let credentialMaintenance = null;
     const token = makeToken(cryptoApi);
     const tokenHash = hashToken(token, cryptoApi);
     const createdAt = now();
@@ -68,6 +72,14 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
       }
       if (rows(user)[0].auth_version !== expectedAuthVersion) {
         throw new AuthSessionError("AUTH_SESSION_CREDENTIAL_STATE_CHANGED");
+      }
+
+      // Internal opt-in only; guard runs after the user lock and before ANY session effects.
+      if (credentialGuard !== null) {
+        credentialMaintenance = await credentialGuard(tx);
+        if (!["current", "upgraded_bcrypt", "rehashed_argon2id", "deferred_security_state", "concurrent_upgrade"].includes(credentialMaintenance?.status)) {
+          throw new AuthSessionError("AUTH_SESSION_CREDENTIAL_GUARD_INVALID");
+        }
       }
 
       const perfis = await getProfiles(tx, usuarioId);
@@ -114,7 +126,7 @@ function createAuthSessionService({ db, cryptoApi = crypto, now = () => new Date
       }
       return { id, usuarioId, areaAtiva, criadaEm: createdAt, expiraEm: expiresAt, limiteAbsolutoEm: absoluteLimit, manterConectado: Boolean(manterConectado) };
     });
-    return { token, session };
+    return { token, session, ...(credentialGuard !== null ? { credentialMaintenance } : {}) };
   }
 
   async function validateSession(token) {

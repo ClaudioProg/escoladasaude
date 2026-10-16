@@ -88,7 +88,7 @@ test("campos fora do contexto permitido sao ignorados e nulls funcionam", () => 
 
 test("API publica exige contexto explicito e nao exporta hash direto", async () => {
   assert.deepEqual(Object.keys(service).sort(), [
-    "PasswordServiceError", "createNewPasswordHash", "upgradeLegacyPasswordHash", "verifyPassword",
+    "PasswordServiceError", "createNewPasswordHash", "rehashAuthenticatedPassword", "upgradeLegacyPasswordHash", "verifyPassword",
   ].sort());
   await assert.rejects(service.createNewPasswordHash(password), { code: "PASSWORD_INVALID_CONTEXT" });
   await assert.rejects(service.createNewPasswordHash(password, null), { code: "PASSWORD_INVALID_CONTEXT" });

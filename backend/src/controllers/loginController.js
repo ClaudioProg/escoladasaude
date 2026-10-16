@@ -34,6 +34,8 @@ const generateToken = require("../auth/generateToken");
 const { isValidAuthVersion } = require("../auth/authVersion");
 const { gerarNotificacaoDeAvaliacao } = require("./notificacaoController");
 const { createAuthSessionService } = require("../services/authSessionService");
+const { createLoginHashService } = require("../services/authLoginHashService");
+const { registrarAuditoria } = require("../services/auditoriaService");
 const { sessionCookieName, sessionCookieOptions } = require("../auth/authSessionMiddleware");
 
 /* ────────────────────────────────────────────────────────────────
@@ -190,6 +192,7 @@ async function buscarUsuarioPorCpf(req, cpf) {
       u.perfil,
       u.auth_version,
       u.senha,
+      u.xmin::text AS credential_revision,
       u.deleted_at,
       a.imagem_base64
     FROM usuarios u
@@ -342,7 +345,7 @@ async function loginUsuario(req, res, next) {
       });
     }
 
-    // canUpgrade/needsRehash não persistem hashes nesta etapa; writer seguro é posterior.
+    // Technical hash maintenance and the credential guard commit with the single session.
     // JWT legado permanece apenas durante a transição até o cutover de login/cookie.
     const token = generateToken(
       {
@@ -355,13 +358,28 @@ async function loginUsuario(req, res, next) {
 
     sessionService = createAuthSessionService({ db: getDb(req) });
     usuarioIdDaSessao = usuario.id;
-    createdSession = await sessionService.createSession({
+    const maintenance = createLoginHashService({ db: getDb(req), registrarAuditoria });
+    const sessionArgs = {
       usuarioId: usuario.id,
       expectedAuthVersion: usuario.auth_version,
       manterConectado,
       userAgent: typeof req.get === "function" ? req.get("user-agent") : req.headers?.["user-agent"],
       ip: req.ip ?? null,
-    });
+    };
+    let credentialGuard = await maintenance.prepare(usuario, senha);
+    try {
+      createdSession = await sessionService.createSession({ ...sessionArgs, credentialGuard });
+    } catch (error) {
+      if (error?.code !== "AUTH_HASH_CHANGED") throw error;
+      // One bounded recovery, only for an audited committed technical transition.
+      credentialGuard = await maintenance.recover(usuario, senha);
+      createdSession = await sessionService.createSession({ ...sessionArgs, credentialGuard });
+    }
+    if (createdSession.credentialMaintenance) {
+      console.info("[AUTH] credential maintenance", {
+        code: "AUTH_HASH_MAINTENANCE", status: createdSession.credentialMaintenance.status,
+      });
+    }
 
     const usuarioResponse = sanitizeUserForResponse(usuario, perfil);
 
@@ -397,8 +415,13 @@ async function loginUsuario(req, res, next) {
 
     return response;
   } catch (error) {
-    if (!createdSession && error?.code === "AUTH_SESSION_CREDENTIAL_STATE_CHANGED") {
+    if (!createdSession && ["AUTH_SESSION_CREDENTIAL_STATE_CHANGED", "AUTH_SESSION_USER_UNAVAILABLE", "AUTH_HASH_CHANGED"].includes(error?.code)) {
       return await sendInvalidCredentials(res, startedAt);
+    }
+    if (!createdSession && error?.code === "AUTH_HASH_REQUIRED_CHANGE") {
+      return res.status(403).json({ ok: false, code: "AUTH-403-TROCA-SENHA-OBRIGATORIA",
+        message: "Por segurança, é necessário atualizar sua senha antes de continuar.",
+        erro: "Por segurança, é necessário atualizar sua senha antes de continuar.", trocaSenhaObrigatoria: true });
     }
     log(rid, "error", "Erro no login", error);
 

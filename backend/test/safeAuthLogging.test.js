@@ -36,6 +36,14 @@ function load(t, relativePath, dependencies, env = {}, extras = {}) {
     process: { env: { NODE_ENV: "production", ...env } },
     require(request) {
       if (Object.hasOwn(dependencies, request)) return dependencies[request];
+      // Controller-level privacy tests isolate maintenance; the dedicated suite
+      // exercises real crypto, audit and session transaction together.
+      if (relativePath === "src/controllers/loginController.js") {
+        if (request === "../services/authLoginHashService") return { createLoginHashService: () => ({
+          prepare: async () => async () => ({ status: "current" }), recover: assert.fail,
+        }) };
+        if (request === "../services/auditoriaService") return { registrarAuditoria: assert.fail };
+      }
       if (["./authVersion", "../auth/authVersion"].includes(request)) {
         return load(t, "src/auth/authVersion.js", {}, env).api;
       }

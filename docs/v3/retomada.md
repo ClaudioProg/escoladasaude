@@ -1,5 +1,36 @@
 # Retomada operacional
 
+**Etapa 16 — Upgrade seguro de bcrypt e rehash técnico de Argon2id implementados
+localmente para revisão**, em **16/10/2026**, base
+`97adeeb401ea274373e5636f0cee6826845551a6`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–15 concluídas de 57. Etapa 16 aberta; Etapa 17 não iniciada.**
+
+Integração local em `POST /api/login`, com
+[serviço técnico](../../backend/src/services/authLoginHashService.js) e guard
+opcional interno da sessão. Bcrypt autenticado elegível com **menos de 72 bytes
+UTF-8 originais** usa o helper canônico; Argon2id autenticado com `needsRehash=true`
+usa API técnica que revalida a credencial sem impor política de senha nova.
+Atualização, auditoria e uma única sessão confirmam na mesma transação.
+Sem incremento de versão, rotação do histórico ou revogação global por rehash.
+
+**Adiamento seguro** se houver qualquer contexto D2 ou prova de reautenticação
+que seria invalidado: preserva registros e hash, revalida a autenticação e cria
+somente a sessão normal. Triggers intactos, sem bypass. Hash/versão/`xmin`/perfil
+são revalidados sob lock; recuperação de outro upgrade exige auditoria técnica
+confirmada e nova verificação criptográfica fora dos locks, com uma única tentativa.
+Estados internos separados; nenhum status técnico adicionado ao contrato HTTP.
+
+**63/63 dedicados, 591/591 focados e 1.985/1.985 backend completo**; suíte completa
+executada uma única vez após estabilização, **9/9 sintaxe JS** e manifesto de
+402 arquivos idêntico antes/depois. Concorrência e triggers nos testes são modelos,
+não prova física PostgreSQL. Sem migration, alteração de trigger, Neon, SQL externo,
+SMTP, produção, frontend, merge, deploy ou ativação operacional.
+[Contratos, resultados e limites](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
+O estado atual está nesta implementação da Etapa 16; os estados anteriores são históricos.
+
+Registro histórico do fechamento da Etapa 15, anterior ao desenvolvimento
+autorizado da Etapa 16:
+
 **Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
 após parecer favorável da revisão independente de implementação e rehearsal.
 Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
@@ -66,7 +97,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 16 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -103,7 +134,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 16 no início define o estado atual.
 
 Projeto: **Plataforma Escola da Saúde — V3**.
 
@@ -141,7 +172,7 @@ técnica não autoriza ativação operacional.
 
 Estado atual para retomada:
 
-**Etapas 01–15 concluídas de 57. Etapa 16 não iniciada.**
+**Etapas 01–15 concluídas de 57. Etapa 16 aberta; Etapa 17 não iniciada.**
 Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
@@ -387,6 +418,34 @@ Aviso 5432: a rede municipal bloqueia PostgreSQL direto. Usar internet pessoal
 somente quando uma etapa realmente exigir conexão e houver autorização para o
 alvo. A documentação não exige acesso a banco.
 
+## Etapa 16 — upgrade bcrypt e rehash técnico de Argon2id
+
+Integração local do login para revisão, base
+`97adeeb401ea274373e5636f0cee6826845551a6`. Criptografia fora dos locks prolongados;
+guard de credencial executado após o lock do usuário e antes de efeitos da sessão.
+Usuário/versão/hash/revisão/perfil superados impedem a criação de sessão.
+`rehashAuthenticatedPassword` revalida Argon2id antigo e usa os parâmetros oficiais,
+sem aplicar a política de escolha de nova senha. Bcrypt usa a apresentação original
+e só migra quando elegível (<72 bytes); o hash novo usa NFKC.
+
+Não usa a mutação real da Etapa 15: histórico e `auth_version` intactos, sem
+revogação global. Limite normal de cinco sessões, JWT/cookie e compensação diante
+de falha de resposta preservados. Um contexto D2 ou prova que seria removido pelos
+triggers adia a escrita, inclusive se expirado/consumido; nenhuma limpeza presumida.
+Ausência é decidida sob locks usuário → todas as sessões; FKs imediatas e writers
+canônicos fundamentam a serialização, ainda pendente de prova PostgreSQL.
+
+Estados internos: `upgraded_bcrypt`, `rehashed_argon2id`, `deferred_security_state`,
+`current` e `concurrent_upgrade`. Só são relatados após o commit da sessão.
+Concorrente técnico requer auditoria vinculada às revisões e verificação atual;
+mudança legada/ABA ou divergência não vira sucesso. Auditoria crítica usa ação
+`alterar`, módulo `auth`, entidade `usuarios`, severidade `info` e metadados
+mínimos de tipo/versão/revisões, sem hashes, senha, tokens ou request cru.
+
+**63/63 dedicados, 591/591 focados e 1.985/1.985 completos** (uma suíte completa).
+**Etapa 16 aberta; Etapa 17 não iniciada**. Publicação na branch não ativa a operação.
+[API, cobertura e rehearsal pendente](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
+
 ## Etapa 15 — histórico e mutação atômica de senha
 
 **Encerrada em 16/10/2026**, após revisão independente favorável da implementação
@@ -554,8 +613,8 @@ e [evidências](testes-e-evidencias.md#etapa-13--contexto-restrito-e-barreira-de
    descartável da Etapa 08 já excluída como origem ou alvo.
 5. Preservar decisões 1A/2A/3A/4A/5B/6A/7A e D2 aprovada; D5 parcialmente aprovada
    somente para reautenticação local básica; D1, D3, D4, D6–D8 e demais parâmetros
-   D5 pendentes. Etapa 15 encerrada; Etapa 16 não iniciada e dependente de
-   autorização própria. Não repetir rehearsal PostgreSQL sem autorização específica.
+   D5 pendentes. Etapa 15 encerrada; Etapa 16 implementada para revisão.
+   Etapa 17 não iniciada; nenhuma ativação operacional autorizada. Não repetir rehearsal PostgreSQL sem autorização específica.
    Requisições já
    autenticadas antes do commit podem terminar. Não reduzir versões/reativar sessões
    em rollback. Revisão independente e rehearsal da Etapa 07 já aprovados;

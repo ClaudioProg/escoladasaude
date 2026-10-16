@@ -35,6 +35,7 @@ const USER = {
   perfil: "usuario",
   auth_version: 1,
   senha: "hash",
+  credential_revision: "100",
   deleted_at: null,
   imagem_base64: null,
 };
@@ -46,6 +47,11 @@ function loadLoginController({ verifyPassword = async () => ({ authenticated: tr
     if (parent?.filename === LOGIN_CONTROLLER_PATH) {
       if (request === "node:perf_hooks") return { performance: clock };
       if (request === "../services/passwordService") return { verifyPassword, PasswordServiceError, ...passwordWriters };
+      if (request === "../services/authLoginHashService") return { createLoginHashService: () => ({
+        prepare: async () => async () => ({ status: "current" }),
+        recover: async () => assert.fail("Recovery requires dedicated transaction tests"),
+      }) };
+      if (request === "../services/auditoriaService") return { registrarAuditoria: async () => assert.fail("No direct audit") };
       if (request === "../db") return { query() {} };
       if (request === "../auth/generateToken") return generateJwt;
       if (request === "./notificacaoController") return { gerarNotificacaoDeAvaliacao: notify };
@@ -97,7 +103,9 @@ test("login local cria sessao, preserva JWT e nunca expoe ou registra token opac
     console.log = originalLog;
   }
 
-  assert.deepEqual(sessionArgs, {
+  assert.equal(typeof sessionArgs.credentialGuard, "function");
+  const { credentialGuard, ...compatibleArgs } = sessionArgs;
+  assert.deepEqual(compatibleArgs, {
     usuarioId: 7,
     expectedAuthVersion: 1,
     manterConectado: false,
@@ -266,7 +274,7 @@ function loginFixture(t, { user = USER, result = {}, verificationError = null, v
     upgrade: t.mock.fn(assert.fail),
     hash: t.mock.fn(assert.fail),
     query: t.mock.fn(async (sql) => {
-      assert.match(sql, /^\s*SELECT\b/i, "Login não pode escrever senha, histórico ou versão.");
+      assert.match(sql, /^\s*SELECT\b/i, "Consulta direta do controller deve ser SELECT; manutenção usa o guard transacional.");
       return { rows: user ? [{ ...user }] : [] };
     }),
   };
@@ -302,7 +310,7 @@ for (const [label, result] of [
   ["Argon2id", { algorithm: "argon2id", canUpgrade: false }],
   ["Argon2id com needsRehash", { algorithm: "argon2id", canUpgrade: false, needsRehash: true }],
 ]) {
-  test(`${label}: login normal preserva JWT/perfil/sessão/cookie sem writer`, async (t) => {
+  test(`${label}: login normal preserva JWT/perfil/sessão/cookie delegando manutenção ao guard`, async (t) => {
     const { loginUsuario, req, res, calls } = loginFixture(t, { result });
     await loginUsuario(req, res, assert.fail);
     assert.equal(res.statusCode, 200);
@@ -312,7 +320,10 @@ for (const [label, result] of [
     });
     assert.deepEqual(calls.verify.mock.calls[0].arguments, [req.body.senha, USER.senha]);
     assert.deepEqual(calls.generateJwt.mock.calls[0].arguments, [{ id: 7, perfil: "usuario", auth_version: 1 }, "1d"]);
-    assert.deepEqual(calls.createSession.mock.calls[0].arguments, [{ usuarioId: 7, expectedAuthVersion: 1, manterConectado: false, userAgent: "browser raw/1.0", ip: "203.0.113.7" }]);
+    const [guardedArgs] = calls.createSession.mock.calls[0].arguments;
+    assert.equal(typeof guardedArgs.credentialGuard, "function");
+    const { credentialGuard, ...compatibleArgs } = guardedArgs;
+    assert.deepEqual([compatibleArgs], [{ usuarioId: 7, expectedAuthVersion: 1, manterConectado: false, userAgent: "browser raw/1.0", ip: "203.0.113.7" }]);
     assert.deepEqual(calls.notify.mock.calls[0].arguments, [7]);
     assert.deepEqual(res.cookies, [{ name: "escola_saude_session", value: "opaque-session-token", options: sessionCookieOptions(false, false) }]);
     assert.match(res.headers["Cache-Control"], /no-store/);
@@ -488,7 +499,7 @@ test("piso desconta processamento e não aguarda quando custo já supera 250 ms"
 });
 
 for (const version of [1, 2, 2147483647]) {
-  test(`login le e encaminha auth_version=${version} sem query adicional`, async (t) => {
+  test(`login encaminha auth_version=${version} ao JWT/sessao com manutencao delegada`, async (t) => {
     const { loginUsuario, req, res, calls } = loginFixture(t, { user: { ...USER, auth_version: version } });
     await loginUsuario(req, res, assert.fail);
     assert.equal(res.statusCode, 200);

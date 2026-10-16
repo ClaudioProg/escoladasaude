@@ -1,5 +1,36 @@
 # Migrations V3
 
+**Etapa 16 — Upgrade seguro de bcrypt e rehash técnico de Argon2id implementados
+localmente para revisão**, em **16/10/2026**, base
+`97adeeb401ea274373e5636f0cee6826845551a6`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–15 concluídas de 57. Etapa 16 aberta; Etapa 17 não iniciada.**
+
+Integração local em `POST /api/login`, com
+[serviço técnico](../../backend/src/services/authLoginHashService.js) e guard
+opcional interno da sessão. Bcrypt autenticado elegível com **menos de 72 bytes
+UTF-8 originais** usa o helper canônico; Argon2id autenticado com `needsRehash=true`
+usa API técnica que revalida a credencial sem impor política de senha nova.
+Atualização, auditoria e uma única sessão confirmam na mesma transação.
+Sem incremento de versão, rotação do histórico ou revogação global por rehash.
+
+**Adiamento seguro** se houver qualquer contexto D2 ou prova de reautenticação
+que seria invalidado: preserva registros e hash, revalida a autenticação e cria
+somente a sessão normal. Triggers intactos, sem bypass. Hash/versão/`xmin`/perfil
+são revalidados sob lock; recuperação de outro upgrade exige auditoria técnica
+confirmada e nova verificação criptográfica fora dos locks, com uma única tentativa.
+Estados internos separados; nenhum status técnico adicionado ao contrato HTTP.
+
+**63/63 dedicados, 591/591 focados e 1.985/1.985 backend completo**; suíte completa
+executada uma única vez após estabilização, **9/9 sintaxe JS** e manifesto de
+402 arquivos idêntico antes/depois. Concorrência e triggers nos testes são modelos,
+não prova física PostgreSQL. Sem migration, alteração de trigger, Neon, SQL externo,
+SMTP, produção, frontend, merge, deploy ou ativação operacional.
+[Contratos, resultados e limites](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
+O estado atual está nesta implementação da Etapa 16; os estados anteriores são históricos.
+
+Registro histórico do fechamento da Etapa 15, anterior ao desenvolvimento
+autorizado da Etapa 16:
+
 **Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
 após parecer favorável da revisão independente de implementação e rehearsal.
 Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
@@ -66,7 +97,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 16 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -103,7 +134,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 16 no início define o estado atual.
 
 Atualização documental: **16/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
@@ -123,6 +154,29 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
 | [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; arquivo/checksum preservados. | Aplicada uma única vez em v3-homologacao; ledger com nove registros e checksum preservado; 63/63 provas funcionais únicas aprovadas (55 históricas + oito complementares), revisão independente aprovada. | Não aplicada em produção; ativação não autorizada. |
 | [2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql) | Etapa 14/D5 parcial: provas descartáveis e reservas de tentativas; dois triggers próprios. | Aplicada uma única vez em `v3-homologacao`; ledger com **10 registros**, SHA-256 preservado, **71/71 provas funcionais únicas** e revisão independente aprovadas em 16/10/2026. | Não aplicada; flag desabilitada, sem ativação autorizada. |
+
+## Etapa 16 — manutenção técnica sem DDL ou bypass de triggers
+
+Nenhuma migration criada, alterada, validada em PostgreSQL externo ou aplicada.
+Estruturas existentes de usuário, sessão, D2, reautenticação e auditoria bastam
+para a implementação local; não houve consulta de banco/ledger nesta execução.
+O marco aprovado de dez registros no ledger permanece evidência histórica.
+
+Os DDLs de D2 e reautenticação foram inspecionados: mudança de `usuarios.senha`
+invalida registros mesmo sem incremento de versão. Permanecem byte a byte intactos.
+A Etapa 16 **adia** o UPDATE se existir registro afetado; não desabilita triggers,
+não usa variável de sessão como bypass e não restaura artificialmente registros.
+FKs imediatas RESTRICT de D2 para sessão e de provas para sessão/usuário embasam
+o bloqueio usuário → todas as sessões antes da decisão de ausência; não se trata
+de um simples EXISTS fora de locks. Linhas expiradas/consumidas também adiam.
+
+Usa somente campos existentes da auditoria (`detalhes` JSON e `xmin`) para ligar
+um upgrade técnico confirmado às revisões da credencial, sem armazenar hashes.
+Sem tocar histórico, versão, sequências ou fluxo de mutação real da Etapa 15.
+Interações de FK/locks, consultas e triggers exigem rehearsal PostgreSQL autorizado
+separadamente; sintaxe JS/modelos não são validação SQL física.
+**Etapa 16 aberta; Etapa 17 não iniciada.**
+[Implementação, estados e limites](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
 
 ## Etapa 15 — reutilização do histórico existente, sem migration nova
 

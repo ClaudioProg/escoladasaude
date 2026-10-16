@@ -1,5 +1,36 @@
 # Decisões canônicas da V3
 
+**Etapa 16 — Upgrade seguro de bcrypt e rehash técnico de Argon2id implementados
+localmente para revisão**, em **16/10/2026**, base
+`97adeeb401ea274373e5636f0cee6826845551a6`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–15 concluídas de 57. Etapa 16 aberta; Etapa 17 não iniciada.**
+
+Integração local em `POST /api/login`, com
+[serviço técnico](../../backend/src/services/authLoginHashService.js) e guard
+opcional interno da sessão. Bcrypt autenticado elegível com **menos de 72 bytes
+UTF-8 originais** usa o helper canônico; Argon2id autenticado com `needsRehash=true`
+usa API técnica que revalida a credencial sem impor política de senha nova.
+Atualização, auditoria e uma única sessão confirmam na mesma transação.
+Sem incremento de versão, rotação do histórico ou revogação global por rehash.
+
+**Adiamento seguro** se houver qualquer contexto D2 ou prova de reautenticação
+que seria invalidado: preserva registros e hash, revalida a autenticação e cria
+somente a sessão normal. Triggers intactos, sem bypass. Hash/versão/`xmin`/perfil
+são revalidados sob lock; recuperação de outro upgrade exige auditoria técnica
+confirmada e nova verificação criptográfica fora dos locks, com uma única tentativa.
+Estados internos separados; nenhum status técnico adicionado ao contrato HTTP.
+
+**63/63 dedicados, 591/591 focados e 1.985/1.985 backend completo**; suíte completa
+executada uma única vez após estabilização, **9/9 sintaxe JS** e manifesto de
+402 arquivos idêntico antes/depois. Concorrência e triggers nos testes são modelos,
+não prova física PostgreSQL. Sem migration, alteração de trigger, Neon, SQL externo,
+SMTP, produção, frontend, merge, deploy ou ativação operacional.
+[Contratos, resultados e limites](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
+O estado atual está nesta implementação da Etapa 16; os estados anteriores são históricos.
+
+Registro histórico do fechamento da Etapa 15, anterior ao desenvolvimento
+autorizado da Etapa 16:
+
 **Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
 após parecer favorável da revisão independente de implementação e rehearsal.
 Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
@@ -66,7 +97,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 16 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -103,7 +134,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; a implementação da Etapa 16 no início define o estado atual.
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
@@ -377,6 +408,7 @@ o fechamento documental não reexecuta testes nem banco.
 | `createNewPasswordHash(password, context)` | Valida estrutura/contexto/política e retorna hash Argon2id. Contexto objeto obrigatório. |
 | `verifyPassword(password, hash)` | Verifica Argon2id ou bcrypt e retorna `authenticated`, `algorithm`, `needsRehash`, `canUpgrade`, `requiresPasswordChange`. |
 | `upgradeLegacyPasswordHash(password, legacyHash)` | Revalida bcrypt elegível e retorna hash Argon2id; não aceita metadados de elegibilidade como autoridade. |
+| `rehashAuthenticatedPassword(password, currentHash)` | Revalida Argon2id autenticado com parâmetros antigos e gera hash canônico; nega parâmetros já atuais e dispensa política de senha nova apenas nesse caso técnico. |
 
 Contexto: `nome`, `cpf`, `email`, `celular`, `dataNascimento`. Campos opcionais
 aceitam ausência/null; quando presentes devem ser strings com limites de
@@ -411,6 +443,9 @@ senha armazenada.
 
 **IMPLEMENTAÇÃO DESTA ETAPA — Etapa 05:**
 
+Registro histórico da verificação mista, anterior à integração técnica da Etapa 16
+abaixo; respostas públicas e política de escolha de senha permanecem preservadas.
+
 O login integra somente a verificação mista e os contratos acima. bcrypt com
 `canUpgrade=true` autentica sem persistir upgrade; Argon2id com `needsRehash=true`
 autentica sem rehash/persistência. Não chama writers de hash, não escreve senha,
@@ -419,6 +454,61 @@ obrigatória é temporário na branch V3; o fluxo restrito de troca será implem
 antes do cutover. JWT/perfil legado, sessão, cookie, `manter_conectado`, notificação
 e compensação permanecem no contrato de transição atual. Validação `422`, conta
 excluída e perfil inválido preservam seus contratos legados.
+
+## Etapa 16 — manutenção técnica de credencial no login local
+
+Contrato aprovado pelo responsável na autorização desta etapa, implementado
+localmente para revisão. Upgrade/rehash técnico **não é troca de senha** e não
+consome histórico, incrementa `auth_version`, revoga globalmente sessões ou
+modifica autorização/perfil. Não usa o serviço de mutação da Etapa 15.
+Parâmetros Argon2id e semântica NFKC oficiais preservados. Política completa
+continua obrigatória quando uma nova senha for escolhida pelo usuário.
+
+`verifyPassword` autentica primeiro. Bcrypt precisa de `canUpgrade=true`,
+`requiresPasswordChange=false` e apresentação original <72 bytes UTF-8;
+`upgradeLegacyPasswordHash` verifica de novo antes de gerar Argon2id. Bcrypt
+>=72 bytes mantém o 403 canônico de troca obrigatória, sem acesso normal.
+`rehashAuthenticatedPassword(password, currentHash)` autentica Argon2id novamente,
+exige `needsRehash=true` e retorna hash nos parâmetros oficiais; nega senha
+incorreta, bcrypt ou parâmetros já atualizados. Não aplica mínimo/blocklist de
+senha nova a uma credencial antiga já autenticada.
+
+Ambos os triggers existentes removem D2/provas quando `usuarios.senha` muda,
+mesmo com versão constante. **Nenhuma exceção ao trigger foi criada**. Antes do
+UPDATE técnico, sob lock do usuário e de todas as suas sessões, consulta os mesmos
+recortes afetados: D2 via sessão e provas por conta. Qualquer registro adia a
+escrita, mesmo expirado/consumido. Não remove, reconstrói ou classifica como descartável.
+Registro criado antes da decisão deve ser visto; criação posterior espera os
+locks/FKs imediatas. Criação D2 oficial já segue o lock do usuário; o guard bloqueia
+também sessões existentes para a FK de D2, que não referencia diretamente o usuário.
+Essa compatibilidade está modelada, sem alegação de prova de locks/trigger físico.
+
+`createSession` mantém seus consumidores anteriores e ganha `credentialGuard`
+interno opcional. No login local ele é obrigatório por integração explícita, nunca
+extraído do body. Após o lock de versão e antes de limite/INSERT/contexto, o guard
+confere usuário ativo, hash, `auth_version`, `xmin` e perfil originais, em
+read committed/read-write. Atualização técnica e auditoria compartilham o executor
+da única sessão. Perfil oficial normalizado, cookie/JWT transitórios, 401 com piso
+de 250 ms, 403 de troca obrigatória e compensação continuam nos contratos públicos.
+
+Uma disputa recuperável pode repetir somente a criação de sessão, uma vez:
+auditoria confirmada deve ligar revisão anterior e atual com versão/perfil
+inalterados, origem `rehash_tecnico_login` e `xmin` da linha de auditoria igual
+à revisão atual do usuário. Verifica a senha contra o hash atual fora de locks;
+novo guard revalida essa revisão. Hash igual com revisão diferente (ABA), writer
+não auditado, troca real, exclusão, mudança de versão/perfil ou novo conflito
+negam autenticação, sem sobrescrita e sem sessão baseada em credencial superada.
+
+Auditoria crítica: ação `alterar`, módulo `auth`, entidade `usuarios`,
+severidade `info`; detalhes de origem, tipo, versão e revisões necessários à
+proveniência. Sem senha, hash/fingerprint de credencial, cookie/JWT/prova ou body.
+Falha de UPDATE/auditoria/sessão/commit aborta a transação, sem resultado de
+manutenção confirmada. Resposta HTTP que falhe após commit revoga só a nova
+sessão; o rehash já confirmado não é descrito como rollback.
+
+**Etapa 16 aberta; Etapa 17 não iniciada.** D2, D5 parcial e demais pendências
+canônicas preservadas. Sem nova migration, trigger ou ativação operacional.
+[Estados, provas locais e limites](testes-e-evidencias.md#etapa-16--upgrade-bcrypt-e-rehash-técnico-de-argon2id).
 
 ## Etapa 15 — histórico e mutação atômica de senha
 

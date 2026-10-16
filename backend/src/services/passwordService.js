@@ -161,9 +161,20 @@ async function upgradeLegacyPasswordHash(password, legacyHash) {
   return hashArgon2id(password.normalize("NFKC"));
 }
 
+// Technical rehash of an authenticated credential: never applies new-password policy.
+async function rehashAuthenticatedPassword(password, currentHash) {
+  const result = await verifyPassword(password, currentHash);
+  if (result.algorithm !== "argon2id" || !result.authenticated || result.requiresPasswordChange ||
+      result.needsRehash !== true) {
+    throw new PasswordServiceError("PASSWORD_REHASH_DENIED", "Rehash técnico não permitido.");
+  }
+  return hashArgon2id(password.normalize("NFKC"));
+}
+
 module.exports = {
   PasswordServiceError,
   createNewPasswordHash,
   verifyPassword,
   upgradeLegacyPasswordHash,
+  rehashAuthenticatedPassword,
 };
