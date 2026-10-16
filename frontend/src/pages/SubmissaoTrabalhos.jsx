@@ -1359,14 +1359,17 @@ export default function SubmissaoTrabalhos() {
         />
       ) : null}
 
-      {modalInscricao ? (
-        <ModalInscreverTrabalho
-          chamadaId={modalInscricao.chamadaId || null}
-          submissaoId={modalInscricao.submissaoId || null}
-          onClose={() => setModalInscricao(null)}
-          onSucesso={handleSucesso}
-        />
-      ) : null}
+      {modalInscricao
+        ? createPortal(
+            <ModalInscreverTrabalho
+              chamadaId={modalInscricao.chamadaId || null}
+              submissaoId={modalInscricao.submissaoId || null}
+              onClose={() => setModalInscricao(null)}
+              onSucesso={handleSucesso}
+            />,
+            document.body,
+          )
+        : null}
     </PageShell>
   );
 }
