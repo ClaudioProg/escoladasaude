@@ -1,5 +1,40 @@
 # Migrations V3
 
+**Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
+instrução do responsável após aprovação da revisão independente. Implementação:
+`16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+
+Evidências aprovadas: **120/120 dedicados, 121/121 focados e 1.821/1.821 backend
+completo**; rehearsal PostgreSQL **71/71 provas funcionais únicas**, grupos
+**A 12/12, B 16/16, C 8/8, D 9/9, E 18/18 e F 8/8**. Concorrência real comprovada
+com PIDs e bloqueadores PostgreSQL; consumo único, reserva durável de tentativas,
+rollback e invalidações aprovados. Migration aplicada **uma única vez** em
+`v3-homologacao`, ledger com **10 registros**, SHA-256 preservado:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+Zero resíduos sintéticos e triggers habilitados. Verificação independente informada
+pelo responsável: **89 tabelas originais e 54.394 registros, sem divergências**.
+Sequências originais preservadas, sem reinicialização; avanços legítimos do ensaio
+não foram revertidos. Git e produção permaneceram inalterados no rehearsal.
+
+**D5 permanece parcialmente aprovada, exclusivamente para reautenticação local
+básica**: senha atual, prova de uso único, finalidade específica, vínculo à sessão
+e versão, validade absoluta de **cinco minutos**. A prova não concede autorização
+por si só e não substitui MFA. Demais parâmetros D5 e D1, D3, D4 e D6–D8 pendentes;
+D2 preservada. Integração operacional, consumidores sensíveis, MFA, proteção CSRF
+completa, política de retenção e proteção por IP distribuída permanecem futuros.
+`AUTH_REAUTH_ENABLED` permanece **desabilitada por padrão**.
+
+Fechamento exclusivamente documental/Git, limitado aos seis documentos autorizados,
+sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
+deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
+instrumento permanecem históricos, sem contagem como falhas funcionais.
+[Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
+O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+
+Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
+e à aprovação independente da Etapa 14:
+
 **Etapa 14 — Reautenticação local básica implementada para revisão**, em
 **15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
 `revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
@@ -32,9 +67,9 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
 
-Atualização documental: **15/10/2026**. HEAD da implementação da Etapa 11:
+Atualização documental: **16/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
 **FATO DO REPOSITÓRIO:** inventário V3 preservado; a Etapa 09 não cria migration.
 Migration 08 com rehearsal e revisão independente aprovados, aplicação histórica
@@ -51,9 +86,24 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 | [2026-10-09-auth-quotas-expand.sql](../../backend/db/migrations/2026-10-09-auth-quotas-expand.sql) | Etapa 08: tabela/eventos e índices de quotas; expand concluído, sem ativação. | 57/57 no ensaio histórico da Etapa 08, branch descartável já excluída; aplicação única em `v3-homologacao` na Etapa 09, ledger id 7, SHA preservado; rehearsal final 129/129 e revisão independente aprovada em 13/10/2026. | Não implantada; rehearsal não comprova produção. |
 | [2026-10-13-auth-outbox-expand.sql](../../backend/db/migrations/2026-10-13-auth-outbox-expand.sql) | Etapa 10: expand dedicado concluído; sem enqueue/worker/ativação. | **186/186**, incluindo **161 PostgreSQL**; exclusivamente `v3-homologacao`, ledger id 8, revisão aprovada em 13/10/2026. | Não aplicada; sem deploy. |
 | [2026-10-15-auth-contexto-restrito-expand.sql](../../backend/db/migrations/2026-10-15-auth-contexto-restrito-expand.sql) | Etapa 13/D2: contexto restrito por sessão, sem backfill; arquivo/checksum preservados. | Aplicada uma única vez em v3-homologacao; ledger com nove registros e checksum preservado; 63/63 provas funcionais únicas aprovadas (55 históricas + oito complementares), revisão independente aprovada. | Não aplicada em produção; ativação não autorizada. |
-| [2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql) | Etapa 14/D5 parcial: provas descartáveis e reservas de tentativas; dois triggers próprios. | Parser/modelos locais e inventário 1/1; não aplicada, rehearsal pendente. | Não aplicada; flag desabilitada, sem ativação autorizada. |
+| [2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql) | Etapa 14/D5 parcial: provas descartáveis e reservas de tentativas; dois triggers próprios. | Aplicada uma única vez em `v3-homologacao`; ledger com **10 registros**, SHA-256 preservado, **71/71 provas funcionais únicas** e revisão independente aprovadas em 16/10/2026. | Não aplicada; flag desabilitada, sem ativação autorizada. |
 
 ## Etapa 14 — persistência de reautenticação preparada, não aplicada
+
+Título original preservado para manter a âncora. **Estado atual: migration
+aplicada uma única vez em `v3-homologacao`**, ledger **9 → 10**, revisão
+independente e rehearsal **71/71 provas funcionais únicas aprovados**.
+SHA-256 aplicado e inalterado:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+Atomicidade DDL/ledger comprovada por observador independente antes/depois do commit;
+os nove registros anteriores e checksums preservados. Zero resíduos sintéticos,
+triggers habilitados e sequências sem reinicialização. Verificação independente
+informada: **89 tabelas originais e 54.394 registros sem divergências**.
+Produção inalterada; nenhuma reaplicação/consulta SQL neste fechamento documental.
+`AUTH_REAUTH_ENABLED` desabilitada por padrão; D5 parcial; Etapa 15 não iniciada.
+[Fechamento e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
+
+Registro histórico da preparação local, anterior à aplicação e revisão aprovadas:
 
 [2026-10-15-auth-reautenticacao-expand.sql](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql),
 forward-only, transação do runner, sem backfill/ativação ou alterações em migrations
@@ -81,6 +131,10 @@ baseline, fixtures allowlist e limpeza; sem repetir as 63 provas aprovadas D2.
 [Provas necessárias](testes-e-evidencias.md#provas-postgresql-pendentes-da-etapa-14).
 
 ## Etapa 13 — persistência mínima de D2, não aplicada
+
+Registro do fechamento da Etapa 13 em 15/10/2026: ledger e decisões pendentes
+abaixo referem-se àquele marco histórico. O estado atual está no fechamento da
+Etapa 14 no início deste documento.
 
 Título/descrição originais preservados para rastreabilidade e manutenção das
 âncoras. **Situação atual: D2 aplicada uma única vez em homologação; Etapa 13

@@ -1,5 +1,40 @@
 # Plataforma Escola da Saúde — V3
 
+**Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
+instrução do responsável após aprovação da revisão independente. Implementação:
+`16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+
+Evidências aprovadas: **120/120 dedicados, 121/121 focados e 1.821/1.821 backend
+completo**; rehearsal PostgreSQL **71/71 provas funcionais únicas**, grupos
+**A 12/12, B 16/16, C 8/8, D 9/9, E 18/18 e F 8/8**. Concorrência real comprovada
+com PIDs e bloqueadores PostgreSQL; consumo único, reserva durável de tentativas,
+rollback e invalidações aprovados. Migration aplicada **uma única vez** em
+`v3-homologacao`, ledger com **10 registros**, SHA-256 preservado:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+Zero resíduos sintéticos e triggers habilitados. Verificação independente informada
+pelo responsável: **89 tabelas originais e 54.394 registros, sem divergências**.
+Sequências originais preservadas, sem reinicialização; avanços legítimos do ensaio
+não foram revertidos. Git e produção permaneceram inalterados no rehearsal.
+
+**D5 permanece parcialmente aprovada, exclusivamente para reautenticação local
+básica**: senha atual, prova de uso único, finalidade específica, vínculo à sessão
+e versão, validade absoluta de **cinco minutos**. A prova não concede autorização
+por si só e não substitui MFA. Demais parâmetros D5 e D1, D3, D4 e D6–D8 pendentes;
+D2 preservada. Integração operacional, consumidores sensíveis, MFA, proteção CSRF
+completa, política de retenção e proteção por IP distribuída permanecem futuros.
+`AUTH_REAUTH_ENABLED` permanece **desabilitada por padrão**.
+
+Fechamento exclusivamente documental/Git, limitado aos seis documentos autorizados,
+sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
+deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
+instrumento permanecem históricos, sem contagem como falhas funcionais.
+[Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
+O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+
+Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
+e à aprovação independente da Etapa 14:
+
 **Etapa 14 — Reautenticação local básica implementada para revisão**, em
 **15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
 `revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
@@ -32,7 +67,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
@@ -129,7 +164,7 @@ fechamento. O fechamento da Etapa 10 documental/Git não
 repete testes/rehearsal nem executa SQL ou operações Neon. Ver
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação).
 
-**Etapas 01–13 concluídas de 57. Etapa 14 aberta; Etapa 15 não iniciada.**
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
 Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
@@ -254,15 +289,22 @@ antes da senha, sem reutilizar quotas de e-mail; proteção IP usa a biblioteca
 
 **120/120 dedicados + 1/1 inventário afetado (121/121 focados)**, sintaxe **9/9 JS**,
 **1.821/1.821 backend completo**, uma execução após estabilização e zero falhas/
-skips/cancelamentos. Migration **não aplicada**; concorrência e triggers reais
-pendem de rehearsal autorizado. Operações sensíveis futuras não integradas; senha
-não satisfaz MFA, e proteção CSRF local não substitui a Etapa 39.
-**Etapa 14 aberta** até revisão independente e rehearsal; **Etapa 15 não iniciada**.
+skips/cancelamentos. Revisão independente e rehearsal **71/71 provas funcionais
+únicas aprovados**; migration aplicada uma única vez em `v3-homologacao`, ledger
+com **10 registros** e checksum preservado. Concorrência física, consumo único,
+reservas duráveis, rollback e invalidações comprovados no alcance do ensaio.
+**Etapa 14 encerrada em 16/10/2026**; **Etapa 15 não iniciada**. Operações sensíveis
+futuras não integradas; prova não concede autorização nem satisfaz MFA, e proteção
+CSRF local não substitui a Etapa 39. Retenção e proteção IP distribuída pendentes.
 Reautenticação/barreira desabilitadas operacionalmente, produção e infraestrutura
 preservadas. Uma plataforma pública no endereço atual, modernização progressiva.
-[Evidências e provas pendentes](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
+[Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
 
 ## Etapa 13 — contexto restrito e barreira de acesso
+
+Registro do fechamento da Etapa 13 em 15/10/2026: ledger e decisões pendentes
+abaixo referem-se àquele marco histórico. O estado atual está no fechamento da
+Etapa 14 no início deste documento.
 
 D2 aprovada pelo responsável em **15/10/2026**: contexto restrito com **30 minutos
 de inatividade e 120 minutos absolutos**, comparações estritas no backend;

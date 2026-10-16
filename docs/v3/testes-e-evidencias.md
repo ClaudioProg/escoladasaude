@@ -1,5 +1,40 @@
 # Testes e evidências de fechamento
 
+**Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
+instrução do responsável após aprovação da revisão independente. Implementação:
+`16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+
+Evidências aprovadas: **120/120 dedicados, 121/121 focados e 1.821/1.821 backend
+completo**; rehearsal PostgreSQL **71/71 provas funcionais únicas**, grupos
+**A 12/12, B 16/16, C 8/8, D 9/9, E 18/18 e F 8/8**. Concorrência real comprovada
+com PIDs e bloqueadores PostgreSQL; consumo único, reserva durável de tentativas,
+rollback e invalidações aprovados. Migration aplicada **uma única vez** em
+`v3-homologacao`, ledger com **10 registros**, SHA-256 preservado:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+Zero resíduos sintéticos e triggers habilitados. Verificação independente informada
+pelo responsável: **89 tabelas originais e 54.394 registros, sem divergências**.
+Sequências originais preservadas, sem reinicialização; avanços legítimos do ensaio
+não foram revertidos. Git e produção permaneceram inalterados no rehearsal.
+
+**D5 permanece parcialmente aprovada, exclusivamente para reautenticação local
+básica**: senha atual, prova de uso único, finalidade específica, vínculo à sessão
+e versão, validade absoluta de **cinco minutos**. A prova não concede autorização
+por si só e não substitui MFA. Demais parâmetros D5 e D1, D3, D4 e D6–D8 pendentes;
+D2 preservada. Integração operacional, consumidores sensíveis, MFA, proteção CSRF
+completa, política de retenção e proteção por IP distribuída permanecem futuros.
+`AUTH_REAUTH_ENABLED` permanece **desabilitada por padrão**.
+
+Fechamento exclusivamente documental/Git, limitado aos seis documentos autorizados,
+sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
+deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
+instrumento permanecem históricos, sem contagem como falhas funcionais.
+[Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
+O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+
+Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
+e à aprovação independente da Etapa 14:
+
 **Etapa 14 — Reautenticação local básica implementada para revisão**, em
 **15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
 `revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
@@ -32,7 +67,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1038,6 +1073,130 @@ publicação Git não equivalem a implantação.
 
 ## Etapa 14 — reautenticação local básica
 
+### Fechamento aprovado da Etapa 14
+
+**16/10/2026**. Revisão independente aprovada, conforme informação e instrução
+expressas do responsável para este fechamento. Implementação ensaiada:
+`16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+Os estados de abertura no relatório e nos registros de implementação abaixo
+antecedem esta aprovação; os artefatos originais permanecem preservados.
+
+#### Contagens e concorrência aprovadas
+
+Testes locais aprovados: **120/120 dedicados, 121/121 focados e 1.821/1.821 backend
+completo**, uma execução completa após estabilização. Os dedicados estão incluídos
+nos focados e na suíte completa; não somar os totais como provas distintas.
+Nenhum teste local ou ensaio anterior foi repetido neste fechamento.
+
+Rehearsal PostgreSQL: **71/71 provas funcionais únicas aprovadas**, sem falhas
+funcionais. Preflight, dry-run, aplicação da migration, controles do instrumento,
+limpeza e auditoria final têm contagens separadas e não integram as 71 provas.
+
+| Grupo | Alcance | Resultado |
+| --- | --- | --- |
+| A | Persistência, constraints, FKs imediatas e rollback | **12/12** |
+| B | Emissão, bcrypt/Argon2id, reserva prévia, revalidação, ABA e ausência de sessão/JWT/touch | **16/16** |
+| C | Cinco minutos, divergências e consumo único concorrente | **8/8** |
+| D | Commit/rollback conjunto, auditoria, falhas SQL/timeout e ordem de locks | **9/9** |
+| E | Invalidações por triggers, commit/rollback e preservação de contas/sessões/D2 | **18/18** |
+| F | Reservas duráveis, limite compartilhado por conta/sessões, janela e concorrência | **8/8** |
+
+Concorrência física observada com `pg_backend_pid()`, `pg_stat_activity` e
+`pg_blocking_pids()`, incluindo amostras positivas e negativas de espera:
+B05 PID **762** bloqueado por **717**; C04 **1079** por **762**; D09 **1079** por
+**717**; F04 **1903** por **1079**. São PIDs SQL observados, sem inferência por PID
+de protocolo ou apenas pela conclusão das chamadas. C04 confirmou um commit e
+uma rejeição para dois consumidores da mesma prova; F04 confirmou uma reserva e
+uma recusa no último espaço, e F08 uma reserva entre quatro concorrentes.
+
+Reserva durável confirmada por observador independente antes da verificação de
+senha. Consumo e operação sintética confirmados ou revertidos juntos; falhas reais
+de SQL, auditoria e timeout não deixam consumo parcial. Invalidações por senha,
+e-mail, versões, exclusão e revogação/revinculação da sessão aprovadas com commit
+e rollback, inclusive writer legado sem incremento e ABA. D2 e contas/sessões
+não relacionadas preservados. SQLSTATEs esperados: `22012` (3), `23503` (2),
+`23505` (1), `23514` (14) e `57014` (1); ocorrências não equivalem a provas.
+**Zero SQLSTATEs inesperados** na execução funcional.
+
+Limite temporal da evidência: C01–C03 e F05–F07 são simulações sobre PostgreSQL
+real, substituindo somente `clock_timestamp()` por literal controlado na consulta
+identificada, com transforms e hashes registrados; SQL restante, constraints,
+locks e transações reais. Relógio do servidor não alterado. Fronteiras de cinco
+minutos e janela em -1 µs/exato/+1 µs aprovadas nesse alcance. Valores numéricos
+de tentativas usados nas fixtures são sintéticos, sem aprovação de política D5.
+Proteção HTTP/IP não foi validada como distribuída por este ensaio do serviço.
+
+#### Migration, limpeza e preservação
+
+[Migration da Etapa 14](../../backend/db/migrations/2026-10-15-auth-reautenticacao-expand.sql)
+aplicada **uma única vez** pelo runner oficial exclusivamente em `v3-homologacao`.
+Ledger **9 → 10**, com um único registro novo; DDL e ledger atômicos observados
+antes/depois do commit por conexão independente. Dez constraints, cinco índices,
+duas funções e triggers novos aprovados. SHA-256 aplicado e preservado:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+Os nove registros anteriores e seus checksums permaneceram íntegros.
+
+Uma única limpeza transacional na allowlist autorizada; trigger de perfil-base
+restaurado antes do commit. **Zero resíduos sintéticos** de usuários, perfis,
+sessões, contextos, provas, tentativas e auditorias; triggers originais e novos
+habilitados. O ensaio comparou integralmente **91 tabelas herdadas de dados**,
+com o ledger auditado separadamente, e terminou com 94 tabelas públicas incluindo
+as adições autorizadas. A **verificação independente de 89 tabelas originais e
+54.394 registros, sem divergências**, foi informada pelo responsável na aprovação;
+são recortes distintos, não somar as contagens. Digests de linhas e catálogo são
+controles de preservação, não equivalem a backup.
+
+**77 definições de sequências preservadas**, sem reinicialização/redução.
+Avanços legítimos registrados: `auditoria_eventos_id_seq` **499 → 577** e
+`sistema_migracao_id_seq` **9 → 10**; incluem INSERTs de auditoria revertidos.
+Git permaneceu na mesma branch/HEAD, remoto correspondente e worktree limpo no
+rehearsal; produção permaneceu inalterada. Este fechamento publica somente docs.
+
+#### Histórico do bloqueio e dos incidentes do instrumento
+
+- Bloqueio inicial de **TCP 5432**: tentativa preservada em
+  `attempt-01-network-blocked/`, com **zero provas funcionais e zero escritas**.
+- Preflight: `ENOENT` ao presumir arquivos históricos no checkout. Corrigido no
+  instrumento antes de escritas, conferindo sete arquivos atuais e dois blobs Git
+  históricos imutáveis, sem restaurar/alterar arquivos do repositório.
+- Auditoria final: `ORDER BY id` usava o alias `id::text` e produzia ordem textual
+  `1,10,2,...`. Comparação numérica corrigida somente no instrumento, snapshot
+  original preservado e ledger/catálogos reconfirmados em leitura após a limpeza.
+
+Os dois incidentes do instrumento foram corrigidos **sem alteração de código**;
+não são falhas funcionais. As ocorrências auxiliares de diagnóstico e busca
+continuam em `harness-incidents.json`. Nenhuma prova aprovada ou limpeza foi
+repetida, e nenhuma tentativa foi contada como prova adicional.
+
+Rastreabilidade local, somente lida neste fechamento:
+`C:/tmp/escola-v3-etapa14-rehearsal-20261015-16b89ca0/`, `RELATORIO.txt`,
+`resumo.json`, `proofs.json`, `concurrency.json`, `backend-pids.json`,
+`sql-trace.json`, `temporal-simulations.json`, `migration-result.json`,
+`migration-events.json`, `ledger-checksums-current.json`, `cleanup.json`,
+`baseline.json`, `final-snapshot.json`, `final-audit.json`, `harness-incidents.json`,
+`manifest-sha256.json` e diretório `attempt-01-network-blocked/` preservados.
+O status aberto nos relatórios originais antecede a aprovação independente atual.
+
+#### Decisões e limites do fechamento
+
+**D5 parcialmente aprovada exclusivamente para reautenticação local básica**:
+senha atual, prova de uso único, finalidade específica, vínculo à sessão e versão,
+validade absoluta de cinco minutos. **A prova não concede autorização por si só
+e não substitui MFA**. Demais parâmetros D5 e D1, D3, D4 e D6–D8 pendentes;
+D2 preservada. Integração operacional, consumidores sensíveis, MFA, proteção CSRF
+completa, retenção e proteção por IP distribuída permanecem futuros.
+`AUTH_REAUTH_ENABLED` permanece **desabilitada por padrão**.
+
+Fechamento exclusivamente nos seis documentos autorizados; sem mudanças em código,
+testes, migrations, frontend, infraestrutura ou banco. Sem repetir as 71 provas,
+os 1.821 testes ou ensaios anteriores; sem acesso Neon, SMTP ou produção, merge,
+deploy ou ativação operacional. Validação deste fechamento: `git diff --check`,
+links locais e integridade documental. Publicação limitada à branch autorizada.
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+
+### Registro histórico da implementação local da Etapa 14
+
 **15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
 `revisao-premium-bloco-1-auth`, HEAD esperado e worktree limpo confirmados antes
 da implementação. **D5 parcialmente aprovada somente quanto à reautenticação
@@ -1192,6 +1351,11 @@ bloqueada**, sem conteúdo lido. Nenhum teste dedicado/rehearsal histórico 01�
 repetido; a única suíte completa oficial inclui naturalmente os testes históricos.
 
 ### Provas PostgreSQL pendentes da Etapa 14
+
+Roteiro histórico anterior ao rehearsal **71/71 aprovado**. Título e conteúdo
+preservados para rastreabilidade e âncoras; não representam pendência atual de
+repetição nem autorização para novo ensaio. Ver o
+[fechamento aprovado](#fechamento-aprovado-da-etapa-14).
 
 Somente após autorização específica, sem reutilizar autorizações de fixtures/
 limpeza consumidas e sem repetir as 63 provas aprovadas da Etapa 13:

@@ -1,5 +1,40 @@
 # Decisões canônicas da V3
 
+**Etapa 14 — Reautenticação local básica encerrada em 16/10/2026**, por
+instrução do responsável após aprovação da revisão independente. Implementação:
+`16b89ca0f9c7455fa48d060610c209b34255df62`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+
+Evidências aprovadas: **120/120 dedicados, 121/121 focados e 1.821/1.821 backend
+completo**; rehearsal PostgreSQL **71/71 provas funcionais únicas**, grupos
+**A 12/12, B 16/16, C 8/8, D 9/9, E 18/18 e F 8/8**. Concorrência real comprovada
+com PIDs e bloqueadores PostgreSQL; consumo único, reserva durável de tentativas,
+rollback e invalidações aprovados. Migration aplicada **uma única vez** em
+`v3-homologacao`, ledger com **10 registros**, SHA-256 preservado:
+`fc810fb0e9ea96b4f5c5c619b727cf5126ae723913d4809caa6027c697d29537`.
+Zero resíduos sintéticos e triggers habilitados. Verificação independente informada
+pelo responsável: **89 tabelas originais e 54.394 registros, sem divergências**.
+Sequências originais preservadas, sem reinicialização; avanços legítimos do ensaio
+não foram revertidos. Git e produção permaneceram inalterados no rehearsal.
+
+**D5 permanece parcialmente aprovada, exclusivamente para reautenticação local
+básica**: senha atual, prova de uso único, finalidade específica, vínculo à sessão
+e versão, validade absoluta de **cinco minutos**. A prova não concede autorização
+por si só e não substitui MFA. Demais parâmetros D5 e D1, D3, D4 e D6–D8 pendentes;
+D2 preservada. Integração operacional, consumidores sensíveis, MFA, proteção CSRF
+completa, política de retenção e proteção por IP distribuída permanecem futuros.
+`AUTH_REAUTH_ENABLED` permanece **desabilitada por padrão**.
+
+Fechamento exclusivamente documental/Git, limitado aos seis documentos autorizados,
+sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
+deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
+instrumento permanecem históricos, sem contagem como falhas funcionais.
+[Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
+O estado atual é definido por este fechamento; estados de abertura abaixo são históricos.
+
+Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
+e à aprovação independente da Etapa 14:
+
 **Etapa 14 — Reautenticação local básica implementada para revisão**, em
 **15/10/2026**, base `88edbf7d550e386b3b66e651aedce92ce9469c38`, branch
 `revisao-premium-bloco-1-auth`. **D5 parcialmente aprovada somente quanto à
@@ -32,7 +67,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; este bloco define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 14 no início define o estado atual.
 
 Referência: baseline de 2026-10-05, código em
 `ddb6d1e8795c67879ec107fe264b04d52867f665`. Fonte de aprovação: instrução explícita
@@ -825,6 +860,10 @@ retenção e liberação de identificadores continuam em D7.
 
 ## DECISÃO CANÔNICA APROVADA — D2 contexto restrito
 
+Registro do fechamento da Etapa 13 em 15/10/2026: ledger e decisões pendentes
+abaixo referem-se àquele marco histórico. O estado atual está no fechamento da
+Etapa 14 no início deste documento.
+
 **Aprovada pelo responsável em 15/10/2026**, na instrução da Etapa 13.
 
 | Contrato D2 | Regra aprovada |
@@ -923,7 +962,15 @@ futura própria; nenhum job antecipado.
 CSRF proporcional: Origin/Referer exatos, HMAC por sessão/versão/origem com chave
 dedicada, JSON/header próprio e no-store. Não substitui Etapa 39 nem protege
 operações futuras automaticamente. Flag desabilitada por padrão; D2 sem nova
-exceção. **Etapa 14 aberta**, migration não aplicada e rehearsal pendente.
+exceção. **Etapa 14 encerrada em 16/10/2026**, após revisão independente e
+rehearsal **71/71** aprovados; migration aplicada uma vez em `v3-homologacao`,
+ledger com **10 registros** e SHA-256 preservado. Isso não amplia a aprovação D5.
+Integração operacional, consumidores sensíveis, MFA, CSRF completo, retenção e
+proteção IP distribuída permanecem futuros; `AUTH_REAUTH_ENABLED` desabilitada
+por padrão. **Etapa 15 não iniciada**.
+Registro histórico anterior ao rehearsal: **Etapa 14 aberta**, migration não
+aplicada e rehearsal pendente.
+[Fechamento aprovado](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
 [Contrato e evidências](testes-e-evidencias.md#etapa-14--reautenticação-local-básica).
 
 ## PENDÊNCIAS — sem decisão nesta etapa
