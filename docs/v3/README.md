@@ -1,5 +1,15 @@
 # Plataforma Escola da Saúde — V3
 
+**Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
+após parecer favorável da revisão independente de implementação e rehearsal.
+Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
+`revisao-premium-bloco-1-auth`. **Etapas 01–15 concluídas de 57.
+Etapa 16 não iniciada.**
+[Fechamento aprovado, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-15).
+
+Registro histórico da implementação para revisão, anterior ao rehearsal e ao
+fechamento da Etapa 15:
+
 **Etapa 15 — Histórico e mutação atômica de senha implementados localmente para
 revisão**, em **16/10/2026**, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`,
 branch `revisao-premium-bloco-1-auth`. **Etapas 01–14 concluídas de 57.
@@ -56,7 +66,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -93,7 +103,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; a implementação da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
 
 Baseline documental de 2026-10-05. Branch: `revisao-premium-bloco-1-auth`.
 HEAD de código da baseline: `ddb6d1e8795c67879ec107fe264b04d52867f665`.
@@ -190,7 +200,7 @@ fechamento. O fechamento da Etapa 10 documental/Git não
 repete testes/rehearsal nem executa SQL ou operações Neon. Ver
 [migration](migrations.md#etapa-10--outbox-expand-aprovada-em-homologação).
 
-**Etapas 01–14 concluídas de 57. Etapa 15 não iniciada.**
+**Etapas 01–15 concluídas de 57. Etapa 16 não iniciada.**
 Contagem das microetapas do roteiro técnico.
 Essa contagem não equivale ao avanço ponderado do trabalho; não estabelece
 percentual global, esforço restante ou estimativa de prazo.
@@ -290,9 +300,12 @@ preservados. Sem implantação em produção, merge ou configuração Vercel nes
 
 ## Etapa 15 — histórico e mutação atômica de senha
 
-Implementação local para revisão, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`;
-**Etapa 15 aberta; Etapa 16 não iniciada**. Serviço sem montagem HTTP e sem
-integração dos writers existentes. Senha atual em `usuarios.senha`; até quatro
+**Encerrada em 16/10/2026**, após revisão independente favorável da implementação
+`72f3e0b613dab46d5e225804393007d5b374baa0` e do rehearsal PostgreSQL **51/51**.
+Desenvolvida sobre `ea5a9430eac7a441f09622cbc23c5585f52a55cc`, conforme registro
+histórico acima. **Etapas 01–15 concluídas de 57. Etapa 16 não iniciada**.
+Serviço interno sem montagem HTTP e sem integração dos writers existentes.
+Senha atual em `usuarios.senha`; até quatro
 hashes anteriores em `auth_senha_historico`, em ordem numérica decrescente do
 `id` das alterações confirmadas. Só arquiva o hash que deixou de ser atual;
 primeira alteração com histórico vazio grava uma entrada, sem inventar anteriores.
@@ -332,11 +345,15 @@ permanecem nos contratos anteriores; nenhum mecanismo equivalente foi criado.
 Validação local: **101/101 dedicados, 501/501 focados, 1.922/1.922 completos**,
 **3/3 sintaxe JS**. Histórico conhecido/rotação, bcrypt/Argon2id, NFKC, 72 bytes,
 dados pessoais, snapshots/ABA, concorrência modelada, revogação e rollback
-cobertos. Rehearsal PostgreSQL ainda não executado; limites e roteiro em
-[evidências](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
+cobertos. Rehearsal PostgreSQL aprovado: **51/51 provas funcionais únicas**,
+com concorrência física, atomicidade, invalidações e rollback comprovados.
+[Fechamento, incidentes e preservação](testes-e-evidencias.md#fechamento-aprovado-da-etapa-15).
 Nenhuma migration/backfill ou integração operacional. `atualizarBasico`,
 `redefinirSenha`, login/Google, cadastro e emissão/consumo de recuperação intactos.
-Etapas 16, 19 e 38 mantêm seus próprios escopos futuros; D5 parcial não é ampliada.
+Etapa 16 (upgrade bcrypt) não iniciada; consumo pela recuperação na Etapa 19 e
+troca autenticada/fechamento dos writers genéricos na Etapa 38 permanecem futuros.
+O fechamento não autoriza alterar controllers legados. D5 parcial não é ampliada;
+`AUTH_REAUTH_ENABLED` permanece desabilitada por padrão.
 
 ## Etapa 14 — reautenticação local básica
 

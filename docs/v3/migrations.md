@@ -1,5 +1,15 @@
 # Migrations V3
 
+**Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
+após parecer favorável da revisão independente de implementação e rehearsal.
+Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
+`revisao-premium-bloco-1-auth`. **Etapas 01–15 concluídas de 57.
+Etapa 16 não iniciada.**
+[Fechamento aprovado, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-15).
+
+Registro histórico da implementação para revisão, anterior ao rehearsal e ao
+fechamento da Etapa 15:
+
 **Etapa 15 — Histórico e mutação atômica de senha implementados localmente para
 revisão**, em **16/10/2026**, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`,
 branch `revisao-premium-bloco-1-auth`. **Etapas 01–14 concluídas de 57.
@@ -56,7 +66,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -93,7 +103,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; a implementação da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
 
 Atualização documental: **16/10/2026**. HEAD da implementação da Etapa 11:
 `d9acb48b2f13ae998bfc688f1834511f0e3771bd`. Revisão independente e rehearsal aprovados.
@@ -121,22 +131,27 @@ migrations V3; não substitui o plano completo do runner para um alvo específic
 `id bigint GENERATED ALWAYS AS IDENTITY`, conta por FK imediata RESTRICT,
 `senha_hash` não vazio e `criada_em` finita, índice `(usuario_id, id DESC)`.
 A estrutura existente atende à janela de **quatro anteriores**, sem novo DDL.
-Não houve criação, edição, dry-run externo, aplicação ou consulta SQL nesta etapa.
+Na implementação local não houve criação, edição, dry-run externo, aplicação
+ou consulta SQL. O rehearsal posterior autorizado utilizou essa estrutura sem
+migration nova; este fechamento documental não acessou o banco.
 
 Serviço novo usa a estrutura existente somente quando futuramente integrado:
 atual em `usuarios.senha`, histórico por ID numérico decrescente de alterações
 confirmadas, hash anterior inserido e excedente da conta removido na mesma
 transação. Histórico ausente não é inventado; estado incompatível (>4 entradas)
 falha fechado. Sem backfill global, reset de sequência ou dados de homologação
-reutilizados como evidência atual. Tabela vazia foi informação prévia do
-responsável, não consulta desta execução.
+reutilizados como evidência atual. A informação prévia de tabela vazia foi
+revalidada no preflight e na auditoria final do rehearsal aprovado; não houve
+consulta de banco no fechamento documental.
 
-Ledger/checksums e triggers D2/reautenticação das Etapas 01–14 intactos. O marco
-homologado de **10 registros** pertence ao rehearsal aprovado da Etapa 14; não
-foi reconferido externamente na Etapa 15. Testes locais modelam os efeitos;
-queries, FKs, locks e invalidações físicas exigem rehearsal próprio autorizado.
-**Etapa 15 aberta; Etapa 16 não iniciada.**
-[Implementação, provas locais e limites](testes-e-evidencias.md#etapa-15--histórico-e-mutação-atômica-de-senha).
+**Etapa 15 encerrada**, implementação `72f3e0b613dab46d5e225804393007d5b374baa0`:
+**51/51 provas PostgreSQL únicas**, revisão independente favorável. Ledger com
+**dez migrations** e checksums intactos, **94 tabelas públicas**, **31 triggers
+habilitados** e **77 sequências com definições preservadas**. Histórico vazio
+após a terceira limpeza; sem resíduos, reinicialização ou redução de sequências.
+Avanços legítimos de auditoria/histórico separados por rodada em
+[fechamento e preservação](testes-e-evidencias.md#fechamento-aprovado-da-etapa-15).
+**Etapas 01–15 concluídas de 57. Etapa 16 não iniciada.**
 
 ## Etapa 14 — persistência de reautenticação preparada, não aplicada
 

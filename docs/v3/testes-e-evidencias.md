@@ -1,5 +1,15 @@
 # Testes e evidências de fechamento
 
+**Etapa 15 — Histórico e mutação atômica de senha encerrada em 16/10/2026**,
+após parecer favorável da revisão independente de implementação e rehearsal.
+Implementação: `72f3e0b613dab46d5e225804393007d5b374baa0`, branch
+`revisao-premium-bloco-1-auth`. **Etapas 01–15 concluídas de 57.
+Etapa 16 não iniciada.**
+[Fechamento aprovado, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-15).
+
+Registro histórico da implementação para revisão, anterior ao rehearsal e ao
+fechamento da Etapa 15:
+
 **Etapa 15 — Histórico e mutação atômica de senha implementados localmente para
 revisão**, em **16/10/2026**, base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`,
 branch `revisao-premium-bloco-1-auth`. **Etapas 01–14 concluídas de 57.
@@ -56,7 +66,7 @@ sem repetir testes ou ensaios e sem acessar Neon, SMTP ou produção; sem merge,
 deploy ou ativação operacional. O bloqueio inicial de TCP e os incidentes do
 instrumento permanecem históricos, sem contagem como falhas funcionais.
 [Fechamento, rastreabilidade e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-14).
-Este fechamento define o marco histórico da Etapa 14; o estado atual consta na implementação da Etapa 15 no início.
+Este fechamento define o marco histórico da Etapa 14; o estado atual consta no fechamento da Etapa 15 no início.
 
 Registro histórico da implementação para revisão em 15/10/2026, anterior ao rehearsal
 e à aprovação independente da Etapa 14:
@@ -93,7 +103,7 @@ D2 aprovada; D1 e D3–D8 pendentes. Ativação depende das integrações, regul
 revisão, políticas, MFA, CSRF e migração dos consumidores. Este fechamento somente
 documental não autoriza flags, produção, cutover, merge, deploy ou Etapa 14.
 [Fechamento, evidências e limites](testes-e-evidencias.md#fechamento-aprovado-da-etapa-13).
-Os registros anteriores preservam seus estados históricos; a implementação da Etapa 15 no início define o estado atual.
+Os registros anteriores preservam seus estados históricos; o fechamento da Etapa 15 no início define o estado atual.
 
 Atualização documental: 2026-10-15. Branch `revisao-premium-bloco-1-auth`.
 HEAD do núcleo da Etapa 11: `d9acb48b2f13ae998bfc688f1834511f0e3771bd`,
@@ -1099,6 +1109,113 @@ publicação Git não equivalem a implantação.
 
 ## Etapa 15 — histórico e mutação atômica de senha
 
+### Fechamento aprovado da Etapa 15
+
+**16/10/2026**. Parecer favorável da revisão independente de implementação e
+rehearsal PostgreSQL, informado pelo responsável, com autorização expressa para
+este fechamento exclusivamente documental/Git. Implementação aprovada:
+`72f3e0b613dab46d5e225804393007d5b374baa0`, branch `revisao-premium-bloco-1-auth`.
+**Etapas 01–15 concluídas de 57. Etapa 16 não iniciada.**
+
+Validação local previamente aprovada: **101/101 dedicados, 501/501 focados e
+1.922/1.922 backend completo**. Esses conjuntos se sobrepõem e não são somados
+às **51/51 provas funcionais únicas PostgreSQL**. Nenhum teste ou rehearsal foi
+repetido para este fechamento.
+
+| Grupo PostgreSQL | Resultado aprovado |
+| --- | --- |
+| A — política e histórico | **18/18** |
+| B — atomicidade da mutação | **6/6** |
+| C — concorrência física | **10/10** |
+| D — falhas, constraints e rollback | **10/10** |
+| E — integração física com a arquitetura V3 | **7/7** |
+
+As três rodadas autorizadas acrescentaram **12 + seis + 33 aprovações**.
+Preservaram-se as aprovações anteriores, sem repetir seus IDs ou contar
+preflight, modelos isolados do instrumento, preparação, controles auxiliares e
+tentativas interrompidas como novas provas.
+
+Concorrência física observada por `pg_backend_pid()`, `pg_stat_activity` e
+`pg_blocking_pids()`: **cinco amostras positivas e cinco negativas de locks**.
+PIDs, bloqueadores e traces sanitizados permanecem nos artefatos. Comprovados
+um vencedor entre duas mutações, revalidação concorrente/ABA, atomicidade de
+senha/versão/histórico/revogação/auditoria, invalidações D2/reautenticação e
+rollback integral, inclusive com executor externo e falhas/timeouts reais.
+`staged` permanece pendente até o COMMIT externo. **Zero SQLSTATEs funcionais
+inesperados**; códigos esperados preservados por caso nos relatórios.
+
+Preservação aprovada em Neon **`v3-homologacao`**, branch
+`br-round-union-adok19ir`, projeto `wild-sky-49742510`, banco `neondb`:
+ledger intacto com **dez migrations**, **94 tabelas públicas**, **89 tabelas
+originais / 54.394 registros sem divergências**, **2.668 usuários e 2.774 vínculos**
+preservados, **zero resíduos sintéticos**, **31 triggers habilitados** e
+**77 sequências com definições preservadas**. Dados e catálogos comparados aos
+baselines atuais; três limpezas transacionais autorizadas, sem quarta limpeza.
+Nenhuma migration nova na Etapa 15.
+
+| Sequência | Rodada 1 | Rodada 2 | Rodada 3 |
+| --- | --- | --- | --- |
+| `auditoria_eventos_id_seq` | 577 → 579 | 579 → 589 | 589 → 601 |
+| `auth_senha_historico_id_seq` | 5 → 11 | 11 → 22 | 22 → 48 |
+
+Avanços legítimos por INSERTs, inclusive revertidos/falhos; nenhuma sequência
+reinicializada ou reduzida. Apenas a proteção do perfil-base foi suspensa
+temporariamente nas limpezas autorizadas, com `ACCESS EXCLUSIVE NOWAIT` e
+reativação antes do COMMIT; triggers D2/reautenticação não foram suspensos.
+
+#### Incidentes preservados e rastreabilidade
+
+- **A13:** expectativa inicial ignorava o histórico existente; corrigida sem
+  enfraquecer assertions e aprovada na segunda rodada.
+- **B03:** eventos `before`/`after` do mesmo BEGIN contados em duplicidade;
+  corrigido e aprovado na terceira rodada, preservando invisibilidade, ausência
+  de COMMIT independente, estado staged e rollback.
+- **E01:** adaptador do instrumento descartava callback usado por `Pool.query`.
+  Recuperação controlada do backend próprio ocioso, estado/fixtures conferidos
+  e callback corrigido fora do Git; somente o caso incompleto foi retomado e
+  aprovado, sem repetir as 24 aprovações daquela rodada. `57P01` foi um código
+  auxiliar esperado da recuperação, separado dos SQLSTATEs funcionais.
+- **Relatório da segunda rodada:** bloqueio de arquivo impediu substituir o
+  gerador preparado; seu guard recusou declarar sucesso sem os resultados.
+  A consolidação parcial foi registrada sem escrita PostgreSQL ou aprovação falsa.
+
+Nenhum defeito material do serviço foi demonstrado nesses incidentes. Resultados
+brutos, interrupções, correções, validações preventivas e controles auxiliares
+permanecem rastreáveis; não foram convertidos em provas funcionais adicionais.
+
+Artefatos sanitizados aprovados, fora do Git:
+`C:/tmp/escola-v3-etapa15-rehearsal-20261016-72f3e0b6/`: `RELATORIO.txt`,
+`resumo-consolidado.json`, `proofs-consolidadas.json`,
+`manifest-consolidado-sha256.json` e pastas `round-02/` e `round-03/`.
+Incluem `sql-trace.json`, `concurrency.json`, `postgres-errors.json`,
+`cleanup.json`, `final-audit.json`, validação preventiva e evidências E01.
+Os estados históricos dos relatórios permanecem preservados; a revisão favorável
+e o encerramento documental são registrados aqui, por instrução do responsável.
+
+#### Contratos aprovados e limites do fechamento
+
+O serviço interno `authPasswordMutationService.js` está aprovado no escopo da
+Etapa 15: Argon2id/política canônica, senha atual e quatro anteriores conhecidas,
+sem backfill global, preparação opaca e revalidação concorrente, incremento único
+de `auth_version`, revogação integral e auditoria crítica na mesma transação.
+Sem endpoints ou writers operacionais conectados; a aprovação não autoriza
+alterar controllers legados.
+
+**Etapa 16:** upgrade bcrypt, não iniciada. **Etapa 19:** consumo pela recuperação
+de senha. **Etapa 38:** troca autenticada e fechamento dos writers genéricos.
+Esses escopos futuros exigem autorização própria. D5 continua parcialmente
+aprovada; `AUTH_REAUTH_ENABLED` permanece desabilitada por padrão. D2 e decisões
+anteriores preservadas, sem inferir os demais parâmetros D5 ou D1, D3, D4 e D6–D8.
+
+Este fechamento altera somente os seis documentos autorizados e publica um
+commit na branch V3, com validações documentais proporcionais. Sem SQL/Neon,
+PostgreSQL, SMTP, produção, alteração de infraestrutura, merge, deploy ou ativação.
+
+### Registro histórico da implementação local para revisão
+
+Os registros abaixo descrevem a implementação e o roteiro anteriores às três
+rodadas e à revisão independente; o fechamento acima define o estado atual.
+
 **16/10/2026**. Desenvolvimento autorizado na branch `revisao-premium-bloco-1-auth`,
 base `ea5a9430eac7a441f09622cbc23c5585f52a55cc`; HEAD, origem Git e worktree limpo
 conferidos no preflight. **Etapas 01–14 concluídas de 57. Etapa 15 aberta;
@@ -1228,7 +1345,7 @@ de leitura bloqueadas no conjunto da execução, sem classificar seus conteúdos
 ou afirmar que todas eram do mesmo tipo. Nenhum segredo real foi fornecido.
 Nenhum rehearsal das Etapas 01–14 foi repetido.
 
-### Limites e rehearsal PostgreSQL ainda necessário
+### Limites e roteiro PostgreSQL anteriores ao rehearsal
 
 **Etapa 15 aberta** até revisão independente e rehearsal autorizado separadamente.
 Nenhuma migration, conexão SQL externa, Neon, produção, SMTP, endpoint, frontend,
